@@ -1,6 +1,6 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE};
 use crate::input::{handles, EditTarget, Session};
-use crate::model::{label_pos, Element, End, Line, LineKind, Shape, ShapeKind};
+use crate::model::{label_pos, Element, End, Find, Line, LineKind, Shape, ShapeKind};
 use unicode_width::UnicodeWidthStr;
 
 pub fn draw(grid: &mut Grid, s: &Session) {
@@ -9,8 +9,9 @@ pub fn draw(grid: &mut Grid, s: &Session) {
         EditTarget::Existing(id) => Some((id, format!("{}_", e.buf))),
         EditTarget::New(..) => None,
     });
+    let find = s.canvas.shape_lookup();
     for e in &s.canvas.elements {
-        let (x, y, w, h) = s.canvas.bounds(e);
+        let (x, y, w, h) = s.canvas.bounds_with(e, &find);
         let (sx, sy) = view.to_screen(x, y);
         if sx >= grid.w || sy >= grid.h || sx + w <= 0 || sy + h <= 0 {
             continue;
@@ -26,7 +27,7 @@ pub fn draw(grid: &mut Grid, s: &Session) {
         };
         match e {
             Element::Shape(sh) => shape(grid, sh, sx, sy, &label(&sh.label), flags),
-            Element::Line(l) => line(grid, s, l, &label(&l.label), flags),
+            Element::Line(l) => line(grid, s, &find, l, &label(&l.label), flags),
             Element::Text(t) => grid.text(sx, sy, &label(&t.text), flags),
         }
     }
@@ -113,8 +114,8 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     );
 }
 
-fn line(grid: &mut Grid, s: &Session, l: &Line, label: &str, flags: u8) {
-    let cells = s.canvas.route(l);
+fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &str, flags: u8) {
+    let cells = s.canvas.route_with(l, find);
     let dirs = |p: (i32, i32), q: (i32, i32)| (q.0 < p.0, q.0 > p.0, q.1 < p.1, q.1 > p.1);
     for (i, &c) in cells.iter().enumerate() {
         let skip = (i == 0 && matches!(l.from, End::Bound(_)))

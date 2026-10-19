@@ -33,6 +33,10 @@ The menu has Canvases, Fit all, Export SVG, Export Mermaid and Quit. Saving is a
 
 Mouse capture disables the terminal's own text selection. Hold Shift (Option on macOS) to select text.
 
+## Performance
+
+A frame takes at most 16 ms (about 60 fps) with 5000 elements on a 200x50 screen. The same holds for one drag step plus its frame. `make perf` checks both in a release build.
+
 ## Files
 
 - Canvases: `$CLIDRAW_HOME`, else `$XDG_CONFIG_HOME/clidraw`, else `~/.config/clidraw`. One `<name>.clidraw.json` per canvas. Output is stable, so the files diff cleanly in git.

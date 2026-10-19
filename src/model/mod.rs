@@ -6,7 +6,7 @@ mod geom;
 mod history;
 mod ids;
 
-pub use canvas::Canvas;
+pub use canvas::{Canvas, Find};
 pub use command::{Command, Side};
 pub use element::{Element, End, Line, LineKind, Shape, ShapeKind, Text};
 pub use error::ModelError;

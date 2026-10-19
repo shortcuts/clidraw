@@ -1,4 +1,4 @@
-.PHONY: build release run test lint fmt fmt-check check clean
+.PHONY: build release run test lint fmt fmt-check perf check clean
 
 build:
 	cargo build
@@ -21,7 +21,10 @@ fmt:
 fmt-check:
 	cargo fmt --check
 
-check: fmt-check lint test
+perf:
+	cargo test --release --test perf -- --ignored
+
+check: fmt-check lint test perf
 
 clean:
 	cargo clean
