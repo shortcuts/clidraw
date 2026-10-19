@@ -35,6 +35,26 @@ The menu has Canvases, Fit all, Export SVG, Export Mermaid and Quit. Saving is a
 
 Mouse capture disables the terminal's own text selection. Hold Shift (Option on macOS) to select text.
 
+## Render Mermaid as SVG
+
+The built-in SVG export draws plain shapes. For a Mermaid render, export Mermaid and render it with [pele](https://pele.run). pele needs Node.
+
+1. Choose Export Mermaid in the menu and enter a file path, such as `diagram.mmd`.
+2. Install pele in a folder of your choice: `npm install pele`
+3. Save this script as `render.mjs` in the same folder:
+
+   ```js
+   import { readFileSync, writeFileSync } from 'node:fs';
+   import { render } from 'pele';
+
+   const { svg } = render(readFileSync(process.argv[2], 'utf8'));
+   writeFileSync(process.argv[3], svg);
+   ```
+
+4. Render the diagram: `node render.mjs diagram.mmd diagram.svg`
+
+pele has no command-line tool. The script calls its `render()` function.
+
 ## Performance
 
 A frame takes at most 16 ms (about 60 fps) with 5000 elements on a 200x50 screen. The same holds for one drag step plus its frame. `make perf` checks both in a release build.
