@@ -63,6 +63,13 @@ fn sample() -> Canvas {
                 End::Bound(Id::from("cccccccc")),
                 "",
             ),
+            line(
+                "iiiiiiii",
+                LineKind::ArrowBoth,
+                End::Bound(Id::from("cccccccc")),
+                End::Bound(Id::from("aaaaaaaa")),
+                "",
+            ),
             Element::Text(Text {
                 id: Id::from("gggggggg"),
                 x: -8,

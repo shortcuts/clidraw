@@ -295,7 +295,7 @@ fn palette_option_sets_the_head_of_a_selected_line() {
         Some(Element::Line(l)) => l.kind,
         _ => panic!("no line"),
     };
-    // Options sit two rows under the last tool: none, end, start.
+    // Options sit two rows under the last tool: none, end, start, both.
     let option =
         |s: &mut Session, i: u16| click(s, (2, Tool::ALL.len() as u16 + 2 + i), Instant::now());
     option(&mut s, 2);
@@ -303,11 +303,13 @@ fn palette_option_sets_the_head_of_a_selected_line() {
     s.selection = vec![Id::from("llllllll")];
     option(&mut s, 2);
     assert_eq!(kind(&s), LineKind::ArrowStart);
+    option(&mut s, 3);
+    assert_eq!(kind(&s), LineKind::ArrowBoth);
     option(&mut s, 0);
     assert_eq!(kind(&s), LineKind::Line);
     assert_eq!(s.tool, Tool::Select);
     s.undo();
-    assert_eq!(kind(&s), LineKind::ArrowStart);
+    assert_eq!(kind(&s), LineKind::ArrowBoth);
 }
 
 fn two_shapes_and_arrow_tool() -> Session {

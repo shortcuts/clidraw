@@ -47,10 +47,10 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
             }
             Element::Line(l) => match (node(&l.from), node(&l.to)) {
                 (Some(a), Some(b)) => {
-                    let arrow = if l.kind == LineKind::Line {
-                        "---"
-                    } else {
-                        "-->"
+                    let arrow = match l.kind {
+                        LineKind::Line => "---",
+                        LineKind::ArrowBoth => "<-->",
+                        _ => "-->",
                     };
                     let (a, b) = if l.kind == LineKind::ArrowStart {
                         (b, a)

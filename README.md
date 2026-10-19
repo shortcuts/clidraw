@@ -18,7 +18,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Drag a corner handle to resize. Drag a line end onto a shape to bind it.
 - Double-click a shape or line to edit its label. Double-click empty canvas to place text.
 - Click a shape tool while a shape is selected to change its kind.
-- Select a line to show its options in the palette. Pick a head: none, end or start.
+- Select a line to show its options in the palette. Pick a head: none, end, start or both.
 - Drag the `::` cell of the palette to dock it to another edge.
 - Wheel and horizontal scroll pan the canvas.
 

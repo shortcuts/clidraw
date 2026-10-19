@@ -70,6 +70,9 @@ pub fn svg(canvas: &Canvas) -> String {
                 let marker = match l.kind {
                     LineKind::Arrow => " marker-end=\"url(#arrow)\"",
                     LineKind::ArrowStart => " marker-start=\"url(#arrow)\"",
+                    LineKind::ArrowBoth => {
+                        " marker-start=\"url(#arrow)\" marker-end=\"url(#arrow)\""
+                    }
                     LineKind::Line => "",
                 };
                 let d = corners(&cells)

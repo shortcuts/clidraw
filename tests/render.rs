@@ -117,6 +117,24 @@ fn arrow_start_has_its_head_at_the_first_cell() {
 }
 
 #[test]
+fn arrow_both_has_a_head_at_each_end() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 12, ""));
+    c.elements.push(shape("bbbbbbbb", 40, ""));
+    c.elements.push(Element::Line(Line {
+        id: Id::from("cccccccc"),
+        kind: LineKind::ArrowBoth,
+        from: End::Bound(Id::from("aaaaaaaa")),
+        to: End::Bound(Id::from("bbbbbbbb")),
+        label: String::new(),
+    }));
+    let s = Session::new(c, View::default(), (80, 24));
+    let expected = format!("│◀{}▶│", "─".repeat(18));
+    let line = row(&draw(&s, &Overlay::None), 5);
+    assert_eq!(line.chars().skip(19).take(22).collect::<String>(), expected);
+}
+
+#[test]
 fn arrow_between_shapes_on_different_rows_bends_with_rounded_corners() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 12, ""));

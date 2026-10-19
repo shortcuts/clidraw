@@ -14,6 +14,7 @@ pub enum LineKind {
     Line,
     Arrow,
     ArrowStart,
+    ArrowBoth,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

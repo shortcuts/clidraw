@@ -147,12 +147,16 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
         grid.set(sx, sy, glyph, flags);
     }
     let last = cells.len().saturating_sub(1);
-    let head = match l.kind {
-        LineKind::Arrow => Some((last, last.saturating_sub(1), matches!(l.to, End::Bound(_)))),
-        LineKind::ArrowStart => Some((0, 1, matches!(l.from, End::Bound(_)))),
-        LineKind::Line => None,
+    let end = (last, last.saturating_sub(1), matches!(l.to, End::Bound(_)));
+    let start = (0, 1, matches!(l.from, End::Bound(_)));
+    let heads = match l.kind {
+        LineKind::Arrow => vec![end],
+        LineKind::ArrowStart => vec![start],
+        // shortcut: heads can share a cell on a 3-cell route, split the heads if it matters
+        LineKind::ArrowBoth => vec![start, end],
+        LineKind::Line => vec![],
     };
-    if let Some((tip, prev, bound)) = head.filter(|_| cells.len() >= 2) {
+    for (tip, prev, bound) in heads.into_iter().filter(|_| cells.len() >= 2) {
         let head_at = if bound && last >= 2 { prev } else { tip };
         let (p, c) = (cells[prev], cells[tip]);
         let glyph = match (c.0 - p.0, c.1 - p.1) {

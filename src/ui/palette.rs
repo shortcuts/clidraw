@@ -29,6 +29,7 @@ impl Choice {
             Choice::Head(LineKind::Line) => "-- none",
             Choice::Head(LineKind::Arrow) => "-> end",
             Choice::Head(LineKind::ArrowStart) => "<- start",
+            Choice::Head(LineKind::ArrowBoth) => "<-> both",
         }
     }
 }
@@ -40,9 +41,14 @@ pub fn choices(s: &Session) -> Vec<Choice> {
         .iter()
         .any(|id| matches!(s.canvas.get(id), Some(Element::Line(_))));
     if has_line {
-        [LineKind::Line, LineKind::Arrow, LineKind::ArrowStart]
-            .map(Choice::Head)
-            .to_vec()
+        [
+            LineKind::Line,
+            LineKind::Arrow,
+            LineKind::ArrowStart,
+            LineKind::ArrowBoth,
+        ]
+        .map(Choice::Head)
+        .to_vec()
     } else {
         vec![]
     }
