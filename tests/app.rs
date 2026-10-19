@@ -137,3 +137,23 @@ fn an_empty_area_opens_no_prompt() {
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
     assert_eq!(app.status.as_deref(), Some("nothing inside the area"));
 }
+
+#[test]
+fn menu_hotkeys_pick_entries() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Esc), now);
+    app.on_event(key(KeyCode::Char('m')), now);
+    assert!(matches!(
+        app.overlay,
+        clidraw::ui::Overlay::Scope(clidraw::ui::scope::ExportFormat::Mermaid)
+    ));
+    app.on_event(key(KeyCode::Esc), now);
+    app.on_event(key(KeyCode::Esc), now);
+    app.on_event(key(KeyCode::Char('z')), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Menu));
+    app.on_event(key(KeyCode::Char('q')), now);
+    assert!(app.quit);
+}

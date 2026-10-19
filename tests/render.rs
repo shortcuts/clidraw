@@ -93,6 +93,9 @@ fn menu_lists_its_entries() {
     ] {
         assert!(all.contains(e), "{e}");
     }
+    for k in ["c", "f", "s", "m", "q"] {
+        assert!(all.contains(&format!("{k} │")), "{k}");
+    }
 }
 
 #[test]

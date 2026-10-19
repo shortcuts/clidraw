@@ -165,6 +165,11 @@ impl App {
         }
         match (k.code, &mut self.overlay) {
             (KeyCode::Esc, _) => self.overlay = Overlay::None,
+            (KeyCode::Char(c), Overlay::Menu) => {
+                if let Some(item) = menu::by_key(c) {
+                    self.menu_item(item);
+                }
+            }
             (KeyCode::Char(c), Overlay::Prompt(p)) => p.buf.push(c),
             (KeyCode::Backspace, Overlay::Prompt(p)) => {
                 p.buf.pop();
