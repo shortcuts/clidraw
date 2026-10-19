@@ -8,6 +8,7 @@ pub enum PromptKind {
     NewCanvas,
     Rename(String),
     ConfirmDelete(String),
+    Command,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -41,6 +42,7 @@ impl Prompt {
             PromptKind::NewCanvas => "New canvas name",
             PromptKind::Rename(_) => "Rename canvas to",
             PromptKind::ConfirmDelete(_) => "Delete canvas",
+            PromptKind::Command => "Command",
         }
     }
 }

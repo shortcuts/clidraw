@@ -11,6 +11,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use std::time::{Duration, Instant};
 
+mod command;
 mod export;
 mod help;
 mod open;
@@ -119,6 +120,9 @@ impl App {
                 KeyOutcome::Quit => self.quit = true,
                 KeyOutcome::Menu => self.overlay = Overlay::Menu,
                 KeyOutcome::Help => self.overlay = Overlay::Help(0),
+                KeyOutcome::Command => {
+                    self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, String::new()))
+                }
                 KeyOutcome::None => {}
             }
             return;
@@ -227,6 +231,7 @@ impl App {
             return;
         };
         match p.kind {
+            PromptKind::Command => self.run_command(&p.buf),
             PromptKind::ExportSvg(a) => self.export(&p.buf, ExportFormat::Svg, a),
             PromptKind::ExportMermaid(a) => self.export(&p.buf, ExportFormat::Mermaid, a),
             PromptKind::NewCanvas => match self.store.create(&p.buf) {

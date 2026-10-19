@@ -29,6 +29,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `Ctrl-z` / `Ctrl-y` | Undo / redo |
 | `Ctrl-c` | Quit |
 | `?` | Show the shortcuts, one page per scope |
+| `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo` |
 
 The menu has Canvases, Fit all, Export SVG, Export Mermaid and Quit. Saving is automatic.
 

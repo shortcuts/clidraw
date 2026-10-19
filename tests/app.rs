@@ -284,3 +284,97 @@ fn config_sets_autosave_default_canvas_and_status() {
     app.tick(t0 + Duration::from_millis(150));
     assert_ne!(std::fs::read(&file).unwrap(), empty);
 }
+
+fn run(app: &mut App, line: &str) {
+    let t = Instant::now();
+    app.on_event(key(KeyCode::Char(':')), t);
+    for c in line.chars() {
+        app.on_event(key(KeyCode::Char(c)), t);
+    }
+    app.on_event(key(KeyCode::Enter), t);
+}
+
+fn insert_shape(app: &mut App) {
+    app.session.exec(Command::Insert(
+        0,
+        Element::Shape(Shape {
+            id: Id::from("aaaaaaaa"),
+            kind: ShapeKind::Rect,
+            x: 2,
+            y: 2,
+            w: 8,
+            h: 3,
+            label: String::new(),
+        }),
+    ));
+}
+
+#[test]
+fn colon_q_quits_and_w_saves_without_waiting() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let file = t.path().join("c/demo.clidraw.json");
+    let empty = std::fs::read(&file).unwrap();
+    insert_shape(&mut app);
+    run(&mut app, "w");
+    assert_ne!(std::fs::read(&file).unwrap(), empty);
+    assert!(!app.quit);
+    run(&mut app, "q");
+    assert!(app.quit);
+}
+
+#[test]
+fn colon_wq_saves_and_quits() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let file = t.path().join("c/demo.clidraw.json");
+    let empty = std::fs::read(&file).unwrap();
+    insert_shape(&mut app);
+    run(&mut app, "wq");
+    assert_ne!(std::fs::read(&file).unwrap(), empty);
+    assert!(app.quit);
+}
+
+#[test]
+fn colon_e_opens_or_creates_a_canvas_and_needs_a_name() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    run(&mut app, "e other");
+    assert_eq!(app.name, "other");
+    assert!(t.path().join("c/other.clidraw.json").exists());
+    run(&mut app, "e");
+    assert!(app.status.as_deref().unwrap().contains("Usage"));
+    assert_eq!(app.name, "other");
+}
+
+#[test]
+fn colon_u_and_redo_undo_and_redo() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    insert_shape(&mut app);
+    run(&mut app, "u");
+    assert_eq!(app.session.canvas.elements.len(), 0);
+    run(&mut app, "redo");
+    assert_eq!(app.session.canvas.elements.len(), 1);
+}
+
+#[test]
+fn unknown_command_sets_status_and_esc_cancels_the_prompt() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    run(&mut app, "nope");
+    assert_eq!(app.status.as_deref(), Some("Unknown command: nope"));
+    assert!(!app.quit);
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Char(':')), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Prompt(_)));
+    app.on_event(key(KeyCode::Char('q')), now);
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+    assert!(!app.quit);
+}
+
+#[test]
+fn help_lists_the_command_line() {
+    assert!(clidraw::ui::help::rows(0).iter().any(|(k, _)| k == ":"));
+}

@@ -363,3 +363,14 @@ fn configured_double_click_window_applies() {
     click(&mut s, (22, 6), t + Duration::from_millis(100));
     assert!(s.edit.is_none());
 }
+
+#[test]
+fn colon_opens_the_command_line_but_types_into_a_label_edit() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    assert_eq!(key(&mut s, KeyCode::Char(':')), KeyOutcome::Command);
+    let t = Instant::now();
+    click(&mut s, (22, 6), t);
+    click(&mut s, (22, 6), t + Duration::from_millis(100));
+    assert_eq!(key(&mut s, KeyCode::Char(':')), KeyOutcome::None);
+    assert_eq!(s.edit.as_ref().unwrap().buf, ":");
+}
