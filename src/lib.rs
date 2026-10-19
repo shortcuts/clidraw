@@ -1,4 +1,5 @@
 pub mod app;
+pub mod config;
 pub mod export;
 pub mod input;
 pub mod model;

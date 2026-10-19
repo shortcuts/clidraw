@@ -103,6 +103,10 @@ impl Store {
         Store { dir, state_dir }
     }
 
+    pub fn dir(&self) -> &Path {
+        &self.dir
+    }
+
     pub fn from_env() -> Result<Store, StoreError> {
         let home = directories::BaseDirs::new().map(|b| b.home_dir().to_path_buf());
         let env = |k: &str| std::env::var(k).ok();

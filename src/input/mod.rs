@@ -11,7 +11,7 @@ use crate::model::{Canvas, Command, Element, History, Id, Text};
 use crate::ui::palette::Dock;
 use crate::view::View;
 use state::Gesture;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Tool {
@@ -69,6 +69,7 @@ pub struct Session {
     pub tool: Tool,
     pub selection: Vec<Id>,
     pub dock: Dock,
+    pub double_click: Duration,
     pub screen: (u16, u16),
     pub edit: Option<Edit>,
     pub band: Option<((i32, i32), (i32, i32))>,
@@ -89,6 +90,7 @@ impl Session {
             tool: Tool::Select,
             selection: vec![],
             dock: Dock::Left,
+            double_click: Duration::from_millis(400),
             screen,
             edit: None,
             band: None,
@@ -128,6 +130,7 @@ impl Session {
     pub fn replace_canvas(&mut self, canvas: Canvas, view: View) {
         *self = Session {
             dock: self.dock,
+            double_click: self.double_click,
             ..Session::new(canvas, view, self.screen)
         };
     }

@@ -4,9 +4,7 @@ use super::{Session, Tool};
 use crate::model::{Command, Element, Id, ShapeKind, Side};
 use crate::ui::palette::{self, Choice, PaletteHit};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
-use std::time::{Duration, Instant};
-
-const DOUBLE_CLICK: Duration = Duration::from_millis(400);
+use std::time::Instant;
 
 pub(super) type P = (i32, i32);
 
@@ -56,7 +54,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     s.commit_edit();
     let double = s
         .last_down
-        .is_some_and(|(c, r, t)| (c, r) == screen && now.duration_since(t) <= DOUBLE_CLICK);
+        .is_some_and(|(c, r, t)| (c, r) == screen && now.duration_since(t) <= s.double_click);
     s.last_down = (!double).then_some((screen.0, screen.1, now));
     s.gesture = Gesture::Idle;
     if let Some(h) = palette::hit(s, screen.0, screen.1) {

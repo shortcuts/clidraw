@@ -1,4 +1,5 @@
 use clidraw::app::App;
+use clidraw::config::Config;
 use clidraw::model::{Command, Element, Id, Shape, ShapeKind};
 use clidraw::store::Store;
 use crossterm::event::{
@@ -256,4 +257,30 @@ fn new_canvas_prompt_is_prefilled_with_a_generated_name() {
     assert!(!adj.is_empty() && !noun.is_empty() && name != "demo");
     app.on_event(key(KeyCode::Enter), now);
     assert_eq!(app.name, name);
+}
+
+#[test]
+fn config_sets_autosave_default_canvas_and_status() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let cfg = Config {
+        autosave: Duration::from_millis(100),
+        default_canvas: "scratch".into(),
+        ..Config::default()
+    };
+    let mut app =
+        App::open_with(store, None, (80, 24), cfg, vec!["config.toml: oops".into()]).unwrap();
+    assert_eq!(app.name, "scratch");
+    assert_eq!(app.status.as_deref(), Some("config.toml: oops"));
+    let file = t.path().join("c/scratch.clidraw.json");
+    let empty = std::fs::read(&file).unwrap();
+    let t0 = Instant::now();
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 2, 3), t0);
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 2, 3), t0);
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 30, 9), t0);
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 30, 9), t0);
+    app.tick(t0);
+    app.tick(t0 + Duration::from_millis(150));
+    assert_ne!(std::fs::read(&file).unwrap(), empty);
 }

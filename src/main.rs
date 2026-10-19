@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clidraw::app::App;
+use clidraw::config::{Config, DEFAULT_TOML};
 use clidraw::store::Store;
 use crossterm::event::{
     self, DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
@@ -63,8 +64,14 @@ fn main() -> Result<()> {
     if args.first().map(String::as_str) == Some("probe") {
         return probe::run();
     }
+    if args.first().map(String::as_str) == Some("config") {
+        print!("{DEFAULT_TOML}");
+        return Ok(());
+    }
     let (w, h) = crossterm::terminal::size()?;
-    let mut app = App::open(Store::from_env()?, args.into_iter().next(), (w, h))?;
+    let store = Store::from_env()?;
+    let (config, warnings) = Config::load(store.dir());
+    let mut app = App::open_with(store, args.into_iter().next(), (w, h), config, warnings)?;
 
     enable_raw_mode()?;
     execute!(

@@ -351,3 +351,13 @@ fn clicking_the_middle_run_of_a_bent_route_selects_the_line() {
     click(&mut s, (31, 8), Instant::now());
     assert_eq!(s.selection, vec![l.id]);
 }
+
+#[test]
+fn configured_double_click_window_applies() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.double_click = Duration::from_millis(50);
+    let t = Instant::now();
+    click(&mut s, (22, 6), t);
+    click(&mut s, (22, 6), t + Duration::from_millis(100));
+    assert!(s.edit.is_none());
+}
