@@ -281,7 +281,7 @@ fn ctrl_c_quits() {
 }
 
 #[test]
-fn palette_cycles_the_head_of_a_selected_line() {
+fn palette_option_sets_the_head_of_a_selected_line() {
     let mut s = session();
     let line = Element::Line(Line {
         id: Id::from("llllllll"),
@@ -291,18 +291,21 @@ fn palette_cycles_the_head_of_a_selected_line() {
         label: String::new(),
     });
     s.canvas.push(line).unwrap();
-    s.selection = vec![Id::from("llllllll")];
     let kind = |s: &Session| match s.canvas.get(&Id::from("llllllll")) {
         Some(Element::Line(l)) => l.kind,
         _ => panic!("no line"),
     };
-    pick(&mut s, Tool::Arrow);
+    // Options sit two rows under the last tool: none, end, start.
+    let option =
+        |s: &mut Session, i: u16| click(s, (2, Tool::ALL.len() as u16 + 2 + i), Instant::now());
+    option(&mut s, 2);
+    assert_eq!(kind(&s), LineKind::Arrow, "no options without a selection");
+    s.selection = vec![Id::from("llllllll")];
+    option(&mut s, 2);
     assert_eq!(kind(&s), LineKind::ArrowStart);
-    pick(&mut s, Tool::Arrow);
-    assert_eq!(kind(&s), LineKind::Arrow);
-    pick(&mut s, Tool::Line);
+    option(&mut s, 0);
     assert_eq!(kind(&s), LineKind::Line);
     assert_eq!(s.tool, Tool::Select);
     s.undo();
-    assert_eq!(kind(&s), LineKind::Arrow);
+    assert_eq!(kind(&s), LineKind::ArrowStart);
 }

@@ -1,8 +1,8 @@
 use super::drag::{drag, up};
 use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
-use crate::model::{Command, Element, Id, LineKind, ShapeKind, Side};
-use crate::ui::palette::{self, PaletteHit};
+use crate::model::{Command, Element, Id, ShapeKind, Side};
+use crate::ui::palette::{self, Choice, PaletteHit};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, Instant};
 
@@ -59,7 +59,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         .is_some_and(|(c, r, t)| (c, r) == screen && now.duration_since(t) <= DOUBLE_CLICK);
     s.last_down = (!double).then_some((screen.0, screen.1, now));
     s.gesture = Gesture::Idle;
-    if let Some(h) = palette::hit(s.dock, s.screen, screen.0, screen.1) {
+    if let Some(h) = palette::hit(s, screen.0, screen.1) {
         return palette_down(s, h);
     }
     let hit = hit::test(&s.canvas, &s.selection, world);
@@ -98,6 +98,18 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
                 target: Target::PaletteTitle,
             }
         }
+        PaletteHit::Option(Choice::Head(kind)) => {
+            let cmds: Vec<Command> = s
+                .selection
+                .iter()
+                .filter(|id| matches!(s.canvas.get(id), Some(Element::Line(_))))
+                .map(|id| Command::SetLineKind {
+                    id: id.clone(),
+                    kind,
+                })
+                .collect();
+            s.exec(Command::Batch(cmds));
+        }
         PaletteHit::Tool(t) => {
             let kind = match t {
                 Tool::Rect => Some(ShapeKind::Rect),
@@ -111,29 +123,7 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
                 .filter(|id| s.canvas.shape(id).is_some())
                 .cloned()
                 .collect();
-            let lines: Vec<(Id, LineKind)> = s
-                .selection
-                .iter()
-                .filter_map(|id| match s.canvas.get(id) {
-                    Some(Element::Line(l)) => Some((id.clone(), l.kind)),
-                    _ => None,
-                })
-                .collect();
             match kind {
-                _ if matches!(t, Tool::Line | Tool::Arrow) && !lines.is_empty() => {
-                    let cmds = lines
-                        .into_iter()
-                        .map(|(id, old)| {
-                            let kind = match (t, old) {
-                                (Tool::Arrow, LineKind::Arrow) => LineKind::ArrowStart,
-                                (Tool::Arrow, _) => LineKind::Arrow,
-                                _ => LineKind::Line,
-                            };
-                            Command::SetLineKind { id, kind }
-                        })
-                        .collect();
-                    s.exec(Command::Batch(cmds));
-                }
                 Some(kind) if !shapes.is_empty() => {
                     let cmds = shapes
                         .into_iter()
