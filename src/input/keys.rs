@@ -7,6 +7,7 @@ pub enum KeyOutcome {
     None,
     Quit,
     Menu,
+    Help,
 }
 
 pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
@@ -38,6 +39,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
     match k.code {
         KeyCode::Esc if s.cancel_gesture() => {}
         KeyCode::Esc => return KeyOutcome::Menu,
+        KeyCode::Char('?') => return KeyOutcome::Help,
         KeyCode::Delete | KeyCode::Backspace if !s.selection.is_empty() => {
             let cmds = s.selection.iter().cloned().map(Command::Remove).collect();
             s.exec(Command::Batch(cmds));

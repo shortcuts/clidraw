@@ -13,6 +13,7 @@ use ratatui::layout::Rect;
 use std::time::{Duration, Instant};
 
 mod export;
+mod help;
 
 const AUTOSAVE: Duration = Duration::from_millis(500);
 
@@ -155,12 +156,17 @@ impl App {
             match handle_key(&mut self.session, k) {
                 KeyOutcome::Quit => self.quit = true,
                 KeyOutcome::Menu => self.overlay = Overlay::Menu,
+                KeyOutcome::Help => self.overlay = Overlay::Help(0),
                 KeyOutcome::None => {}
             }
             return;
         }
         if k.modifiers.contains(KeyModifiers::CONTROL) && k.code == KeyCode::Char('c') {
             self.quit = true;
+            return;
+        }
+        if matches!(self.overlay, Overlay::Help(_)) {
+            self.help_key(k.code);
             return;
         }
         match (k.code, &mut self.overlay) {
@@ -201,6 +207,7 @@ impl App {
                 Some(PromptHit::Cancel) => self.overlay = Overlay::None,
                 None => {}
             },
+            Overlay::Help(_) => self.help_click(col, row),
             Overlay::None => {}
         }
     }

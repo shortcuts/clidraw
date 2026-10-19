@@ -27,6 +27,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `Delete` / `Backspace` | Delete the selection |
 | `Ctrl-z` / `Ctrl-y` | Undo / redo |
 | `Ctrl-c` | Quit |
+| `?` | Show the shortcuts, one page per scope |
 
 The menu has Canvases, Fit all, Export SVG, Export Mermaid and Quit. Saving is automatic.
 

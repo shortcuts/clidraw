@@ -137,3 +137,33 @@ fn arrow_between_shapes_on_different_rows_bends_with_rounded_corners() {
     assert_eq!(cols(&b, 8, 29, 1), "│");
     assert_eq!(cols(&b, 11, 28, 14), " ╰─────────▶│ ");
 }
+
+#[test]
+fn help_pages_list_their_scope() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    for (page, wants) in [
+        (
+            0,
+            vec!["Shortcuts", "Canvas", "Delete, Backspace", "Ctrl-z, Ctrl-y"],
+        ),
+        (1, vec!["Fit all", "Export Mermaid"]),
+        (2, vec!["Commit the label"]),
+    ] {
+        let b = draw(&s, &Overlay::Help(page));
+        let all: String = (0..24).map(|y| row(&b, y)).collect();
+        for w in wants {
+            assert!(all.contains(w), "page {page}: {w}");
+        }
+    }
+}
+
+#[test]
+fn help_draws_on_a_tiny_screen() {
+    let mut t = Terminal::new(TestBackend::new(80, 8)).unwrap();
+    let s = Session::new(Canvas::default(), View::default(), (80, 8));
+    t.draw(|f| {
+        let area = f.area();
+        ui::render(f.buffer_mut(), area, &s, &Overlay::Help(0), None)
+    })
+    .unwrap();
+}

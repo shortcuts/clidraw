@@ -1,5 +1,6 @@
 mod canvas_view;
 mod grid;
+pub mod help;
 pub mod menu;
 pub mod palette;
 pub mod prompt;
@@ -17,6 +18,7 @@ pub enum Overlay {
     Scope(scope::ExportFormat),
     Switcher(switcher::Switcher),
     Prompt(prompt::Prompt),
+    Help(usize),
 }
 
 pub fn render(buf: &mut Buffer, area: Rect, s: &Session, overlay: &Overlay, status: Option<&str>) {
@@ -29,6 +31,7 @@ pub fn render(buf: &mut Buffer, area: Rect, s: &Session, overlay: &Overlay, stat
         Overlay::Scope(_) => scope::draw(&mut grid),
         Overlay::Switcher(sw) => switcher::draw(&mut grid, sw),
         Overlay::Prompt(p) => prompt::draw(&mut grid, p),
+        Overlay::Help(p) => help::draw(&mut grid, *p),
     }
     if let Some(msg) = status {
         let row = grid.h - 1;

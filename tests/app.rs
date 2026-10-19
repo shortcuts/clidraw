@@ -157,3 +157,82 @@ fn menu_hotkeys_pick_entries() {
     app.on_event(key(KeyCode::Char('q')), now);
     assert!(app.quit);
 }
+
+fn app_in(dir: &std::path::Path) -> App {
+    let store = Store::at(dir.join("c"), dir.join("state"));
+    App::open(store, Some("demo".into()), (80, 24)).unwrap()
+}
+
+fn help_page(app: &App) -> usize {
+    match app.overlay {
+        clidraw::ui::Overlay::Help(p) => p,
+        _ => panic!("help is not open"),
+    }
+}
+
+#[test]
+fn question_mark_opens_help_and_right_left_page_clamped() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Char('?')), now);
+    assert_eq!(help_page(&app), 0);
+    app.on_event(key(KeyCode::Left), now);
+    assert_eq!(help_page(&app), 0);
+    for _ in 0..3 {
+        app.on_event(key(KeyCode::Right), now);
+    }
+    assert_eq!(help_page(&app), 2);
+    app.on_event(key(KeyCode::Left), now);
+    assert_eq!(help_page(&app), 1);
+}
+
+#[test]
+fn help_closes_on_esc_question_mark_and_outside_click() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    for close in [key(KeyCode::Esc), key(KeyCode::Char('?'))] {
+        app.on_event(key(KeyCode::Char('?')), now);
+        app.on_event(close, now);
+        assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+    }
+    app.on_event(key(KeyCode::Char('?')), now);
+    click(&mut app, 0, 0, now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+}
+
+#[test]
+fn clicking_a_help_tab_selects_its_page() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Char('?')), now);
+    click(&mut app, 38, 8, now);
+    assert_eq!(help_page(&app), 2);
+    click(&mut app, 22, 8, now);
+    assert_eq!(help_page(&app), 0);
+    click(&mut app, 22, 12, now);
+    assert_eq!(help_page(&app), 0, "a click off the tabs keeps the modal");
+}
+
+#[test]
+fn question_mark_types_into_a_label_and_a_prompt() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    click(&mut app, 30, 10, now);
+    click(&mut app, 30, 10, now + Duration::from_millis(50));
+    app.on_event(key(KeyCode::Char('?')), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+    assert_eq!(app.session.edit.as_ref().unwrap().buf, "?");
+    app.on_event(key(KeyCode::Esc), now);
+    app.on_event(key(KeyCode::Esc), now);
+    app.on_event(key(KeyCode::Char('c')), now);
+    click(&mut app, 22, 11, now);
+    app.on_event(key(KeyCode::Char('?')), now);
+    let clidraw::ui::Overlay::Prompt(p) = &app.overlay else {
+        panic!("expected a prompt, got another overlay")
+    };
+    assert_eq!(p.buf, "?");
+}
