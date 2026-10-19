@@ -3,6 +3,7 @@ use clidraw::app::App;
 use clidraw::store::Store;
 use crossterm::event::{
     self, DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
+    KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
 };
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
@@ -12,12 +13,18 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io::{stdout, Stdout, Write};
 use std::panic::{self, AssertUnwindSafe};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 mod probe;
 
+static KEYBOARD_ENHANCED: AtomicBool = AtomicBool::new(false);
+
 fn restore() {
     let _ = disable_raw_mode();
+    if KEYBOARD_ENHANCED.swap(false, Ordering::SeqCst) {
+        let _ = execute!(stdout(), PopKeyboardEnhancementFlags);
+    }
     let _ = execute!(
         stdout(),
         DisableBracketedPaste,
@@ -66,6 +73,14 @@ fn main() -> Result<()> {
         EnableMouseCapture,
         EnableBracketedPaste
     )?;
+    // Querying support needs raw mode; unsupported terminals keep the legacy encoding.
+    if crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false) {
+        execute!(
+            stdout(),
+            PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES)
+        )?;
+        KEYBOARD_ENHANCED.store(true, Ordering::SeqCst);
+    }
     let default_hook = panic::take_hook();
     panic::set_hook(Box::new(move |info| {
         restore();
