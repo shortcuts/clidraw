@@ -1,0 +1,65 @@
+mod canvas_view;
+mod grid;
+pub mod menu;
+pub mod palette;
+pub mod prompt;
+pub mod switcher;
+
+use crate::input::Session;
+use grid::{Grid, REVERSE};
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+
+pub enum Overlay {
+    None,
+    Menu,
+    Switcher(switcher::Switcher),
+    Prompt(prompt::Prompt),
+}
+
+pub fn render(buf: &mut Buffer, area: Rect, s: &Session, overlay: &Overlay, status: Option<&str>) {
+    let mut grid = Grid::new(area.width, area.height);
+    canvas_view::draw(&mut grid, s);
+    palette::draw(&mut grid, s);
+    match overlay {
+        Overlay::None => {}
+        Overlay::Menu => menu::draw(&mut grid),
+        Overlay::Switcher(sw) => switcher::draw(&mut grid, sw),
+        Overlay::Prompt(p) => prompt::draw(&mut grid, p),
+    }
+    if let Some(msg) = status {
+        let row = grid.h - 1;
+        grid.fill(0, row, grid.w, 1);
+        grid.text(0, row, msg, REVERSE);
+    }
+    grid.copy_to(buf, area);
+}
+
+/// Centered box (x, y, w, h) clamped to the screen; shared by the overlays.
+pub(crate) fn centered(screen: (u16, u16), w: i32, h: i32) -> (i32, i32, i32, i32) {
+    let (sw, sh) = (i32::from(screen.0), i32::from(screen.1));
+    let w = w.min(sw);
+    let h = h.min(sh);
+    ((sw - w) / 2, (sh - h) / 2, w, h)
+}
+
+pub(crate) fn boxed(grid: &mut Grid, (x, y, w, h): (i32, i32, i32, i32), title: &str) {
+    grid.fill(x, y, w, h);
+    for i in 1..w - 1 {
+        grid.set(x + i, y, '─', 0);
+        grid.set(x + i, y + h - 1, '─', 0);
+    }
+    for j in 1..h - 1 {
+        grid.set(x, y + j, '│', 0);
+        grid.set(x + w - 1, y + j, '│', 0);
+    }
+    for (cx, cy, c) in [
+        (x, y, '┌'),
+        (x + w - 1, y, '┐'),
+        (x, y + h - 1, '└'),
+        (x + w - 1, y + h - 1, '┘'),
+    ] {
+        grid.set(cx, cy, c, 0);
+    }
+    grid.text(x + 2, y, &format!(" {title} "), 0);
+}
