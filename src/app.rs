@@ -1,5 +1,6 @@
 use crate::input::{handle_key, handle_mouse, handle_paste, KeyOutcome, Session};
 use crate::model::Canvas;
+use crate::names;
 use crate::store::{State, Store, StoreError};
 use crate::ui::menu::{self, MenuItem};
 use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
@@ -242,7 +243,10 @@ impl App {
         let name = |i: usize| sw.names[i].clone();
         let prompt = |kind, buf| Overlay::Prompt(Prompt::new(kind, buf));
         match h {
-            SwitcherHit::New => self.overlay = prompt(PromptKind::NewCanvas, String::new()),
+            SwitcherHit::New => {
+                let fresh = names::generate(|n| self.store.exists(n));
+                self.overlay = prompt(PromptKind::NewCanvas, fresh)
+            }
             SwitcherHit::Rename(i) => self.overlay = prompt(PromptKind::Rename(name(i)), name(i)),
             SwitcherHit::Delete(i) => {
                 self.overlay = prompt(PromptKind::ConfirmDelete(name(i)), String::new())

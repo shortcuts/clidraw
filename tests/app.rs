@@ -230,9 +230,30 @@ fn question_mark_types_into_a_label_and_a_prompt() {
     app.on_event(key(KeyCode::Esc), now);
     app.on_event(key(KeyCode::Char('c')), now);
     click(&mut app, 22, 11, now);
+    for _ in 0..40 {
+        app.on_event(key(KeyCode::Backspace), now);
+    }
     app.on_event(key(KeyCode::Char('?')), now);
     let clidraw::ui::Overlay::Prompt(p) = &app.overlay else {
         panic!("expected a prompt, got another overlay")
     };
     assert_eq!(p.buf, "?");
+}
+
+#[test]
+fn new_canvas_prompt_is_prefilled_with_a_generated_name() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Esc), now);
+    app.on_event(key(KeyCode::Char('c')), now);
+    click(&mut app, 25, 11, now);
+    let clidraw::ui::Overlay::Prompt(p) = &app.overlay else {
+        panic!("no prompt");
+    };
+    let name = p.buf.clone();
+    let (adj, noun) = name.split_once('-').expect("adjective-noun");
+    assert!(!adj.is_empty() && !noun.is_empty() && name != "demo");
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(app.name, name);
 }
