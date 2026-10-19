@@ -94,3 +94,21 @@ fn menu_lists_its_entries() {
         assert!(all.contains(e), "{e}");
     }
 }
+
+#[test]
+fn arrow_start_has_its_head_at_the_first_cell() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 12, ""));
+    c.elements.push(shape("bbbbbbbb", 40, ""));
+    c.elements.push(Element::Line(Line {
+        id: Id::from("cccccccc"),
+        kind: LineKind::ArrowStart,
+        from: End::Bound(Id::from("aaaaaaaa")),
+        to: End::Bound(Id::from("bbbbbbbb")),
+        label: String::new(),
+    }));
+    let s = Session::new(c, View::default(), (80, 24));
+    let expected = format!("│◀{}│", "─".repeat(19));
+    let line = row(&draw(&s, &Overlay::None), 5);
+    assert_eq!(line.chars().skip(19).take(22).collect::<String>(), expected);
+}

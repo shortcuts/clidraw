@@ -24,7 +24,7 @@ pub fn svg(canvas: &Canvas) -> String {
     let (vw, vh) = ((bw + 2 * MARGIN) * CW, (bh + 2 * MARGIN) * CH);
     let mut o = String::new();
     let _ = writeln!(o, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"{vx} {vy} {vw} {vh}\" width=\"{vw}\" height=\"{vh}\" font-family=\"monospace\" font-size=\"14\">");
-    o.push_str("  <defs><marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"8\" markerHeight=\"8\" orient=\"auto\"><path d=\"M0 0 L10 5 L0 10 z\"/></marker></defs>\n");
+    o.push_str("  <defs><marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"8\" markerHeight=\"8\" orient=\"auto-start-reverse\"><path d=\"M0 0 L10 5 L0 10 z\"/></marker></defs>\n");
     let style = "fill=\"none\" stroke=\"black\"";
     for e in &canvas.elements {
         match e {
@@ -68,10 +68,10 @@ pub fn svg(canvas: &Canvas) -> String {
                 let (a, b) = canvas.line_ends(l);
                 let mid = |p: (i32, i32)| (p.0 * CW + CW / 2, p.1 * CH + CH / 2);
                 let (pa, pb) = (mid(a), mid(b));
-                let marker = if l.kind == LineKind::Arrow {
-                    " marker-end=\"url(#arrow)\""
-                } else {
-                    ""
+                let marker = match l.kind {
+                    LineKind::Arrow => " marker-end=\"url(#arrow)\"",
+                    LineKind::ArrowStart => " marker-start=\"url(#arrow)\"",
+                    LineKind::Line => "",
                 };
                 let _ = writeln!(
                     o,

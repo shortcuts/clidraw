@@ -47,10 +47,15 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
             }
             Element::Line(l) => match (node(&l.from), node(&l.to)) {
                 (Some(a), Some(b)) => {
-                    let arrow = if l.kind == LineKind::Arrow {
-                        "-->"
-                    } else {
+                    let arrow = if l.kind == LineKind::Line {
                         "---"
+                    } else {
+                        "-->"
+                    };
+                    let (a, b) = if l.kind == LineKind::ArrowStart {
+                        (b, a)
+                    } else {
+                        (a, b)
                     };
                     let pipe = if l.label.is_empty() {
                         String::new()

@@ -1,4 +1,4 @@
-use super::{Canvas, Element, End, Id, ModelError, ShapeKind};
+use super::{Canvas, Element, End, Id, LineKind, ModelError, ShapeKind};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Side {
@@ -34,6 +34,10 @@ pub enum Command {
     SetKind {
         id: Id,
         kind: ShapeKind,
+    },
+    SetLineKind {
+        id: Id,
+        kind: LineKind,
     },
     Batch(Vec<Command>),
 }
@@ -184,6 +188,14 @@ impl Canvas {
                 };
                 let old = std::mem::replace(&mut s.kind, kind);
                 Ok(Command::SetKind { id, kind: old })
+            }
+            Command::SetLineKind { id, kind } => {
+                let i = self.index_of(&id).ok_or_else(|| missing(&id))?;
+                let Element::Line(l) = &mut self.elements[i] else {
+                    return Err(wrong(&id));
+                };
+                let old = std::mem::replace(&mut l.kind, kind);
+                Ok(Command::SetLineKind { id, kind: old })
             }
             Command::Insert(..) | Command::Remove(_) | Command::Batch(_) => unreachable!(),
         }

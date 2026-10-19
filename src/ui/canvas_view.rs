@@ -146,14 +146,15 @@ fn line(grid: &mut Grid, s: &Session, l: &Line, label: &str, flags: u8) {
         let (sx, sy) = s.view.to_screen(c.0, c.1);
         grid.set(sx, sy, glyph, flags);
     }
-    if l.kind == LineKind::Arrow && cells.len() >= 2 {
-        let last = cells.len() - 1;
-        let head_at = if matches!(l.to, End::Bound(_)) && last >= 2 {
-            last - 1
-        } else {
-            last
-        };
-        let (p, c) = (cells[last - 1], cells[last]);
+    let last = cells.len().saturating_sub(1);
+    let head = match l.kind {
+        LineKind::Arrow => Some((last, last.saturating_sub(1), matches!(l.to, End::Bound(_)))),
+        LineKind::ArrowStart => Some((0, 1, matches!(l.from, End::Bound(_)))),
+        LineKind::Line => None,
+    };
+    if let Some((tip, prev, bound)) = head.filter(|_| cells.len() >= 2) {
+        let head_at = if bound && last >= 2 { prev } else { tip };
+        let (p, c) = (cells[prev], cells[tip]);
         let glyph = match (c.0 - p.0, c.1 - p.1) {
             (1.., _) => '▶',
             (..=-1, _) => '◀',

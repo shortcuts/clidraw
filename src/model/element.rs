@@ -13,6 +13,7 @@ pub enum ShapeKind {
 pub enum LineKind {
     Line,
     Arrow,
+    ArrowStart,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

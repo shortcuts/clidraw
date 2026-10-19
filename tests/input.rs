@@ -1,5 +1,5 @@
 use clidraw::input::{handle_key, handle_mouse, KeyOutcome, Session, Tool};
-use clidraw::model::{Canvas, Element, End, Id, Shape, ShapeKind};
+use clidraw::model::{Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::ui::palette::Dock;
 use clidraw::view::View;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -278,4 +278,31 @@ fn ctrl_c_quits() {
         KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
     );
     assert_eq!(out, KeyOutcome::Quit);
+}
+
+#[test]
+fn palette_cycles_the_head_of_a_selected_line() {
+    let mut s = session();
+    let line = Element::Line(Line {
+        id: Id::from("llllllll"),
+        kind: LineKind::Arrow,
+        from: End::Free(5, 5),
+        to: End::Free(25, 5),
+        label: String::new(),
+    });
+    s.canvas.push(line).unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    let kind = |s: &Session| match s.canvas.get(&Id::from("llllllll")) {
+        Some(Element::Line(l)) => l.kind,
+        _ => panic!("no line"),
+    };
+    pick(&mut s, Tool::Arrow);
+    assert_eq!(kind(&s), LineKind::ArrowStart);
+    pick(&mut s, Tool::Arrow);
+    assert_eq!(kind(&s), LineKind::Arrow);
+    pick(&mut s, Tool::Line);
+    assert_eq!(kind(&s), LineKind::Line);
+    assert_eq!(s.tool, Tool::Select);
+    s.undo();
+    assert_eq!(kind(&s), LineKind::Arrow);
 }

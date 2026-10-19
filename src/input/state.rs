@@ -1,7 +1,7 @@
 use super::drag::{drag, up};
 use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
-use crate::model::{Command, Id, ShapeKind, Side};
+use crate::model::{Command, Element, Id, LineKind, ShapeKind, Side};
 use crate::ui::palette::{self, PaletteHit};
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, Instant};
@@ -111,7 +111,29 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
                 .filter(|id| s.canvas.shape(id).is_some())
                 .cloned()
                 .collect();
+            let lines: Vec<(Id, LineKind)> = s
+                .selection
+                .iter()
+                .filter_map(|id| match s.canvas.get(id) {
+                    Some(Element::Line(l)) => Some((id.clone(), l.kind)),
+                    _ => None,
+                })
+                .collect();
             match kind {
+                _ if matches!(t, Tool::Line | Tool::Arrow) && !lines.is_empty() => {
+                    let cmds = lines
+                        .into_iter()
+                        .map(|(id, old)| {
+                            let kind = match (t, old) {
+                                (Tool::Arrow, LineKind::Arrow) => LineKind::ArrowStart,
+                                (Tool::Arrow, _) => LineKind::Arrow,
+                                _ => LineKind::Line,
+                            };
+                            Command::SetLineKind { id, kind }
+                        })
+                        .collect();
+                    s.exec(Command::Batch(cmds));
+                }
                 Some(kind) if !shapes.is_empty() => {
                     let cmds = shapes
                         .into_iter()
