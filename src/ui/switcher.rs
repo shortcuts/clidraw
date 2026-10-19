@@ -1,4 +1,4 @@
-use super::grid::REVERSE;
+use super::grid::{DIM, REVERSE};
 use super::{boxed, centered, Grid};
 
 pub struct Switcher {
@@ -57,6 +57,6 @@ pub fn draw(grid: &mut Grid, sw: &Switcher) {
             &shown,
             if *name == sw.current { REVERSE } else { 0 },
         );
-        grid.text(r.0 + r.2 - 1 - ACTIONS.len() as i32, y, ACTIONS, 0);
+        grid.text(r.0 + r.2 - 1 - ACTIONS.len() as i32, y, ACTIONS, DIM);
     }
 }

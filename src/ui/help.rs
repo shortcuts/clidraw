@@ -10,7 +10,7 @@ const CANVAS: [(&str, &str); 6] = [
     ("Ctrl-z, Ctrl-y", "Undo, redo"),
     ("Ctrl-c", "Quit"),
     ("?", "Show this list"),
-    (":", "Command line (:q :w :e)"),
+    (":", "Commands q w wq e u redo"),
 ];
 
 const TEXT_EDIT: [(&str, &str); 4] = [
@@ -20,7 +20,7 @@ const TEXT_EDIT: [(&str, &str); 4] = [
     ("Esc", "Discard the edit"),
 ];
 
-const WIDTH: i32 = 44;
+const WIDTH: i32 = 46;
 // Two borders, the tab row, a blank row and the longest page; fixed so the box does not jump.
 const HEIGHT: i32 = 10;
 const ACTION_COL: i32 = 20;

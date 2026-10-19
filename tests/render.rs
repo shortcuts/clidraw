@@ -1,5 +1,7 @@
 use clidraw::input::Session;
 use clidraw::model::{Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
+use clidraw::ui::prompt::{Prompt, PromptKind};
+use clidraw::ui::switcher::Switcher;
 use clidraw::ui::{self, Overlay};
 use clidraw::view::View;
 use ratatui::backend::TestBackend;
@@ -173,6 +175,60 @@ fn help_pages_list_their_scope() {
             assert!(all.contains(w), "page {page}: {w}");
         }
     }
+}
+
+#[test]
+fn overlay_dims_the_canvas_behind_it() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    let s = Session::new(c, View::default(), (80, 24));
+    assert!(!draw(&s, &Overlay::None)[(20, 4)]
+        .modifier
+        .contains(Modifier::DIM));
+    assert!(draw(&s, &Overlay::Menu)[(20, 4)]
+        .modifier
+        .contains(Modifier::DIM));
+}
+
+#[test]
+fn menu_hotkeys_are_dim_and_labels_are_not() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let b = draw(&s, &Overlay::Menu);
+    assert!(b[(48, 9)].modifier.contains(Modifier::DIM), "hotkey c");
+    assert!(!b[(31, 9)].modifier.contains(Modifier::DIM), "label C");
+}
+
+#[test]
+fn switcher_action_tags_are_dim_and_new_row_stays_reversed() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let sw = Switcher {
+        names: vec!["main".into()],
+        current: "main".into(),
+    };
+    let b = draw(&s, &Overlay::Switcher(sw));
+    assert!(b[(54, 12)].modifier.contains(Modifier::DIM), "tag [");
+    assert!(b[(20, 11)].modifier.contains(Modifier::REVERSED), "+ New");
+}
+
+#[test]
+fn prompt_shows_a_dim_hint_for_keyboard_dismissal() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let p = Prompt::new(PromptKind::NewCanvas, String::new());
+    let b = draw(&s, &Overlay::Prompt(p));
+    assert_eq!(cols(&b, 11, 16, 27), "Enter confirms, Esc cancels");
+    assert!(b[(16, 11)].modifier.contains(Modifier::DIM));
+}
+
+#[test]
+fn help_canvas_row_lists_every_command_line_verb() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let b = draw(&s, &Overlay::Help(0));
+    assert!(
+        row(&b, 15).contains("Commands q w wq e u redo"),
+        "{}",
+        row(&b, 15)
+    );
+    assert_eq!(cols(&b, 15, 62, 1), "│");
 }
 
 #[test]

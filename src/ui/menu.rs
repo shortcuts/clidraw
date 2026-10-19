@@ -1,3 +1,4 @@
+use super::grid::DIM;
 use super::{boxed, centered, Grid};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -45,6 +46,6 @@ pub fn draw(grid: &mut Grid) {
     for (i, (_, label, key)) in ITEMS.iter().enumerate() {
         let y = r.1 + 1 + i as i32;
         grid.text(r.0 + 2, y, label, 0);
-        grid.text(r.0 + r.2 - 3, y, &key.to_string(), 0);
+        grid.text(r.0 + r.2 - 3, y, &key.to_string(), DIM);
     }
 }

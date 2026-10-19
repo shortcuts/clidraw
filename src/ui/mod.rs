@@ -25,6 +25,9 @@ pub fn render(buf: &mut Buffer, area: Rect, s: &Session, overlay: &Overlay, stat
     let mut grid = Grid::new(area.width, area.height);
     canvas_view::draw(&mut grid, s);
     palette::draw(&mut grid, s);
+    if !matches!(overlay, Overlay::None) {
+        grid.dim_all();
+    }
     match overlay {
         Overlay::None => {}
         Overlay::Menu => menu::draw(&mut grid),

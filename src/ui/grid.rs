@@ -65,6 +65,12 @@ impl Grid {
         }
     }
 
+    pub fn dim_all(&mut self) {
+        for c in &mut self.cells {
+            c.flags |= DIM;
+        }
+    }
+
     pub fn copy_to(&self, buf: &mut Buffer, area: Rect) {
         for y in 0..self.h.min(i32::from(area.height)) {
             for x in 0..self.w.min(i32::from(area.width)) {

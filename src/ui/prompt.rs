@@ -1,4 +1,4 @@
-use super::grid::REVERSE;
+use super::grid::{DIM, REVERSE};
 use super::{boxed, centered, Grid};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -71,6 +71,7 @@ pub fn draw(grid: &mut Grid, p: &Prompt) {
         _ => format!("{}_", p.buf),
     };
     grid.text(r.0 + 2, r.1 + 1, &line, 0);
+    grid.text(r.0 + 2, r.1 + 2, "Enter confirms, Esc cancels", DIM);
     grid.text(r.0 + 2, r.1 + 3, OK, REVERSE);
     grid.text(r.0 + 4 + OK.len() as i32, r.1 + 3, CANCEL, 0);
 }
