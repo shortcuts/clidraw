@@ -1,9 +1,9 @@
-use crate::export;
 use crate::input::{handle_key, handle_mouse, handle_paste, KeyOutcome, Session};
 use crate::model::Canvas;
 use crate::store::{State, Store, StoreError};
 use crate::ui::menu::{self, MenuItem};
 use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
+use crate::ui::scope::{self, ExportFormat};
 use crate::ui::switcher::{self, Switcher, SwitcherHit};
 use crate::ui::{self, Overlay};
 use crate::view::View;
@@ -11,6 +11,8 @@ use crossterm::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use std::time::{Duration, Instant};
+
+mod export;
 
 const AUTOSAVE: Duration = Duration::from_millis(500);
 
@@ -20,6 +22,7 @@ pub struct App {
     pub status: Option<String>,
     pub name: String,
     pub quit: bool,
+    pick: Option<export::Pick>,
     store: Store,
     state: State,
     saved_rev: u64,
@@ -40,6 +43,7 @@ impl App {
             status: None,
             name: String::new(),
             quit: false,
+            pick: None,
             store,
             state,
             saved_rev: 0,
@@ -127,6 +131,9 @@ impl App {
                 if matches!(m.kind, MouseEventKind::Down(_)) {
                     self.status = None;
                 }
+                if matches!(self.overlay, Overlay::None) && self.pick_mouse(m) {
+                    return;
+                }
                 match self.overlay {
                     Overlay::None => handle_mouse(&mut self.session, m, now),
                     _ if m.kind == MouseEventKind::Down(MouseButton::Left) => {
@@ -142,6 +149,9 @@ impl App {
     fn on_key(&mut self, k: crossterm::event::KeyEvent) {
         self.status = None;
         if matches!(self.overlay, Overlay::None) {
+            if self.pick_key(k) {
+                return;
+            }
             match handle_key(&mut self.session, k) {
                 KeyOutcome::Quit => self.quit = true,
                 KeyOutcome::Menu => self.overlay = Overlay::Menu,
@@ -172,6 +182,11 @@ impl App {
                 None if !menu::inside(screen, col, row) => self.overlay = Overlay::None,
                 None => {}
             },
+            Overlay::Scope(format) => match scope::entry_at(screen, col, row) {
+                Some(item) => self.scope_item(item, *format),
+                None if !scope::inside(screen, col, row) => self.overlay = Overlay::None,
+                None => {}
+            },
             Overlay::Switcher(sw) => match switcher::hit(sw, screen, col, row) {
                 Some(h) => self.switcher_hit(h),
                 None => self.overlay = Overlay::None,
@@ -193,18 +208,8 @@ impl App {
                 let bounds = self.session.canvas.all_bounds();
                 self.session.view.fit_all(bounds, self.session.screen);
             }
-            MenuItem::ExportSvg => {
-                self.overlay = Overlay::Prompt(Prompt::new(
-                    PromptKind::ExportSvg,
-                    format!("{}.svg", self.name),
-                ))
-            }
-            MenuItem::ExportMermaid => {
-                self.overlay = Overlay::Prompt(Prompt::new(
-                    PromptKind::ExportMermaid,
-                    format!("{}.mmd", self.name),
-                ))
-            }
+            MenuItem::ExportSvg => self.overlay = Overlay::Scope(ExportFormat::Svg),
+            MenuItem::ExportMermaid => self.overlay = Overlay::Scope(ExportFormat::Mermaid),
             MenuItem::Quit => self.quit = true,
         }
     }
@@ -245,11 +250,8 @@ impl App {
             return;
         };
         match p.kind {
-            PromptKind::ExportSvg => self.export(&p.buf, export::svg(&self.session.canvas), 0),
-            PromptKind::ExportMermaid => {
-                let out = export::mermaid(&self.session.canvas);
-                self.export(&p.buf, out.text, out.skipped)
-            }
+            PromptKind::ExportSvg(a) => self.export(&p.buf, ExportFormat::Svg, a),
+            PromptKind::ExportMermaid(a) => self.export(&p.buf, ExportFormat::Mermaid, a),
             PromptKind::NewCanvas => match self.store.create(&p.buf) {
                 Ok(()) => self.switch_to(&p.buf),
                 Err(e) => self.status = Some(e.to_string()),
@@ -277,15 +279,5 @@ impl App {
                 self.open_switcher();
             }
         }
-    }
-
-    fn export(&mut self, path: &str, text: String, skipped: usize) {
-        self.status = Some(match std::fs::write(path, text) {
-            Ok(()) if skipped > 0 => {
-                format!("exported {path}, skipped {skipped} element(s) with no Mermaid form")
-            }
-            Ok(()) => format!("exported {path}"),
-            Err(e) => format!("export failed: {e}"),
-        });
     }
 }

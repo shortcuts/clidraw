@@ -91,4 +91,36 @@ impl Canvas {
             (x, y, r - x, d - y)
         })
     }
+
+    /// Elements whose whole box lies in the area (x, y, w, h), in order.
+    /// A line also needs its bound shapes inside: its ends sit on the shape edges.
+    pub fn within(&self, (ax, ay, aw, ah): (i32, i32, i32, i32)) -> Canvas {
+        let inside = |e: &Element| {
+            let (x, y, w, h) = self.bounds(e);
+            x >= ax && y >= ay && x + w <= ax + aw && y + h <= ay + ah
+        };
+        let shapes_in: Vec<&Id> = self
+            .elements
+            .iter()
+            .filter(|e| !matches!(e, Element::Line(_)) && inside(e))
+            .map(|e| e.id())
+            .collect();
+        let end_in = |end: &End| match end {
+            End::Bound(id) => shapes_in.contains(&id),
+            End::Free(..) => true,
+        };
+        let kept = self
+            .elements
+            .iter()
+            .filter(|e| match e {
+                Element::Line(l) => inside(e) && end_in(&l.from) && end_in(&l.to),
+                _ => shapes_in.contains(&e.id()),
+            })
+            .cloned()
+            .collect();
+        Canvas {
+            version: self.version,
+            elements: kept,
+        }
+    }
 }

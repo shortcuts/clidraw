@@ -3,8 +3,8 @@ use super::{boxed, centered, Grid};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PromptKind {
-    ExportSvg,
-    ExportMermaid,
+    ExportSvg(Option<(i32, i32, i32, i32)>),
+    ExportMermaid(Option<(i32, i32, i32, i32)>),
     NewCanvas,
     Rename(String),
     ConfirmDelete(String),
@@ -36,8 +36,8 @@ impl Prompt {
 
     fn title(&self) -> &'static str {
         match self.kind {
-            PromptKind::ExportSvg => "Export SVG to path",
-            PromptKind::ExportMermaid => "Export Mermaid to path",
+            PromptKind::ExportSvg(_) => "Export SVG to path",
+            PromptKind::ExportMermaid(_) => "Export Mermaid to path",
             PromptKind::NewCanvas => "New canvas name",
             PromptKind::Rename(_) => "Rename canvas to",
             PromptKind::ConfirmDelete(_) => "Delete canvas",

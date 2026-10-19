@@ -3,6 +3,7 @@ mod grid;
 pub mod menu;
 pub mod palette;
 pub mod prompt;
+pub mod scope;
 pub mod switcher;
 
 use crate::input::Session;
@@ -13,6 +14,7 @@ use ratatui::layout::Rect;
 pub enum Overlay {
     None,
     Menu,
+    Scope(scope::ExportFormat),
     Switcher(switcher::Switcher),
     Prompt(prompt::Prompt),
 }
@@ -24,6 +26,7 @@ pub fn render(buf: &mut Buffer, area: Rect, s: &Session, overlay: &Overlay, stat
     match overlay {
         Overlay::None => {}
         Overlay::Menu => menu::draw(&mut grid),
+        Overlay::Scope(_) => scope::draw(&mut grid),
         Overlay::Switcher(sw) => switcher::draw(&mut grid, sw),
         Overlay::Prompt(p) => prompt::draw(&mut grid, p),
     }

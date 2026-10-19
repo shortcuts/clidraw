@@ -100,3 +100,12 @@ fn empty_canvas_exports_without_panicking() {
     assert!(svg(&Canvas::default()).contains("<svg"));
     assert_eq!(mermaid(&Canvas::default()).text, "flowchart TD\n");
 }
+
+#[test]
+fn area_exports_match_golden() {
+    let area = sample().within((0, 0, 42, 5));
+    check("sample_area.svg", &svg(&area));
+    let out = mermaid(&area);
+    check("sample_area.mmd", &out.text);
+    assert_eq!(out.skipped, 0);
+}

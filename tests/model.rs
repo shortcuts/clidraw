@@ -230,3 +230,49 @@ fn route_between_aligned_anchors_is_straight() {
     );
     assert_eq!(corners(&cells), [(2, 3), (6, 3)]);
 }
+
+#[test]
+fn within_keeps_only_elements_fully_inside_the_area() {
+    let c = Canvas {
+        elements: vec![
+            shape("aaaaaaaa", 0),
+            shape("bbbbbbbb", 20),
+            shape("cccccccc", 8),
+            arrow(bound("aaaaaaaa"), bound("bbbbbbbb")),
+            Element::Line(Line {
+                id: Id::from("free0000"),
+                kind: LineKind::Arrow,
+                from: End::Free(1, 1),
+                to: End::Free(30, 1),
+                label: String::new(),
+            }),
+        ],
+        ..Canvas::default()
+    };
+    let ids =
+        |c: &Canvas| -> Vec<String> { c.elements.iter().map(|e| e.id().to_string()).collect() };
+    // bbbbbbbb (x 20..26) straddles the right edge, cccccccc (x 8..14) is cut at x 12.
+    let part = c.within((0, 0, 12, 3));
+    assert_eq!(ids(&part), ["aaaaaaaa"]);
+    let all = c.within((0, 0, 40, 3));
+    assert_eq!(all.elements.len(), 5);
+    let no_b = c.within((0, 0, 26, 3));
+    assert_eq!(ids(&no_b), ["aaaaaaaa", "bbbbbbbb", "cccccccc", "line0000"]);
+    assert!(c.within((100, 100, 5, 5)).elements.is_empty());
+}
+
+#[test]
+fn within_drops_a_line_whose_bound_shape_is_outside() {
+    let c = Canvas {
+        elements: vec![
+            shape("aaaaaaaa", 0),
+            shape("bbbbbbbb", 20),
+            arrow(bound("aaaaaaaa"), bound("bbbbbbbb")),
+        ],
+        ..Canvas::default()
+    };
+    // The line ends sit on the shape edges, so both ends fit in this area.
+    let area = (0, 0, 21, 3);
+    let kept = c.within(area);
+    assert_eq!(kept.elements.len(), 1);
+}
