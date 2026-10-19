@@ -147,14 +147,14 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(s.canvas.line_ends(&l).1, (44, 7));
+    assert_eq!(s.canvas.line_ends(&l).1, (40, 9));
 
     click(&mut s, (46, 9), Instant::now());
     key(&mut s, KeyCode::Delete);
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(l.to, End::Free(44, 7));
+    assert_eq!(l.to, End::Free(40, 9));
     ctrl(&mut s, 'z');
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
@@ -308,4 +308,46 @@ fn palette_option_sets_the_head_of_a_selected_line() {
     assert_eq!(s.tool, Tool::Select);
     s.undo();
     assert_eq!(kind(&s), LineKind::ArrowStart);
+}
+
+fn two_shapes_and_arrow_tool() -> Session {
+    let mut s = with_shape("aaaaaaaa", 15, 3);
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("bbbbbbbb"),
+        kind: ShapeKind::Rect,
+        x: 40,
+        y: 9,
+        w: 8,
+        h: 4,
+        label: String::new(),
+    }));
+    pick(&mut s, Tool::Arrow);
+    s
+}
+
+#[test]
+fn shape_under_a_dragged_line_end_is_the_snap_target_until_release() {
+    let mut s = two_shapes_and_arrow_tool();
+    let t = Instant::now();
+    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 18, 5, t);
+    mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 43, 10, t);
+    assert_eq!(s.snap, Some(Id::from("bbbbbbbb")));
+    mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 30, 20, t);
+    assert_eq!(s.snap, None);
+    mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 43, 10, t);
+    mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 43, 10, t);
+    assert_eq!(s.snap, None);
+}
+
+#[test]
+fn clicking_the_middle_run_of_a_bent_route_selects_the_line() {
+    let mut s = two_shapes_and_arrow_tool();
+    drag(&mut s, (18, 5), (43, 10));
+    let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
+        panic!("no line")
+    };
+    click(&mut s, (70, 20), Instant::now());
+    assert!(s.selection.is_empty());
+    click(&mut s, (31, 8), Instant::now());
+    assert_eq!(s.selection, vec![l.id]);
 }

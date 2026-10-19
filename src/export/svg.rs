@@ -1,4 +1,4 @@
-use crate::model::{label_pos, Canvas, Element, LineKind, ShapeKind};
+use crate::model::{corners, label_pos, Canvas, Element, LineKind, ShapeKind};
 use std::fmt::Write;
 
 const CW: i32 = 8;
@@ -65,20 +65,24 @@ pub fn svg(canvas: &Canvas) -> String {
                 text(&mut o, x + w / 2, y + h / 2, "middle", &s.label);
             }
             Element::Line(l) => {
-                let (a, b) = canvas.line_ends(l);
+                let cells = canvas.route(l);
                 let mid = |p: (i32, i32)| (p.0 * CW + CW / 2, p.1 * CH + CH / 2);
-                let (pa, pb) = (mid(a), mid(b));
                 let marker = match l.kind {
                     LineKind::Arrow => " marker-end=\"url(#arrow)\"",
                     LineKind::ArrowStart => " marker-start=\"url(#arrow)\"",
                     LineKind::Line => "",
                 };
+                let d = corners(&cells)
+                    .into_iter()
+                    .map(mid)
+                    .enumerate()
+                    .map(|(i, p)| format!("{}{} {}", if i == 0 { "M" } else { " L" }, p.0, p.1))
+                    .collect::<String>();
                 let _ = writeln!(
                     o,
-                    "  <path d=\"M{} {} L{} {} L{} {}\" {style}{marker}/>",
-                    pa.0, pa.1, pb.0, pa.1, pb.0, pb.1
+                    "  <path d=\"{d}\" {style} stroke-linejoin=\"round\"{marker}/>"
                 );
-                let (lx, ly) = mid(label_pos(a, b));
+                let (lx, ly) = mid(label_pos(&cells));
                 text(&mut o, lx, ly, "middle", &l.label);
             }
             Element::Text(t) => text(&mut o, t.x * CW, t.y * CH + CH / 2, "start", &t.text),

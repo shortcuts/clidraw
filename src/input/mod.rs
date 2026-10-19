@@ -72,6 +72,8 @@ pub struct Session {
     pub screen: (u16, u16),
     pub edit: Option<Edit>,
     pub band: Option<((i32, i32), (i32, i32))>,
+    /// Shape under a dragged line end; the drop binds it.
+    pub snap: Option<Id>,
     /// Counts canvas mutations; autosave compares it with the saved value.
     pub rev: u64,
     gesture: Gesture,
@@ -90,6 +92,7 @@ impl Session {
             screen,
             edit: None,
             band: None,
+            snap: None,
             rev: 0,
             gesture: Gesture::Idle,
             last_down: None,

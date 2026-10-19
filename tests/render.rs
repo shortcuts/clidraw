@@ -112,3 +112,25 @@ fn arrow_start_has_its_head_at_the_first_cell() {
     let line = row(&draw(&s, &Overlay::None), 5);
     assert_eq!(line.chars().skip(19).take(22).collect::<String>(), expected);
 }
+
+#[test]
+fn arrow_between_shapes_on_different_rows_bends_with_rounded_corners() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 12, ""));
+    let Element::Shape(mut b) = shape("bbbbbbbb", 40, "") else {
+        unreachable!()
+    };
+    b.y = 10;
+    c.elements.push(Element::Shape(b));
+    c.elements.push(Element::Line(Line {
+        id: Id::from("cccccccc"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa")),
+        to: End::Bound(Id::from("bbbbbbbb")),
+        label: String::new(),
+    }));
+    let b = draw(&Session::new(c, View::default(), (80, 24)), &Overlay::None);
+    assert_eq!(cols(&b, 5, 19, 12), "│─────────╮ ");
+    assert_eq!(cols(&b, 8, 29, 1), "│");
+    assert_eq!(cols(&b, 11, 28, 14), " ╰─────────▶│ ");
+}

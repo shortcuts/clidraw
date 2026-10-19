@@ -151,24 +151,26 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
         }
         Action::Resize { id, fixed } => run(s, inv, set_rect(id, *fixed, world)),
         Action::Create { id, origin } => run(s, inv, set_rect(id, *origin, world)),
-        Action::EndDrag { id, side } => run(
-            s,
-            inv,
-            Command::SetEnd {
+        Action::EndDrag { id, side } => {
+            s.snap = hit::shape_at(&s.canvas, world);
+            let end = End::Free(world.0, world.1);
+            let cmd = Command::SetEnd {
                 id: id.clone(),
                 side: *side,
-                end: End::Free(world.0, world.1),
-            },
-        ),
-        Action::CreateLine(id) => run(
-            s,
-            inv,
-            Command::SetEnd {
+                end,
+            };
+            run(s, inv, cmd);
+        }
+        Action::CreateLine(id) => {
+            s.snap = hit::shape_at(&s.canvas, world);
+            let end = End::Free(world.0, world.1);
+            let cmd = Command::SetEnd {
                 id: id.clone(),
                 side: Side::To,
-                end: End::Free(world.0, world.1),
-            },
-        ),
+                end,
+            };
+            run(s, inv, cmd);
+        }
         Action::Band(origin) => {
             s.band = Some((*origin, world));
             let canvas = &s.canvas;
@@ -184,6 +186,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
 
 pub(super) fn up(s: &mut Session, screen: P, world: P) {
     s.band = None;
+    s.snap = None;
     match std::mem::replace(&mut s.gesture, Gesture::Idle) {
         Gesture::Pressed {
             target, world: w0, ..

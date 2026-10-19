@@ -1,4 +1,4 @@
-use crate::model::{path, Canvas, Element, Id, Side};
+use crate::model::{Canvas, Element, Id, Side};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Corner {
@@ -50,10 +50,7 @@ pub fn handles(canvas: &Canvas, selection: &[Id]) -> Vec<(Handle, Id, (i32, i32)
 
 fn covers(canvas: &Canvas, e: &Element, p: (i32, i32)) -> bool {
     match e {
-        Element::Line(l) => {
-            let (a, b) = canvas.line_ends(l);
-            path(a, b).contains(&p)
-        }
+        Element::Line(l) => canvas.route(l).contains(&p),
         _ => {
             let (x, y, w, h) = canvas.bounds(e);
             p.0 >= x && p.0 < x + w && p.1 >= y && p.1 < y + h

@@ -1,4 +1,4 @@
-use super::geom::{anchor_from, anchor_to, center};
+use super::geom::{center, route, side_mid, Axis};
 use super::{Element, End, Id, Line, Shape, VERSION};
 use serde::{Deserialize, Serialize};
 
@@ -40,16 +40,27 @@ impl Canvas {
         }
     }
 
+    fn anchors(&self, l: &Line) -> [((i32, i32), Option<Axis>); 2] {
+        let (from, to) = (self.raw_end(&l.from), self.raw_end(&l.to));
+        let anchor = |end: &End, own, toward| match self.shape_of(end) {
+            Some(s) => {
+                let (p, ax) = side_mid(s, toward);
+                (p, Some(ax))
+            }
+            None => (own, None),
+        };
+        [anchor(&l.from, from, to), anchor(&l.to, to, from)]
+    }
+
+    /// Cells of the line from start to end, at most two bends.
+    pub fn route(&self, l: &Line) -> Vec<(i32, i32)> {
+        let [(a, ax_a), (b, ax_b)] = self.anchors(l);
+        route(a, ax_a, b, ax_b)
+    }
+
     /// Cells where the line starts and ends. Bound ends sit on the shape edge.
     pub fn line_ends(&self, l: &Line) -> ((i32, i32), (i32, i32)) {
-        let a = match (&l.from, self.shape_of(&l.from)) {
-            (End::Bound(_), Some(s)) => anchor_from(s, self.raw_end(&l.to)),
-            _ => self.raw_end(&l.from),
-        };
-        let b = match (&l.to, self.shape_of(&l.to)) {
-            (End::Bound(_), Some(s)) => anchor_to(s, a),
-            _ => self.raw_end(&l.to),
-        };
+        let [(a, _), (b, _)] = self.anchors(l);
         (a, b)
     }
 

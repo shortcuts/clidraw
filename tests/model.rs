@@ -1,5 +1,6 @@
 use clidraw::model::{
-    Canvas, Command, Element, End, History, Id, Line, LineKind, Shape, ShapeKind, Side,
+    corners, label_pos, route, Axis, Canvas, Command, Element, End, History, Id, Line, LineKind,
+    Shape, ShapeKind, Side,
 };
 
 fn shape(id: &str, x: i32) -> Element {
@@ -131,7 +132,7 @@ fn moving_a_shape_moves_the_bound_line_end_but_free_ends_stay() {
     let Element::Line(l) = c.get(&line).unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(c.line_ends(&l).1, (23, 10));
+    assert_eq!(c.line_ends(&l).1, (20, 11));
     h.exec(
         &mut c,
         Command::SetEnd {
@@ -204,4 +205,28 @@ fn set_line_kind_undoes_and_rejects_shapes() {
         kind: LineKind::Line,
     };
     assert!(c.apply(on_shape).is_err());
+}
+
+#[test]
+fn bound_route_is_a_z_through_the_middle_column() {
+    let cells = route(
+        (0, 0),
+        Some(Axis::Horizontal),
+        (10, 4),
+        Some(Axis::Horizontal),
+    );
+    assert_eq!(corners(&cells), [(0, 0), (5, 0), (5, 4), (10, 4)]);
+    assert_eq!(cells.len(), 6 + 4 + 5);
+    assert_eq!(label_pos(&cells), (2, 0));
+}
+
+#[test]
+fn route_between_aligned_anchors_is_straight() {
+    let cells = route(
+        (2, 3),
+        Some(Axis::Horizontal),
+        (6, 3),
+        Some(Axis::Horizontal),
+    );
+    assert_eq!(corners(&cells), [(2, 3), (6, 3)]);
 }

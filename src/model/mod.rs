@@ -10,7 +10,7 @@ pub use canvas::Canvas;
 pub use command::{Command, Side};
 pub use element::{Element, End, Line, LineKind, Shape, ShapeKind, Text};
 pub use error::ModelError;
-pub use geom::{label_pos, path};
+pub use geom::{corners, label_pos, route, Axis};
 pub use history::History;
 pub use ids::Id;
 

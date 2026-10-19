@@ -1,6 +1,6 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE};
 use crate::input::{handles, EditTarget, Session};
-use crate::model::{label_pos, path, Element, End, Line, LineKind, Shape, ShapeKind};
+use crate::model::{label_pos, Element, End, Line, LineKind, Shape, ShapeKind};
 use unicode_width::UnicodeWidthStr;
 
 pub fn draw(grid: &mut Grid, s: &Session) {
@@ -15,7 +15,7 @@ pub fn draw(grid: &mut Grid, s: &Session) {
         if sx >= grid.w || sy >= grid.h || sx + w <= 0 || sy + h <= 0 {
             continue;
         }
-        let flags = if s.selection.contains(e.id()) {
+        let flags = if s.selection.contains(e.id()) || s.snap.as_ref() == Some(e.id()) {
             BOLD
         } else {
             0
@@ -114,8 +114,7 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
 }
 
 fn line(grid: &mut Grid, s: &Session, l: &Line, label: &str, flags: u8) {
-    let (a, b) = s.canvas.line_ends(l);
-    let cells = path(a, b);
+    let cells = s.canvas.route(l);
     let dirs = |p: (i32, i32), q: (i32, i32)| (q.0 < p.0, q.0 > p.0, q.1 < p.1, q.1 > p.1);
     for (i, &c) in cells.iter().enumerate() {
         let skip = (i == 0 && matches!(l.from, End::Bound(_)))
@@ -137,10 +136,10 @@ fn line(grid: &mut Grid, s: &Session, l: &Line, label: &str, flags: u8) {
         let glyph = match (left, right, up, down) {
             (_, _, false, false) if left || right => '─',
             (false, false, _, _) if up || down => '│',
-            (true, false, false, true) => '┐',
-            (false, true, false, true) => '┌',
-            (true, false, true, false) => '┘',
-            (false, true, true, false) => '└',
+            (true, false, false, true) => '╮',
+            (false, true, false, true) => '╭',
+            (true, false, true, false) => '╯',
+            (false, true, true, false) => '╰',
             _ => '·',
         };
         let (sx, sy) = s.view.to_screen(c.0, c.1);
@@ -165,7 +164,7 @@ fn line(grid: &mut Grid, s: &Session, l: &Line, label: &str, flags: u8) {
         grid.set(sx, sy, glyph, flags);
     }
     if !label.is_empty() {
-        let (lx, ly) = label_pos(a, b);
+        let (lx, ly) = label_pos(&cells);
         let (sx, sy) = s.view.to_screen(lx - label.width() as i32 / 2, ly);
         grid.text(sx, sy, label, flags);
     }
