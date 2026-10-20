@@ -48,7 +48,11 @@ fn run(app: &mut App, terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Resu
             terminal.backend_mut().flush()?;
             app.dirty = false;
         }
-        if event::poll(Duration::from_millis(250))? {
+        let ready = match app.next_wake(Instant::now()) {
+            Some(timeout) => event::poll(timeout)?,
+            None => true,
+        };
+        if ready {
             // Mode 1003 floods the loop with Moved events; drain, then redraw once.
             let mut queue = vec![event::read()?];
             while event::poll(Duration::ZERO)? {

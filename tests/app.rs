@@ -47,6 +47,39 @@ fn autosaves_edits_after_500ms_and_pan_leaves_the_file_alone() {
 }
 
 #[test]
+fn sleeps_until_the_autosave_deadline_only_while_an_edit_is_unsaved() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
+    let t0 = Instant::now();
+    assert_eq!(app.next_wake(t0), None, "idle must block");
+
+    click(&mut app, 2, 3, t0);
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 30, 9), t0);
+    app.tick(t0);
+    assert_eq!(
+        app.next_wake(t0),
+        None,
+        "a drag blocks saves; Up wakes the loop"
+    );
+
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 30, 9), t0);
+    app.tick(t0);
+    let wait = Duration::from_millis(500);
+    assert_eq!(app.next_wake(t0), Some(wait));
+    let later = t0 + Duration::from_millis(200);
+    assert_eq!(app.next_wake(later), Some(Duration::from_millis(300)));
+    assert_eq!(
+        app.next_wake(t0 + Duration::from_secs(2)),
+        Some(Duration::ZERO)
+    );
+
+    app.tick(t0 + wait);
+    assert_eq!(app.next_wake(t0 + wait), None, "saved, so block again");
+}
+
+#[test]
 fn does_not_autosave_during_a_drag() {
     let t = tempfile::tempdir().unwrap();
     let store = Store::at(t.path().join("c"), t.path().join("state"));

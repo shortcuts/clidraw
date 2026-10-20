@@ -76,6 +76,14 @@ impl App {
         }
     }
 
+    pub fn next_wake(&self, now: Instant) -> Option<Duration> {
+        if self.saved_rev == self.session.rev || self.session.dragging() {
+            return None;
+        }
+        let deadline = self.last_edit + self.autosave;
+        Some(deadline.saturating_duration_since(now))
+    }
+
     pub fn render(&self, buf: &mut Buffer, area: Rect) {
         ui::render(
             buf,
