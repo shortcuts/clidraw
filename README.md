@@ -7,6 +7,7 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
 - `make run` opens the last canvas, or creates `untitled`.
 - `cargo run -- <name>` opens or creates the canvas `<name>`.
 - `cargo run -- config` prints the default `config.toml`. A canvas named `config` opens from the menu, not by argument.
+- `cargo run -- export <name> --svg|--mermaid <path>` writes a saved canvas to a file without opening the UI, for scripts and CI. A canvas named `export` opens from the menu, not by argument.
 - `cargo run -- probe` prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.
 - `cargo run --release -- bench` replays a scripted drag and pan on a generated 5000-element canvas in your terminal and prints the frame times.
 

@@ -1,8 +1,9 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use clidraw::app::App;
 use clidraw::config::{Config, DEFAULT_TOML};
 use clidraw::frame_writer::FrameWriter;
 use clidraw::store::Store;
+use clidraw::ui::scope::ExportFormat;
 use crossterm::event::{
     self, DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
     KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
@@ -87,6 +88,27 @@ fn run(
     Ok(())
 }
 
+fn export(args: &[String]) -> Result<()> {
+    let (name, flag, path) = match args {
+        [name, flag, path] => (name, flag.as_str(), path),
+        _ => bail!("usage: clidraw export <name> --svg|--mermaid <path>"),
+    };
+    let format = match flag {
+        "--svg" => ExportFormat::Svg,
+        "--mermaid" => ExportFormat::Mermaid,
+        _ => bail!("unknown format {flag:?}, use --svg or --mermaid"),
+    };
+    let store = Store::from_env()?;
+    let canvas = store.load(name)?;
+    let (config, _) = Config::load(store.dir());
+    let (text, skipped) = clidraw::export::render(&canvas, format, config.export_padding);
+    std::fs::write(path, text)?;
+    if skipped > 0 {
+        eprintln!("skipped {skipped} element(s) with no Mermaid form");
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("probe") {
@@ -94,6 +116,9 @@ fn main() -> Result<()> {
     }
     if args.first().map(String::as_str) == Some("bench") {
         return bench::run();
+    }
+    if args.first().map(String::as_str) == Some("export") {
+        return export(&args[1..]);
     }
     if args.first().map(String::as_str) == Some("config") {
         print!("{DEFAULT_TOML}");

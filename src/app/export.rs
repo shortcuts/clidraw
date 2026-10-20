@@ -102,14 +102,7 @@ impl App {
                 .canvas
                 .clone_canvas(&self.session.selection, 0, 0),
         };
-        let (text, skipped) = match format {
-            ExportFormat::Svg => (export::svg_padded(&canvas, self.export_padding), 0),
-            ExportFormat::Text => (export::text(&canvas), 0),
-            ExportFormat::Mermaid => {
-                let out = export::mermaid(&canvas);
-                (out.text, out.skipped)
-            }
-        };
+        let (text, skipped) = export::render(&canvas, format, self.export_padding);
         self.status = Some(match std::fs::write(path, text) {
             Ok(()) if skipped > 0 => Status::notice(format!(
                 "exported {path}, skipped {skipped} element(s) with no Mermaid form"
