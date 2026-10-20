@@ -194,8 +194,8 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
     let cells = s.canvas.route_with(l, find);
     let dirs = |p: (i32, i32), q: (i32, i32)| (q.0 < p.0, q.0 > p.0, q.1 < p.1, q.1 > p.1);
     for (i, &c) in cells.iter().enumerate() {
-        let skip = (i == 0 && matches!(l.from, End::Bound(_)))
-            || (i == cells.len() - 1 && matches!(l.to, End::Bound(_)));
+        let skip = (i == 0 && matches!(l.from, End::Bound(..)))
+            || (i == cells.len() - 1 && matches!(l.to, End::Bound(..)));
         if skip {
             continue;
         }
@@ -223,8 +223,8 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
         grid.set(sx, sy, glyph, flags);
     }
     let last = cells.len().saturating_sub(1);
-    let end = (last, last.saturating_sub(1), matches!(l.to, End::Bound(_)));
-    let start = (0, 1, matches!(l.from, End::Bound(_)));
+    let end = (last, last.saturating_sub(1), matches!(l.to, End::Bound(..)));
+    let start = (0, 1, matches!(l.from, End::Bound(..)));
     let heads = match l.kind {
         LineKind::Arrow => vec![end],
         LineKind::ArrowStart => vec![start],

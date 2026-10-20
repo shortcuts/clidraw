@@ -1,6 +1,6 @@
 use clidraw::model::{
-    corners, label_pos, route, wrap, Axis, Canvas, Command, Element, End, History, Id, Line,
-    LineKind, Shape, ShapeKind, Side, Z,
+    corners, label_pos, route, wrap, Anchor, Axis, Canvas, Command, Element, End, History, Id,
+    Line, LineKind, Shape, ShapeKind, Side, Z,
 };
 
 fn shape(id: &str, x: i32) -> Element {
@@ -26,7 +26,7 @@ fn arrow(from: End, to: End) -> Element {
 }
 
 fn bound(id: &str) -> End {
-    End::Bound(Id::from(id))
+    End::Bound(Id::from(id), Anchor::Auto)
 }
 
 fn setup() -> (Canvas, History) {
@@ -476,7 +476,10 @@ fn clone_elements_remaps_bound_ends_and_shifts() {
     let Element::Line(l) = &copy[2] else { panic!() };
     assert_eq!(
         (&l.from, &l.to),
-        (&End::Bound(a.id.clone()), &End::Bound(b.id.clone()))
+        (
+            &End::Bound(a.id.clone(), Anchor::Auto),
+            &End::Bound(b.id.clone(), Anchor::Auto)
+        )
     );
 }
 
@@ -485,7 +488,7 @@ fn clone_elements_frees_a_selected_line_end_whose_shape_stays() {
     let (c, _) = setup();
     let copy = c.clone_elements(&[Id::from("aaaaaaaa"), Id::from("line0000")], 0, 0);
     let Element::Line(l) = &copy[1] else { panic!() };
-    assert!(matches!(l.from, End::Bound(_)));
+    assert!(matches!(l.from, End::Bound(..)));
     assert_eq!(l.to, End::Free(20, 1));
 }
 
@@ -540,4 +543,54 @@ fn wrap_ranges_are_contiguous_and_a_wide_char_does_not_hang() {
         assert!(r.windows(2).all(|w| w[0].end == w[1].start));
     }
     assert_eq!(wrapped("日本", 1), ["日", "本"]);
+}
+
+fn pinned(anchor: Anchor) -> (Canvas, History) {
+    let (mut c, mut h) = setup();
+    h.exec(
+        &mut c,
+        Command::SetEnd {
+            id: Id::from("line0000"),
+            side: Side::From,
+            end: End::Bound(Id::from("aaaaaaaa"), anchor),
+        },
+    )
+    .unwrap();
+    (c, h)
+}
+
+fn line_of(c: &Canvas) -> Line {
+    let Element::Line(l) = c.elements.last().unwrap().clone() else {
+        panic!()
+    };
+    l
+}
+
+#[test]
+fn a_pinned_end_leaves_its_side_and_auto_faces_the_other_end() {
+    let (c, _) = pinned(Anchor::Top);
+    assert_eq!(c.line_ends(&line_of(&c)).0, (3, 0));
+    let (c, _) = pinned(Anchor::Auto);
+    assert_eq!(c.line_ends(&line_of(&c)).0, (5, 1));
+}
+
+#[test]
+fn undoing_a_shape_delete_restores_the_anchor() {
+    let (mut c, mut h) = pinned(Anchor::Top);
+    h.exec(&mut c, Command::Remove(Id::from("aaaaaaaa")))
+        .unwrap();
+    assert!(matches!(line_of(&c).from, End::Free(..)));
+    h.undo(&mut c).unwrap();
+    assert_eq!(
+        line_of(&c).from,
+        End::Bound(Id::from("aaaaaaaa"), Anchor::Top)
+    );
+}
+
+#[test]
+fn clone_elements_keeps_the_anchor() {
+    let (c, _) = pinned(Anchor::Left);
+    let copy = c.clone_elements(&[Id::from("aaaaaaaa"), Id::from("bbbbbbbb")], 0, 5);
+    let Element::Line(l) = &copy[2] else { panic!() };
+    assert!(matches!(l.from, End::Bound(_, Anchor::Left)));
 }

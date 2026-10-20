@@ -209,15 +209,14 @@ impl Canvas {
                 let Element::Line(l) = e else { continue };
                 let (a, b) = self.line_ends(l);
                 for (side, end, at) in [(Side::From, &l.from, a), (Side::To, &l.to, b)] {
-                    if *end == End::Bound(id.clone()) {
-                        unbind.push((l.id.clone(), side, at));
+                    if matches!(end, End::Bound(sid, _) if *sid == id) {
+                        unbind.push((l.id.clone(), side, at, end.clone()));
                     }
                 }
             }
         }
         let mut restore = vec![];
-        for (lid, side, at) in unbind {
-            let old = End::Bound(id.clone());
+        for (lid, side, at, old) in unbind {
             self.apply(Command::SetEnd {
                 id: lid.clone(),
                 side,
@@ -285,7 +284,7 @@ impl Canvas {
                 Ok(Command::SetLabel { id, label: old })
             }
             Command::SetEnd { id, side, end } => {
-                if let End::Bound(sid) = &end {
+                if let End::Bound(sid, _) = &end {
                     let bound = self.position(sid, index).map(|i| &self.elements[i]);
                     if !matches!(bound, Some(Element::Shape(_))) {
                         return Err(missing(sid));

@@ -3,7 +3,7 @@ use clidraw::config::Config;
 use clidraw::export::{mermaid, svg};
 use clidraw::frame_writer::FrameWriter;
 use clidraw::input::handles;
-use clidraw::model::{Element, End, Id, Line, LineKind, Shape, ShapeKind};
+use clidraw::model::{Anchor, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::store::Store;
 use clidraw::ui::Status;
 use crossterm::event::{
@@ -48,8 +48,8 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
         els.push(Element::Line(Line {
             id: Id::from(format!("l{i:07}").as_str()),
             kind: LineKind::Arrow,
-            from: End::Bound(id(i)),
-            to: End::Bound(id(i + 1)),
+            from: End::Bound(id(i), Anchor::Auto),
+            to: End::Bound(id(i + 1), Anchor::Auto),
             label: String::new(),
         }));
     }

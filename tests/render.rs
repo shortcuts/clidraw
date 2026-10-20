@@ -1,5 +1,5 @@
 use clidraw::input::{Corner, Handle, Hit, Session};
-use clidraw::model::{Canvas, Command, Element, End, Id, Line, LineKind, Shape, ShapeKind};
+use clidraw::model::{Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::switcher::Switcher;
 use clidraw::ui::{self, Overlay, Perf};
@@ -82,8 +82,8 @@ fn arrow_between_shapes_ends_in_a_head() {
     c.elements.push(Element::Line(Line {
         id: Id::from("cccccccc"),
         kind: LineKind::Arrow,
-        from: End::Bound(Id::from("aaaaaaaa")),
-        to: End::Bound(Id::from("bbbbbbbb")),
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
@@ -119,8 +119,8 @@ fn arrow_start_has_its_head_at_the_first_cell() {
     c.elements.push(Element::Line(Line {
         id: Id::from("cccccccc"),
         kind: LineKind::ArrowStart,
-        from: End::Bound(Id::from("aaaaaaaa")),
-        to: End::Bound(Id::from("bbbbbbbb")),
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
@@ -137,8 +137,8 @@ fn arrow_both_has_a_head_at_each_end() {
     c.elements.push(Element::Line(Line {
         id: Id::from("cccccccc"),
         kind: LineKind::ArrowBoth,
-        from: End::Bound(Id::from("aaaaaaaa")),
-        to: End::Bound(Id::from("bbbbbbbb")),
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
@@ -159,8 +159,8 @@ fn arrow_between_shapes_on_different_rows_bends_with_rounded_corners() {
     c.elements.push(Element::Line(Line {
         id: Id::from("cccccccc"),
         kind: LineKind::Arrow,
-        from: End::Bound(Id::from("aaaaaaaa")),
-        to: End::Bound(Id::from("bbbbbbbb")),
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
     }));
     let b = draw(&Session::new(c, View::default(), (80, 24)), &Overlay::None);
@@ -321,8 +321,8 @@ fn line_crossing_the_view_draws_when_both_ends_are_off_screen() {
     c.elements.push(Element::Line(Line {
         id: Id::from("cccccccc"),
         kind: LineKind::Arrow,
-        from: End::Bound(Id::from("aaaaaaaa")),
-        to: End::Bound(Id::from("bbbbbbbb")),
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
@@ -478,8 +478,8 @@ fn edit_caret_shows_on_a_line_label() {
     c.elements.push(Element::Line(Line {
         id: Id::from("cccccccc"),
         kind: LineKind::Arrow,
-        from: End::Bound(Id::from("aaaaaaaa")),
-        to: End::Bound(Id::from("bbbbbbbb")),
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: "ab".into(),
     }));
     let mut s = Session::new(c, View::default(), (80, 24));

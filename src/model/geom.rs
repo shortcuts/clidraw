@@ -1,4 +1,4 @@
-use super::Shape;
+use super::{Anchor, Shape};
 use std::ops::Range;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
@@ -14,9 +14,32 @@ pub enum Axis {
 
 type Pt = (i32, i32);
 
-/// Midpoint of the side of `s` that faces `toward`, and the axis a line leaves it on.
-pub fn side_mid(s: &Shape, toward: Pt) -> (Pt, Axis) {
+/// Anchor for a pointer on a non-corner border cell of `s`; `Auto` anywhere else.
+pub fn edge_anchor(s: &Shape, (x, y): Pt) -> Anchor {
+    let (right, bottom) = (s.x + s.w - 1, s.y + s.h - 1);
+    if x < s.x || x > right || y < s.y || y > bottom {
+        return Anchor::Auto;
+    }
+    match (x == s.x, x == right, y == s.y, y == bottom) {
+        (false, false, true, _) => Anchor::Top,
+        (false, false, _, true) => Anchor::Bottom,
+        (true, _, false, false) => Anchor::Left,
+        (_, true, false, false) => Anchor::Right,
+        _ => Anchor::Auto,
+    }
+}
+
+/// Midpoint of the side of `s` the anchor names, or of the side that faces `toward` for `Auto`,
+/// and the axis a line leaves it on.
+pub fn side_mid(s: &Shape, anchor: Anchor, toward: Pt) -> (Pt, Axis) {
     let (cx, cy) = center(s);
+    match anchor {
+        Anchor::Top => return ((cx, s.y), Axis::Vertical),
+        Anchor::Bottom => return ((cx, s.y + s.h - 1), Axis::Vertical),
+        Anchor::Left => return ((s.x, cy), Axis::Horizontal),
+        Anchor::Right => return ((s.x + s.w - 1, cy), Axis::Horizontal),
+        Anchor::Auto => {}
+    }
     let (dx, dy) = (toward.0 - cx, toward.1 - cy);
     // A cell is about twice as tall as wide, so a horizontal gap counts half.
     if dx.abs() >= 2 * dy.abs() {

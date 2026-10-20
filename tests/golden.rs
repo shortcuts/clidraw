@@ -1,5 +1,5 @@
 use clidraw::export::{mermaid, svg};
-use clidraw::model::{Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind, Text};
+use clidraw::model::{Anchor, Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind, Text};
 
 fn sample() -> Canvas {
     let shape = |id: &str, kind, x, y, w, h, label: &str| {
@@ -47,15 +47,15 @@ fn sample() -> Canvas {
             line(
                 "dddddddd",
                 LineKind::Arrow,
-                End::Bound(Id::from("aaaaaaaa")),
-                End::Bound(Id::from("bbbbbbbb")),
+                End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+                End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
                 "go",
             ),
             line(
                 "eeeeeeee",
                 LineKind::Line,
-                End::Bound(Id::from("bbbbbbbb")),
-                End::Bound(Id::from("cccccccc")),
+                End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
+                End::Bound(Id::from("cccccccc"), Anchor::Auto),
                 "",
             ),
             line(
@@ -68,15 +68,15 @@ fn sample() -> Canvas {
             line(
                 "hhhhhhhh",
                 LineKind::ArrowStart,
-                End::Bound(Id::from("aaaaaaaa")),
-                End::Bound(Id::from("cccccccc")),
+                End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+                End::Bound(Id::from("cccccccc"), Anchor::Auto),
                 "",
             ),
             line(
                 "iiiiiiii",
                 LineKind::ArrowBoth,
-                End::Bound(Id::from("cccccccc")),
-                End::Bound(Id::from("aaaaaaaa")),
+                End::Bound(Id::from("cccccccc"), Anchor::Auto),
+                End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
                 "",
             ),
             Element::Text(Text {

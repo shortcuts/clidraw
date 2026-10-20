@@ -1,7 +1,9 @@
 use super::hit::{self, intersects, Corner, Handle};
 use super::state::{click, Action, Gesture, Target, P};
 use super::{Session, Tool};
-use crate::model::{Command, Element, End, Id, Line, LineKind, Shape, ShapeKind, Side};
+use crate::model::{
+    edge_anchor, Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Shape, ShapeKind, Side,
+};
 use crate::ui::palette;
 
 const MIN_SIZE: i32 = 3;
@@ -174,7 +176,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                     } else {
                         LineKind::Line
                     },
-                    from: hit::shape_at(&s.canvas, w0).map_or(End::Free(w0.0, w0.1), End::Bound),
+                    from: bound_at(&s.canvas, w0).unwrap_or(End::Free(w0.0, w0.1)),
                     to: End::Free(w0.0, w0.1),
                     label: String::new(),
                 }),
@@ -309,17 +311,25 @@ pub(super) fn up(s: &mut Session, screen: P, world: P) {
 }
 
 fn bind(s: &mut Session, inv: &mut Vec<Command>, id: &Id, side: Side, world: P) {
-    if let Some(shape) = hit::shape_at(&s.canvas, world) {
+    if let Some(end) = bound_at(&s.canvas, world) {
         run(
             s,
             inv,
             Command::SetEnd {
                 id: id.clone(),
                 side,
-                end: End::Bound(shape),
+                end,
             },
         );
     }
+}
+
+fn bound_at(canvas: &Canvas, p: P) -> Option<End> {
+    let id = hit::shape_at(canvas, p)?;
+    let anchor = canvas
+        .shape(&id)
+        .map_or(Anchor::Auto, |s| edge_anchor(s, p));
+    Some(End::Bound(id, anchor))
 }
 
 #[cfg(test)]

@@ -2,7 +2,7 @@ use clidraw::input::{
     handle_key, handle_mouse, handle_paste, Corner, Edit, EditTarget, Handle, Hit, KeyOutcome,
     Session, Tool,
 };
-use clidraw::model::{Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
+use clidraw::model::{Anchor, Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::ui::palette::Dock;
 use clidraw::view::View;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -207,8 +207,8 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(l.from, End::Bound(Id::from("aaaaaaaa")));
-    assert_eq!(l.to, End::Bound(Id::from("bbbbbbbb")));
+    assert_eq!(l.from, End::Bound(Id::from("aaaaaaaa"), Anchor::Auto));
+    assert_eq!(l.to, End::Bound(Id::from("bbbbbbbb"), Anchor::Auto));
     assert_eq!(s.tool, Tool::Select);
     assert_eq!(s.canvas.line_ends(&l), ((22, 5), (40, 5)));
 
@@ -228,7 +228,34 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(l.to, End::Bound(Id::from("bbbbbbbb")));
+    assert_eq!(l.to, End::Bound(Id::from("bbbbbbbb"), Anchor::Auto));
+}
+
+#[test]
+fn releasing_an_arrow_on_a_border_cell_pins_that_side() {
+    let end_on = |to: (u16, u16)| {
+        let mut s = with_shape("aaaaaaaa", 15, 3);
+        s.canvas.elements.push(Element::Shape(Shape {
+            id: Id::from("bbbbbbbb"),
+            kind: ShapeKind::Rect,
+            x: 40,
+            y: 3,
+            w: 8,
+            h: 4,
+            label: String::new(),
+        }));
+        pick(&mut s, Tool::Arrow);
+        drag(&mut s, (18, 5), to);
+        let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
+            panic!("no line")
+        };
+        l.to
+    };
+    let b = Id::from("bbbbbbbb");
+    assert_eq!(end_on((43, 3)), End::Bound(b.clone(), Anchor::Top));
+    assert_eq!(end_on((40, 5)), End::Bound(b.clone(), Anchor::Left));
+    assert_eq!(end_on((40, 3)), End::Bound(b.clone(), Anchor::Auto));
+    assert_eq!(end_on((43, 5)), End::Bound(b, Anchor::Auto));
 }
 
 #[test]
@@ -240,7 +267,7 @@ fn dragging_a_line_end_onto_empty_canvas_frees_it() {
         panic!("no line")
     };
     assert_eq!(l.to, End::Free(50, 12));
-    assert_eq!(l.from, End::Bound(Id::from("aaaaaaaa")));
+    assert_eq!(l.from, End::Bound(Id::from("aaaaaaaa"), Anchor::Auto));
 }
 
 #[test]
@@ -743,8 +770,8 @@ fn diagram() -> Session {
     s.canvas.elements.push(Element::Line(Line {
         id: Id::from("line0000"),
         kind: LineKind::Arrow,
-        from: End::Bound(Id::from("aaaaaaaa")),
-        to: End::Bound(Id::from("bbbbbbbb")),
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
     }));
     s
@@ -762,7 +789,7 @@ fn copy_paste_adds_offset_copies_in_one_undo_step() {
     let Element::Line(l) = &s.canvas.elements[5] else {
         panic!()
     };
-    assert_eq!(l.from, End::Bound(shapes(&s)[2].id.clone()));
+    assert_eq!(l.from, End::Bound(shapes(&s)[2].id.clone(), Anchor::Auto));
     ctrl(&mut s, 'v');
     assert_eq!(shapes(&s)[4].x, 9);
     ctrl(&mut s, 'z');

@@ -24,7 +24,7 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
         })
         .collect();
     let node = |end: &End| match end {
-        End::Bound(id) => shapes
+        End::Bound(id, _) => shapes
             .iter()
             .position(|s| *s == id)
             .map(|i| format!("n{i}")),

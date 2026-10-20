@@ -81,16 +81,16 @@ impl Canvas {
     fn anchors<'a>(&'a self, l: &Line, find: &Find<'a>) -> [((i32, i32), Option<Axis>); 2] {
         let raw = |end: &End| match end {
             End::Free(x, y) => (*x, *y),
-            End::Bound(id) => find(id).map_or((0, 0), center),
+            End::Bound(id, _) => find(id).map_or((0, 0), center),
         };
         let (from, to) = (raw(&l.from), raw(&l.to));
         let shape_of = |end: &End| match end {
-            End::Bound(id) => find(id),
+            End::Bound(id, a) => find(id).map(|s| (s, *a)),
             End::Free(..) => None,
         };
         let anchor = |end: &End, own, toward| match shape_of(end) {
-            Some(s) => {
-                let (p, ax) = side_mid(s, toward);
+            Some((s, a)) => {
+                let (p, ax) = side_mid(s, a, toward);
                 (p, Some(ax))
             }
             None => (own, None),
@@ -147,7 +147,7 @@ impl Canvas {
     /// (dx, dy) under fresh ids. Bound ends follow the copies; a bound end whose shape is not
     /// copied turns free at its current cell.
     pub fn clone_elements(&self, ids: &[Id], dx: i32, dy: i32) -> Vec<Element> {
-        let bound_in = |end: &End| matches!(end, End::Bound(id) if ids.contains(id));
+        let bound_in = |end: &End| matches!(end, End::Bound(id, _) if ids.contains(id));
         let picked: Vec<&Element> = self
             .elements
             .iter()
@@ -175,9 +175,11 @@ impl Canvas {
                 Element::Line(l) => {
                     let (a, b) = self.line_ends(l);
                     let end = |end: &End, at: (i32, i32)| match end {
-                        End::Bound(id) if fresh.contains_key(id) => End::Bound(fresh[id].clone()),
+                        End::Bound(id, a) if fresh.contains_key(id) => {
+                            End::Bound(fresh[id].clone(), *a)
+                        }
                         End::Free(x, y) => End::Free(x + dx, y + dy),
-                        End::Bound(_) => End::Free(at.0 + dx, at.1 + dy),
+                        End::Bound(..) => End::Free(at.0 + dx, at.1 + dy),
                     };
                     Element::Line(Line {
                         id: fresh[&l.id].clone(),
@@ -204,7 +206,7 @@ impl Canvas {
             .map(|e| e.id())
             .collect();
         let end_in = |end: &End| match end {
-            End::Bound(id) => shapes_in.contains(&id),
+            End::Bound(id, _) => shapes_in.contains(&id),
             End::Free(..) => true,
         };
         let kept = self

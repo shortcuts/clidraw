@@ -1,4 +1,4 @@
-use clidraw::model::{Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
+use clidraw::model::{Anchor, Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::store::{resolve_dir, validate_name, Store, StoreError};
 use std::path::PathBuf;
 
@@ -27,7 +27,7 @@ fn sample() -> Canvas {
     c.elements.push(Element::Line(Line {
         id: Id::from("cccccccc"),
         kind: LineKind::Arrow,
-        from: End::Bound(Id::from("aaaaaaaa")),
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
         to: End::Free(-3, 4),
         label: String::new(),
     }));
@@ -163,4 +163,20 @@ fn directory_resolution_order() {
             Some("/h/.config/clidraw".into())
         );
     }
+}
+
+#[test]
+fn a_pinned_end_round_trips_and_auto_ends_write_no_anchor() {
+    let (t, s) = store();
+    let mut c = sample();
+    let Element::Line(l) = &mut c.elements[2] else {
+        panic!()
+    };
+    l.from = End::Bound(Id::from("aaaaaaaa"), Anchor::Left);
+    s.save("a", &c).unwrap();
+    assert_eq!(s.load("a").unwrap(), c);
+    s.save("b", &sample()).unwrap();
+    let text = std::fs::read_to_string(t.path().join("c/b.clidraw.json")).unwrap();
+    assert!(text.contains("\"bound\"") && !text.contains("anchored"));
+    assert_eq!(s.load("b").unwrap(), sample());
 }
