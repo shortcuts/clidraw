@@ -13,6 +13,7 @@ pub enum Extent {
 pub enum PromptKind {
     ExportSvg(Extent),
     ExportMermaid(Extent),
+    ExportText(Extent),
     NewCanvas,
     Rename(String),
     ConfirmDelete(String),
@@ -47,6 +48,7 @@ impl Prompt {
         match self.kind {
             PromptKind::ExportSvg(_) => "Export SVG to path",
             PromptKind::ExportMermaid(_) => "Export Mermaid to path",
+            PromptKind::ExportText(_) => "Export Text to path",
             PromptKind::NewCanvas => "New canvas name",
             PromptKind::Rename(_) => "Rename canvas to",
             PromptKind::ConfirmDelete(_) => "Delete canvas",

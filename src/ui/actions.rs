@@ -92,6 +92,7 @@ const TABLE: [(Action, &str, &str); 34] = [
         "Export Mermaid",
         "Esc m",
     ),
+    (Action::Menu(MenuItem::ExportText), "Export Text", "Esc t"),
     (Action::Ex("w"), "Save", ":w"),
     (Action::Ex("perf"), "Toggle perf overlay", ":perf"),
     (Action::Help, "Shortcuts", "?"),

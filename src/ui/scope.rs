@@ -4,6 +4,7 @@ use super::{boxed, centered, Grid};
 pub enum ExportFormat {
     Svg,
     Mermaid,
+    Text,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

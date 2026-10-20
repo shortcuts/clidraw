@@ -285,6 +285,7 @@ impl App {
             MenuItem::FitAll => self.fit_all(),
             MenuItem::ExportSvg => self.overlay = Overlay::Scope(ExportFormat::Svg),
             MenuItem::ExportMermaid => self.overlay = Overlay::Scope(ExportFormat::Mermaid),
+            MenuItem::ExportText => self.overlay = Overlay::Scope(ExportFormat::Text),
             MenuItem::Quit => self.quit = true,
         }
     }
@@ -375,6 +376,7 @@ impl App {
             PromptKind::Command => self.run_command(&p.buf),
             PromptKind::ExportSvg(x) => self.export(&p.buf, ExportFormat::Svg, x),
             PromptKind::ExportMermaid(x) => self.export(&p.buf, ExportFormat::Mermaid, x),
+            PromptKind::ExportText(x) => self.export(&p.buf, ExportFormat::Text, x),
             PromptKind::NewCanvas => match self.store.create(&p.buf) {
                 Ok(()) => self.switch_to(&p.buf),
                 Err(e) => self.status = Some(ui::Status::error(e.to_string())),

@@ -88,6 +88,7 @@ impl App {
         let (kind, ext) = match format {
             ExportFormat::Svg => (PromptKind::ExportSvg(extent), "svg"),
             ExportFormat::Mermaid => (PromptKind::ExportMermaid(extent), "mmd"),
+            ExportFormat::Text => (PromptKind::ExportText(extent), "txt"),
         };
         self.overlay = Overlay::Prompt(Prompt::new(kind, format!("{}.{ext}", self.name)));
     }
@@ -103,6 +104,7 @@ impl App {
         };
         let (text, skipped) = match format {
             ExportFormat::Svg => (export::svg_padded(&canvas, self.export_padding), 0),
+            ExportFormat::Text => (export::text(&canvas), 0),
             ExportFormat::Mermaid => {
                 let out = export::mermaid(&canvas);
                 (out.text, out.skipped)

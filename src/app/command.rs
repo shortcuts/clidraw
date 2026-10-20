@@ -1,5 +1,6 @@
 use super::App;
-use crate::ui::{Perf, Status};
+use crate::ui::scope::ExportFormat;
+use crate::ui::{Overlay, Perf, Status};
 
 impl App {
     pub(super) fn run_command(&mut self, line: &str) {
@@ -21,6 +22,7 @@ impl App {
             }
             "e" if arg.trim().is_empty() => self.status = Some(Status::error("Usage: :e <name>")),
             "e" => self.switch_to(arg.trim()),
+            "export" => self.overlay = Overlay::Scope(ExportFormat::Text),
             "perf" => self.perf = self.perf.is_none().then(Perf::default),
             "u" => self.status = self.session.undo().map(Status::notice),
             "redo" => self.status = self.session.redo().map(Status::notice),

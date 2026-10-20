@@ -7,15 +7,17 @@ pub enum MenuItem {
     FitAll,
     ExportSvg,
     ExportMermaid,
+    ExportText,
     Quit,
 }
 
 /// Item, label, hotkey. The shortcuts modal can list this table.
-pub const ITEMS: [(MenuItem, &str, char); 5] = [
+pub const ITEMS: [(MenuItem, &str, char); 6] = [
     (MenuItem::Canvases, "Canvases", 'c'),
     (MenuItem::FitAll, "Fit all", 'f'),
     (MenuItem::ExportSvg, "Export SVG", 's'),
     (MenuItem::ExportMermaid, "Export Mermaid", 'm'),
+    (MenuItem::ExportText, "Export Text", 't'),
     (MenuItem::Quit, "Quit", 'q'),
 ];
 
