@@ -484,3 +484,22 @@ fn queued_scrolls_add_up_and_keep_order_around_other_events() {
     app.on_events(evs, now);
     assert_eq!((app.session.view.ox, app.session.view.oy), (4, 10));
 }
+
+#[test]
+fn moved_events_leave_the_screen_clean_but_input_dirties_it() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    assert!(app.dirty);
+    app.dirty = false;
+    let t0 = Instant::now();
+    app.on_events(vec![mouse(MouseEventKind::Moved, 5, 5)], t0);
+    assert!(!app.dirty);
+    app.on_events(vec![mouse(MouseEventKind::ScrollDown, 5, 5)], t0);
+    assert!(app.dirty);
+    app.dirty = false;
+    app.on_event(Event::Resize(100, 30), t0);
+    assert!(app.dirty);
+    app.dirty = false;
+    app.on_event(key(KeyCode::Char('?')), t0);
+    assert!(app.dirty);
+}

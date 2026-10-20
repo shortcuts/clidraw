@@ -37,14 +37,17 @@ fn restore() {
 
 fn run(app: &mut App, terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
     while !app.quit {
-        // Terminals without synchronized output ignore the unknown private mode.
-        write!(terminal.backend_mut(), "\x1b[?2026h")?;
-        terminal.draw(|f| {
-            let area = f.area();
-            app.render(f.buffer_mut(), area)
-        })?;
-        write!(terminal.backend_mut(), "\x1b[?2026l")?;
-        terminal.backend_mut().flush()?;
+        if app.dirty {
+            // Terminals without synchronized output ignore the unknown private mode.
+            write!(terminal.backend_mut(), "\x1b[?2026h")?;
+            terminal.draw(|f| {
+                let area = f.area();
+                app.render(f.buffer_mut(), area)
+            })?;
+            write!(terminal.backend_mut(), "\x1b[?2026l")?;
+            terminal.backend_mut().flush()?;
+            app.dirty = false;
+        }
         if event::poll(Duration::from_millis(250))? {
             // Mode 1003 floods the loop with Moved events; drain, then redraw once.
             let mut queue = vec![event::read()?];

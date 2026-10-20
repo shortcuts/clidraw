@@ -22,6 +22,7 @@ pub struct App {
     pub status: Option<ui::Status>,
     pub name: String,
     pub quit: bool,
+    pub dirty: bool,
     pick: Option<export::Pick>,
     store: Store,
     state: State,
@@ -41,6 +42,7 @@ impl App {
 
     fn report(&mut self, r: Result<(), StoreError>) {
         if let Err(e) = r {
+            self.dirty = true;
             self.status = Some(ui::Status::error(e.to_string()));
         }
     }
@@ -106,6 +108,7 @@ impl App {
                     n += 1;
                 }
                 if matches!(self.overlay, Overlay::None) {
+                    self.dirty = true;
                     self.session.view.pan(dx * n, dy * n);
                 }
                 continue;
@@ -115,6 +118,7 @@ impl App {
     }
 
     pub fn on_event(&mut self, ev: Event, now: Instant) {
+        self.dirty |= !matches!(&ev, Event::Mouse(m) if m.kind == MouseEventKind::Moved);
         match ev {
             Event::Resize(w, h) => self.session.screen = (w, h),
             Event::Key(k) => self.on_key(k),

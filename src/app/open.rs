@@ -33,6 +33,7 @@ impl App {
             status: (!warnings.is_empty()).then(|| ui::Status::error(warnings.join("; "))),
             name: String::new(),
             quit: false,
+            dirty: true,
             pick: None,
             store,
             state,
