@@ -4,6 +4,7 @@ use clidraw::config::{Config, DEFAULT_TOML};
 use clidraw::frame_writer::FrameWriter;
 use clidraw::store::Store;
 use clidraw::ui::scope::ExportFormat;
+use clidraw::ui::theme;
 use crossterm::event::{
     self, DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
     KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
@@ -127,6 +128,7 @@ fn main() -> Result<()> {
     let (w, h) = crossterm::terminal::size()?;
     let store = Store::from_env()?;
     let (config, warnings) = Config::load(store.dir());
+    let setting = config.theme;
     let mut app = App::open_with(store, args.into_iter().next(), (w, h), config, warnings)?;
 
     enable_raw_mode()?;
@@ -136,6 +138,12 @@ fn main() -> Result<()> {
         EnableMouseCapture,
         EnableBracketedPaste
     )?;
+    app.session.theme = theme::resolve(
+        setting,
+        std::env::var_os("NO_COLOR").is_some(),
+        std::env::var("COLORTERM").ok().as_deref(),
+        theme::detect,
+    );
     // Querying support needs raw mode; unsupported terminals keep the legacy encoding.
     if crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false) {
         execute!(

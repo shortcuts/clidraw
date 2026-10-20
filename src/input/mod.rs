@@ -14,6 +14,7 @@ use crate::model::{
     Shape, Stroke, Text, Z,
 };
 use crate::ui::palette::{self, Dock, PaletteHit};
+use crate::ui::theme::Theme;
 use crate::ui::Layout;
 use crate::view::View;
 use state::{Action, Gesture, Glide};
@@ -93,6 +94,7 @@ pub struct Session {
     pub history: History,
     pub view: View,
     pub tool: Tool,
+    pub theme: Theme,
     pub selection: Vec<Id>,
     pub clipboard: Canvas,
     pub dock: Dock,
@@ -138,6 +140,7 @@ impl Session {
             history: History::default(),
             view,
             tool: Tool::Select,
+            theme: Theme::Dark,
             selection: vec![],
             clipboard: Canvas::default(),
             dock: Dock::Left,
@@ -413,6 +416,7 @@ impl Session {
             double_click: self.double_click,
             grid: self.grid,
             motion: self.motion,
+            theme: self.theme,
             history: History::with_limit(self.history.limit),
             ..Session::new(canvas, view, self.screen)
         };

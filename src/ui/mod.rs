@@ -10,7 +10,7 @@ mod perf;
 pub mod prompt;
 pub mod scope;
 pub mod switcher;
-mod theme;
+pub mod theme;
 
 use crate::input::Session;
 use crate::model::Canvas;
@@ -75,7 +75,7 @@ pub fn render(
         std::env::var("COLORTERM").ok(),
     );
     let colors = theme::colors(no_color, colorterm.as_deref());
-    let accent = theme::accent(no_color, colorterm.as_deref());
+    let accent = theme::accent(s.theme, no_color, colorterm.as_deref());
     canvas_view::draw(&mut grid, s, accent, colors);
     if !s.overview {
         palette::draw(&mut grid, s);

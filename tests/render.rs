@@ -5,6 +5,7 @@ use clidraw::model::{
 };
 use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::switcher::Switcher;
+use clidraw::ui::theme::Theme;
 use clidraw::ui::{self, Overlay, Perf};
 use clidraw::view::View;
 use ratatui::backend::TestBackend;
@@ -142,6 +143,37 @@ fn ink_and_fill_draw_only_on_a_truecolor_terminal() {
     for b in [off, basic] {
         assert_eq!((b[(20, 4)].fg, b[(23, 5)].bg), (Color::Reset, Color::Reset));
     }
+}
+
+#[test]
+fn light_theme_darkens_ink_and_fill_and_the_selection_accent() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    c.elements.push(shape("bbbbbbbb", 40, ""));
+    for e in &mut c.elements {
+        if let Element::Shape(s) = e {
+            s.color = Some(Paint::Red);
+            s.fill = Some(Paint::Red);
+            s.h = 5;
+        }
+    }
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.theme = Theme::Light;
+    s.selection.push(Id::from("bbbbbbbb"));
+    std::env::remove_var("NO_COLOR");
+    std::env::set_var("COLORTERM", "truecolor");
+    let on = draw(&s, &Overlay::None);
+    std::env::set_var("NO_COLOR", "1");
+    let off = draw(&s, &Overlay::None);
+    std::env::remove_var("NO_COLOR");
+    std::env::remove_var("COLORTERM");
+    assert_eq!(on[(20, 4)].fg, Color::Rgb(114, 42, 42));
+    assert_eq!(on[(23, 5)].bg, Color::Rgb(255, 215, 215));
+    assert_eq!(on[(40, 4)].fg, Color::Rgb(0, 95, 135));
+    assert_eq!(
+        (off[(20, 4)].fg, off[(23, 5)].bg),
+        (Color::Reset, Color::Reset)
+    );
 }
 
 #[test]

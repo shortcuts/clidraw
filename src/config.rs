@@ -1,6 +1,7 @@
 use crate::model::HISTORY_LIMIT;
 use crate::store::validate_name;
 use crate::ui::palette::Dock;
+use crate::ui::theme::ThemeSetting;
 use std::io::{self, Write};
 use std::path::Path;
 use std::time::Duration;
@@ -34,6 +35,9 @@ pub const DEFAULT_TOML: &str = "\
 
 # Glide the view for Fit all and search jumps. false snaps instantly.
 # motion = true
+
+# Color palette: auto asks the terminal for its background, or force dark or light.
+# theme = \"auto\"
 ";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -46,6 +50,7 @@ pub struct Config {
     pub history_limit: usize,
     pub export_padding: i32,
     pub motion: bool,
+    pub theme: ThemeSetting,
 }
 
 impl Default for Config {
@@ -59,6 +64,7 @@ impl Default for Config {
             history_limit: HISTORY_LIMIT,
             export_padding: 2,
             motion: true,
+            theme: ThemeSetting::Auto,
         }
     }
 }
@@ -102,6 +108,7 @@ impl Config {
                 "history_limit" => count(value).map(|n| self.history_limit = n),
                 "export_padding" => padding(value).map(|n| self.export_padding = n),
                 "motion" => flag(value).map(|b| self.motion = b),
+                "theme" => theme(value).map(|t| self.theme = t),
                 _ => {
                     warns.push(format!("{FILE}: unknown key {key}"));
                     continue;
@@ -167,6 +174,15 @@ fn dock(v: &toml::Value) -> Result<Dock, String> {
         Some("right") => Ok(Dock::Right),
         Some("bottom") => Ok(Dock::Bottom),
         _ => Err("expected \"left\", \"top\", \"right\" or \"bottom\"".into()),
+    }
+}
+
+fn theme(v: &toml::Value) -> Result<ThemeSetting, String> {
+    match v.as_str().map(str::to_lowercase).as_deref() {
+        Some("auto") => Ok(ThemeSetting::Auto),
+        Some("dark") => Ok(ThemeSetting::Dark),
+        Some("light") => Ok(ThemeSetting::Light),
+        _ => Err("expected \"auto\", \"dark\" or \"light\"".into()),
     }
 }
 

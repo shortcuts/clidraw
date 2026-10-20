@@ -51,10 +51,10 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
                 Element::Text(t) => (t.color, None),
             };
             if let Some(p) = ink {
-                grid.tint(sx, sy, w, h, theme::ink(p));
+                grid.tint(sx, sy, w, h, theme::ink(s.theme, p));
             }
             if let Some(p) = fill {
-                grid.shade(sx, sy, w, h, theme::fill(p));
+                grid.shade(sx, sy, w, h, theme::fill(s.theme, p));
             }
         }
         if let (Some(c), true) = (accent, selected.contains(e.id())) {

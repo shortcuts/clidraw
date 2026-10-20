@@ -1,5 +1,6 @@
 use clidraw::config::{Config, DEFAULT_TOML};
 use clidraw::ui::palette::Dock;
+use clidraw::ui::theme::ThemeSetting;
 use std::time::Duration;
 
 fn load_text(text: &str) -> (Config, Vec<String>, tempfile::TempDir) {
@@ -166,4 +167,20 @@ fn motion_defaults_on_and_rejects_non_booleans() {
     let (c, w, _t) = load_text("motion = 3\n");
     assert!(c.motion);
     assert_eq!(w, vec!["config.toml: key motion: expected true or false"]);
+}
+
+#[test]
+fn theme_defaults_to_auto_and_rejects_unknown_names() {
+    assert_eq!(Config::default().theme, ThemeSetting::Auto);
+    let (c, w, _t) = load_text("theme = \"light\"\n");
+    assert!(w.is_empty(), "{w:?}");
+    assert_eq!(c.theme, ThemeSetting::Light);
+    let (c, _, _t) = load_text("theme = \"Dark\"\n");
+    assert_eq!(c.theme, ThemeSetting::Dark);
+    let (c, w, _t) = load_text("theme = \"blue\"\n");
+    assert_eq!(c.theme, ThemeSetting::Auto);
+    assert_eq!(
+        w,
+        vec!["config.toml: key theme: expected \"auto\", \"dark\" or \"light\""]
+    );
 }
