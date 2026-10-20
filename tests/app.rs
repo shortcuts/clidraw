@@ -567,3 +567,31 @@ fn moved_events_leave_the_screen_clean_but_input_dirties_it() {
     app.on_event(key(KeyCode::Char('?')), t0);
     assert!(app.dirty);
 }
+
+#[test]
+fn history_limit_from_config_survives_opening_another_canvas() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let cfg = Config {
+        history_limit: 2,
+        ..Config::default()
+    };
+    let mut app = App::open_with(store, None, (80, 24), cfg, vec![]).unwrap();
+    run(&mut app, "e other");
+    for i in 0..3 {
+        let shape = Shape {
+            id: Id::from(format!("shape{i:03}").as_str()),
+            kind: ShapeKind::Rect,
+            x: 0,
+            y: 0,
+            w: 3,
+            h: 3,
+            label: String::new(),
+        };
+        app.session.exec(Command::Insert(i, Element::Shape(shape)));
+    }
+    for _ in 0..3 {
+        app.session.undo();
+    }
+    assert_eq!(app.session.canvas.elements.len(), 1);
+}

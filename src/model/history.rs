@@ -1,12 +1,28 @@
 use super::{Canvas, Command, ModelError};
 
-#[derive(Default)]
+pub const HISTORY_LIMIT: usize = 1000;
+
 pub struct History {
     undo: Vec<Command>,
     redo: Vec<Command>,
+    pub limit: usize,
+}
+
+impl Default for History {
+    fn default() -> History {
+        History::with_limit(HISTORY_LIMIT)
+    }
 }
 
 impl History {
+    pub fn with_limit(limit: usize) -> History {
+        History {
+            undo: vec![],
+            redo: vec![],
+            limit,
+        }
+    }
+
     pub fn exec(&mut self, canvas: &mut Canvas, cmd: Command) -> Result<(), ModelError> {
         let inverse = canvas.apply(cmd)?;
         self.record(inverse);
@@ -16,6 +32,8 @@ impl History {
     /// Stores the inverse of a command that the caller already applied.
     pub fn record(&mut self, inverse: Command) {
         self.undo.push(inverse);
+        self.undo
+            .drain(..self.undo.len().saturating_sub(self.limit));
         self.redo.clear();
     }
 

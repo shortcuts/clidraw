@@ -362,3 +362,22 @@ fn retain_present_drops_missing_ids_in_both_branches() {
         assert_eq!(ids, want);
     }
 }
+
+#[test]
+fn history_keeps_only_the_newest_entries_up_to_its_limit() {
+    let mut c = Canvas::default();
+    let mut h = History::with_limit(3);
+    for i in 0..5 {
+        h.exec(
+            &mut c,
+            Command::Insert(i, shape(&format!("shape{i:03}"), 0)),
+        )
+        .unwrap();
+    }
+    let mut undone = 0;
+    while h.undo(&mut c).unwrap() {
+        undone += 1;
+    }
+    assert_eq!(undone, 3);
+    assert_eq!(c.elements.len(), 2);
+}

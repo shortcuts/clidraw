@@ -103,6 +103,28 @@ fn dragging_a_shape_moves_it_and_undo_restores() {
 }
 
 #[test]
+fn a_long_shape_drag_undoes_and_redoes_in_one_step() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    let t = Instant::now();
+    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 22, 6, t);
+    for i in 1..=200 {
+        mouse(
+            &mut s,
+            MouseEventKind::Drag(MouseButton::Left),
+            22 + i,
+            6,
+            t,
+        );
+    }
+    mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 222, 6, t);
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (220, 5));
+    ctrl(&mut s, 'z');
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
+    ctrl(&mut s, 'y');
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (220, 5));
+}
+
+#[test]
 fn corner_handle_resizes() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     click(&mut s, (22, 6), Instant::now());

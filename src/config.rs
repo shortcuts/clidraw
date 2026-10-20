@@ -1,3 +1,4 @@
+use crate::model::HISTORY_LIMIT;
 use crate::store::validate_name;
 use crate::ui::palette::Dock;
 use std::io::{self, Write};
@@ -21,6 +22,9 @@ pub const DEFAULT_TOML: &str = "\
 
 # Canvas to create when none exists and no name is given.
 # default_canvas = \"untitled\"
+
+# Most undo steps kept; the oldest drop first.
+# history_limit = 1000
 ";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -29,6 +33,7 @@ pub struct Config {
     pub double_click: Duration,
     pub dock: Dock,
     pub default_canvas: String,
+    pub history_limit: usize,
 }
 
 impl Default for Config {
@@ -38,6 +43,7 @@ impl Default for Config {
             double_click: Duration::from_millis(400),
             dock: Dock::Left,
             default_canvas: "untitled".into(),
+            history_limit: HISTORY_LIMIT,
         }
     }
 }
@@ -77,6 +83,7 @@ impl Config {
                 "double_click_ms" => millis(value).map(|d| self.double_click = d),
                 "dock" => dock(value).map(|d| self.dock = d),
                 "default_canvas" => name(value).map(|n| self.default_canvas = n),
+                "history_limit" => count(value).map(|n| self.history_limit = n),
                 _ => {
                     warns.push(format!("{FILE}: unknown key {key}"));
                     continue;
@@ -106,6 +113,13 @@ fn write_default(dir: &Path, path: &Path) -> io::Result<()> {
 fn millis(v: &toml::Value) -> Result<Duration, String> {
     match v.as_integer() {
         Some(n) if n > 0 => Ok(Duration::from_millis(n as u64)),
+        _ => Err("expected a positive integer".into()),
+    }
+}
+
+fn count(v: &toml::Value) -> Result<usize, String> {
+    match v.as_integer().map(usize::try_from) {
+        Some(Ok(n)) if n > 0 => Ok(n),
         _ => Err("expected a positive integer".into()),
     }
 }

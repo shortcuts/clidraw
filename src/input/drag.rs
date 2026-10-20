@@ -8,9 +8,49 @@ const MIN_SIZE: i32 = 3;
 
 fn run(s: &mut Session, inv: &mut Vec<Command>, cmd: Command) {
     if let Ok(undo) = s.canvas.apply(cmd) {
-        inv.push(undo);
+        fold(inv, undo);
         s.rev += 1;
     }
+}
+
+/// Keeps `inv` constant-size per drag: the first `SetRect`/`SetEnd` inverse already holds the start value.
+fn fold(inv: &mut Vec<Command>, undo: Command) {
+    let redundant = match &undo {
+        Command::SetRect { id, .. } => inv
+            .iter()
+            .any(|c| matches!(c, Command::SetRect { id: i, .. } if i == id)),
+        Command::SetEnd { id, side, .. } => inv
+            .iter()
+            .any(|c| matches!(c, Command::SetEnd { id: i, side: d, .. } if i == id && d == side)),
+        _ => false,
+    };
+    if redundant {
+        return;
+    }
+    if let (Command::Batch(new), Some(Command::Batch(last))) = (&undo, inv.last_mut()) {
+        if add_moves(last, new) {
+            return;
+        }
+    }
+    inv.push(undo);
+}
+
+/// Sums `new` into `last` when both are non-empty `Move` lists over the same ids.
+fn add_moves(last: &mut [Command], new: &[Command]) -> bool {
+    let same = !new.is_empty()
+        && last.len() == new.len()
+        && last.iter().zip(new).all(|(a, b)| {
+            matches!((a, b), (Command::Move { id: x, .. }, Command::Move { id: y, .. }) if x == y)
+        });
+    if same {
+        for (a, b) in last.iter_mut().zip(new) {
+            if let (Command::Move { dx, dy, .. }, Command::Move { dx: bx, dy: by, .. }) = (a, b) {
+                *dx += bx;
+                *dy += by;
+            }
+        }
+    }
+    same
 }
 
 fn span(fixed: i32, cursor: i32) -> (i32, i32) {
@@ -223,5 +263,100 @@ fn bind(s: &mut Session, inv: &mut Vec<Command>, id: &Id, side: Side, world: P) 
                 end: End::Bound(shape),
             },
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::input::handle_mouse;
+    use crate::model::Canvas;
+    use crate::view::View;
+    use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+    use std::time::Instant;
+
+    const STEPS: u16 = 200;
+
+    fn mouse(s: &mut Session, kind: MouseEventKind, col: u16, row: u16) {
+        let ev = MouseEvent {
+            kind,
+            column: col,
+            row,
+            modifiers: KeyModifiers::NONE,
+        };
+        handle_mouse(s, ev, Instant::now());
+    }
+
+    fn with_shape() -> Session {
+        let mut s = Session::new(Canvas::default(), View::default(), (400, 40));
+        s.canvas.elements.push(Element::Shape(Shape {
+            id: Id::from("aaaaaaaa"),
+            kind: ShapeKind::Rect,
+            x: 30,
+            y: 15,
+            w: 8,
+            h: 4,
+            label: String::new(),
+        }));
+        s
+    }
+
+    fn press_and_drag(s: &mut Session, from: (u16, u16), step: impl Fn(u16) -> (u16, u16)) {
+        mouse(s, MouseEventKind::Down(MouseButton::Left), from.0, from.1);
+        for i in 1..=STEPS {
+            let (c, r) = step(i);
+            mouse(s, MouseEventKind::Drag(MouseButton::Left), c, r);
+        }
+    }
+
+    fn inv(s: &Session) -> &[Command] {
+        match &s.gesture {
+            Gesture::Dragging { inv, .. } => inv,
+            _ => panic!("not dragging"),
+        }
+    }
+
+    #[test]
+    fn move_drag_keeps_one_summed_batch() {
+        let mut s = with_shape();
+        press_and_drag(&mut s, (32, 16), |i| (32 + i, 16));
+        let id = Id::from("aaaaaaaa");
+        let want = Command::Batch(vec![Command::Move {
+            id,
+            dx: -i32::from(STEPS),
+            dy: 0,
+        }]);
+        assert_eq!(inv(&s), [want]);
+    }
+
+    #[test]
+    fn resize_drag_keeps_the_first_rect() {
+        let mut s = with_shape();
+        s.selection = vec![Id::from("aaaaaaaa")];
+        press_and_drag(&mut s, (37, 18), |i| (37 + i, 18));
+        let want = Command::SetRect {
+            id: Id::from("aaaaaaaa"),
+            x: 30,
+            y: 15,
+            w: 8,
+            h: 4,
+        };
+        assert_eq!(inv(&s), [want]);
+    }
+
+    #[test]
+    fn line_draw_keeps_remove_and_the_first_end() {
+        let mut s = with_shape();
+        s.tool = Tool::Line;
+        press_and_drag(&mut s, (100, 30), |i| (100 + i, 30));
+        let [Command::Remove(_), Command::SetEnd {
+            side: Side::To,
+            end,
+            ..
+        }] = inv(&s)
+        else {
+            panic!("unexpected inverse: {:?}", inv(&s));
+        };
+        assert_eq!(*end, End::Free(100, 30));
     }
 }

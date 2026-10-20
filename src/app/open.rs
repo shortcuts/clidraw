@@ -27,6 +27,7 @@ impl App {
         let mut session = Session::new(Canvas::default(), View::default(), screen);
         session.dock = config.dock;
         session.double_click = config.double_click;
+        session.history.limit = config.history_limit;
         let mut app = App {
             session,
             overlay: Overlay::None,

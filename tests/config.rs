@@ -28,13 +28,14 @@ fn missing_file_gives_defaults_and_writes_commented_file() {
 #[test]
 fn overrides_apply() {
     let (c, w, _t) = load_text(
-        "autosave_ms = 100\ndouble_click_ms = 250\ndock = \"Bottom\"\ndefault_canvas = \"scratch\"\n",
+        "autosave_ms = 100\ndouble_click_ms = 250\ndock = \"Bottom\"\ndefault_canvas = \"scratch\"\nhistory_limit = 50\n",
     );
     assert!(w.is_empty(), "{w:?}");
     assert_eq!(c.autosave, Duration::from_millis(100));
     assert_eq!(c.double_click, Duration::from_millis(250));
     assert_eq!(c.dock, Dock::Bottom);
     assert_eq!(c.default_canvas, "scratch");
+    assert_eq!(c.history_limit, 50);
 }
 
 #[test]
@@ -116,4 +117,14 @@ fn symlinked_dir_is_followed() {
         .unwrap()
         .file_type()
         .is_symlink());
+}
+
+#[test]
+fn zero_history_limit_warns() {
+    let (c, w, _t) = load_text("history_limit = 0\n");
+    assert_eq!(c.history_limit, Config::default().history_limit);
+    assert_eq!(
+        w,
+        vec!["config.toml: key history_limit: expected a positive integer"]
+    );
 }

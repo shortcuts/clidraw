@@ -140,6 +140,7 @@ impl Session {
         *self = Session {
             dock: self.dock,
             double_click: self.double_click,
+            history: History::with_limit(self.history.limit),
             ..Session::new(canvas, view, self.screen)
         };
     }
