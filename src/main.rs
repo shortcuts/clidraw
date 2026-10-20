@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clidraw::app::App;
 use clidraw::config::{Config, DEFAULT_TOML};
+use clidraw::frame_writer::FrameWriter;
 use clidraw::store::Store;
 use crossterm::event::{
     self, DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
@@ -35,7 +36,11 @@ fn restore() {
     );
 }
 
-fn run(app: &mut App, terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
+fn run(
+    app: &mut App,
+    out: &FrameWriter<Stdout>,
+    terminal: &mut Terminal<CrosstermBackend<FrameWriter<Stdout>>>,
+) -> Result<()> {
     while !app.quit {
         if app.dirty {
             // Terminals without synchronized output ignore the unknown private mode.
@@ -45,7 +50,7 @@ fn run(app: &mut App, terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Resu
                 app.render(f.buffer_mut(), area)
             })?;
             write!(terminal.backend_mut(), "\x1b[?2026l")?;
-            terminal.backend_mut().flush()?;
+            out.send()?;
             app.dirty = false;
         }
         let ready = match app.next_wake(Instant::now()) {
@@ -99,8 +104,9 @@ fn main() -> Result<()> {
         restore();
         default_hook(info);
     }));
-    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-    let result = panic::catch_unwind(AssertUnwindSafe(|| run(&mut app, &mut terminal)));
+    let out = FrameWriter::new(stdout());
+    let mut terminal = Terminal::new(CrosstermBackend::new(out.handle()))?;
+    let result = panic::catch_unwind(AssertUnwindSafe(|| run(&mut app, &out, &mut terminal)));
     restore();
     app.save();
     match result {

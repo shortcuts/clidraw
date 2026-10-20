@@ -1,6 +1,7 @@
 pub mod app;
 pub mod config;
 pub mod export;
+pub mod frame_writer;
 pub mod input;
 pub mod model;
 pub mod names;
