@@ -8,7 +8,7 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
     let view = s.view;
     let editing = s.edit.as_ref().and_then(|e| match &e.target {
-        EditTarget::Existing(id) => Some((id, format!("{}_", e.buf))),
+        EditTarget::Existing(id) => Some(id),
         EditTarget::New(..) => None,
     });
     let mut slot = s.layout.borrow_mut();
@@ -28,25 +28,18 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
         } else {
             0
         };
-        let label = |own: &str| match &editing {
-            Some((id, buf)) if *id == e.id() => buf.clone(),
-            _ => own.to_string(),
-        };
+        let hide = editing == Some(e.id());
+        let label = |own| if hide { "" } else { own };
         match e {
-            Element::Shape(sh) => shape(grid, sh, sx, sy, &label(&sh.label), flags),
-            Element::Line(l) => line(grid, s, &find, l, &label(&l.label), flags),
-            Element::Text(t) => grid.text(sx, sy, &label(&t.text), flags),
+            Element::Shape(sh) => shape(grid, sh, sx, sy, label(&sh.label), flags),
+            Element::Line(l) => line(grid, s, &find, l, label(&l.label), flags),
+            Element::Text(t) => grid.text(sx, sy, label(&t.text), flags),
         }
         if let (Some(c), true) = (accent, s.selection.contains(e.id())) {
             grid.tint(sx, sy, w, h, c);
         }
     }
-    if let Some(edit) = &s.edit {
-        if let EditTarget::New(x, y) = edit.target {
-            let (sx, sy) = view.to_screen(x, y);
-            grid.text(sx, sy, &format!("{}_", edit.buf), BOLD);
-        }
-    }
+    edit_label(grid, s);
     for (h, id, (x, y)) in handles(&s.canvas, &s.selection) {
         let (sx, sy) = view.to_screen(x, y);
         let hovered = matches!(&s.hover, Hit::Handle(hh, hid) if *hh == h && *hid == id);
@@ -57,6 +50,32 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
     }
     if let Some((a, b)) = s.band {
         band(grid, s, a, b);
+    }
+}
+
+fn edit_label(grid: &mut Grid, s: &Session) {
+    let (Some(edit), Some(b)) = (&s.edit, s.edit_origin()) else {
+        return;
+    };
+    let (mut x, y) = s.view.to_screen(b.x, b.y);
+    let sel = edit.selection();
+    for (i, ch) in edit.buf[b.start..b.end].char_indices() {
+        let i = b.start + i;
+        let hit = match sel {
+            Some((from, to)) => (from..to).contains(&i),
+            None => i == edit.caret,
+        };
+        let mut one = [0; 4];
+        grid.text(
+            x,
+            y,
+            ch.encode_utf8(&mut one),
+            if hit { BOLD | REVERSE } else { BOLD },
+        );
+        x += ch.width().unwrap_or(0) as i32;
+    }
+    if sel.is_none() && edit.caret == b.end {
+        grid.set(x, y, ' ', REVERSE);
     }
 }
 

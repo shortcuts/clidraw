@@ -1,5 +1,5 @@
 use super::state::Gesture;
-use super::{Session, Tool};
+use super::{Edit, Session, Tool};
 use crate::model::{Command, Z};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
@@ -17,8 +17,42 @@ fn notice(text: Option<String>) -> KeyOutcome {
     text.map_or(KeyOutcome::None, KeyOutcome::Notice)
 }
 
+/// Applies a text-editing key to the label; false leaves the key to the caller.
+fn edit_key(e: &mut Edit, k: &KeyEvent) -> bool {
+    let m = k.modifiers;
+    let shift = m.contains(KeyModifiers::SHIFT);
+    // macOS Terminal sends Option-arrows as Alt-b and Alt-f.
+    match (
+        k.code,
+        m.contains(KeyModifiers::CONTROL),
+        m.contains(KeyModifiers::ALT),
+    ) {
+        (KeyCode::Char('w'), true, _) => e.delete_word_left(),
+        (KeyCode::Char('u'), true, _) => e.delete_to_start(),
+        (KeyCode::Char('a'), true, _) => e.select_all(),
+        (KeyCode::Left, true, _) | (KeyCode::Left, _, true) | (KeyCode::Char('b'), false, true) => {
+            e.word_left(shift)
+        }
+        (KeyCode::Right, true, _)
+        | (KeyCode::Right, _, true)
+        | (KeyCode::Char('f'), false, true) => e.word_right(shift),
+        (KeyCode::Left, false, false) => e.left(shift),
+        (KeyCode::Right, false, false) => e.right(shift),
+        (KeyCode::Home, false, false) => e.home(shift),
+        (KeyCode::End, false, false) => e.end(shift),
+        (KeyCode::Delete, false, false) => e.delete(),
+        (KeyCode::Backspace, false, false) => e.backspace(),
+        (KeyCode::Char(c), false, false) => e.insert(c.encode_utf8(&mut [0; 4])),
+        _ => return false,
+    }
+    true
+}
+
 pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
     if k.kind == KeyEventKind::Release {
+        return KeyOutcome::None;
+    }
+    if s.edit.as_mut().is_some_and(|e| edit_key(e, &k)) {
         return KeyOutcome::None;
     }
     let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
@@ -37,12 +71,8 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         }
         return KeyOutcome::None;
     }
-    if let Some(edit) = &mut s.edit {
+    if s.edit.is_some() {
         match k.code {
-            KeyCode::Char(c) => edit.buf.push(c),
-            KeyCode::Backspace => {
-                edit.buf.pop();
-            }
             KeyCode::Enter => s.commit_edit(),
             KeyCode::Esc => s.edit = None,
             _ => {}
@@ -102,6 +132,6 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
 
 pub fn handle_paste(s: &mut Session, text: &str) {
     if let Some(edit) = &mut s.edit {
-        edit.buf.extend(text.chars().filter(|c| !c.is_control()));
+        edit.insert(&text.chars().filter(|c| !c.is_control()).collect::<String>());
     }
 }

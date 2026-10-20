@@ -1,5 +1,6 @@
 use clidraw::input::{
-    handle_key, handle_mouse, Corner, Edit, EditTarget, Handle, Hit, KeyOutcome, Session, Tool,
+    handle_key, handle_mouse, handle_paste, Corner, Edit, EditTarget, Handle, Hit, KeyOutcome,
+    Session, Tool,
 };
 use clidraw::model::{Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::ui::palette::Dock;
@@ -679,10 +680,7 @@ fn tool_keys_switch_tools_but_type_into_an_edit() {
         assert_eq!(s.tool, tool);
     }
     key(&mut s, KeyCode::Char('v'));
-    s.edit = Some(Edit {
-        target: EditTarget::New(0, 0),
-        buf: String::new(),
-    });
+    s.edit = Some(Edit::new(EditTarget::New(0, 0), String::new()));
     key(&mut s, KeyCode::Char('r'));
     assert_eq!(s.tool, Tool::Select);
     assert_eq!(s.edit.as_ref().unwrap().buf, "r");
@@ -816,4 +814,145 @@ fn d_still_picks_the_diamond_tool() {
     let mut s = session();
     key(&mut s, KeyCode::Char('d'));
     assert_eq!(s.tool, Tool::Diamond);
+}
+
+fn editing(buf: &str) -> Session {
+    let mut s = session();
+    s.edit = Some(Edit::new(EditTarget::New(0, 0), buf.into()));
+    s
+}
+
+fn mod_key(s: &mut Session, code: KeyCode, m: KeyModifiers) {
+    handle_key(s, KeyEvent::new(code, m));
+}
+
+fn typed(s: &mut Session, text: &str) {
+    for c in text.chars() {
+        key(s, KeyCode::Char(c));
+    }
+}
+
+fn buf(s: &Session) -> &str {
+    &s.edit.as_ref().unwrap().buf
+}
+
+fn caret(s: &Session) -> usize {
+    s.edit.as_ref().unwrap().caret
+}
+
+#[test]
+fn edit_caret_keys_insert_and_delete_at_the_caret() {
+    let mut s = editing("abc");
+    key(&mut s, KeyCode::Left);
+    typed(&mut s, "X");
+    assert_eq!(buf(&s), "abXc");
+    key(&mut s, KeyCode::Home);
+    typed(&mut s, "Y");
+    key(&mut s, KeyCode::Backspace);
+    key(&mut s, KeyCode::Backspace);
+    assert_eq!(buf(&s), "abXc");
+    key(&mut s, KeyCode::Delete);
+    assert_eq!(buf(&s), "bXc");
+    key(&mut s, KeyCode::End);
+    key(&mut s, KeyCode::Delete);
+    key(&mut s, KeyCode::Right);
+    assert_eq!((buf(&s), caret(&s)), ("bXc", 3));
+}
+
+#[test]
+fn edit_word_jumps_cross_runs_of_spaces() {
+    let mut s = editing("foo  bar baz");
+    mod_key(&mut s, KeyCode::Left, KeyModifiers::CONTROL);
+    assert_eq!(caret(&s), 9);
+    mod_key(&mut s, KeyCode::Char('b'), KeyModifiers::ALT);
+    assert_eq!(caret(&s), 5);
+    mod_key(&mut s, KeyCode::Left, KeyModifiers::ALT);
+    assert_eq!(caret(&s), 0);
+    mod_key(&mut s, KeyCode::Right, KeyModifiers::CONTROL);
+    assert_eq!(caret(&s), 3);
+    mod_key(&mut s, KeyCode::Char('f'), KeyModifiers::ALT);
+    assert_eq!(caret(&s), 8);
+}
+
+#[test]
+fn ctrl_w_and_ctrl_u_delete_backward() {
+    let mut s = editing("one two  ");
+    ctrl(&mut s, 'w');
+    assert_eq!(buf(&s), "one ");
+    key(&mut s, KeyCode::Left);
+    ctrl(&mut s, 'u');
+    assert_eq!((buf(&s), caret(&s)), (" ", 0));
+}
+
+#[test]
+fn edit_selection_is_replaced_by_typing_and_collapsed_by_arrows() {
+    let mut s = editing("abc");
+    mod_key(&mut s, KeyCode::Left, KeyModifiers::SHIFT);
+    mod_key(&mut s, KeyCode::Left, KeyModifiers::SHIFT);
+    typed(&mut s, "X");
+    assert_eq!(buf(&s), "aX");
+    mod_key(&mut s, KeyCode::Home, KeyModifiers::SHIFT);
+    key(&mut s, KeyCode::Left);
+    assert_eq!(caret(&s), 0);
+    assert!(s.edit.as_ref().unwrap().selection().is_none());
+    mod_key(&mut s, KeyCode::End, KeyModifiers::SHIFT);
+    key(&mut s, KeyCode::Right);
+    assert_eq!(caret(&s), 2);
+}
+
+#[test]
+fn ctrl_a_in_an_edit_selects_the_text_not_the_canvas() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.edit = Some(Edit::new(EditTarget::New(0, 0), "abc".into()));
+    ctrl(&mut s, 'a');
+    assert!(s.selection.is_empty());
+    typed(&mut s, "X");
+    assert_eq!(buf(&s), "X");
+}
+
+#[test]
+fn edit_caret_stays_on_char_boundaries() {
+    let mut s = editing("é世x");
+    for _ in 0..3 {
+        key(&mut s, KeyCode::Left);
+        assert!(buf(&s).is_char_boundary(caret(&s)));
+    }
+    assert_eq!(caret(&s), 0);
+    key(&mut s, KeyCode::Right);
+    assert_eq!(caret(&s), 2);
+    key(&mut s, KeyCode::Delete);
+    key(&mut s, KeyCode::Backspace);
+    assert_eq!(buf(&s), "x");
+}
+
+#[test]
+fn paste_inserts_at_the_caret_and_replaces_the_selection() {
+    let mut s = editing("abcd");
+    key(&mut s, KeyCode::Left);
+    handle_paste(&mut s, "X\nY");
+    assert_eq!(buf(&s), "abcXYd");
+    mod_key(&mut s, KeyCode::Left, KeyModifiers::SHIFT);
+    mod_key(&mut s, KeyCode::Left, KeyModifiers::SHIFT);
+    handle_paste(&mut s, "-");
+    assert_eq!(buf(&s), "abc-d");
+}
+
+#[test]
+fn click_on_a_label_places_the_caret_and_elsewhere_commits() {
+    let mut s = session();
+    let id = Id::from("tttttttt");
+    s.canvas.elements.push(Element::Text(clidraw::model::Text {
+        id: id.clone(),
+        x: 30,
+        y: 5,
+        text: "hello".into(),
+    }));
+    s.start_edit_existing(id);
+    let t = Instant::now();
+    click(&mut s, (32, 5), t);
+    assert_eq!(caret(&s), 2);
+    click(&mut s, (35, 5), t);
+    assert_eq!(caret(&s), 5);
+    click(&mut s, (60, 15), t);
+    assert!(s.edit.is_none());
 }

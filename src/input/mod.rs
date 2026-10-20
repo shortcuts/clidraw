@@ -1,8 +1,10 @@
 mod drag;
+mod edit;
 mod hit;
 mod keys;
 mod state;
 
+pub use edit::{Edit, EditBox, EditTarget};
 pub use hit::{handles, shape_at, Corner, Handle, Hit};
 pub use keys::{handle_key, handle_paste, KeyOutcome};
 pub use state::{handle_mouse, scroll_step};
@@ -64,16 +66,6 @@ impl Tool {
             Tool::Text => 't',
         }
     }
-}
-
-pub enum EditTarget {
-    Existing(Id),
-    New(i32, i32),
-}
-
-pub struct Edit {
-    pub target: EditTarget,
-    pub buf: String,
 }
 
 /// Everything the editor knows apart from files and overlays.
@@ -241,21 +233,15 @@ impl Session {
             None => return,
         };
         self.selection = vec![id.clone()];
-        self.edit = Some(Edit {
-            target: EditTarget::Existing(id),
-            buf,
-        });
+        self.edit = Some(Edit::new(EditTarget::Existing(id), buf));
     }
 
     pub fn start_edit_new(&mut self, p: (i32, i32)) {
-        self.edit = Some(Edit {
-            target: EditTarget::New(p.0, p.1),
-            buf: String::new(),
-        });
+        self.edit = Some(Edit::new(EditTarget::New(p.0, p.1), String::new()));
     }
 
     pub fn commit_edit(&mut self) {
-        let Some(Edit { target, buf }) = self.edit.take() else {
+        let Some(Edit { target, buf, .. }) = self.edit.take() else {
             return;
         };
         match target {

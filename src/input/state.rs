@@ -148,6 +148,9 @@ fn hover(s: &mut Session, screen: P, world: P) {
 
 fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     s.hover = Hit::Empty;
+    if s.place_caret(world) {
+        return;
+    }
     s.commit_edit();
     let double = s
         .last_down

@@ -381,3 +381,75 @@ fn hovered_handle_draws_a_diamond() {
     s.hover = Hit::Handle(Handle::Corner(Corner::Nw), Id::from("aaaaaaaa"));
     assert_eq!(cols(&draw(&s, &Overlay::None), 4, 20, 1), "◆");
 }
+
+fn reversed_blanks(b: &Buffer, y: u16) -> Vec<u16> {
+    (0..80)
+        .filter(|&x| b[(x, y)].modifier.contains(Modifier::REVERSED) && b[(x, y)].symbol() == " ")
+        .collect()
+}
+
+#[test]
+fn edit_caret_is_a_reversed_cell_after_the_text() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "box"));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.start_edit_existing(Id::from("aaaaaaaa"));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 5, 22, 3), "box");
+    assert_eq!(reversed_blanks(&b, 5), vec![25]);
+    assert!(!row(&b, 5).contains('_'));
+}
+
+#[test]
+fn edit_caret_in_the_middle_reverses_the_char_under_it() {
+    let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
+    s.start_edit_new((30, 10));
+    s.edit.as_mut().unwrap().insert("hey");
+    s.edit.as_mut().unwrap().left(false);
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 10, 30, 3), "hey");
+    assert!(b[(32, 10)].modifier.contains(Modifier::REVERSED));
+    assert!(!b[(31, 10)].modifier.contains(Modifier::REVERSED));
+}
+
+#[test]
+fn edit_selection_draws_reversed_chars() {
+    let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
+    s.start_edit_new((30, 10));
+    s.edit.as_mut().unwrap().insert("hey");
+    s.edit.as_mut().unwrap().home(true);
+    let b = draw(&s, &Overlay::None);
+    assert!((30..33).all(|x| b[(x, 10)].modifier.contains(Modifier::REVERSED)));
+    assert!(reversed_blanks(&b, 10).is_empty());
+}
+
+#[test]
+fn long_shape_label_shows_the_window_ending_at_the_caret() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "0123456789"));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.start_edit_existing(Id::from("aaaaaaaa"));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 5, 21, 6), "56789 ");
+    assert_eq!(reversed_blanks(&b, 5), vec![26]);
+}
+
+#[test]
+fn edit_caret_shows_on_a_line_label() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 12, ""));
+    c.elements.push(shape("bbbbbbbb", 40, ""));
+    c.elements.push(Element::Line(Line {
+        id: Id::from("cccccccc"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa")),
+        to: End::Bound(Id::from("bbbbbbbb")),
+        label: "ab".into(),
+    }));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.start_edit_existing(Id::from("cccccccc"));
+    let b = draw(&s, &Overlay::None);
+    let at = reversed_blanks(&b, 5);
+    assert_eq!(at.len(), 1);
+    assert_eq!(cols(&b, 5, at[0] - 2, 2), "ab");
+}

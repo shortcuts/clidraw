@@ -21,9 +21,14 @@ const CANVAS: [(&str, &str); 13] = [
     (":", "Commands q w wq e u redo"),
 ];
 
-const TEXT_EDIT: [(&str, &str); 4] = [
-    ("Type", "Add text to the label"),
-    ("Backspace", "Delete a character"),
+const TEXT_EDIT: [(&str, &str); 9] = [
+    ("Type, paste", "Insert at the caret"),
+    ("Left, Right", "Move the caret"),
+    ("Home, End", "Jump to the start, end"),
+    ("Ctrl-Left/Right", "Jump by word"),
+    ("Shift + move", "Select text"),
+    ("Backspace, Delete", "Delete a character"),
+    ("Ctrl-w, Ctrl-u", "Delete word, to start"),
     ("Enter", "Commit the label"),
     ("Esc", "Discard the edit"),
 ];
