@@ -1,4 +1,6 @@
 use clidraw::app::App;
+use clidraw::config::Config;
+use clidraw::export::{mermaid, svg};
 use clidraw::input::handles;
 use clidraw::model::{Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::store::Store;
@@ -11,6 +13,9 @@ use std::time::{Duration, Instant};
 
 const BUDGET: Duration = Duration::from_millis(16);
 const FRAMES: usize = 30;
+const LOAD_SAVE_BUDGET: Duration = Duration::from_millis(50);
+const STARTUP_BUDGET: Duration = Duration::from_millis(50);
+const EXPORT_BUDGET: Duration = Duration::from_millis(100);
 
 fn busy_app(dir: &std::path::Path) -> App {
     let store = Store::at(dir.join("c"), dir.join("state"));
@@ -312,4 +317,111 @@ fn redo_of_a_large_drag_fits_the_budget_on_5000_elements() {
     assert_eq!(app.session.canvas.shape(&target).map(|s| s.x), Some(200));
     let m = median(times);
     assert!(m < BUDGET, "median redo {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn save_and_load_fit_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let canvas = &busy_app(t.path()).session.canvas;
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    assert!(store.save("busy", canvas).unwrap());
+    assert_eq!(store.load("busy").unwrap().elements.len(), 5000);
+    let save_times = (0..FRAMES)
+        .map(|_| {
+            let _ = store.delete("busy");
+            let t0 = Instant::now();
+            store.save("busy", canvas).unwrap();
+            t0.elapsed()
+        })
+        .collect();
+    let load_times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            std::hint::black_box(store.load("busy").unwrap());
+            t0.elapsed()
+        })
+        .collect();
+    let save = median(save_times);
+    let load = median(load_times);
+    assert!(
+        save < LOAD_SAVE_BUDGET,
+        "median save {save:?} exceeds {LOAD_SAVE_BUDGET:?}"
+    );
+    assert!(
+        load < LOAD_SAVE_BUDGET,
+        "median load {load:?} exceeds {LOAD_SAVE_BUDGET:?}"
+    );
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn svg_export_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let app = busy_app(t.path());
+    assert_eq!(svg(&app.session.canvas).matches("<rect").count(), 2501);
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            std::hint::black_box(svg(&app.session.canvas));
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(
+        m < EXPORT_BUDGET,
+        "median svg export {m:?} exceeds {EXPORT_BUDGET:?}"
+    );
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn mermaid_export_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let app = busy_app(t.path());
+    let out = mermaid(&app.session.canvas);
+    assert_eq!((out.skipped, out.text.matches("-->").count()), (0, 2499));
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            std::hint::black_box(mermaid(&app.session.canvas));
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(
+        m < EXPORT_BUDGET,
+        "median mermaid export {m:?} exceeds {EXPORT_BUDGET:?}"
+    );
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn startup_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let app = busy_app(t.path());
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    store.save("busy", &app.session.canvas).unwrap();
+    let times = (0..FRAMES)
+        .map(|_| {
+            let store = Store::at(t.path().join("c"), t.path().join("state"));
+            let t0 = Instant::now();
+            let opened = App::open_with(
+                store,
+                Some("busy".into()),
+                (200, 50),
+                Config::default(),
+                vec![],
+            )
+            .unwrap();
+            let elapsed = t0.elapsed();
+            assert_eq!(opened.session.canvas.elements.len(), 5000);
+            elapsed
+        })
+        .collect();
+    let m = median(times);
+    assert!(
+        m < STARTUP_BUDGET,
+        "median startup {m:?} exceeds {STARTUP_BUDGET:?}"
+    );
 }
