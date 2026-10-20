@@ -8,6 +8,7 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
 - `cargo run -- <name>` opens or creates the canvas `<name>`.
 - `cargo run -- config` prints the default `config.toml`. A canvas named `config` opens from the menu, not by argument.
 - `cargo run -- probe` prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.
+- `cargo run --release -- bench` replays a scripted drag and pan on a generated 5000-element canvas in your terminal and prints the frame times.
 
 The terminal needs true color, SGR mouse reporting and the alternate screen.
 
@@ -82,6 +83,17 @@ Budgets for a release build with 5000 elements on a 200x50 screen:
 | Peak resident memory, 50000 elements (measured once, perf test process) | 14.1 MB |
 
 `make perf` checks the frame and drag-step budgets. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet. CI runs `make check` with `CLIDRAW_PERF_SLACK=4`, which divides each measured median by 4; local runs leave it unset.
+
+### Terminal frame times
+
+`bench` times each event from input to the flushed frame, in your real terminal. It measures the write into the terminal, not the terminal's own rendering. It uses the current terminal size, at least 40x16, and does not touch your canvases. Times are in ms.
+
+| Terminal | drag median | drag p99 | drag worst | pan median | pan p99 | pan worst | B/frame |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| kitty | not run yet | | | | | | |
+| Alacritty | not run yet | | | | | | |
+| Ghostty | not run yet | | | | | | |
+| Rex | not run yet | | | | | | |
 
 ### Profile
 

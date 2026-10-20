@@ -18,6 +18,7 @@ use std::panic::{self, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
+mod bench;
 mod probe;
 
 static KEYBOARD_ENHANCED: AtomicBool = AtomicBool::new(false);
@@ -36,6 +37,23 @@ fn restore() {
     );
 }
 
+fn draw_frame(
+    app: &mut App,
+    out: &FrameWriter<Stdout>,
+    terminal: &mut Terminal<CrosstermBackend<FrameWriter<Stdout>>>,
+) -> Result<usize> {
+    // Terminals without synchronized output ignore the unknown private mode.
+    write!(terminal.backend_mut(), "\x1b[?2026h")?;
+    terminal.draw(|f| {
+        let area = f.area();
+        app.render(f.buffer_mut(), area)
+    })?;
+    write!(terminal.backend_mut(), "\x1b[?2026l")?;
+    out.send()?;
+    app.dirty = false;
+    Ok(out.take_bytes())
+}
+
 fn run(
     app: &mut App,
     out: &FrameWriter<Stdout>,
@@ -44,19 +62,10 @@ fn run(
     while !app.quit {
         if app.dirty {
             let t0 = app.perf.is_some().then(Instant::now);
-            // Terminals without synchronized output ignore the unknown private mode.
-            write!(terminal.backend_mut(), "\x1b[?2026h")?;
-            terminal.draw(|f| {
-                let area = f.area();
-                app.render(f.buffer_mut(), area)
-            })?;
-            write!(terminal.backend_mut(), "\x1b[?2026l")?;
-            out.send()?;
-            let bytes = out.take_bytes();
+            let bytes = draw_frame(app, out, terminal)?;
             if let (Some(t0), Some(p)) = (t0, app.perf.as_mut()) {
                 p.record_frame(t0.elapsed(), bytes);
             }
-            app.dirty = false;
         }
         let ready = match app.next_wake(Instant::now()) {
             Some(timeout) => event::poll(timeout)?,
@@ -82,6 +91,9 @@ fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("probe") {
         return probe::run();
+    }
+    if args.first().map(String::as_str) == Some("bench") {
+        return bench::run();
     }
     if args.first().map(String::as_str) == Some("config") {
         print!("{DEFAULT_TOML}");
