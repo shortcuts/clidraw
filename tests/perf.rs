@@ -4,11 +4,16 @@ use clidraw::export::{mermaid, svg};
 use clidraw::input::handles;
 use clidraw::model::{Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::store::Store;
+use clidraw::ui::Status;
 use crossterm::event::{
     Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
-use ratatui::backend::TestBackend;
-use ratatui::Terminal;
+use ratatui::backend::{CrosstermBackend, TestBackend};
+use ratatui::layout::Rect;
+use ratatui::{Terminal, TerminalOptions, Viewport};
+use std::cell::Cell;
+use std::io::Write;
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 const BUDGET: Duration = Duration::from_millis(16);
@@ -623,4 +628,98 @@ fn scaling_table() {
             );
         }
     }
+}
+
+const ONE_CELL_BYTES: usize = 4 * 1024;
+
+#[derive(Clone, Default)]
+struct Counting(Rc<Cell<(usize, usize)>>);
+
+impl Write for Counting {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let (bytes, writes) = self.0.get();
+        self.0.set((bytes + buf.len(), writes + 1));
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+type Counted = Terminal<CrosstermBackend<Counting>>;
+
+fn counted_terminal() -> (Counting, Counted) {
+    let counter = Counting::default();
+    let viewport = Viewport::Fixed(Rect::new(0, 0, 200, 50));
+    let term = Terminal::with_options(
+        CrosstermBackend::new(counter.clone()),
+        TerminalOptions { viewport },
+    )
+    .unwrap();
+    (counter, term)
+}
+
+/// One pass of the loop in `main.rs`. Returns the (bytes, write calls) it sent.
+fn send_frame(app: &mut App, counter: &Counting, term: &mut Counted) -> (usize, usize) {
+    let (b0, w0) = counter.0.get();
+    if app.dirty {
+        write!(term.backend_mut(), "\x1b[?2026h").unwrap();
+        term.draw(|f| {
+            let area = f.area();
+            app.render(f.buffer_mut(), area)
+        })
+        .unwrap();
+        write!(term.backend_mut(), "\x1b[?2026l").unwrap();
+        term.backend_mut().flush().unwrap();
+        app.dirty = false;
+    }
+    let (b1, w1) = counter.0.get();
+    (b1 - b0, w1 - w0)
+}
+
+#[test]
+fn bytes_per_frame_fit_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = busy_app(t.path());
+    let (counter, mut term) = counted_terminal();
+    let now = Instant::now();
+
+    let first = send_frame(&mut app, &counter, &mut term);
+
+    app.status = Some(Status::notice("a"));
+    app.dirty = true;
+    send_frame(&mut app, &counter, &mut term);
+    app.status = Some(Status::notice("b"));
+    app.dirty = true;
+    let one_cell = send_frame(&mut app, &counter, &mut term);
+
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left)), now);
+    send_frame(&mut app, &counter, &mut term);
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left)), now);
+    let drag = send_frame(&mut app, &counter, &mut term);
+
+    app.session.view.pan(0, 1);
+    app.dirty = true;
+    let pan = send_frame(&mut app, &counter, &mut term);
+
+    let idle = send_frame(&mut app, &counter, &mut term);
+
+    println!("{:<12} {:>10} {:>12}", "frame", "bytes", "write calls");
+    for (name, (bytes, writes)) in [
+        ("first", first),
+        ("one cell", one_cell),
+        ("drag", drag),
+        ("pan 1 row", pan),
+        ("idle", idle),
+    ] {
+        println!("{name:<12} {bytes:>10} {writes:>12}");
+    }
+
+    assert!(
+        one_cell.0 < ONE_CELL_BYTES,
+        "one-cell change sent {} bytes, budget is {ONE_CELL_BYTES}",
+        one_cell.0
+    );
+    assert_eq!(idle.0, 0, "idle frame sent bytes");
 }
