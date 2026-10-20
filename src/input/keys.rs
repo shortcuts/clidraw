@@ -10,6 +10,7 @@ pub enum KeyOutcome {
     Menu,
     Help,
     Command,
+    Find,
     Notice(String),
 }
 
@@ -79,6 +80,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             KeyCode::Char('a') => {
                 s.selection = s.canvas.elements.iter().map(|e| e.id().clone()).collect()
             }
+            KeyCode::Char('f') => return KeyOutcome::Find,
             KeyCode::Char('x') => s.cut(),
             KeyCode::Char('v') => s.paste(),
             KeyCode::Char('d') => s.duplicate(),

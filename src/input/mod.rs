@@ -92,6 +92,8 @@ pub struct Session {
     pub double_click: Duration,
     /// Cells between snap lines for drawn, moved and resized shapes; 1 means no snapping.
     pub grid: i32,
+    /// Last search term; an empty search repeats it.
+    pub search: String,
     pub screen: (u16, u16),
     pub edit: Option<Edit>,
     /// Compact read-only view of the whole diagram; `view` stays untouched.
@@ -128,6 +130,7 @@ impl Session {
             dock: Dock::Left,
             double_click: Duration::from_millis(400),
             grid: 1,
+            search: String::new(),
             screen,
             edit: None,
             overview: false,
@@ -251,6 +254,31 @@ impl Session {
             history: History::with_limit(self.history.limit),
             ..Session::new(canvas, view, self.screen)
         };
+    }
+
+    /// Selects the next element after the current selection whose label holds `term`, wrapping, and centers it.
+    pub fn find(&mut self, term: &str) -> bool {
+        if !term.is_empty() {
+            self.search = term.to_lowercase();
+        }
+        let els = &self.canvas.elements;
+        let from = match self.selection.as_slice() {
+            [id] => els.iter().position(|e| e.id() == id).map_or(0, |i| i + 1),
+            _ => 0,
+        };
+        let hit = (0..els.len()).map(|i| (from + i) % els.len()).find(|&i| {
+            let label = match &els[i] {
+                Element::Shape(s) => &s.label,
+                Element::Line(l) => &l.label,
+                Element::Text(t) => &t.text,
+            };
+            !self.search.is_empty() && label.to_lowercase().contains(&self.search)
+        });
+        let Some(i) = hit else { return false };
+        let b = self.canvas.bounds(&els[i]);
+        self.selection = vec![els[i].id().clone()];
+        self.view.fit_all(Some(b), self.screen);
+        true
     }
 
     pub fn start_edit_existing(&mut self, id: Id) {

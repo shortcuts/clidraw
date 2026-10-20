@@ -4,6 +4,12 @@ use crate::ui::{Perf, Status};
 impl App {
     pub(super) fn run_command(&mut self, line: &str) {
         let line = line.trim().trim_start_matches(':');
+        if let Some(term) = line.strip_prefix('/') {
+            if !self.session.find(term.trim()) {
+                self.status = Some(Status::error("No match"));
+            }
+            return;
+        }
         let (cmd, arg) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
         match cmd {
             "" => {}

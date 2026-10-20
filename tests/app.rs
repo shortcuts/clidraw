@@ -1,6 +1,6 @@
 use clidraw::app::App;
 use clidraw::config::Config;
-use clidraw::model::{Command, Element, Id, Shape, ShapeKind};
+use clidraw::model::{Command, Element, Id, Shape, ShapeKind, Text};
 use clidraw::store::Store;
 use crossterm::event::{
     Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
@@ -698,4 +698,34 @@ fn moved_redraws_only_when_the_hovered_target_changes() {
     );
     assert!(app.dirty, "burst ends off the shape");
     assert_eq!(app.session.hover, clidraw::input::Hit::Empty);
+}
+
+fn labeled(id: &str, x: i32, label: &str) -> Command {
+    Command::Insert(
+        0,
+        Element::Text(Text {
+            id: Id::from(id),
+            x,
+            y: 0,
+            text: label.into(),
+            color: None,
+        }),
+    )
+}
+
+#[test]
+fn slash_command_selects_matches_in_turn_and_centers_the_view() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    app.session.exec(labeled("aaaaaaaa", 500, "Auth service"));
+    app.session.exec(labeled("bbbbbbbb", 0, "db"));
+    app.session.exec(labeled("cccccccc", 900, "auth DB"));
+    run(&mut app, "/auth");
+    assert_eq!(app.session.selection, vec![Id::from("cccccccc")]);
+    run(&mut app, "/");
+    assert_eq!(app.session.selection, vec![Id::from("aaaaaaaa")]);
+    let (sx, _) = app.session.view.to_screen(506, 0);
+    assert_eq!(sx, i32::from(app.session.screen.0) / 2);
+    run(&mut app, "/zzz");
+    assert!(app.status.is_some());
 }
