@@ -477,3 +477,75 @@ fn colon_opens_the_command_line_but_types_into_a_label_edit() {
     assert_eq!(key(&mut s, KeyCode::Char(':')), KeyOutcome::None);
     assert_eq!(s.edit.as_ref().unwrap().buf, ":");
 }
+
+fn hold(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
+    let t = Instant::now();
+    mouse(
+        s,
+        MouseEventKind::Down(MouseButton::Left),
+        from.0,
+        from.1,
+        t,
+    );
+    mouse(s, MouseEventKind::Drag(MouseButton::Left), to.0, to.1, t);
+}
+
+#[test]
+fn holding_a_shape_at_the_edge_pans_each_tick_and_undoes_in_one_step() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    hold(&mut s, (22, 6), (79, 6));
+    let x0 = shapes(&s)[0].x;
+    let t0 = Instant::now();
+    assert!(s.edge_pan(t0));
+    assert_eq!((s.view.ox, shapes(&s)[0].x), (3, x0 + 3));
+    assert!(!s.edge_pan(t0 + Duration::from_millis(10)));
+    assert_eq!(s.view.ox, 3);
+    assert_eq!(
+        s.edge_wait(t0 + Duration::from_millis(10)),
+        Some(Duration::from_millis(20))
+    );
+    assert!(s.edge_pan(t0 + Duration::from_millis(30)));
+    assert_eq!((s.view.ox, shapes(&s)[0].x), (6, x0 + 6));
+    mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 79, 6, t0);
+    assert_eq!(s.edge_wait(t0), None);
+    ctrl(&mut s, 'z');
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
+}
+
+#[test]
+fn edge_pan_speed_follows_depth_and_direction() {
+    let t0 = Instant::now();
+    for ((col, row), pan) in [
+        ((78, 12), (1, 0)),
+        ((0, 12), (-3, 0)),
+        ((1, 12), (-1, 0)),
+        ((40, 0), (0, -3)),
+        ((40, 23), (0, 3)),
+        ((79, 23), (3, 3)),
+        ((40, 12), (0, 0)),
+        ((77, 12), (0, 0)),
+    ] {
+        let mut s = with_shape("aaaaaaaa", 20, 5);
+        hold(&mut s, (22, 6), (col, row));
+        assert_eq!(s.edge_pan(t0), pan != (0, 0), "{col},{row}");
+        assert_eq!((s.view.ox, s.view.oy), pan, "{col},{row}");
+    }
+}
+
+#[test]
+fn holding_a_band_at_the_edge_extends_it() {
+    let mut s = session();
+    hold(&mut s, (30, 5), (79, 10));
+    let before = s.band.unwrap();
+    assert!(s.edge_pan(Instant::now()));
+    assert_eq!(s.band.unwrap(), (before.0, (before.1 .0 + 3, before.1 .1)));
+}
+
+#[test]
+fn hand_tool_and_idle_never_edge_pan() {
+    let mut s = session();
+    assert_eq!(s.edge_wait(Instant::now()), None);
+    pick(&mut s, Tool::Hand);
+    hold(&mut s, (40, 10), (79, 10));
+    assert_eq!(s.edge_wait(Instant::now()), None);
+}

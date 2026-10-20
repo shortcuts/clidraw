@@ -21,6 +21,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Select a line to show its options in the palette. Pick a head: none, end, start or both.
 - Drag the `::` cell of the palette to dock it to another edge.
 - Wheel and horizontal scroll pan the canvas. A fast flick pans further. Shift+wheel pans sideways.
+- Dragging within 2 cells of the screen edge pans the view.
 
 | Key | Action |
 |---|---|

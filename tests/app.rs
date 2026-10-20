@@ -607,3 +607,23 @@ fn perf_command_toggles_the_overlay() {
     run(&mut app, "perf");
     assert!(app.perf.is_none());
 }
+
+#[test]
+fn wakes_to_pan_while_a_drag_holds_the_edge() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
+    let t0 = Instant::now();
+    click(&mut app, 2, 3, t0);
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 40, 9), t0);
+    assert_eq!(app.next_wake(t0), None, "mid-screen drag blocks");
+
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 79, 9), t0);
+    assert_eq!(app.next_wake(t0), Some(Duration::ZERO));
+    app.dirty = false;
+    app.tick(t0);
+    assert!(app.dirty, "pan must redraw");
+    assert_eq!(app.session.view.ox, 3);
+    assert_eq!(app.next_wake(t0), Some(Duration::from_millis(30)));
+}

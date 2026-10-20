@@ -85,6 +85,8 @@ pub struct Session {
     last_down: Option<(i32, i32, Instant)>,
     /// Time of the last wheel event and the notches in the current burst.
     burst: Option<(Instant, u32)>,
+    cursor: (i32, i32),
+    last_pan: Option<Instant>,
 }
 
 impl Session {
@@ -106,6 +108,8 @@ impl Session {
             gesture: Gesture::Idle,
             last_down: None,
             burst: None,
+            cursor: (0, 0),
+            last_pan: None,
         }
     }
 

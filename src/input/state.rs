@@ -1,4 +1,4 @@
-use super::drag::{drag, up};
+use super::drag::{drag, pan_step, up};
 use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
 use crate::model::{Command, Element, Id, ShapeKind, Side};
@@ -34,6 +34,8 @@ pub(super) enum Action {
     CreateLine(Id),
 }
 
+const EDGE_ZONE: i32 = 2;
+const EDGE_TICK: Duration = Duration::from_millis(30);
 const SCROLL_BURST: Duration = Duration::from_millis(100);
 // A flick stays under about 8 rows per notch.
 const SCROLL_MAX: u32 = 4;
@@ -67,6 +69,51 @@ impl Session {
         self.view.pan(step.0 * k, step.1 * k);
         self.burst = Some((now, prior + n));
     }
+
+    fn edge_velocity(&self) -> P {
+        let Gesture::Dragging { action, .. } = &self.gesture else {
+            return (0, 0);
+        };
+        if matches!(action, Action::Palette | Action::Pan(_)) {
+            return (0, 0);
+        }
+        let axis = |pos: i32, len: i32| {
+            let speed = |dist: i32| if dist == 0 { 3 } else { 1 };
+            if pos < EDGE_ZONE {
+                -speed(pos)
+            } else if len - 1 - pos < EDGE_ZONE {
+                speed(len - 1 - pos)
+            } else {
+                0
+            }
+        };
+        let (w, h) = self.screen;
+        (
+            axis(self.cursor.0, i32::from(w)),
+            axis(self.cursor.1, i32::from(h)),
+        )
+    }
+
+    /// Time until the next edge pan, or `None` when the drag is not at an edge.
+    pub fn edge_wait(&self, now: Instant) -> Option<Duration> {
+        if self.edge_velocity() == (0, 0) {
+            return None;
+        }
+        let due = self.last_pan.map_or(now, |t| t + EDGE_TICK);
+        Some(due.saturating_duration_since(now))
+    }
+
+    /// Pans the view and re-runs the drag step when a tick is due.
+    pub fn edge_pan(&mut self, now: Instant) -> bool {
+        if self.edge_wait(now) != Some(Duration::ZERO) {
+            return false;
+        }
+        let (dx, dy) = self.edge_velocity();
+        self.view.pan(dx, dy);
+        self.last_pan = Some(now);
+        pan_step(self);
+        true
+    }
 }
 
 pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
@@ -78,7 +125,10 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
     match ev.kind {
         MouseEventKind::Down(MouseButton::Left) => down(s, (col, row), world, now),
         // Some terminals report the wrong button on Drag and Up.
-        MouseEventKind::Drag(_) => drag(s, (col, row), world),
+        MouseEventKind::Drag(_) => {
+            s.cursor = (col, row);
+            drag(s, (col, row), world)
+        }
         MouseEventKind::Up(_) => up(s, (col, row), world),
         _ => {}
     }
@@ -189,6 +239,7 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
 impl Session {
     /// Undoes a gesture in progress. Returns false when there was none.
     pub(super) fn cancel_gesture(&mut self) -> bool {
+        self.last_pan = None;
         match std::mem::replace(&mut self.gesture, Gesture::Idle) {
             Gesture::Idle => false,
             Gesture::Pressed { .. } => true,

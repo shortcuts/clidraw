@@ -225,7 +225,20 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
     }
 }
 
+pub(super) fn pan_step(s: &mut Session) {
+    if let Gesture::Dragging {
+        mut action,
+        mut inv,
+    } = std::mem::replace(&mut s.gesture, Gesture::Idle)
+    {
+        let world = s.view.to_world(s.cursor.0, s.cursor.1);
+        step(s, &mut inv, &mut action, s.cursor, world);
+        s.gesture = Gesture::Dragging { action, inv };
+    }
+}
+
 pub(super) fn up(s: &mut Session, screen: P, world: P) {
+    s.last_pan = None;
     s.band = None;
     s.snap = None;
     match std::mem::replace(&mut s.gesture, Gesture::Idle) {

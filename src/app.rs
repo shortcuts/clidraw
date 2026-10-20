@@ -69,6 +69,7 @@ impl App {
             self.seen_rev = self.session.rev;
             self.last_edit = now;
         }
+        self.dirty |= self.session.edge_pan(now);
         if self.saved_rev != self.session.rev
             && !self.session.dragging()
             && now.duration_since(self.last_edit) >= self.autosave
@@ -78,6 +79,9 @@ impl App {
     }
 
     pub fn next_wake(&self, now: Instant) -> Option<Duration> {
+        if let wait @ Some(_) = self.session.edge_wait(now) {
+            return wait;
+        }
         if self.saved_rev == self.session.rev || self.session.dragging() {
             return None;
         }
