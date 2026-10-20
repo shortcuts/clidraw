@@ -750,11 +750,27 @@ fn shape_under_a_dragged_line_end_is_the_snap_target_until_release() {
     mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 18, 5, t);
     mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 43, 10, t);
     assert_eq!(s.snap, Some(Id::from("bbbbbbbb")));
+    assert_eq!(s.snap_at, Some((40, 11)));
+    mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 43, 9, t);
+    assert_eq!(s.snap_at, Some((44, 9)));
     mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 30, 20, t);
     assert_eq!(s.snap, None);
+    assert_eq!(s.snap_at, None);
     mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 43, 10, t);
     mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 43, 10, t);
     assert_eq!(s.snap, None);
+    assert_eq!(s.snap_at, None);
+}
+
+#[test]
+fn escape_mid_drag_clears_the_line_end_snap_target() {
+    let mut s = two_shapes_and_arrow_tool();
+    let t = Instant::now();
+    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 18, 5, t);
+    mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 43, 10, t);
+    assert!(s.snap.is_some());
+    key(&mut s, KeyCode::Esc);
+    assert_eq!((s.snap, s.snap_at), (None, None));
 }
 
 #[test]

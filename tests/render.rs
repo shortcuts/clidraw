@@ -854,3 +854,17 @@ fn empty_canvas_shows_welcome_until_the_first_edit() {
     s.undo();
     assert!(!screen_text(&draw(&s, &Overlay::None)).contains(hint));
 }
+
+#[test]
+fn snap_target_cell_is_marked_with_a_reversed_diamond() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.snap = Some(Id::from("aaaaaaaa"));
+    s.snap_at = Some((20, 5));
+    let b = draw(&s, &Overlay::None);
+    let (x, y) = s.view.to_screen(20, 5);
+    let cell = &b[(x as u16, y as u16)];
+    assert_eq!(cell.symbol(), "◆");
+    assert!(cell.modifier.contains(Modifier::REVERSED));
+}

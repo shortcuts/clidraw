@@ -70,6 +70,13 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
             grid.tint(sx, sy, 1, 1, c);
         }
     }
+    if let Some((x, y)) = s.snap_at {
+        let (sx, sy) = view.to_screen(x, y);
+        grid.set(sx, sy, '◆', REVERSE);
+        if let Some(c) = accent {
+            grid.tint(sx, sy, 1, 1, c);
+        }
+    }
     if let Some((a, b)) = s.band {
         band(grid, s, a, b);
     }

@@ -13,7 +13,7 @@ pub use element::{
     FILL_ALPHA,
 };
 pub use error::ModelError;
-pub use geom::{corners, edge_anchor, label_pos, route, straight, wrap, Axis};
+pub use geom::{corners, edge_anchor, label_pos, route, side_mid, straight, wrap, Axis};
 pub use history::{History, HISTORY_LIMIT};
 pub use ids::Id;
 

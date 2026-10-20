@@ -2,7 +2,8 @@ use super::hit::{self, intersects, Corner, Handle};
 use super::state::{click, Action, Gesture, Target, P};
 use super::{Session, Tool};
 use crate::model::{
-    edge_anchor, Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Shape, ShapeKind, Side,
+    edge_anchor, side_mid, Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Shape,
+    ShapeKind, Side,
 };
 use crate::ui::palette;
 use std::collections::HashSet;
@@ -335,7 +336,6 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             run(s, inv, set_rect(id, *origin, world))
         }
         Action::EndDrag { id, side } => {
-            s.snap = hit::shape_at(&s.canvas, world);
             let end = End::Free(world.0, world.1);
             let cmd = Command::SetEnd {
                 id: id.clone(),
@@ -343,6 +343,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
                 end,
             };
             run(s, inv, cmd);
+            snap_to_shape(s, id, *side, world);
         }
         Action::LabelDrag(id) => {
             let Some(Element::Line(l)) = s.canvas.get(id) else {
@@ -361,7 +362,6 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             run(s, inv, cmd);
         }
         Action::CreateLine(id) => {
-            s.snap = hit::shape_at(&s.canvas, world);
             let end = End::Free(world.0, world.1);
             let cmd = Command::SetEnd {
                 id: id.clone(),
@@ -369,6 +369,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
                 end,
             };
             run(s, inv, cmd);
+            snap_to_shape(s, id, Side::To, world);
         }
         Action::Band(origin) => {
             s.band = Some((*origin, world));
@@ -384,6 +385,20 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             s.selection = hit;
         }
     }
+}
+
+/// Sets the shape under `world` and the cell where the dragged `side` of line `id` will attach to it.
+fn snap_to_shape(s: &mut Session, id: &Id, side: Side, world: P) {
+    s.snap = hit::shape_at(&s.canvas, world);
+    s.snap_at = s.snap.as_ref().and_then(|sid| {
+        let shape = s.canvas.shape(sid)?;
+        let Some(Element::Line(l)) = s.canvas.get(id) else {
+            return None;
+        };
+        let (from, to) = s.canvas.line_ends(l);
+        let other = if side == Side::From { to } else { from };
+        Some(side_mid(shape, edge_anchor(shape, world), other).0)
+    });
 }
 
 pub(super) fn pan_step(s: &mut Session) {
@@ -403,6 +418,7 @@ pub(super) fn up(s: &mut Session, screen: P, world: P) {
     s.band = None;
     s.guides.clear();
     s.snap = None;
+    s.snap_at = None;
     match std::mem::replace(&mut s.gesture, Gesture::Idle) {
         Gesture::Pressed {
             target, world: w0, ..

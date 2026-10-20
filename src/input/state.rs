@@ -389,6 +389,8 @@ impl Session {
                 self.rev += 1;
                 self.band = None;
                 self.guides.clear();
+                self.snap = None;
+                self.snap_at = None;
                 self.canvas.retain_present(&mut self.selection);
                 true
             }

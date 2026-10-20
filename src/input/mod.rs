@@ -106,6 +106,8 @@ pub struct Session {
     pub guides: Vec<((i32, i32), (i32, i32))>,
     /// Shape under a dragged line end; the drop binds it.
     pub snap: Option<Id>,
+    /// Cell where the dragged line end will attach to `snap`.
+    pub snap_at: Option<(i32, i32)>,
     /// What a click at the pointer would hit; only the Select tool at rest sets it.
     pub hover: Hit,
     pub palette_hover: Option<PaletteHit>,
@@ -141,6 +143,7 @@ impl Session {
             band: None,
             guides: vec![],
             snap: None,
+            snap_at: None,
             hover: Hit::Empty,
             palette_hover: None,
             rev: 0,
