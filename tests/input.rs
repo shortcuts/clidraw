@@ -956,3 +956,39 @@ fn click_on_a_label_places_the_caret_and_elsewhere_commits() {
     click(&mut s, (60, 15), t);
     assert!(s.edit.is_none());
 }
+
+#[test]
+fn overview_blocks_edits_and_returns_to_the_same_view() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    click(&mut s, (22, 6), Instant::now());
+    let before = s.view;
+    key(&mut s, KeyCode::Char('z'));
+    assert!(s.overview);
+    key(&mut s, KeyCode::Delete);
+    assert_eq!(s.canvas.elements.len(), 1);
+    key(&mut s, KeyCode::Char('z'));
+    assert!(!s.overview);
+    assert_eq!(s.view, before);
+    key(&mut s, KeyCode::Char('z'));
+    key(&mut s, KeyCode::Esc);
+    assert!(!s.overview);
+}
+
+#[test]
+fn z_types_into_a_label_edit_instead_of_entering_overview() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    let t = Instant::now();
+    click(&mut s, (22, 6), t);
+    click(&mut s, (22, 6), t + Duration::from_millis(100));
+    key(&mut s, KeyCode::Char('z'));
+    assert!(!s.overview);
+    assert_eq!(s.edit.as_ref().unwrap().buf, "z");
+}
+
+#[test]
+fn mouse_does_nothing_in_overview() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    key(&mut s, KeyCode::Char('z'));
+    click(&mut s, (22, 6), Instant::now());
+    assert!(s.selection.is_empty());
+}

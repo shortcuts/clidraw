@@ -56,6 +56,17 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         return KeyOutcome::None;
     }
     let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
+    if s.overview {
+        return match k.code {
+            KeyCode::Char('c') if ctrl => KeyOutcome::Quit,
+            KeyCode::Char('z') | KeyCode::Esc if !ctrl => {
+                s.overview = false;
+                KeyOutcome::None
+            }
+            KeyCode::Char('?') => KeyOutcome::Help,
+            _ => KeyOutcome::None,
+        };
+    }
     if ctrl {
         match k.code {
             KeyCode::Char('c') => return KeyOutcome::Quit,
@@ -99,6 +110,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             }
         }
         KeyCode::Char('c') => s.copy(),
+        KeyCode::Char('z') if matches!(s.gesture, Gesture::Idle) => s.overview = true,
         KeyCode::Char(c) if matches!(s.gesture, Gesture::Idle) => {
             if let Some(t) = Tool::ALL.into_iter().find(|t| t.key() == c) {
                 s.tool = t;

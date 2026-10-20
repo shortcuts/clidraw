@@ -68,7 +68,9 @@ pub fn render(
         std::env::var("COLORTERM").ok().as_deref(),
     );
     canvas_view::draw(&mut grid, s, accent);
-    palette::draw(&mut grid, s);
+    if !s.overview {
+        palette::draw(&mut grid, s);
+    }
     if !matches!(overlay, Overlay::None) {
         grid.dim_all();
     }

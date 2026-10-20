@@ -6,6 +6,9 @@ use ratatui::style::Color;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
+    if s.overview {
+        return overview(grid, s);
+    }
     let view = s.view;
     let editing = s.edit.as_ref().and_then(|e| match &e.target {
         EditTarget::Existing(id) => Some(id),
@@ -50,6 +53,35 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
     }
     if let Some((a, b)) = s.band {
         band(grid, s, a, b);
+    }
+}
+
+fn overview(grid: &mut Grid, s: &Session) {
+    let Some((bx, by, bw, bh)) = s.canvas.all_bounds() else {
+        return;
+    };
+    // The last row belongs to the status line.
+    let (sw, sh) = (grid.w.max(1), (grid.h - 1).max(1));
+    let d = ((bw + sw - 1) / sw).max((bh + sh - 1) / sh).max(1);
+    let (ox, oy) = (bx + bw / 2 - sw * d / 2, by + bh / 2 - sh * d / 2);
+    let cell = |x: i32, y: i32| ((x - ox).div_euclid(d), (y - oy).div_euclid(d));
+    let mut slot = s.layout.borrow_mut();
+    let layout = refresh(&mut slot, &s.canvas, s.rev);
+    let find = layout.find(&s.canvas);
+    for (e, &(x, y, w, h)) in s.canvas.elements.iter().zip(&layout.bounds) {
+        if let Element::Line(l) = e {
+            for c in s.canvas.route_with(l, &find) {
+                let (sx, sy) = cell(c.0, c.1);
+                grid.set(sx, sy, '·', 0);
+            }
+            continue;
+        }
+        let ((x0, y0), (x1, y1)) = (cell(x, y), cell(x + w - 1, y + h - 1));
+        for sy in y0..=y1 {
+            for sx in x0..=x1 {
+                grid.set(sx, sy, '▒', 0);
+            }
+        }
     }
 }
 

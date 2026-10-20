@@ -80,6 +80,8 @@ pub struct Session {
     pub double_click: Duration,
     pub screen: (u16, u16),
     pub edit: Option<Edit>,
+    /// Compact read-only view of the whole diagram; `view` stays untouched.
+    pub overview: bool,
     pub band: Option<((i32, i32), (i32, i32))>,
     /// Shape under a dragged line end; the drop binds it.
     pub snap: Option<Id>,
@@ -111,6 +113,7 @@ impl Session {
             double_click: Duration::from_millis(400),
             screen,
             edit: None,
+            overview: false,
             band: None,
             snap: None,
             hover: Hit::Empty,

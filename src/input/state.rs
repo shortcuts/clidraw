@@ -118,6 +118,9 @@ impl Session {
 }
 
 pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
+    if s.overview {
+        return;
+    }
     let (col, row) = (i32::from(ev.column), i32::from(ev.row));
     if let Some(step) = scroll_step(&ev) {
         return s.scroll(step, 1, now);

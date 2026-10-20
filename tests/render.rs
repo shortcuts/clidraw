@@ -236,11 +236,11 @@ fn help_canvas_row_lists_every_command_line_verb() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
     assert!(
-        row(&b, 18).contains("Commands q w wq e u redo"),
+        row(&b, 19).contains("Commands q w wq e u redo"),
         "{}",
-        row(&b, 18)
+        row(&b, 19)
     );
-    assert_eq!(cols(&b, 18, 62, 1), "│");
+    assert_eq!(cols(&b, 19, 62, 1), "│");
 }
 
 #[test]
@@ -452,4 +452,46 @@ fn edit_caret_shows_on_a_line_label() {
     let at = reversed_blanks(&b, 5);
     assert_eq!(at.len(), 1);
     assert_eq!(cols(&b, 5, at[0] - 2, 2), "ab");
+}
+
+fn overview_session(x: i32, y: i32) -> Session {
+    let mut c = Canvas::default();
+    c.elements.push(Element::Shape(Shape {
+        id: Id::from("aaaaaaaa"),
+        kind: ShapeKind::Rect,
+        x,
+        y,
+        w: 8,
+        h: 3,
+        label: "box".into(),
+    }));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.overview = true;
+    s
+}
+
+fn count(b: &Buffer, glyph: &str) -> usize {
+    (0..24).map(|y| row(b, y).matches(glyph).count()).sum()
+}
+
+#[test]
+fn overview_draws_blocks_without_border_label_or_palette() {
+    let b = draw(&overview_session(100, 40), &Overlay::None);
+    assert!(count(&b, "▒") > 0);
+    assert_eq!(count(&b, "┌"), 0);
+    assert_eq!(count(&b, "box"), 0);
+    assert!(!row(&b, 1).contains(" Select"));
+}
+
+#[test]
+fn overview_shows_a_negative_coordinate_shape() {
+    let b = draw(&overview_session(-300, -90), &Overlay::None);
+    assert!(count(&b, "▒") > 0);
+}
+
+#[test]
+fn overview_of_an_empty_canvas_draws_nothing() {
+    let mut s = overview_session(0, 0);
+    s.canvas.elements.clear();
+    assert_eq!(count(&draw(&s, &Overlay::None), "▒"), 0);
 }

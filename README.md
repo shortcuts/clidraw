@@ -30,6 +30,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `]` / `[` | Raise / lower the selection one step |
 | `}` / `{` | Send the selection to the front / back |
 | `Ctrl-z` / `Ctrl-y` | Undo / redo |
+| `z` | Overview of the whole diagram, read-only; `z` or `Esc` returns |
 | `Ctrl-c` | Quit |
 | `?` | Show the shortcuts, one page per scope |
 | `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo`, `perf` |
