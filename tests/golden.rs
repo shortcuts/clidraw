@@ -1,6 +1,6 @@
 use clidraw::export::{mermaid, svg};
 use clidraw::model::{
-    Anchor, Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind, Stroke, Text,
+    Anchor, Canvas, Element, End, Id, Line, LineKind, Routing, Shape, ShapeKind, Stroke, Text,
 };
 
 fn sample() -> Canvas {
@@ -25,6 +25,7 @@ fn sample() -> Canvas {
             label: label.into(),
             label_at: None,
             stroke: Default::default(),
+            routing: Default::default(),
         })
     };
     let mut c = Canvas {
@@ -97,7 +98,10 @@ fn sample() -> Canvas {
         match e {
             Element::Shape(s) if s.id == Id::from("jjjjjjjj") => s.stroke = Stroke::Dashed,
             Element::Line(l) if l.id == Id::from("eeeeeeee") => l.stroke = Stroke::Dashed,
-            Element::Line(l) if l.id == Id::from("hhhhhhhh") => l.stroke = Stroke::Dotted,
+            Element::Line(l) if l.id == Id::from("hhhhhhhh") => {
+                l.stroke = Stroke::Dotted;
+                l.routing = Routing::Straight;
+            }
             _ => {}
         }
     }

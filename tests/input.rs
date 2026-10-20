@@ -2,7 +2,9 @@ use clidraw::input::{
     handle_key, handle_mouse, handle_paste, Corner, Edit, EditTarget, Handle, Hit, KeyOutcome,
     Session, Tool,
 };
-use clidraw::model::{Anchor, Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind, Stroke};
+use clidraw::model::{
+    Anchor, Canvas, Element, End, Id, Line, LineKind, Routing, Shape, ShapeKind, Stroke,
+};
 use clidraw::ui::palette::Dock;
 use clidraw::view::View;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -514,6 +516,7 @@ fn palette_option_sets_the_head_of_a_selected_line() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
+        routing: Default::default(),
     });
     s.canvas.push(line).unwrap();
     let kind = |s: &Session| match s.canvas.get(&Id::from("llllllll")) {
@@ -549,6 +552,7 @@ fn palette_option_sets_the_stroke_of_a_selected_line_and_undoes() {
             label: String::new(),
             label_at: None,
             stroke: Default::default(),
+            routing: Default::default(),
         }))
         .unwrap();
     s.selection = vec![Id::from("llllllll")];
@@ -564,6 +568,34 @@ fn palette_option_sets_the_stroke_of_a_selected_line_and_undoes() {
     assert_eq!(stroke(&s), Stroke::Dotted);
     s.undo();
     assert_eq!(stroke(&s), Stroke::Dashed);
+}
+
+#[test]
+fn palette_option_sets_the_routing_of_a_selected_line_and_undoes() {
+    let mut s = session();
+    s.canvas
+        .push(Element::Line(Line {
+            id: Id::from("llllllll"),
+            kind: LineKind::Arrow,
+            from: End::Free(5, 5),
+            to: End::Free(25, 9),
+            label: String::new(),
+            label_at: None,
+            stroke: Default::default(),
+            routing: Default::default(),
+        }))
+        .unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    let routing = |s: &Session| match s.canvas.get(&Id::from("llllllll")) {
+        Some(Element::Line(l)) => l.routing,
+        _ => panic!("no line"),
+    };
+    // Four head options and three strokes come first, then elbow, direct.
+    let row = Tool::ALL.len() as u16 + 2 + 4 + 3;
+    click(&mut s, (2, row + 1), Instant::now());
+    assert_eq!(routing(&s), Routing::Straight);
+    s.undo();
+    assert_eq!(routing(&s), Routing::Elbow);
 }
 
 fn two_shapes_and_arrow_tool() -> Session {
@@ -814,6 +846,7 @@ fn diagram() -> Session {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
+        routing: Default::default(),
     }));
     s
 }
@@ -1158,6 +1191,7 @@ fn dragging_a_selected_lines_label_slides_it_along_the_line() {
             label: "ab".into(),
             label_at: None,
             stroke: Default::default(),
+            routing: Default::default(),
         }))
         .unwrap();
     s.selection = vec![id.clone()];
@@ -1344,6 +1378,7 @@ fn bound_arrow_follows_an_aligned_shape() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
+        routing: Default::default(),
     }));
     let before = s.canvas.route(match &s.canvas.elements[3] {
         Element::Line(l) => l,

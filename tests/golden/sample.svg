@@ -19,7 +19,7 @@
   <text x="164" y="40" text-anchor="middle" dominant-baseline="central">go</text>
   <path d="M292 72 L292 200" fill="none" stroke="black" stroke-dasharray="8 4" stroke-linejoin="round"/>
   <path d="M-44 136 L-44 232" fill="none" stroke="black" stroke-linejoin="round" marker-end="url(#arrow)"/>
-  <path d="M92 40 L164 40 L164 232 L244 232" fill="none" stroke="black" stroke-dasharray="2 4" stroke-linejoin="round" marker-start="url(#arrow)"/>
+  <path d="M92 40 L244 232" fill="none" stroke="black" stroke-dasharray="2 4" stroke-linejoin="round" marker-start="url(#arrow)"/>
   <path d="M244 232 L164 232 L164 40 L92 40" fill="none" stroke="black" stroke-linejoin="round" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
   <text x="-64" y="-40" text-anchor="start" dominant-baseline="central">note &lt;1&gt;</text>
 </svg>

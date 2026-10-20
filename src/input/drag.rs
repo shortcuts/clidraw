@@ -256,6 +256,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                     label: String::new(),
                     label_at: None,
                     stroke: Default::default(),
+                    routing: Default::default(),
                 }),
             };
             run(s, inv, Command::Insert(at, el));

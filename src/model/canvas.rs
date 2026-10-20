@@ -1,5 +1,5 @@
-use super::geom::{center, route, side_mid, Axis};
-use super::{Command, Element, End, Id, Line, Shape, Text, VERSION};
+use super::geom::{center, route, side_mid, straight, Axis};
+use super::{Command, Element, End, Id, Line, Routing, Shape, Text, VERSION};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -101,14 +101,17 @@ impl Canvas {
         [anchor(&l.from, from, to), anchor(&l.to, to, from)]
     }
 
-    /// Cells of the line from start to end, at most two bends.
+    /// Cells of the line from start to end: at most two bends, or a diagonal for `Routing::Straight`.
     pub fn route(&self, l: &Line) -> Vec<(i32, i32)> {
         self.route_with(l, &|id| self.shape(id))
     }
 
     pub fn route_with<'a>(&'a self, l: &Line, find: &Find<'a>) -> Vec<(i32, i32)> {
         let [(a, ax_a), (b, ax_b)] = self.anchors(l, find);
-        route(a, ax_a, b, ax_b)
+        match l.routing {
+            Routing::Elbow => route(a, ax_a, b, ax_b),
+            Routing::Straight => straight(a, b),
+        }
     }
 
     /// Cells where the line starts and ends. Bound ends sit on the shape edge.

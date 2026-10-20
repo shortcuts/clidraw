@@ -1,4 +1,6 @@
-use crate::model::{corners, label_pos, wrap, Canvas, Element, LineKind, ShapeKind, Stroke};
+use crate::model::{
+    corners, label_pos, wrap, Canvas, Element, LineKind, Routing, ShapeKind, Stroke,
+};
 use std::fmt::Write;
 
 const CW: i32 = 8;
@@ -102,7 +104,11 @@ pub fn svg(canvas: &Canvas) -> String {
                     }
                     LineKind::Line => "",
                 };
-                let d = corners(&cells)
+                let pts = match l.routing {
+                    Routing::Elbow => corners(&cells),
+                    Routing::Straight => vec![cells[0], cells[cells.len() - 1]],
+                };
+                let d = pts
                     .into_iter()
                     .map(mid)
                     .enumerate()

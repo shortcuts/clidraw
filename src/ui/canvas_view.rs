@@ -224,6 +224,7 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
             continue;
         }
         let (mut left, mut right, mut up, mut down) = (false, false, false, false);
+        let mut diagonal = None;
         for n in [
             i.checked_sub(1).map(|j| cells[j]),
             cells.get(i + 1).copied(),
@@ -232,9 +233,13 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
         .flatten()
         {
             let d = dirs(c, n);
+            if (d.0 | d.1) && (d.2 | d.3) {
+                diagonal = Some(if d.0 == d.2 { '╲' } else { '╱' });
+            }
             (left, right, up, down) = (left | d.0, right | d.1, up | d.2, down | d.3);
         }
-        let glyph = match (left, right, up, down) {
+        // shortcut: diagonal glyphs have no dashed form, add one if wanted
+        let glyph = diagonal.unwrap_or(match (left, right, up, down) {
             (_, _, false, false) if left || right => '─',
             (false, false, _, _) if up || down => '│',
             (true, false, false, true) => '╮',
@@ -242,7 +247,7 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
             (true, false, true, false) => '╯',
             (false, true, true, false) => '╰',
             _ => '·',
-        };
+        });
         let (sx, sy) = s.view.to_screen(c.0, c.1);
         grid.set(sx, sy, dashed(l.stroke, glyph), flags);
     }

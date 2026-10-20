@@ -1,5 +1,5 @@
 use super::canvas::{Index, BULK};
-use super::{Canvas, Element, End, Id, LineKind, ModelError, ShapeKind, Stroke};
+use super::{Canvas, Element, End, Id, LineKind, ModelError, Routing, ShapeKind, Stroke};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Side {
@@ -73,6 +73,10 @@ pub enum Command {
         id: Id,
         stroke: Stroke,
     },
+    SetRouting {
+        id: Id,
+        routing: Routing,
+    },
     /// Replaces the whole group list.
     SetGroups(Vec<Vec<Id>>),
     Batch(Vec<Command>),
@@ -112,9 +116,10 @@ impl Command {
             Command::SetLabel { .. } => "relabel",
             Command::SetLabelAt { .. } => "reposition label of",
             Command::SetEnd { .. } => "reconnect",
-            Command::SetKind { .. } | Command::SetLineKind { .. } | Command::SetStroke { .. } => {
-                "restyle"
-            }
+            Command::SetKind { .. }
+            | Command::SetLineKind { .. }
+            | Command::SetStroke { .. }
+            | Command::SetRouting { .. } => "restyle",
             Command::SetGroups(_) => "regroup",
             Command::Batch(_) => unreachable!(),
         }
@@ -429,6 +434,14 @@ impl Canvas {
                 };
                 let old = std::mem::replace(slot, stroke);
                 Ok(Command::SetStroke { id, stroke: old })
+            }
+            Command::SetRouting { id, routing } => {
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
+                let Element::Line(l) = &mut self.elements[i] else {
+                    return Err(wrong(&id));
+                };
+                let old = std::mem::replace(&mut l.routing, routing);
+                Ok(Command::SetRouting { id, routing: old })
             }
             Command::SetGroups(groups) => Ok(Command::SetGroups(std::mem::replace(
                 &mut self.groups,

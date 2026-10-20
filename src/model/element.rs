@@ -32,6 +32,20 @@ impl Stroke {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Routing {
+    #[default]
+    Elbow,
+    Straight,
+}
+
+impl Routing {
+    fn is_elbow(&self) -> bool {
+        *self == Routing::Elbow
+    }
+}
+
 /// Side of a shape a bound line end leaves from. `Auto` picks the side facing the other end.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -105,6 +119,8 @@ pub struct Line {
     pub label_at: Option<u16>,
     #[serde(default, skip_serializing_if = "Stroke::is_solid")]
     pub stroke: Stroke,
+    #[serde(default, skip_serializing_if = "Routing::is_elbow")]
+    pub routing: Routing,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

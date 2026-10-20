@@ -1,6 +1,6 @@
 use super::grid::{Grid, REVERSE};
 use crate::input::{Session, Tool};
-use crate::model::{Element, LineKind, Stroke};
+use crate::model::{Element, LineKind, Routing, Stroke};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dock {
@@ -22,6 +22,7 @@ pub enum PaletteHit {
 pub enum Choice {
     Head(LineKind),
     Stroke(Stroke),
+    Routing(Routing),
 }
 
 impl Choice {
@@ -30,6 +31,8 @@ impl Choice {
             Choice::Stroke(Stroke::Solid) => "__ solid",
             Choice::Stroke(Stroke::Dashed) => "-- dashed",
             Choice::Stroke(Stroke::Dotted) => ".. dotted",
+            Choice::Routing(Routing::Elbow) => "|_ elbow",
+            Choice::Routing(Routing::Straight) => "/ direct",
             Choice::Head(LineKind::Line) => "-- none",
             Choice::Head(LineKind::Arrow) => "-> end",
             Choice::Head(LineKind::ArrowStart) => "<- start",
@@ -57,6 +60,9 @@ pub fn choices(s: &Session) -> Vec<Choice> {
     if has(|e| matches!(e, Element::Line(_) | Element::Shape(_))) {
         out.extend([Stroke::Solid, Stroke::Dashed, Stroke::Dotted].map(Choice::Stroke));
     }
+    if has(|e| matches!(e, Element::Line(_))) {
+        out.extend([Routing::Elbow, Routing::Straight].map(Choice::Routing));
+    }
     out
 }
 
@@ -76,6 +82,12 @@ fn active(s: &Session, c: Choice) -> bool {
                 Element::Text(_) => None,
             })
             .all(|k| k == st),
+        Choice::Routing(r) => els
+            .filter_map(|e| match e {
+                Element::Line(l) => Some(l.routing),
+                _ => None,
+            })
+            .all(|k| k == r),
     }
 }
 

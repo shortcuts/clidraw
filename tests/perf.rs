@@ -54,6 +54,7 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
             label: String::new(),
             label_at: None,
             stroke: Default::default(),
+            routing: Default::default(),
         }));
     }
     els.push(Element::Shape(Shape {

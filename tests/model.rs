@@ -1,6 +1,6 @@
 use clidraw::model::{
-    corners, label_pos, route, wrap, Anchor, Axis, Canvas, Command, Element, End, History, Id,
-    Line, LineKind, Shape, ShapeKind, Side, Stroke, Z,
+    corners, label_pos, route, straight, wrap, Anchor, Axis, Canvas, Command, Element, End,
+    History, Id, Line, LineKind, Routing, Shape, ShapeKind, Side, Stroke, Z,
 };
 
 fn shape(id: &str, x: i32) -> Element {
@@ -25,6 +25,7 @@ fn arrow(from: End, to: End) -> Element {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
+        routing: Default::default(),
     })
 }
 
@@ -235,6 +236,68 @@ fn route_between_aligned_anchors_is_straight() {
 }
 
 #[test]
+fn straight_joins_the_endpoints_in_unit_steps() {
+    assert_eq!(
+        straight((0, 0), (4, 2)),
+        [(0, 0), (1, 1), (2, 1), (3, 2), (4, 2)]
+    );
+    assert_eq!(straight((3, 3), (3, 3)), [(3, 3)]);
+    assert_eq!(straight((2, 0), (0, 2)), [(2, 0), (1, 1), (0, 2)]);
+}
+
+#[test]
+fn routing_defaults_to_elbow_when_absent_and_stays_out_of_elbow_json() {
+    let old = r#"{"type":"line","id":"aaaaaaaa","kind":"Arrow","from":{"free":[0,0]},"to":{"free":[4,2]},"label":""}"#;
+    let Element::Line(l) = serde_json::from_str::<Element>(old).unwrap() else {
+        panic!("not a line")
+    };
+    assert_eq!(l.routing, Routing::Elbow);
+    assert!(!serde_json::to_string(&Element::Line(l.clone()))
+        .unwrap()
+        .contains("routing"));
+    let direct = Element::Line(Line {
+        routing: Routing::Straight,
+        ..l
+    });
+    assert!(serde_json::to_string(&direct)
+        .unwrap()
+        .contains(r#""routing":"straight""#));
+}
+
+#[test]
+fn set_routing_changes_the_route_and_undoes_as_restyle() {
+    let mut c = Canvas::default();
+    let mut h = History::default();
+    let id = Id::from("llllllll");
+    let line = Element::Line(Line {
+        id: id.clone(),
+        kind: LineKind::Line,
+        from: End::Free(0, 0),
+        to: End::Free(4, 2),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        routing: Default::default(),
+    });
+    h.exec(&mut c, Command::Insert(0, line)).unwrap();
+    let routing = |c: &Canvas| match c.get(&id) {
+        Some(Element::Line(l)) => (l.routing, c.route(l)),
+        _ => panic!("no line"),
+    };
+    let cmd = Command::SetRouting {
+        id: id.clone(),
+        routing: Routing::Straight,
+    };
+    h.exec(&mut c, cmd).unwrap();
+    assert_eq!(routing(&c), (Routing::Straight, straight((0, 0), (4, 2))));
+    assert_eq!(
+        h.undo(&mut c).unwrap().as_deref(),
+        Some("restyle 1 element")
+    );
+    assert_eq!(routing(&c).0, Routing::Elbow);
+}
+
+#[test]
 fn within_keeps_only_elements_fully_inside_the_area() {
     let c = Canvas {
         elements: vec![
@@ -250,6 +313,7 @@ fn within_keeps_only_elements_fully_inside_the_area() {
                 label: String::new(),
                 label_at: None,
                 stroke: Default::default(),
+                routing: Default::default(),
             }),
         ],
         ..Canvas::default()
