@@ -1254,3 +1254,33 @@ fn layout_undoes_in_one_step_and_rejects_bad_input() {
     run(&mut app, "u");
     assert_eq!([at(&app, "a"), at(&app, "b"), at(&app, "c")], before);
 }
+
+#[test]
+fn import_adds_selected_shapes_as_one_undo_step() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let file = t.path().join("d.mmd");
+    std::fs::write(&file, "flowchart TD\nA --> B\nB --> C\n").unwrap();
+    run(&mut app, &format!("import {}", file.display()));
+    assert_eq!(app.session.canvas.elements.len(), 5);
+    assert_eq!(app.session.selection.len(), 5);
+    assert!(app
+        .status
+        .as_ref()
+        .unwrap()
+        .text
+        .starts_with("imported 3 shapes, 2 lines"));
+    app.on_event(
+        Event::Key(KeyEvent::new(KeyCode::Char('z'), KeyModifiers::CONTROL)),
+        Instant::now(),
+    );
+    assert!(app.session.canvas.elements.is_empty());
+}
+
+#[test]
+fn import_of_a_missing_file_shows_an_error() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    run(&mut app, "import /no/such.mmd");
+    assert!(app.status.unwrap().text.starts_with("import failed"));
+}

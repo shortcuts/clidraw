@@ -373,7 +373,7 @@ impl Session {
         }
     }
 
-    fn insert(&mut self, new: Canvas) {
+    pub(crate) fn insert(&mut self, new: Canvas) {
         if new.elements.is_empty() {
             return;
         }

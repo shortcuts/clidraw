@@ -21,6 +21,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Double-click a shape or line to edit its label. Double-click empty canvas to place text.
 - In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap and the shape grows to fit.
 - Select shapes and run `:layout` (top-down) or `:layout lr` to arrange them by their connecting lines.
+- Run `:import <path>` to add a Mermaid flowchart to the canvas. It reads nodes, edges and labels and arranges them with `:layout`.
 - Group elements to select and move them as one.
 - Click a shape tool while a shape is selected to change its kind.
 - Select a line to show its options in the palette. Pick a head: none, end, start or both.
@@ -46,7 +47,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `Ctrl-c` | Quit |
 | `Ctrl-p` | Open the command palette: type to filter every action, `Enter` runs it |
 | `?` | Show the shortcuts, one page per scope |
-| `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo`, `layout [td|lr]`, `perf` |
+| `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo`, `layout [td|lr]`, `import <path>`, `perf` |
 
 The menu has Canvases, Fit all, Export SVG, Export Mermaid, Export Text and Quit. The command palette lists every action with its key. Saving is automatic.
 

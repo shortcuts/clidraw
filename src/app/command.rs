@@ -23,6 +23,10 @@ impl App {
             }
             "e" if arg.trim().is_empty() => self.status = Some(Status::error("Usage: :e <name>")),
             "e" => self.switch_to(arg.trim()),
+            "import" if arg.trim().is_empty() => {
+                self.status = Some(Status::error("Usage: :import <path>"))
+            }
+            "import" => self.import(arg.trim()),
             "export" => self.overlay = Overlay::Scope(ExportFormat::Text),
             "perf" => self.perf = self.perf.is_none().then(Perf::default),
             "layout" => match arg.trim() {
