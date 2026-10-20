@@ -1,7 +1,7 @@
 use clidraw::export::{mermaid, svg};
 use clidraw::model::{
     Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Routing, Shape, ShapeKind,
-    Stroke, Text,
+    Stroke, Text, TextAlign,
 };
 
 fn sample() -> Canvas {
@@ -18,6 +18,8 @@ fn sample() -> Canvas {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         })
     };
     let line = |id: &str, kind, from, to, label: &str| {
@@ -114,7 +116,11 @@ fn sample() -> Canvas {
                 s.fill = Some(Paint::Blue);
                 s.color = Some(Paint::Red);
             }
-            Element::Shape(s) if s.id == Id::from("cccccccc") => s.border = Border::Double,
+            Element::Shape(s) if s.id == Id::from("cccccccc") => {
+                s.border = Border::Double;
+                s.align = TextAlign::Right;
+                s.bold = true;
+            }
             Element::Line(l) if l.id == Id::from("eeeeeeee") => l.stroke = Stroke::Dashed,
             Element::Line(l) if l.id == Id::from("dddddddd") => l.color = Some(Paint::Red),
             Element::Text(t) => t.color = Some(Paint::Green),

@@ -17,7 +17,7 @@ const CANVAS: [(&str, &str); 17] = [
     ("g, G", "Group, ungroup the selection"),
     ("c, Ctrl-x", "Copy, cut the selection"),
     ("Ctrl-v", "Paste, offset from the last"),
-    ("Ctrl-d", "Duplicate the selection"),
+    ("Ctrl-d, Ctrl-b", "Duplicate, bold labels"),
     ("Ctrl-z, Ctrl-y", "Undo, redo"),
     ("z", "Overview of the whole diagram"),
     ("Ctrl-c", "Quit"),

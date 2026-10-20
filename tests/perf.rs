@@ -46,6 +46,8 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         }));
     }
     for i in 0..shapes - 1 {
@@ -73,6 +75,8 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     app
 }
@@ -148,6 +152,8 @@ fn frame_fits_the_budget_on_2500_labelled_shapes() {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         }));
     }
     let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();

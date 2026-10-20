@@ -5,9 +5,9 @@
   <polygon points="288,0 336,40 288,80 240,40" fill="none" stroke="black"/>
   <text x="288" y="40" text-anchor="middle" dominant-baseline="central">OK?</text>
   <ellipse cx="288" cy="232" rx="48" ry="40" fill="none" stroke="black" stroke-width="2"/>
-  <text x="288" y="224" text-anchor="middle" dominant-baseline="central">
-    <tspan x="288" dy="0">Done &amp;</tspan>
-    <tspan x="288" dy="16">&quot;dusted&quot;</tspan>
+  <text x="328" y="224" text-anchor="end" dominant-baseline="central" font-weight="bold">
+    <tspan x="328" dy="0">Done &amp;</tspan>
+    <tspan x="328" dy="16">&quot;dusted&quot;</tspan>
   </text>
   <rect x="0" y="320" width="96" height="80" rx="8" fill="none" stroke="black" stroke-dasharray="8 4"/>
   <text x="48" y="344" text-anchor="middle" dominant-baseline="central">

@@ -152,6 +152,8 @@ fn area_app(dir: &std::path::Path) -> (App, Instant) {
                 border: Default::default(),
                 color: None,
                 fill: None,
+                align: Default::default(),
+                bold: false,
             }),
         ));
     }
@@ -413,6 +415,8 @@ fn insert_shape(app: &mut App) {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         }),
     ));
 }
@@ -530,6 +534,8 @@ fn drag_app(dir: &std::path::Path) -> App {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         }),
     ));
     app
@@ -621,6 +627,8 @@ fn history_limit_from_config_survives_opening_another_canvas() {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         };
         app.session.exec(Command::Insert(i, Element::Shape(shape)));
     }
@@ -681,6 +689,8 @@ fn moved_redraws_only_when_the_hovered_target_changes() {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         }));
     let t0 = Instant::now();
     app.dirty = false;
@@ -756,6 +766,8 @@ fn info_bar_shows_unsaved_until_the_save() {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         }),
     ));
     assert!(last_row(&app).ends_with("unsaved"), "{}", last_row(&app));

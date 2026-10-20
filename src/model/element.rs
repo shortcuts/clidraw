@@ -66,6 +66,40 @@ impl Border {
     }
 }
 
+/// Horizontal placement of a shape label inside its box.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TextAlign {
+    Left,
+    #[default]
+    Center,
+    Right,
+}
+
+impl TextAlign {
+    fn is_center(&self) -> bool {
+        *self == TextAlign::Center
+    }
+
+    pub fn next(self) -> TextAlign {
+        match self {
+            TextAlign::Left => TextAlign::Center,
+            TextAlign::Center => TextAlign::Right,
+            TextAlign::Right => TextAlign::Left,
+        }
+    }
+
+    /// Cells between the left edge of a `room`-wide line box and a `used`-wide line.
+    pub fn offset(self, room: usize, used: usize) -> i32 {
+        let free = room.saturating_sub(used) as i32;
+        match self {
+            TextAlign::Left => 0,
+            TextAlign::Center => free / 2,
+            TextAlign::Right => free,
+        }
+    }
+}
+
 /// Named ink and fill color. The terminal and both exporters read the same RGB.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -174,6 +208,10 @@ pub struct Shape {
     pub color: Option<Paint>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fill: Option<Paint>,
+    #[serde(default, skip_serializing_if = "TextAlign::is_center")]
+    pub align: TextAlign,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub bold: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

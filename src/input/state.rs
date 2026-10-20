@@ -285,6 +285,18 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
                 .collect();
             s.exec(Command::Batch(cmds));
         }
+        PaletteHit::Option(Choice::Align(cur)) => {
+            let cmds: Vec<Command> = s
+                .selection
+                .iter()
+                .filter(|id| matches!(s.canvas.get(id), Some(Element::Shape(_))))
+                .map(|id| Command::SetAlign {
+                    id: id.clone(),
+                    align: cur.next(),
+                })
+                .collect();
+            s.exec(Command::Batch(cmds));
+        }
         PaletteHit::Option(c @ (Choice::Ink | Choice::Fill)) => {
             let cur = s
                 .selection

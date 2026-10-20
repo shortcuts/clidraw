@@ -1,6 +1,6 @@
 use crate::model::{
     corners, label_pos, wrap, Border, Canvas, Element, LineKind, Paint, Routing, ShapeKind, Stroke,
-    FILL_ALPHA,
+    TextAlign, FILL_ALPHA,
 };
 use std::fmt::Write;
 
@@ -28,13 +28,24 @@ fn hex(p: Paint) -> String {
     format!("#{r:02x}{g:02x}{b:02x}")
 }
 
-fn text(out: &mut String, x: i32, y: i32, anchor: &str, lines: &[&str], ink: Option<Paint>) {
+fn text(
+    out: &mut String,
+    (x, y): (i32, i32),
+    anchor: &str,
+    lines: &[&str],
+    (ink, bold): (Option<Paint>, bool),
+) {
     if lines.iter().all(|l| l.is_empty()) {
         return;
     }
     let y = y - (lines.len() as i32 - 1) * CH / 2;
     let head =
         format!("<text x=\"{x}\" y=\"{y}\" text-anchor=\"{anchor}\" dominant-baseline=\"central\"");
+    let head = if bold {
+        format!("{head} font-weight=\"bold\"")
+    } else {
+        head
+    };
     let head = match ink {
         Some(p) => format!("{head} fill=\"{}\"", hex(p)),
         None => head,
@@ -175,7 +186,12 @@ pub fn svg(canvas: &Canvas) -> String {
                     .into_iter()
                     .map(|r| s.label[r].trim_end_matches([' ', '\n']))
                     .collect();
-                text(&mut o, x + w / 2, y + h / 2, "middle", &lines, s.color);
+                let (tx, anchor) = match s.align {
+                    TextAlign::Left => (x + CW, "start"),
+                    TextAlign::Center => (x + w / 2, "middle"),
+                    TextAlign::Right => (x + w - CW, "end"),
+                };
+                text(&mut o, (tx, y + h / 2), anchor, &lines, (s.color, s.bold));
             }
             Element::Line(l) => {
                 let cells = canvas.route_with(l, &find);
@@ -204,15 +220,14 @@ pub fn svg(canvas: &Canvas) -> String {
                     style(l.stroke, l.color, None)
                 );
                 let (lx, ly) = mid(label_pos(&cells, l.label_at));
-                text(&mut o, lx, ly, "middle", &[&l.label], l.color);
+                text(&mut o, (lx, ly), "middle", &[&l.label], (l.color, false));
             }
             Element::Text(t) => text(
                 &mut o,
-                t.x * CW,
-                t.y * CH + CH / 2,
+                (t.x * CW, t.y * CH + CH / 2),
                 "start",
                 &[&t.text],
-                t.color,
+                (t.color, false),
             ),
         }
     }

@@ -16,6 +16,8 @@ fn shape(id: &str, x: i32) -> Element {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     })
 }
 

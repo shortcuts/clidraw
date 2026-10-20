@@ -1,6 +1,6 @@
 use super::grid::{Grid, REVERSE, UNDERLINE};
 use crate::input::{Session, Tool};
-use crate::model::{Border, Element, Id, LineKind, Paint, Routing, Stroke};
+use crate::model::{Border, Element, Id, LineKind, Paint, Routing, Stroke, TextAlign};
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -25,6 +25,7 @@ pub enum Choice {
     Stroke(Stroke),
     Routing(Routing),
     Border(Border),
+    Align(TextAlign),
     Ink,
     Fill,
 }
@@ -39,6 +40,9 @@ impl Choice {
             Choice::Border(Border::Rounded) => "╭╮ round",
             Choice::Border(Border::Double) => "╔╗ double",
             Choice::Border(Border::Heavy) => "┏┓ heavy",
+            Choice::Align(TextAlign::Left) => "<< left",
+            Choice::Align(TextAlign::Center) => "<> mid",
+            Choice::Align(TextAlign::Right) => ">> right",
             Choice::Ink => "ink >",
             Choice::Fill => "fill >",
             Choice::Routing(Routing::Elbow) => "|_ elbow",
@@ -92,6 +96,9 @@ pub fn choices(els: &[&Element]) -> Vec<Choice> {
             .map(Choice::Border),
         );
     }
+    if let Some(Element::Shape(s)) = els.iter().find(|e| matches!(e, Element::Shape(_))) {
+        out.push(Choice::Align(s.align));
+    }
     out.push(Choice::Ink);
     if has(|e| matches!(e, Element::Shape(_))) {
         out.push(Choice::Fill);
@@ -132,6 +139,7 @@ fn active(els: &[&Element], c: Choice) -> bool {
                 _ => None,
             })
             .all(|k| k == b),
+        Choice::Align(a) => a != TextAlign::Center,
         Choice::Routing(r) => els
             .filter_map(|e| match e {
                 Element::Line(l) => Some(l.routing),

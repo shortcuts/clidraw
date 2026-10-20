@@ -23,6 +23,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Group elements to select and move them as one.
 - Click a shape tool while a shape is selected to change its kind.
 - Select a line to show its options in the palette. Pick a head: none, end, start or both.
+- Select a shape and click the align cell in the palette to cycle its label: left, middle, right.
 - Drag the `::` cell of the palette to dock it to another edge.
 - Wheel and horizontal scroll pan the canvas. A fast flick pans further. Shift+wheel pans sideways.
 - Dragging within 2 cells of the screen edge pans the view.
@@ -36,6 +37,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `g` / `G` | Group, ungroup the selection |
 | `]` / `[` | Raise / lower the selection one step |
 | `}` / `{` | Send the selection to the front / back |
+| `Ctrl-b` | Toggle bold on the labels of the selected shapes |
 | `Ctrl-z` / `Ctrl-y` | Undo / redo |
 | `z` | Overview of the whole diagram, read-only; `z` or `Esc` returns |
 | `Ctrl-f` | Find a label: type the text, `Enter` selects and centers the match; repeat to cycle (`:/text` does the same) |

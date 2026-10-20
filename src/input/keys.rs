@@ -84,6 +84,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             KeyCode::Char('x') => s.cut(),
             KeyCode::Char('v') => s.paste(),
             KeyCode::Char('d') => s.duplicate(),
+            KeyCode::Char('b') => s.toggle_bold(),
             _ => {}
         }
         return KeyOutcome::None;

@@ -1,6 +1,7 @@
 use super::canvas::{Index, BULK};
 use super::{
     Border, Canvas, Element, End, Id, LineKind, ModelError, Paint, Routing, ShapeKind, Stroke,
+    TextAlign,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -91,6 +92,14 @@ pub enum Command {
         id: Id,
         fill: Option<Paint>,
     },
+    SetAlign {
+        id: Id,
+        align: TextAlign,
+    },
+    SetBold {
+        id: Id,
+        bold: bool,
+    },
     /// Replaces the whole group list.
     SetGroups(Vec<Vec<Id>>),
     Batch(Vec<Command>),
@@ -136,7 +145,9 @@ impl Command {
             | Command::SetRouting { .. }
             | Command::SetBorder { .. }
             | Command::SetColor { .. }
-            | Command::SetFill { .. } => "restyle",
+            | Command::SetFill { .. }
+            | Command::SetAlign { .. }
+            | Command::SetBold { .. } => "restyle",
             Command::SetGroups(_) => "regroup",
             Command::Batch(_) => unreachable!(),
         }
@@ -477,6 +488,22 @@ impl Canvas {
                 };
                 let old = std::mem::replace(&mut s.fill, fill);
                 Ok(Command::SetFill { id, fill: old })
+            }
+            Command::SetAlign { id, align } => {
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
+                let Element::Shape(s) = &mut self.elements[i] else {
+                    return Err(wrong(&id));
+                };
+                let old = std::mem::replace(&mut s.align, align);
+                Ok(Command::SetAlign { id, align: old })
+            }
+            Command::SetBold { id, bold } => {
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
+                let Element::Shape(s) = &mut self.elements[i] else {
+                    return Err(wrong(&id));
+                };
+                let old = std::mem::replace(&mut s.bold, bold);
+                Ok(Command::SetBold { id, bold: old })
             }
             Command::SetRouting { id, routing } => {
                 let i = self.position(&id, index).ok_or_else(|| missing(&id))?;

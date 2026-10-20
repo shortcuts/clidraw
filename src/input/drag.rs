@@ -250,6 +250,8 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                     border: Default::default(),
                     color: None,
                     fill: None,
+                    align: Default::default(),
+                    bold: false,
                 }),
                 None => Element::Line(Line {
                     id: id.clone(),
@@ -500,6 +502,8 @@ mod tests {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         }));
         s
     }
@@ -660,6 +664,8 @@ mod tests {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         }));
         s
     }

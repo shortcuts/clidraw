@@ -302,12 +302,8 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
         }
         let text = label[r].trim_end_matches([' ', '\n']);
         let used = text.width();
-        grid.text(
-            x + 1 + room.saturating_sub(used) as i32 / 2,
-            row,
-            text,
-            flags,
-        );
+        let ink = if s.bold { flags | BOLD } else { flags };
+        grid.text(x + 1 + s.align.offset(room, used), row, text, ink);
     }
 }
 

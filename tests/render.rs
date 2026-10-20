@@ -1,7 +1,7 @@
 use clidraw::input::{Corner, Handle, Hit, Session, Tool};
 use clidraw::model::{
     Anchor, Border, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Routing, Shape,
-    ShapeKind, Stroke,
+    ShapeKind, Stroke, TextAlign,
 };
 use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::switcher::Switcher;
@@ -25,6 +25,8 @@ fn shape(id: &str, x: i32, label: &str) -> Element {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     })
 }
 
@@ -592,6 +594,8 @@ fn long_shape_label_wraps_inside_the_shape() {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     s.rev += 1;
     let b = draw(&s, &Overlay::None);
@@ -661,6 +665,8 @@ fn overview_session(x: i32, y: i32) -> Session {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.overview = true;
@@ -719,6 +725,8 @@ fn kind_session(kind: ShapeKind, w: i32, h: i32) -> Session {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     Session::new(c, View::default(), (80, 24))
 }
@@ -892,4 +900,28 @@ fn infobar_shows_size_while_drawing_a_rect_and_length_while_drawing_a_line() {
         mouse(&mut s, Up(Left), 30, 10);
         assert!(!row(&draw(&s, &Overlay::None), 23).contains(want));
     }
+}
+
+#[test]
+fn label_align_places_the_text_and_bold_sets_the_modifier() {
+    let mut c = Canvas::default();
+    for (id, x) in [("aaaaaaaa", 20), ("bbbbbbbb", 40)] {
+        c.elements.push(shape(id, x, "box"));
+    }
+    for (e, a) in c
+        .elements
+        .iter_mut()
+        .zip([TextAlign::Left, TextAlign::Right])
+    {
+        if let Element::Shape(s) = e {
+            s.align = a;
+            s.bold = a == TextAlign::Right;
+        }
+    }
+    let s = Session::new(c, View::default(), (80, 24));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 5, 20, 8), "│box   │");
+    assert_eq!(cols(&b, 5, 40, 8), "│   box│");
+    assert!(!b[(21, 5)].modifier.contains(Modifier::BOLD));
+    assert!(b[(44, 5)].modifier.contains(Modifier::BOLD));
 }

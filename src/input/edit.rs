@@ -191,7 +191,7 @@ impl Session {
                         let end = r.start + edit.buf[r.clone()].trim_end_matches([' ', '\n']).len();
                         let used = edit.buf[r.start..end].width();
                         EditBox {
-                            x: sh.x + 1 + room.saturating_sub(used) as i32 / 2,
+                            x: sh.x + 1 + sh.align.offset(room, used),
                             y,
                             start: r.start,
                             end,

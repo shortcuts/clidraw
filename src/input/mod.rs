@@ -277,6 +277,27 @@ impl Session {
         self.start_edit_existing(new_id);
     }
 
+    /// Bolds the labels of the selected shapes; unbolds them when all are bold already.
+    pub fn toggle_bold(&mut self) {
+        let shapes: Vec<(&Id, bool)> = self
+            .selection
+            .iter()
+            .filter_map(|id| match self.canvas.get(id)? {
+                Element::Shape(sh) => Some((id, sh.bold)),
+                _ => None,
+            })
+            .collect();
+        let bold = !shapes.iter().all(|&(_, b)| b);
+        let cmds: Vec<Command> = shapes
+            .into_iter()
+            .map(|(id, _)| Command::SetBold {
+                id: id.clone(),
+                bold,
+            })
+            .collect();
+        self.exec(Command::Batch(cmds));
+    }
+
     pub fn duplicate(&mut self) {
         if self.idle() && !self.selection.is_empty() {
             let new = self.canvas.clone_canvas(&self.selection, 2, 1);

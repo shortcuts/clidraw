@@ -4,7 +4,7 @@ use clidraw::input::{
 };
 use clidraw::model::{
     Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Routing, Shape, ShapeKind,
-    Stroke,
+    Stroke, TextAlign,
 };
 use clidraw::ui::palette::{self, Dock, PaletteHit};
 use clidraw::view::View;
@@ -96,6 +96,8 @@ fn with_shape(id: &str, x: i32, y: i32) -> Session {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     s
 }
@@ -179,6 +181,8 @@ fn ctrl_a_selects_everything() {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     ctrl(&mut s, 'a');
     assert_eq!(
@@ -216,6 +220,8 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     pick(&mut s, Tool::Arrow);
     drag(&mut s, (18, 5), (43, 5));
@@ -262,6 +268,8 @@ fn releasing_an_arrow_on_a_border_cell_pins_that_side() {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         }));
         pick(&mut s, Tool::Arrow);
         drag(&mut s, (18, 5), to);
@@ -409,6 +417,8 @@ fn shift_click_toggles_an_element_in_the_selection() {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     click(&mut s, (22, 6), Instant::now());
     shift_drag(&mut s, (42, 10), (42, 10));
@@ -625,6 +635,8 @@ fn palette_option_sets_the_border_of_a_selected_rect_and_undoes() {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
     let border = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
@@ -656,6 +668,8 @@ fn palette_ink_cycles_through_the_colors_and_undoes_one_click_at_a_time() {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     s.canvas.elements.push(Element::Text(clidraw::model::Text {
         id: Id::from("tttttttt"),
@@ -669,8 +683,8 @@ fn palette_ink_cycles_through_the_colors_and_undoes_one_click_at_a_time() {
         Some(Element::Shape(sh)) => (sh.color, sh.fill),
         _ => panic!("no shape"),
     };
-    // Stroke (3) and border (4) options come first, then ink and fill.
-    let row = Tool::ALL.len() as u16 + 2 + 7;
+    // Stroke (3), border (4) and align come first, then ink and fill.
+    let row = Tool::ALL.len() as u16 + 2 + 8;
     click(&mut s, (2, row), Instant::now());
     assert_eq!(ink(&s), (Some(Paint::Red), None));
     click(&mut s, (2, row), Instant::now());
@@ -738,6 +752,8 @@ fn two_shapes_and_arrow_tool() -> Session {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     pick(&mut s, Tool::Arrow);
     s
@@ -974,6 +990,8 @@ fn bracket_keys_reorder_the_selection_one_undo_step_per_press() {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     let ids = |s: &Session| -> Vec<String> {
         s.canvas
@@ -1020,6 +1038,8 @@ fn diagram() -> Session {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     s.canvas.elements.push(Element::Line(Line {
         id: Id::from("line0000"),
@@ -1316,6 +1336,8 @@ fn committing_a_wrapped_label_grows_the_shape_in_one_undo_step() {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     }));
     s.start_edit_existing(Id::from("aaaaaaaa"));
     typed(&mut s, "ab");
@@ -1413,6 +1435,8 @@ fn three_shapes() -> Session {
             border: Default::default(),
             color: None,
             fill: None,
+            align: Default::default(),
+            bold: false,
         }));
     }
     s
@@ -1513,6 +1537,8 @@ fn at(id: &str, x: i32, y: i32, w: i32, h: i32) -> Element {
         border: Default::default(),
         color: None,
         fill: None,
+        align: Default::default(),
+        bold: false,
     })
 }
 
@@ -1607,4 +1633,41 @@ fn shift_arrow_adds_a_linked_shape_in_one_undo_step_and_edits_its_label() {
     );
     ctrl(&mut s, 'z');
     assert_eq!(s.canvas.elements.len(), 1);
+}
+
+#[test]
+fn palette_cycles_label_align_and_ctrl_b_toggles_bold() {
+    let mut s = session();
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("rrrrrrrr"),
+        kind: ShapeKind::Rect,
+        x: 30,
+        y: 5,
+        w: 8,
+        h: 3,
+        label: String::new(),
+        stroke: Default::default(),
+        border: Default::default(),
+        color: None,
+        fill: None,
+        align: Default::default(),
+        bold: false,
+    }));
+    s.selection = vec![Id::from("rrrrrrrr")];
+    let get = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
+        Some(Element::Shape(sh)) => (sh.align, sh.bold),
+        _ => panic!("no shape"),
+    };
+    // Three strokes and four borders come first, then the align cell.
+    let row = Tool::ALL.len() as u16 + 2 + 7;
+    click(&mut s, (2, row), Instant::now());
+    assert_eq!(get(&s), (TextAlign::Right, false));
+    click(&mut s, (2, row), Instant::now());
+    assert_eq!(get(&s), (TextAlign::Left, false));
+    s.undo();
+    assert_eq!(get(&s), (TextAlign::Right, false));
+    ctrl(&mut s, 'b');
+    assert_eq!(get(&s), (TextAlign::Right, true));
+    ctrl(&mut s, 'b');
+    assert_eq!(get(&s), (TextAlign::Right, false));
 }

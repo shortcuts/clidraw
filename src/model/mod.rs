@@ -10,7 +10,7 @@ pub use canvas::{Canvas, Find};
 pub use command::{Align, Command, Side, Z};
 pub use element::{
     Anchor, Border, Element, End, Line, LineKind, Paint, Routing, Shape, ShapeKind, Stroke, Text,
-    FILL_ALPHA,
+    TextAlign, FILL_ALPHA,
 };
 pub use error::ModelError;
 pub use geom::{corners, edge_anchor, label_pos, route, side_mid, straight, wrap, Axis};
