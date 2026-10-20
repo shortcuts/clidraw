@@ -20,7 +20,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Click a shape tool while a shape is selected to change its kind.
 - Select a line to show its options in the palette. Pick a head: none, end, start or both.
 - Drag the `::` cell of the palette to dock it to another edge.
-- Wheel and horizontal scroll pan the canvas.
+- Wheel and horizontal scroll pan the canvas. A fast flick pans further. Shift+wheel pans sideways.
 
 | Key | Action |
 |---|---|

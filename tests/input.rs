@@ -10,11 +10,22 @@ fn session() -> Session {
 }
 
 fn mouse(s: &mut Session, kind: MouseEventKind, col: u16, row: u16, now: Instant) {
+    mouse_mod(s, kind, KeyModifiers::NONE, col, row, now);
+}
+
+fn mouse_mod(
+    s: &mut Session,
+    kind: MouseEventKind,
+    modifiers: KeyModifiers,
+    col: u16,
+    row: u16,
+    now: Instant,
+) {
     let ev = MouseEvent {
         kind,
         column: col,
         row,
-        modifiers: KeyModifiers::NONE,
+        modifiers,
     };
     handle_mouse(s, ev, now);
 }
@@ -206,6 +217,76 @@ fn wheel_pans_and_hand_tool_drag_pans() {
     pick(&mut s, Tool::Hand);
     drag(&mut s, (30, 10), (25, 12));
     assert_eq!((s.view.ox, s.view.oy), (9, 0));
+}
+
+fn scroll_down(s: &mut Session, t: Instant) {
+    mouse(s, MouseEventKind::ScrollDown, 30, 10, t);
+}
+
+#[test]
+fn a_lone_notch_pans_two_rows_even_after_a_pause() {
+    let mut s = session();
+    let t = Instant::now();
+    scroll_down(&mut s, t);
+    assert_eq!(s.view.oy, 2);
+    scroll_down(&mut s, t + Duration::from_millis(200));
+    assert_eq!(s.view.oy, 4);
+}
+
+#[test]
+fn a_fast_burst_accelerates_up_to_the_cap() {
+    let mut s = session();
+    let t = Instant::now();
+    for i in 0..10 {
+        scroll_down(&mut s, t + Duration::from_millis(10 * i));
+    }
+    assert_eq!(s.view.oy, 56);
+}
+
+#[test]
+fn a_pause_resets_the_burst() {
+    let mut s = session();
+    let t = Instant::now();
+    for i in 0..10 {
+        scroll_down(&mut s, t + Duration::from_millis(10 * i));
+    }
+    scroll_down(&mut s, t + Duration::from_millis(240));
+    assert_eq!(s.view.oy, 58);
+}
+
+#[test]
+fn shift_wheel_pans_sideways_and_ctrl_wheel_does_nothing() {
+    let mut s = session();
+    let t = Instant::now();
+    mouse_mod(
+        &mut s,
+        MouseEventKind::ScrollDown,
+        KeyModifiers::SHIFT,
+        30,
+        10,
+        t,
+    );
+    assert_eq!((s.view.ox, s.view.oy), (4, 0));
+    let t = t + Duration::from_millis(500);
+    mouse_mod(
+        &mut s,
+        MouseEventKind::ScrollUp,
+        KeyModifiers::SHIFT,
+        30,
+        10,
+        t,
+    );
+    assert_eq!((s.view.ox, s.view.oy), (0, 0));
+    let t = t + Duration::from_millis(500);
+    mouse_mod(
+        &mut s,
+        MouseEventKind::ScrollDown,
+        KeyModifiers::CONTROL,
+        30,
+        10,
+        t,
+    );
+    assert_eq!((s.view.ox, s.view.oy), (0, 0));
 }
 
 #[test]

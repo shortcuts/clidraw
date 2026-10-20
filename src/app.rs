@@ -103,6 +103,10 @@ impl App {
             Some(Event::Mouse(m)) => Some(m.kind),
             _ => None,
         };
+        let step_of = |e: Option<&Event>| match e {
+            Some(Event::Mouse(m)) => scroll_step(m),
+            _ => None,
+        };
         let is_drag = |k| matches!(k, Some(MouseEventKind::Drag(_)));
         let mut evs = evs.into_iter().peekable();
         while let Some(ev) = evs.next() {
@@ -113,15 +117,15 @@ impl App {
             if is_drag(k) && is_drag(kind(evs.peek())) {
                 continue;
             }
-            if let Some((dx, dy)) = k.and_then(scroll_step) {
+            if let Some(step) = step_of(Some(&ev)) {
                 let mut n = 1;
-                while kind(evs.peek()) == k {
+                while step_of(evs.peek()) == Some(step) {
                     evs.next();
                     n += 1;
                 }
                 if matches!(self.overlay, Overlay::None) {
                     self.dirty = true;
-                    self.session.view.pan(dx * n, dy * n);
+                    self.session.scroll(step, n, now);
                 }
                 continue;
             }

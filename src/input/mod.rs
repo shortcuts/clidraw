@@ -83,6 +83,8 @@ pub struct Session {
     pub layout: RefCell<Option<Layout>>,
     gesture: Gesture,
     last_down: Option<(i32, i32, Instant)>,
+    /// Time of the last wheel event and the notches in the current burst.
+    burst: Option<(Instant, u32)>,
 }
 
 impl Session {
@@ -103,6 +105,7 @@ impl Session {
             layout: RefCell::new(None),
             gesture: Gesture::Idle,
             last_down: None,
+            burst: None,
         }
     }
 

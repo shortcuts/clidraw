@@ -3,8 +3,8 @@ use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
 use crate::model::{Command, Element, Id, ShapeKind, Side};
 use crate::ui::palette::{self, Choice, PaletteHit};
-use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
-use std::time::Instant;
+use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use std::time::{Duration, Instant};
 
 pub(super) type P = (i32, i32);
 
@@ -34,9 +34,20 @@ pub(super) enum Action {
     CreateLine(Id),
 }
 
-/// Screen offset one wheel notch pans the view by.
-pub fn scroll_step(kind: MouseEventKind) -> Option<(i32, i32)> {
-    match kind {
+const SCROLL_BURST: Duration = Duration::from_millis(100);
+// A flick stays under about 8 rows per notch.
+const SCROLL_MAX: u32 = 4;
+
+/// Screen offset one wheel notch pans the view by. Shift turns vertical into
+/// horizontal; Ctrl is reserved for zoom.
+pub fn scroll_step(ev: &MouseEvent) -> Option<(i32, i32)> {
+    if ev.modifiers.contains(KeyModifiers::CONTROL) {
+        return None;
+    }
+    let shift = ev.modifiers.contains(KeyModifiers::SHIFT);
+    match ev.kind {
+        MouseEventKind::ScrollUp if shift => Some((-4, 0)),
+        MouseEventKind::ScrollDown if shift => Some((4, 0)),
         MouseEventKind::ScrollUp => Some((0, -2)),
         MouseEventKind::ScrollDown => Some((0, 2)),
         MouseEventKind::ScrollLeft => Some((-4, 0)),
@@ -45,10 +56,23 @@ pub fn scroll_step(kind: MouseEventKind) -> Option<(i32, i32)> {
     }
 }
 
+impl Session {
+    /// Pans `n` notches of `step`, scaled up while notches keep arriving.
+    pub fn scroll(&mut self, step: P, n: u32, now: Instant) {
+        let prior = match self.burst {
+            Some((last, count)) if now.duration_since(last) <= SCROLL_BURST => count,
+            _ => 0,
+        };
+        let k = (n * (1 + prior / 2).min(SCROLL_MAX)) as i32;
+        self.view.pan(step.0 * k, step.1 * k);
+        self.burst = Some((now, prior + n));
+    }
+}
+
 pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
     let (col, row) = (i32::from(ev.column), i32::from(ev.row));
-    if let Some((dx, dy)) = scroll_step(ev.kind) {
-        return s.view.pan(dx, dy);
+    if let Some(step) = scroll_step(&ev) {
+        return s.scroll(step, 1, now);
     }
     let world = s.view.to_world(col, row);
     match ev.kind {

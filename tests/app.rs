@@ -546,7 +546,7 @@ fn queued_scrolls_add_up_and_keep_order_around_other_events() {
     evs.push(scroll(MouseEventKind::ScrollRight));
     evs.extend(vec![scroll(MouseEventKind::ScrollDown); 2]);
     app.on_events(evs, now);
-    assert_eq!((app.session.view.ox, app.session.view.oy), (4, 10));
+    assert_eq!((app.session.view.ox, app.session.view.oy), (8, 18));
 }
 
 #[test]
