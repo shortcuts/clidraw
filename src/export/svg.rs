@@ -102,7 +102,7 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                 };
                 let (x, y, w, h) = (s.x * CW, s.y * CH, s.w * CW, s.h * CH);
                 match s.kind {
-                    ShapeKind::Rect => {
+                    ShapeKind::Rect | ShapeKind::Frame => {
                         let _ = writeln!(
                             o,
                             "  <rect x=\"{x}\" y=\"{y}\" width=\"{w}\" height=\"{h}\"{rx} {style}/>"
@@ -185,6 +185,11 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                             y + h / 2
                         );
                     }
+                }
+                if s.kind == ShapeKind::Frame {
+                    let label = s.label.replace('\n', " ");
+                    text(&mut o, (x + CW, y), "start", &[&label], (s.color, s.bold));
+                    continue;
                 }
                 let room = (s.w - 2).max(1) as usize;
                 let lines: Vec<&str> = wrap(&s.label, room)

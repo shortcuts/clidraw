@@ -1,4 +1,4 @@
-use crate::model::{label_pos, Canvas, Element, Find, Id, Side};
+use crate::model::{label_pos, Canvas, Element, Find, Id, ShapeKind, Side};
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -22,9 +22,19 @@ pub enum Hit {
     Empty,
 }
 
-/// Handles exist only while exactly one element is selected.
+/// Handles exist only while exactly one element is selected, or one frame with its contents.
 pub fn handles(canvas: &Canvas, selection: &[Id]) -> Vec<(Handle, Id, (i32, i32))> {
-    let [id] = selection else { return vec![] };
+    let id = match selection {
+        [id] => id,
+        [_, _, ..] => match selection
+            .iter()
+            .find(|id| frame_unit(canvas, id, selection))
+        {
+            Some(id) => id,
+            None => return vec![],
+        },
+        _ => return vec![],
+    };
     match canvas.get(id) {
         Some(Element::Shape(s)) => {
             let (r, b) = (s.x + s.w - 1, s.y + s.h - 1);
@@ -49,11 +59,28 @@ pub fn handles(canvas: &Canvas, selection: &[Id]) -> Vec<(Handle, Id, (i32, i32)
     }
 }
 
+/// True when `id` is a frame whose frame-unit is exactly `selection`.
+fn frame_unit(canvas: &Canvas, id: &Id, selection: &[Id]) -> bool {
+    let Some(Element::Shape(s)) = canvas.get(id) else {
+        return false;
+    };
+    if s.kind != ShapeKind::Frame {
+        return false;
+    }
+    let mut unit = vec![id.clone()];
+    canvas.expand_frames(&mut unit);
+    unit.len() == selection.len() && unit.iter().all(|u| selection.contains(u))
+}
+
 fn covers<'a>(canvas: &'a Canvas, find: &Find<'a>, e: &Element, p: (i32, i32)) -> bool {
     match e {
         Element::Line(l) => canvas.route_with(l, find).contains(&p),
         _ => {
             let (x, y, w, h) = canvas.bounds_with(e, find);
+            let frame = matches!(e, Element::Shape(s) if s.kind == ShapeKind::Frame);
+            if frame && p.0 > x && p.0 < x + w - 1 && p.1 > y && p.1 < y + h - 1 {
+                return false;
+            }
             p.0 >= x && p.0 < x + w && p.1 >= y && p.1 < y + h
         }
     }
@@ -104,4 +131,20 @@ pub fn intersects<'a>(
     let (x, y, w, h) = canvas.bounds_with(e, find);
     let (x0, x1, y0, y1) = (a.0.min(b.0), a.0.max(b.0), a.1.min(b.1), a.1.max(b.1));
     x <= x1 && x + w > x0 && y <= y1 && y + h > y0
+}
+
+/// Band rule: elements touch the band, a frame needs its whole box inside.
+pub fn swept<'a>(
+    canvas: &'a Canvas,
+    find: &Find<'a>,
+    e: &Element,
+    a: (i32, i32),
+    b: (i32, i32),
+) -> bool {
+    if !matches!(e, Element::Shape(s) if s.kind == ShapeKind::Frame) {
+        return intersects(canvas, find, e, a, b);
+    }
+    let (x, y, w, h) = canvas.bounds_with(e, find);
+    let (x0, x1, y0, y1) = (a.0.min(b.0), a.0.max(b.0), a.1.min(b.1), a.1.max(b.1));
+    x >= x0 && x + w - 1 <= x1 && y >= y0 && y + h - 1 <= y1
 }

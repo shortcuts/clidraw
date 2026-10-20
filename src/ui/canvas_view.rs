@@ -114,6 +114,9 @@ fn overview(grid: &mut Grid, s: &Session) {
             }
             continue;
         }
+        if matches!(e, Element::Shape(sh) if sh.kind == ShapeKind::Frame) {
+            continue;
+        }
         let ((x0, y0), (x1, y1)) = (cell(x, y), cell(x + w - 1, y + h - 1));
         for sy in y0..=y1 {
             for sx in x0..=x1 {
@@ -195,8 +198,11 @@ fn dashed(stroke: Stroke, glyph: char) -> char {
 
 fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     let (w, h) = (s.w, s.h);
-    grid.fill(x, y, w, h);
+    if s.kind != ShapeKind::Frame {
+        grid.fill(x, y, w, h);
+    }
     match s.kind {
+        ShapeKind::Frame => return frame(grid, s, x, y, label, flags),
         ShapeKind::Rect | ShapeKind::Ellipse => {
             let (hz, vt, corners) = match (s.border, s.kind) {
                 (Border::Double, _) => ('═', '║', ['╔', '╗', '╚', '╝']),
@@ -304,6 +310,38 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
         let used = text.width();
         let ink = if s.bold { flags | BOLD } else { flags };
         grid.text(x + 1 + s.align.offset(room, used), row, text, ink);
+    }
+}
+
+fn frame(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
+    let (w, h) = (s.w, s.h);
+    for i in 1..w - 1 {
+        grid.set(x + i, y, dashed(s.stroke, '─'), flags);
+        grid.set(x + i, y + h - 1, dashed(s.stroke, '─'), flags);
+    }
+    for j in 1..h - 1 {
+        grid.set(x, y + j, dashed(s.stroke, '│'), flags);
+        grid.set(x + w - 1, y + j, dashed(s.stroke, '│'), flags);
+    }
+    for (c, (cx, cy)) in ['┌', '┐', '└', '┘'].into_iter().zip([
+        (x, y),
+        (x + w - 1, y),
+        (x, y + h - 1),
+        (x + w - 1, y + h - 1),
+    ]) {
+        grid.set(cx, cy, c, flags);
+    }
+    let room = (w - 4).max(0) as usize;
+    let mut text = String::new();
+    for c in label.chars().map(|c| if c == '\n' { ' ' } else { c }) {
+        if text.width() + c.width().unwrap_or(0) > room {
+            break;
+        }
+        text.push(c);
+    }
+    if !text.is_empty() {
+        let ink = if s.bold { flags | BOLD } else { flags };
+        grid.text(x + 1, y, &format!(" {text} "), ink);
     }
 }
 

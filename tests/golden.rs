@@ -60,6 +60,7 @@ fn sample() -> Canvas {
             shape("kkkkkkkk", ShapeKind::Cylinder, 16, 20, 12, 5, "DB"),
             shape("llllllll", ShapeKind::Parallelogram, 30, 20, 12, 5, "In"),
             shape("mmmmmmmm", ShapeKind::Hexagon, 16, 12, 12, 5, "Prep"),
+            shape("nnnnnnnn", ShapeKind::Frame, -1, 18, 44, 9, "Group"),
             line(
                 "dddddddd",
                 LineKind::Arrow,
@@ -153,7 +154,7 @@ fn svg_matches_golden() {
 fn mermaid_matches_golden_and_counts_skipped() {
     let out = mermaid(&sample());
     check("sample.mmd", &out.text);
-    assert_eq!(out.skipped, 2);
+    assert_eq!(out.skipped, 3);
 }
 
 #[test]

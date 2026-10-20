@@ -526,6 +526,7 @@ fn dragging_with_a_new_tool_draws_that_kind() {
         (Tool::Cylinder, ShapeKind::Cylinder),
         (Tool::Parallelogram, ShapeKind::Parallelogram),
         (Tool::Hexagon, ShapeKind::Hexagon),
+        (Tool::Frame, ShapeKind::Frame),
     ] {
         let mut s = session();
         pick(&mut s, tool);
@@ -964,7 +965,7 @@ fn palette_hover_follows_the_pointer_and_clears_on_press_or_gesture() {
 #[test]
 fn tool_keys_switch_tools_but_type_into_an_edit() {
     let mut s = session();
-    for (c, tool) in "vhrodypxlat".chars().zip(Tool::ALL) {
+    for (c, tool) in "vhrodypxflat".chars().zip(Tool::ALL) {
         key(&mut s, KeyCode::Char(c));
         assert_eq!(s.tool, tool);
     }
@@ -1697,4 +1698,82 @@ fn ctrl_p_opens_the_palette_only_when_idle() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     s.start_edit_existing(Id::from("aaaaaaaa"));
     assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::None);
+}
+
+fn put(s: &mut Session, id: &str, kind: ShapeKind, r: (i32, i32, i32, i32)) {
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from(id),
+        kind,
+        x: r.0,
+        y: r.1,
+        w: r.2,
+        h: r.3,
+        label: String::new(),
+        stroke: Default::default(),
+        border: Default::default(),
+        color: None,
+        fill: None,
+        align: Default::default(),
+        bold: false,
+    }));
+}
+
+fn framed() -> Session {
+    let mut s = session();
+    put(&mut s, "inner000", ShapeKind::Rect, (22, 7, 6, 3));
+    put(&mut s, "frame000", ShapeKind::Frame, (20, 5, 20, 10));
+    s
+}
+
+fn xs(s: &Session) -> Vec<i32> {
+    shapes(s).iter().map(|sh| sh.x).collect()
+}
+
+#[test]
+fn frame_border_click_selects_contents_and_drag_moves_all_with_one_undo() {
+    let mut s = framed();
+    drag(&mut s, (30, 5), (33, 5));
+    assert_eq!(s.selection.len(), 2);
+    assert_eq!(xs(&s), vec![25, 23]);
+    ctrl(&mut s, 'z');
+    assert_eq!(xs(&s), vec![22, 20]);
+}
+
+#[test]
+fn frame_interior_click_selects_the_content_under_it_or_starts_a_band() {
+    let mut s = framed();
+    click(&mut s, (24, 8), Instant::now());
+    assert_eq!(s.selection, vec![Id::from("inner000")]);
+    click(&mut s, (35, 12), Instant::now());
+    assert!(s.selection.is_empty());
+}
+
+#[test]
+fn delete_removes_frame_and_contents_and_one_undo_restores_both() {
+    let mut s = framed();
+    click(&mut s, (30, 5), Instant::now());
+    key(&mut s, KeyCode::Delete);
+    assert!(s.canvas.elements.is_empty());
+    ctrl(&mut s, 'z');
+    assert_eq!(s.canvas.elements.len(), 2);
+}
+
+#[test]
+fn band_inside_a_frame_skips_it_and_band_around_it_takes_it() {
+    let mut s = framed();
+    drag(&mut s, (23, 6), (30, 12));
+    assert_eq!(s.selection, vec![Id::from("inner000")]);
+    drag(&mut s, (18, 3), (45, 17));
+    assert!(s.selection.contains(&Id::from("frame000")));
+    assert!(s.selection.contains(&Id::from("inner000")));
+}
+
+#[test]
+fn frame_with_contents_shows_corner_handles_and_resize_moves_only_the_frame() {
+    let mut s = framed();
+    click(&mut s, (30, 5), Instant::now());
+    drag(&mut s, (39, 14), (44, 16));
+    let f = shapes(&s)[1].clone();
+    assert_eq!((f.w, f.h), (25, 12));
+    assert_eq!(shapes(&s)[0].x, 22);
 }

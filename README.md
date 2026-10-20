@@ -14,7 +14,8 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 
 ## Use
 
-- Pick a tool in the palette: Select, Hand, Rect, Ellipse, Diamond, Cylinder, Slant, Hexagon, Line, Arrow, Text.
+- Pick a tool in the palette: Select, Hand, Rect, Ellipse, Diamond, Cylinder, Slant, Hexagon, Frame (`f`), Line, Arrow, Text.
+- Draw a frame around shapes, then click its border to move them together.
 - Drag on empty canvas to draw. Drag a selected element to move it.
 - Moving shapes snaps to other shapes' edges and centers within 1 cell and shows dotted guides. Hold Shift to turn guides off. Guides override `grid`.
 - Drag a corner handle to resize. Drag a line end onto a shape to bind it: the shape turns bold and `◆` marks the cell where the end will attach.

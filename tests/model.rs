@@ -460,6 +460,54 @@ fn history_keeps_only_the_newest_entries_up_to_its_limit() {
     assert_eq!(c.elements.len(), 2);
 }
 
+fn framed(id: &str, x: i32, w: i32) -> Element {
+    let Element::Shape(s) = shape(id, x) else {
+        unreachable!()
+    };
+    Element::Shape(Shape {
+        kind: ShapeKind::Frame,
+        y: -1,
+        w,
+        h: 6,
+        ..s
+    })
+}
+
+#[test]
+fn expand_frames_adds_wholly_inside_elements_only() {
+    let mut c = Canvas::default();
+    c.push(shape("aaaaaaaa", 1)).unwrap();
+    c.push(shape("bbbbbbbb", 8)).unwrap();
+    c.push(framed("ffffffff", 0, 10)).unwrap();
+    let mut ids = vec![Id::from("ffffffff")];
+    c.expand_frames(&mut ids);
+    assert_eq!(ids, vec![Id::from("ffffffff"), Id::from("aaaaaaaa")]);
+    let mut ids = vec![Id::from("bbbbbbbb")];
+    c.expand_frames(&mut ids);
+    assert_eq!(ids, vec![Id::from("bbbbbbbb")]);
+}
+
+#[test]
+fn expand_frames_includes_a_nested_frame_and_its_contents() {
+    let mut c = Canvas::default();
+    c.push(shape("aaaaaaaa", 2)).unwrap();
+    c.push(framed("inner000", 1, 8)).unwrap();
+    c.push(framed("outer000", 0, 10)).unwrap();
+    let mut ids = vec![Id::from("outer000")];
+    c.expand_frames(&mut ids);
+    assert_eq!(ids.len(), 3);
+}
+
+#[test]
+fn layout_ignores_a_frame() {
+    use clidraw::model::Dir;
+    let mut c = Canvas::default();
+    c.push(shape("aaaaaaaa", 1)).unwrap();
+    c.push(framed("ffffffff", 0, 10)).unwrap();
+    let sel = vec![Id::from("aaaaaaaa"), Id::from("ffffffff")];
+    assert!(c.layout(&sel, Dir::TopDown).is_empty());
+}
+
 fn order(c: &Canvas) -> Vec<String> {
     c.elements.iter().map(|e| e.id().to_string()).collect()
 }

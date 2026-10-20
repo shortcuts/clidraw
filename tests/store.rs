@@ -53,6 +53,18 @@ fn round_trip() {
 }
 
 #[test]
+fn frame_round_trips() {
+    let (_t, s) = store();
+    let mut c = sample();
+    let Element::Shape(sh) = &mut c.elements[0] else {
+        panic!("no shape")
+    };
+    sh.kind = ShapeKind::Frame;
+    s.save("a", &c).unwrap();
+    assert_eq!(s.load("a").unwrap(), c);
+}
+
+#[test]
 fn colors_round_trip_and_uncolored_files_keep_their_bytes() {
     let (t, s) = store();
     let path = t.path().join("c/a.clidraw.json");

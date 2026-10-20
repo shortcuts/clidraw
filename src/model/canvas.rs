@@ -1,5 +1,5 @@
 use super::geom::{center, route, side_mid, straight, Axis};
-use super::{Command, Element, End, Id, Line, Routing, Shape, Text, VERSION};
+use super::{Command, Element, End, Id, Line, Routing, Shape, ShapeKind, Text, VERSION};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -237,6 +237,30 @@ impl Canvas {
         for m in touched.into_iter().flatten() {
             if !ids.contains(m) && self.get(m).is_some() {
                 ids.push(m.clone());
+            }
+        }
+    }
+
+    /// Adds every element wholly inside each frame in `ids`.
+    pub fn expand_frames(&self, ids: &mut Vec<Id>) {
+        let frames: Vec<(i32, i32, i32, i32)> = ids
+            .iter()
+            .filter_map(|id| match self.get(id) {
+                Some(Element::Shape(s)) if s.kind == ShapeKind::Frame => Some((s.x, s.y, s.w, s.h)),
+                _ => None,
+            })
+            .collect();
+        if frames.is_empty() {
+            return;
+        }
+        let find = self.shape_lookup();
+        for e in &self.elements {
+            let (x, y, w, h) = self.bounds_with(e, &find);
+            let inside = frames
+                .iter()
+                .any(|f| x >= f.0 && y >= f.1 && x + w <= f.0 + f.2 && y + h <= f.1 + f.3);
+            if inside && !ids.contains(e.id()) {
+                ids.push(e.id().clone());
             }
         }
     }

@@ -767,11 +767,31 @@ fn hexagon_points_left_and_right_on_the_middle_row() {
 }
 
 #[test]
+fn frame_draws_its_label_on_the_border_and_leaves_the_interior() {
+    let mut s = kind_session(ShapeKind::Frame, 12, 5);
+    let Element::Shape(sh) = &mut s.canvas.elements[0] else {
+        unreachable!()
+    };
+    sh.label = "Auth".into();
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 4, 20, 12), "┌ Auth ────┐");
+    assert_eq!(cols(&b, 5, 20, 12), "│          │");
+    assert_eq!(cols(&b, 8, 20, 12), "└──────────┘");
+    let Element::Shape(sh) = &mut s.canvas.elements[0] else {
+        unreachable!()
+    };
+    sh.label = "Authentication".into();
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 4, 20, 12), "┌ Authenti ┐");
+}
+
+#[test]
 fn new_kinds_draw_at_minimum_and_odd_sizes_without_panicking() {
     for kind in [
         ShapeKind::Cylinder,
         ShapeKind::Parallelogram,
         ShapeKind::Hexagon,
+        ShapeKind::Frame,
     ] {
         for (w, h) in [(3, 3), (5, 3), (3, 9), (4, 8)] {
             draw(&kind_session(kind, w, h), &Overlay::None);
@@ -780,21 +800,22 @@ fn new_kinds_draw_at_minimum_and_odd_sizes_without_panicking() {
 }
 
 fn bar(s: &Session, w: u16, saved: bool) -> String {
-    let mut t = Terminal::new(TestBackend::new(w, 24)).unwrap();
+    let h = s.screen.1;
+    let mut t = Terminal::new(TestBackend::new(w, h)).unwrap();
     t.draw(|f| {
         let area = f.area();
         ui::render(f.buffer_mut(), area, s, &Overlay::None, None, None, saved)
     })
     .unwrap();
     let b = t.backend().buffer();
-    (0..w).map(|x| b[(x, 23)].symbol().to_string()).collect()
+    (0..w).map(|x| b[(x, h - 1)].symbol().to_string()).collect()
 }
 
 fn two_shapes() -> Session {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 20, "a"));
     c.elements.push(shape("bbbbbbbb", 40, "b"));
-    let mut s = Session::new(c, View::default(), (80, 24));
+    let mut s = Session::new(c, View::default(), (80, 25));
     s.selection = vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")];
     s
 }

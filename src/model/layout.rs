@@ -1,4 +1,4 @@
-use super::{Canvas, Command, Element, End, Id};
+use super::{Canvas, Command, Element, End, Id, ShapeKind};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dir {
@@ -16,7 +16,7 @@ impl Canvas {
             .elements
             .iter()
             .filter_map(|e| match e {
-                Element::Shape(s) if selection.contains(&s.id) => {
+                Element::Shape(s) if selection.contains(&s.id) && s.kind != ShapeKind::Frame => {
                     let (m, c) = if lr { (s.w, s.h) } else { (s.h, s.w) };
                     Some((s.id.clone(), s.x, s.y, m, c))
                 }

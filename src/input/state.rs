@@ -197,6 +197,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         (_, Tool::Line | Tool::Arrow) => Target::Draw(s.tool),
         (Hit::Element(id), _) => {
             let mut unit = vec![id.clone()];
+            s.canvas.expand_frames(&mut unit);
             s.canvas.expand_groups(&mut unit);
             if s.shift {
                 if s.selection.contains(&id) {
@@ -217,7 +218,8 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
             | Tool::Diamond
             | Tool::Cylinder
             | Tool::Parallelogram
-            | Tool::Hexagon,
+            | Tool::Hexagon
+            | Tool::Frame,
         ) => Target::Draw(s.tool),
         (Hit::Empty, _) => Target::Empty,
     };
@@ -341,6 +343,7 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
                 Tool::Cylinder => Some(ShapeKind::Cylinder),
                 Tool::Parallelogram => Some(ShapeKind::Parallelogram),
                 Tool::Hexagon => Some(ShapeKind::Hexagon),
+                Tool::Frame => Some(ShapeKind::Frame),
                 _ => None,
             };
             let shapes: Vec<Id> = s
@@ -385,6 +388,7 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
 impl Session {
     pub(super) fn select_group_of(&mut self, id: Id) {
         self.selection = vec![id];
+        self.canvas.expand_frames(&mut self.selection);
         self.canvas.expand_groups(&mut self.selection);
     }
 

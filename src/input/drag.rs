@@ -1,4 +1,4 @@
-use super::hit::{self, intersects, Corner, Handle};
+use super::hit::{self, swept, Corner, Handle};
 use super::state::{click, Action, Gesture, Target, P};
 use super::{Session, Tool};
 use crate::model::{
@@ -235,6 +235,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                 Tool::Cylinder => Some(ShapeKind::Cylinder),
                 Tool::Parallelogram => Some(ShapeKind::Parallelogram),
                 Tool::Hexagon => Some(ShapeKind::Hexagon),
+                Tool::Frame => Some(ShapeKind::Frame),
                 _ => None,
             };
             let el = match kind {
@@ -380,7 +381,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             let mut hit: Vec<Id> = canvas
                 .elements
                 .iter()
-                .filter(|e| intersects(canvas, &find, e, *origin, world))
+                .filter(|e| swept(canvas, &find, e, *origin, world))
                 .map(|e| e.id().clone())
                 .collect();
             canvas.expand_groups(&mut hit);

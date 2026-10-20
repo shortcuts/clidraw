@@ -1,5 +1,5 @@
 use super::Session;
-use crate::model::{label_pos, wrap, Element, Id};
+use crate::model::{label_pos, wrap, Element, Id, ShapeKind};
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub enum EditTarget {
@@ -178,6 +178,10 @@ impl Session {
             Some(Element::Line(l)) => {
                 let (lx, ly) = label_pos(&self.canvas.route(l), l.label_at);
                 whole(lx - edit.buf.width() as i32 / 2, ly)
+            }
+            Some(Element::Shape(sh)) if sh.kind == ShapeKind::Frame => {
+                // shortcut: a label longer than the frame overflows while editing, clip it if users hit it
+                whole(sh.x + 2, sh.y)
             }
             Some(Element::Shape(sh)) => {
                 // Keep in step with the label placement in `shape` in ui/canvas_view.rs.

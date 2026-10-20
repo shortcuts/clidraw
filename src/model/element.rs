@@ -10,6 +10,7 @@ pub enum ShapeKind {
     Cylinder,
     Parallelogram,
     Hexagon,
+    Frame,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

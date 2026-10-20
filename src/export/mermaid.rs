@@ -22,12 +22,9 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
     let shapes: Vec<&Id> = canvas
         .elements
         .iter()
-        .filter_map(|e| {
-            if let Element::Shape(s) = e {
-                Some(&s.id)
-            } else {
-                None
-            }
+        .filter_map(|e| match e {
+            Element::Shape(s) if s.kind != ShapeKind::Frame => Some(&s.id),
+            _ => None,
         })
         .collect();
     let node = |end: &End| match end {
@@ -45,6 +42,7 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
     let mut n = 0;
     for e in &canvas.elements {
         match e {
+            Element::Shape(s) if s.kind == ShapeKind::Frame => skipped += 1,
             Element::Shape(s) => {
                 let l = label(&s.label);
                 let _ = match s.kind {
@@ -55,6 +53,7 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
                     ShapeKind::Cylinder => writeln!(text, "  n{n}[({l})]"),
                     ShapeKind::Parallelogram => writeln!(text, "  n{n}[/{l}/]"),
                     ShapeKind::Hexagon => writeln!(text, "  n{n}{{{{{l}}}}}"),
+                    ShapeKind::Frame => unreachable!(),
                 };
                 let keys: Vec<String> = [
                     s.fill.map(|p| {
