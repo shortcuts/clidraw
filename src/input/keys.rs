@@ -22,6 +22,9 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             KeyCode::Char('c') => return KeyOutcome::Quit,
             KeyCode::Char('z') => s.undo(),
             KeyCode::Char('y') => s.redo(),
+            KeyCode::Char('a') => {
+                s.selection = s.canvas.elements.iter().map(|e| e.id().clone()).collect()
+            }
             _ => {}
         }
         return KeyOutcome::None;
@@ -47,6 +50,23 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             if let Some(t) = Tool::ALL.into_iter().find(|t| t.key() == c) {
                 s.tool = t;
             }
+        }
+        KeyCode::Left | KeyCode::Right | KeyCode::Up | KeyCode::Down
+            if matches!(s.gesture, Gesture::Idle) && !s.selection.is_empty() =>
+        {
+            let (dx, dy) = match k.code {
+                KeyCode::Left => (-1, 0),
+                KeyCode::Right => (1, 0),
+                KeyCode::Up => (0, -1),
+                _ => (0, 1),
+            };
+            let cmds = s
+                .selection
+                .iter()
+                .cloned()
+                .map(|id| Command::Move { id, dx, dy })
+                .collect();
+            s.exec(Command::Batch(cmds));
         }
         KeyCode::Delete | KeyCode::Backspace if !s.selection.is_empty() => {
             let cmds = s.selection.iter().cloned().map(Command::Remove).collect();

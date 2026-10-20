@@ -236,11 +236,11 @@ fn help_canvas_row_lists_every_command_line_verb() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
     assert!(
-        row(&b, 14).contains("Commands q w wq e u redo"),
+        row(&b, 16).contains("Commands q w wq e u redo"),
         "{}",
-        row(&b, 14)
+        row(&b, 16)
     );
-    assert_eq!(cols(&b, 14, 62, 1), "│");
+    assert_eq!(cols(&b, 16, 62, 1), "│");
 }
 
 #[test]

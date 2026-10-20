@@ -157,6 +157,39 @@ fn delete_key_removes_the_selection() {
 }
 
 #[test]
+fn ctrl_a_selects_everything() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("bbbbbbbb"),
+        kind: ShapeKind::Rect,
+        x: 40,
+        y: 5,
+        w: 8,
+        h: 4,
+        label: String::new(),
+    }));
+    ctrl(&mut s, 'a');
+    assert_eq!(
+        s.selection,
+        vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")]
+    );
+}
+
+#[test]
+fn arrow_keys_nudge_the_selection_one_undo_step_per_press() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    click(&mut s, (22, 6), Instant::now());
+    key(&mut s, KeyCode::Right);
+    key(&mut s, KeyCode::Down);
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (21, 6));
+    key(&mut s, KeyCode::Left);
+    key(&mut s, KeyCode::Up);
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
+    ctrl(&mut s, 'z');
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 6));
+}
+
+#[test]
 fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
     let mut s = with_shape("aaaaaaaa", 15, 3);
     s.canvas.elements.push(Element::Shape(Shape {
