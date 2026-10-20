@@ -57,7 +57,18 @@ pele has no command-line tool. The script calls its `render()` function.
 
 ## Performance
 
-A frame takes at most 16 ms (about 60 fps) with 5000 elements on a 200x50 screen. The same holds for one drag step plus its frame. `make perf` checks both in a release build.
+Budgets for a release build with 5000 elements on a 200x50 screen:
+
+| Budget | Limit |
+| --- | --- |
+| Input to last byte written (key, click, drag step, wheel step) | 16 ms |
+| Idle: no bytes written and no redraw while nothing changes | 0 bytes |
+| Startup to first frame | 50 ms |
+| Load or save of a canvas | 50 ms, never inside a drag |
+| Export to SVG or Mermaid | 100 ms |
+| Terminal output per frame for a one-cell change | under 4 KB |
+
+`make perf` checks the frame and drag-step budgets. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet.
 
 ## Files
 
