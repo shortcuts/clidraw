@@ -153,6 +153,16 @@ fn wheel_step_fits_the_budget_on_5000_elements() {
 
 #[test]
 #[ignore = "needs a release build: run `make perf`"]
+fn pan_step_fits_the_budget_on_50000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = busy_app_of(t.path(), 50000);
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let m = median(wheel_gesture(&mut app, &mut term));
+    assert!(m < BUDGET, "median pan step {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
 fn band_step_fits_the_budget_on_5000_elements() {
     let t = tempfile::tempdir().unwrap();
     let mut app = busy_app(t.path());

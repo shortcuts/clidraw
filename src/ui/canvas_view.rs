@@ -1,4 +1,5 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE};
+use super::layout::refresh;
 use crate::input::{handles, EditTarget, Session};
 use crate::model::{label_pos, Element, End, Find, Line, LineKind, Shape, ShapeKind};
 use ratatui::style::Color;
@@ -10,9 +11,10 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
         EditTarget::Existing(id) => Some((id, format!("{}_", e.buf))),
         EditTarget::New(..) => None,
     });
-    let find = s.canvas.shape_lookup();
-    for e in &s.canvas.elements {
-        let (x, y, w, h) = s.canvas.bounds_with(e, &find);
+    let mut slot = s.layout.borrow_mut();
+    let layout = refresh(&mut slot, &s.canvas, s.rev);
+    let find = layout.find(&s.canvas);
+    for (e, &(x, y, w, h)) in s.canvas.elements.iter().zip(&layout.bounds) {
         let (sx, sy) = view.to_screen(x, y);
         if sx >= grid.w || sy >= grid.h || sx + w <= 0 || sy + h <= 0 {
             continue;

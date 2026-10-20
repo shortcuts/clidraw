@@ -9,8 +9,10 @@ pub use state::{handle_mouse, scroll_step};
 
 use crate::model::{Canvas, Command, Element, History, Id, Text};
 use crate::ui::palette::Dock;
+use crate::ui::Layout;
 use crate::view::View;
 use state::Gesture;
+use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -77,6 +79,8 @@ pub struct Session {
     pub snap: Option<Id>,
     /// Counts canvas mutations; autosave compares it with the saved value.
     pub rev: u64,
+    /// Frame cache; `rev` and the element count invalidate it.
+    pub layout: RefCell<Option<Layout>>,
     gesture: Gesture,
     last_down: Option<(i32, i32, Instant)>,
 }
@@ -96,6 +100,7 @@ impl Session {
             band: None,
             snap: None,
             rev: 0,
+            layout: RefCell::new(None),
             gesture: Gesture::Idle,
             last_down: None,
         }

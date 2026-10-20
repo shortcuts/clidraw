@@ -1,6 +1,7 @@
 mod canvas_view;
 mod grid;
 pub mod help;
+mod layout;
 pub mod menu;
 pub mod palette;
 pub mod prompt;
@@ -10,6 +11,7 @@ mod theme;
 
 use crate::input::Session;
 use grid::{Grid, REVERSE};
+pub use layout::Layout;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
