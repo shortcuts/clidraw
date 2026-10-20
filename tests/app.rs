@@ -627,3 +627,37 @@ fn wakes_to_pan_while_a_drag_holds_the_edge() {
     assert_eq!(app.session.view.ox, 3);
     assert_eq!(app.next_wake(t0), Some(Duration::from_millis(30)));
 }
+
+#[test]
+fn moved_redraws_only_when_the_hovered_target_changes() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    app.session
+        .canvas
+        .elements
+        .push(clidraw::model::Element::Shape(clidraw::model::Shape {
+            id: clidraw::model::Id::from("aaaaaaaa"),
+            kind: clidraw::model::ShapeKind::Rect,
+            x: 20,
+            y: 4,
+            w: 8,
+            h: 4,
+            label: String::new(),
+        }));
+    let t0 = Instant::now();
+    app.dirty = false;
+    app.on_events(vec![mouse(MouseEventKind::Moved, 22, 5)], t0);
+    assert!(app.dirty, "entering the shape");
+    app.dirty = false;
+    app.on_events(vec![mouse(MouseEventKind::Moved, 23, 5)], t0);
+    assert!(!app.dirty, "same target");
+    app.on_events(
+        vec![
+            mouse(MouseEventKind::Moved, 22, 5),
+            mouse(MouseEventKind::Moved, 60, 15),
+        ],
+        t0,
+    );
+    assert!(app.dirty, "burst ends off the shape");
+    assert_eq!(app.session.hover, clidraw::input::Hit::Empty);
+}

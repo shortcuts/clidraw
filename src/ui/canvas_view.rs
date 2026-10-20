@@ -1,6 +1,6 @@
-use super::grid::{Grid, BOLD, DIM, REVERSE};
+use super::grid::{Grid, BOLD, DIM, REVERSE, UNDERLINE};
 use super::layout::refresh;
-use crate::input::{handles, EditTarget, Session};
+use crate::input::{handles, EditTarget, Hit, Session};
 use crate::model::{label_pos, Element, End, Find, Line, LineKind, Shape, ShapeKind};
 use ratatui::style::Color;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
@@ -23,6 +23,8 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
             REVERSE
         } else if s.snap.as_ref() == Some(e.id()) {
             BOLD
+        } else if matches!(&s.hover, Hit::Element(id) if id == e.id()) {
+            UNDERLINE
         } else {
             0
         };
@@ -45,9 +47,10 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
             grid.text(sx, sy, &format!("{}_", edit.buf), BOLD);
         }
     }
-    for (_, _, (x, y)) in handles(&s.canvas, &s.selection) {
+    for (h, id, (x, y)) in handles(&s.canvas, &s.selection) {
         let (sx, sy) = view.to_screen(x, y);
-        grid.set(sx, sy, '■', REVERSE);
+        let hovered = matches!(&s.hover, Hit::Handle(hh, hid) if *hh == h && *hid == id);
+        grid.set(sx, sy, if hovered { '◆' } else { '■' }, REVERSE);
         if let Some(c) = accent {
             grid.tint(sx, sy, 1, 1, c);
         }

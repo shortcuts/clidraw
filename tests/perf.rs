@@ -835,3 +835,28 @@ fn median_divides_by_perf_slack() {
     std::env::remove_var("CLIDRAW_PERF_SLACK");
     assert_eq!(median(samples()), Duration::from_millis(20));
 }
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn hover_step_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = busy_app(t.path());
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let now = Instant::now();
+    let (on, off) = (
+        mouse(MouseEventKind::Moved),
+        mouse_at(MouseEventKind::Moved, 199, 49),
+    );
+    let times = (0..FRAMES)
+        .map(|i| {
+            let t0 = Instant::now();
+            app.on_event(if i % 2 == 0 { on.clone() } else { off.clone() }, now);
+            assert!(app.dirty, "hover target did not change");
+            frame(&app, &mut term);
+            app.dirty = false;
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median hover step {m:?} exceeds {BUDGET:?}");
+}

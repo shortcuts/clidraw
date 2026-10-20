@@ -6,6 +6,7 @@ use unicode_width::UnicodeWidthChar;
 pub const REVERSE: u8 = 1;
 pub const BOLD: u8 = 2;
 pub const DIM: u8 = 4;
+pub const UNDERLINE: u8 = 8;
 
 #[derive(Clone, Copy)]
 pub struct Cell {
@@ -104,6 +105,7 @@ impl Grid {
                     (REVERSE, Modifier::REVERSED),
                     (BOLD, Modifier::BOLD),
                     (DIM, Modifier::DIM),
+                    (UNDERLINE, Modifier::UNDERLINED),
                 ] {
                     if c.flags & flag != 0 {
                         style = style.add_modifier(m);

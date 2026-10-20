@@ -1,4 +1,4 @@
-use clidraw::input::{handle_key, handle_mouse, KeyOutcome, Session, Tool};
+use clidraw::input::{handle_key, handle_mouse, Corner, Handle, Hit, KeyOutcome, Session, Tool};
 use clidraw::model::{Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::ui::palette::Dock;
 use clidraw::view::View;
@@ -548,4 +548,38 @@ fn hand_tool_and_idle_never_edge_pan() {
     pick(&mut s, Tool::Hand);
     hold(&mut s, (40, 10), (79, 10));
     assert_eq!(s.edge_wait(Instant::now()), None);
+}
+
+#[test]
+fn hover_tracks_shape_handle_and_empty_space() {
+    let mut s = with_shape("aaaaaaaa", 20, 4);
+    let t = Instant::now();
+    mouse(&mut s, MouseEventKind::Moved, 22, 5, t);
+    assert_eq!(s.hover, Hit::Element(Id::from("aaaaaaaa")));
+    mouse(&mut s, MouseEventKind::Moved, 60, 15, t);
+    assert_eq!(s.hover, Hit::Empty);
+    s.selection = vec![Id::from("aaaaaaaa")];
+    mouse(&mut s, MouseEventKind::Moved, 20, 4, t);
+    assert_eq!(
+        s.hover,
+        Hit::Handle(Handle::Corner(Corner::Nw), Id::from("aaaaaaaa"))
+    );
+}
+
+#[test]
+fn hover_is_empty_for_other_tools_mid_gesture_and_over_the_palette() {
+    let t = Instant::now();
+    let mut s = with_shape("aaaaaaaa", 20, 4);
+    s.tool = Tool::Hand;
+    mouse(&mut s, MouseEventKind::Moved, 22, 5, t);
+    assert_eq!(s.hover, Hit::Empty);
+    let mut s = with_shape("aaaaaaaa", 20, 4);
+    mouse(&mut s, MouseEventKind::Moved, 22, 5, t);
+    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 22, 5, t);
+    assert_eq!(s.hover, Hit::Empty, "a press clears hover");
+    mouse(&mut s, MouseEventKind::Moved, 22, 5, t);
+    assert_eq!(s.hover, Hit::Empty, "no hover while pressed");
+    let mut s = with_shape("aaaaaaaa", 2, 1);
+    mouse(&mut s, MouseEventKind::Moved, 2, 1, t);
+    assert_eq!(s.hover, Hit::Empty, "palette owns its cells");
 }

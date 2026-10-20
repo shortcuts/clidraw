@@ -67,6 +67,7 @@ impl Session {
         };
         let k = (n * (1 + prior / 2).min(SCROLL_MAX)) as i32;
         self.view.pan(step.0 * k, step.1 * k);
+        self.hover = Hit::Empty;
         self.burst = Some((now, prior + n));
     }
 
@@ -130,11 +131,22 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
             drag(s, (col, row), world)
         }
         MouseEventKind::Up(_) => up(s, (col, row), world),
+        MouseEventKind::Moved => hover(s, (col, row), world),
         _ => {}
     }
 }
 
+fn hover(s: &mut Session, screen: P, world: P) {
+    let idle = s.tool == Tool::Select && s.edit.is_none() && matches!(s.gesture, Gesture::Idle);
+    s.hover = if idle && palette::hit(s, screen.0, screen.1).is_none() {
+        hit::test(&s.canvas, &s.selection, world)
+    } else {
+        Hit::Empty
+    };
+}
+
 fn down(s: &mut Session, screen: P, world: P, now: Instant) {
+    s.hover = Hit::Empty;
     s.commit_edit();
     let double = s
         .last_down

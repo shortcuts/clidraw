@@ -77,6 +77,8 @@ pub struct Session {
     pub band: Option<((i32, i32), (i32, i32))>,
     /// Shape under a dragged line end; the drop binds it.
     pub snap: Option<Id>,
+    /// What a click at the pointer would hit; only the Select tool at rest sets it.
+    pub hover: Hit,
     /// Counts canvas mutations; autosave compares it with the saved value.
     pub rev: u64,
     /// Frame cache; `rev` and the element count invalidate it.
@@ -103,6 +105,7 @@ impl Session {
             edit: None,
             band: None,
             snap: None,
+            hover: Hit::Empty,
             rev: 0,
             layout: RefCell::new(None),
             gesture: Gesture::Idle,

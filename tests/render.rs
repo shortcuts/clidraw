@@ -1,4 +1,4 @@
-use clidraw::input::Session;
+use clidraw::input::{Corner, Handle, Hit, Session};
 use clidraw::model::{Canvas, Command, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::switcher::Switcher;
@@ -349,4 +349,34 @@ fn perf_row_shows_the_last_120_frames_at_the_top_right() {
         row(&b, 0)
     );
     assert!(!row(&draw(&s, &Overlay::None), 0).contains("frame"));
+}
+
+#[test]
+fn hovered_unselected_shape_is_underlined_and_a_selected_one_is_not() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "box"));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.hover = Hit::Element(Id::from("aaaaaaaa"));
+    let b = draw(&s, &Overlay::None);
+    assert!(
+        b[(22, 4)].modifier.contains(Modifier::UNDERLINED),
+        "hovered"
+    );
+    s.selection.push(Id::from("aaaaaaaa"));
+    let b = draw(&s, &Overlay::None);
+    assert!(
+        !b[(22, 4)].modifier.contains(Modifier::UNDERLINED),
+        "selected"
+    );
+}
+
+#[test]
+fn hovered_handle_draws_a_diamond() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.selection.push(Id::from("aaaaaaaa"));
+    assert_eq!(cols(&draw(&s, &Overlay::None), 4, 20, 1), "■");
+    s.hover = Hit::Handle(Handle::Corner(Corner::Nw), Id::from("aaaaaaaa"));
+    assert_eq!(cols(&draw(&s, &Overlay::None), 4, 20, 1), "◆");
 }

@@ -100,7 +100,7 @@ impl App {
         );
     }
 
-    /// Handles a queue of events, keeping only the last of each run of drags
+    /// Handles a queue of events, keeping only the last of each run of drags or moves
     /// and summing each run of same-direction scrolls.
     pub fn on_events(&mut self, evs: Vec<Event>, now: Instant) {
         let kind = |e: Option<&Event>| match e {
@@ -111,14 +111,20 @@ impl App {
             Some(Event::Mouse(m)) => scroll_step(m),
             _ => None,
         };
-        let is_drag = |k| matches!(k, Some(MouseEventKind::Drag(_)));
+        let same_run = |a, b| {
+            matches!(
+                (a, b),
+                (Some(MouseEventKind::Drag(_)), Some(MouseEventKind::Drag(_)))
+                    | (Some(MouseEventKind::Moved), Some(MouseEventKind::Moved))
+            )
+        };
         let mut evs = evs.into_iter().peekable();
         while let Some(ev) = evs.next() {
             if self.quit {
                 break;
             }
             let k = kind(Some(&ev));
-            if is_drag(k) && is_drag(kind(evs.peek())) {
+            if same_run(k, kind(evs.peek())) {
                 continue;
             }
             if let Some(step) = step_of(Some(&ev)) {
@@ -155,7 +161,11 @@ impl App {
                     return;
                 }
                 match self.overlay {
-                    Overlay::None => handle_mouse(&mut self.session, m, now),
+                    Overlay::None => {
+                        let before = self.session.hover.clone();
+                        handle_mouse(&mut self.session, m, now);
+                        self.dirty |= self.session.hover != before;
+                    }
                     _ if m.kind == MouseEventKind::Down(MouseButton::Left) => {
                         self.overlay_click(i32::from(m.column), i32::from(m.row))
                     }

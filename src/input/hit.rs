@@ -14,7 +14,7 @@ pub enum Handle {
     End(Side),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Hit {
     Handle(Handle, Id),
     Element(Id),
