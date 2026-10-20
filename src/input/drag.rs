@@ -5,6 +5,8 @@ use crate::model::{Command, Element, End, Id, Line, LineKind, Shape, ShapeKind, 
 use crate::ui::palette;
 
 const MIN_SIZE: i32 = 3;
+/// Cells the pointer must travel from the press before a drag starts.
+const DRAG_THRESHOLD: i32 = 2;
 
 fn run(s: &mut Session, inv: &mut Vec<Command>, cmd: Command) {
     if let Ok(undo) = s.canvas.apply(cmd) {
@@ -84,7 +86,7 @@ pub(super) fn drag(s: &mut Session, screen: P, world: P) {
             world: w0,
             target,
         } => {
-            if origin == screen {
+            if (screen.0 - origin.0).abs().max((screen.1 - origin.1).abs()) < DRAG_THRESHOLD {
                 s.gesture = Gesture::Pressed {
                     origin,
                     world: w0,
@@ -327,6 +329,34 @@ mod tests {
             Gesture::Dragging { inv, .. } => inv,
             _ => panic!("not dragging"),
         }
+    }
+
+    fn jitter(s: &mut Session, from: (u16, u16)) {
+        mouse(s, MouseEventKind::Down(MouseButton::Left), from.0, from.1);
+        mouse(
+            s,
+            MouseEventKind::Drag(MouseButton::Left),
+            from.0 + 1,
+            from.1,
+        );
+        mouse(s, MouseEventKind::Up(MouseButton::Left), from.0 + 1, from.1);
+    }
+
+    #[test]
+    fn one_cell_jitter_does_not_move() {
+        let mut s = with_shape();
+        jitter(&mut s, (32, 16));
+        assert_eq!(s.canvas.shape(&Id::from("aaaaaaaa")).map(|e| e.x), Some(30));
+        assert_eq!(s.rev, 0);
+        assert_eq!(s.selection, [Id::from("aaaaaaaa")]);
+    }
+
+    #[test]
+    fn one_cell_jitter_does_not_draw() {
+        let mut s = with_shape();
+        s.tool = Tool::Rect;
+        jitter(&mut s, (100, 30));
+        assert_eq!(s.canvas.elements.len(), 1);
     }
 
     #[test]
