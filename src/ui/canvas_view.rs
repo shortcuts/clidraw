@@ -16,7 +16,9 @@ pub fn draw(grid: &mut Grid, s: &Session) {
         if sx >= grid.w || sy >= grid.h || sx + w <= 0 || sy + h <= 0 {
             continue;
         }
-        let flags = if s.selection.contains(e.id()) || s.snap.as_ref() == Some(e.id()) {
+        let flags = if s.selection.contains(e.id()) {
+            REVERSE
+        } else if s.snap.as_ref() == Some(e.id()) {
             BOLD
         } else {
             0

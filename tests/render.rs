@@ -249,3 +249,18 @@ fn help_draws_on_a_tiny_screen() {
     })
     .unwrap();
 }
+
+#[test]
+fn selected_shape_is_reversed_and_others_are_not() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "box"));
+    c.elements.push(shape("bbbbbbbb", 40, "box"));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.selection.push(Id::from("aaaaaaaa"));
+    let b = draw(&s, &Overlay::None);
+    assert!(b[(22, 4)].modifier.contains(Modifier::REVERSED), "selected");
+    assert!(
+        !b[(42, 4)].modifier.contains(Modifier::REVERSED),
+        "unselected"
+    );
+}
