@@ -30,6 +30,7 @@ fn sample() -> Canvas {
         from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
         to: End::Free(-3, 4),
         label: String::new(),
+        label_at: None,
     }));
     c
 }

@@ -18,6 +18,7 @@ pub(super) enum Target {
     PaletteTitle,
     Handle(Handle, Id),
     Element(Id),
+    Label(Id),
     Empty,
     Draw(Tool),
     Pan,
@@ -29,6 +30,7 @@ pub(super) enum Action {
     Move { start: P, last: P },
     Resize { id: Id, fixed: P },
     EndDrag { id: Id, side: Side },
+    LabelDrag(Id),
     Band(P),
     Create { id: Id, origin: P },
     CreateLine(Id),
@@ -171,6 +173,18 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
             Hit::Empty => s.start_edit_new(world),
         };
     }
+    if let (Some(id), Tool::Select, false) = (
+        hit::label_hit(&s.canvas, &s.selection, world),
+        s.tool,
+        matches!(hit, Hit::Handle(..)),
+    ) {
+        s.gesture = Gesture::Pressed {
+            origin: screen,
+            world,
+            target: Target::Label(id),
+        };
+        return;
+    }
     let target = match (hit, s.tool) {
         (Hit::Handle(h, id), _) => Target::Handle(h, id),
         (_, Tool::Hand) => Target::Pan,
@@ -270,7 +284,11 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
                 _ => vec![],
             }
         }
-        Target::Element(_) | Target::PaletteTitle | Target::Pan | Target::Handle(..) => {}
+        Target::Element(_)
+        | Target::Label(_)
+        | Target::PaletteTitle
+        | Target::Pan
+        | Target::Handle(..) => {}
     }
 }
 

@@ -507,6 +507,7 @@ fn palette_option_sets_the_head_of_a_selected_line() {
         from: End::Free(5, 5),
         to: End::Free(25, 5),
         label: String::new(),
+        label_at: None,
     });
     s.canvas.push(line).unwrap();
     let kind = |s: &Session| match s.canvas.get(&Id::from("llllllll")) {
@@ -773,6 +774,7 @@ fn diagram() -> Session {
         from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
+        label_at: None,
     }));
     s
 }
@@ -1101,4 +1103,33 @@ fn click_puts_the_caret_on_the_clicked_wrapped_line() {
     assert_eq!(caret(&s), 0);
     click(&mut s, (boxes[1].x as u16 + 1, boxes[1].y as u16), t);
     assert_eq!(caret(&s), 4);
+}
+
+#[test]
+fn dragging_a_selected_lines_label_slides_it_along_the_line() {
+    let mut s = session();
+    let id = Id::from("llllllll");
+    s.canvas
+        .push(Element::Line(Line {
+            id: id.clone(),
+            kind: LineKind::Line,
+            from: End::Free(5, 5),
+            to: End::Free(25, 5),
+            label: "ab".into(),
+            label_at: None,
+        }))
+        .unwrap();
+    s.selection = vec![id.clone()];
+    let at = |s: &Session| match s.canvas.get(&Id::from("llllllll")) {
+        Some(Element::Line(l)) => l.label_at,
+        _ => panic!("no line"),
+    };
+    drag(&mut s, (14, 5), (20, 5));
+    assert_eq!(at(&s), Some(750));
+    ctrl(&mut s, 'z');
+    assert_eq!(at(&s), None);
+    s.selection = vec![id.clone()];
+    drag(&mut s, (15, 5), (21, 5));
+    s.start_edit_existing(id);
+    assert_eq!(s.edit_boxes()[0].x, 20);
 }

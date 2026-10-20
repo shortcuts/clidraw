@@ -83,6 +83,9 @@ pub struct Line {
     pub from: End,
     pub to: End,
     pub label: String,
+    /// Where the label sits along the route, in thousandths. `None` centers it on the longest segment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_at: Option<u16>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

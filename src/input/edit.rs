@@ -176,7 +176,7 @@ impl Session {
         match self.canvas.get(id) {
             Some(Element::Text(t)) => whole(t.x, t.y),
             Some(Element::Line(l)) => {
-                let (lx, ly) = label_pos(&self.canvas.route(l));
+                let (lx, ly) = label_pos(&self.canvas.route(l), l.label_at);
                 whole(lx - edit.buf.width() as i32 / 2, ly)
             }
             Some(Element::Shape(sh)) => {

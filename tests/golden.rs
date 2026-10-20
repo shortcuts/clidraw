@@ -20,6 +20,7 @@ fn sample() -> Canvas {
             from,
             to,
             label: label.into(),
+            label_at: None,
         })
     };
     Canvas {

@@ -20,7 +20,7 @@ fn run(s: &mut Session, inv: &mut Vec<Command>, cmd: Command) {
 /// Keeps `inv` constant-size per drag: the first `SetRect`/`SetEnd` inverse already holds the start value.
 fn fold(inv: &mut Vec<Command>, undo: Command) {
     let redundant = match &undo {
-        Command::SetRect { id, .. } => inv
+        Command::SetRect { id, .. } | Command::SetLabelAt { id, .. } => inv
             .iter()
             .any(|c| matches!(c, Command::SetRect { id: i, .. } if i == id)),
         Command::SetEnd { id, side, .. } => inv
@@ -135,6 +135,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
             start: w0,
             last: w0,
         },
+        Target::Label(id) => Action::LabelDrag(id),
         Target::Empty => Action::Band(w0),
         Target::Handle(Handle::End(side), id) => Action::EndDrag { id, side },
         Target::Handle(Handle::Corner(c), id) => {
@@ -179,6 +180,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                     from: bound_at(&s.canvas, w0).unwrap_or(End::Free(w0.0, w0.1)),
                     to: End::Free(w0.0, w0.1),
                     label: String::new(),
+                    label_at: None,
                 }),
             };
             run(s, inv, Command::Insert(at, el));
@@ -244,6 +246,22 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
                 side: *side,
                 end,
             };
+            run(s, inv, cmd);
+        }
+        Action::LabelDrag(id) => {
+            let Some(Element::Line(l)) = s.canvas.get(id) else {
+                return;
+            };
+            let cells = s.canvas.route(l);
+            let near = |c: &P| (c.0 - world.0).abs() + (c.1 - world.1).abs();
+            let at = cells
+                .iter()
+                .enumerate()
+                .min_by_key(|(_, c)| near(c))
+                .map(|(i, _)| i);
+            let last = cells.len().saturating_sub(1).max(1);
+            let at = at.map(|i| ((i * 1000 + last / 2) / last) as u16);
+            let cmd = Command::SetLabelAt { id: id.clone(), at };
             run(s, inv, cmd);
         }
         Action::CreateLine(id) => {

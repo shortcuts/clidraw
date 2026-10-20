@@ -95,8 +95,12 @@ pub fn corners(cells: &[Pt]) -> Vec<Pt> {
     out
 }
 
-/// Middle cell of the longest straight segment.
-pub fn label_pos(cells: &[Pt]) -> Pt {
+/// The route cell at `at` thousandths of the way along; the middle of the longest straight segment for `None`.
+pub fn label_pos(cells: &[Pt], at: Option<u16>) -> Pt {
+    if let Some(at) = at {
+        let last = cells.len().saturating_sub(1);
+        return cells[(usize::from(at.min(1000)) * last + 500) / 1000];
+    }
     let len = |w: &[Pt]| (w[1].0 - w[0].0).abs() + (w[1].1 - w[0].1).abs();
     let corners = corners(cells);
     let mut best = &corners[..1];

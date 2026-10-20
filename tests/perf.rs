@@ -51,6 +51,7 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
             from: End::Bound(id(i), Anchor::Auto),
             to: End::Bound(id(i + 1), Anchor::Auto),
             label: String::new(),
+            label_at: None,
         }));
     }
     els.push(Element::Shape(Shape {

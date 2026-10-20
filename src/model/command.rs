@@ -40,6 +40,10 @@ pub enum Command {
         id: Id,
         label: String,
     },
+    SetLabelAt {
+        id: Id,
+        at: Option<u16>,
+    },
     SetEnd {
         id: Id,
         side: Side,
@@ -84,6 +88,7 @@ impl Command {
             Command::Move { .. } => "move",
             Command::SetRect { .. } => "resize",
             Command::SetLabel { .. } => "relabel",
+            Command::SetLabelAt { .. } => "reposition label of",
             Command::SetEnd { .. } => "reconnect",
             Command::SetKind { .. } | Command::SetLineKind { .. } => "restyle",
             Command::Batch(_) => unreachable!(),
@@ -282,6 +287,14 @@ impl Canvas {
                 };
                 let old = std::mem::replace(slot, label);
                 Ok(Command::SetLabel { id, label: old })
+            }
+            Command::SetLabelAt { id, at } => {
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
+                let Element::Line(l) = &mut self.elements[i] else {
+                    return Err(wrong(&id));
+                };
+                let old = std::mem::replace(&mut l.label_at, at);
+                Ok(Command::SetLabelAt { id, at: old })
             }
             Command::SetEnd { id, side, end } => {
                 if let End::Bound(sid, _) = &end {

@@ -103,7 +103,7 @@ pub fn svg(canvas: &Canvas) -> String {
                     o,
                     "  <path d=\"{d}\" {style} stroke-linejoin=\"round\"{marker}/>"
                 );
-                let (lx, ly) = mid(label_pos(&cells));
+                let (lx, ly) = mid(label_pos(&cells, l.label_at));
                 text(&mut o, lx, ly, "middle", &[&l.label]);
             }
             Element::Text(t) => text(&mut o, t.x * CW, t.y * CH + CH / 2, "start", &[&t.text]),

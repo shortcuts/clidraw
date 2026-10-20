@@ -245,7 +245,7 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
         grid.set(sx, sy, glyph, flags);
     }
     if !label.is_empty() {
-        let (lx, ly) = label_pos(&cells);
+        let (lx, ly) = label_pos(&cells, l.label_at);
         let (sx, sy) = s.view.to_screen(lx - label.width() as i32 / 2, ly);
         grid.text(sx, sy, label, flags);
     }

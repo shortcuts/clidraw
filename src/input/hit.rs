@@ -1,4 +1,5 @@
-use crate::model::{Canvas, Element, Find, Id, Side};
+use crate::model::{label_pos, Canvas, Element, Find, Id, Side};
+use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Corner {
@@ -56,6 +57,18 @@ fn covers<'a>(canvas: &'a Canvas, find: &Find<'a>, e: &Element, p: (i32, i32)) -
             p.0 >= x && p.0 < x + w && p.1 >= y && p.1 < y + h
         }
     }
+}
+
+/// The line whose label sits under `p`; only a lone selected line offers it, like its handles.
+pub fn label_hit(canvas: &Canvas, selection: &[Id], p: (i32, i32)) -> Option<Id> {
+    let [id] = selection else { return None };
+    let Some(Element::Line(l)) = canvas.get(id) else {
+        return None;
+    };
+    let (lx, ly) = label_pos(&canvas.route(l), l.label_at);
+    let left = lx - l.label.width() as i32 / 2;
+    let inside = p.1 == ly && p.0 >= left && p.0 < left + l.label.width() as i32;
+    inside.then(|| id.clone())
 }
 
 pub fn test(canvas: &Canvas, selection: &[Id], p: (i32, i32)) -> Hit {

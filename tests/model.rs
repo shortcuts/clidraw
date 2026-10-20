@@ -22,6 +22,7 @@ fn arrow(from: End, to: End) -> Element {
         from,
         to,
         label: String::new(),
+        label_at: None,
     })
 }
 
@@ -217,7 +218,7 @@ fn bound_route_is_a_z_through_the_middle_column() {
     );
     assert_eq!(corners(&cells), [(0, 0), (5, 0), (5, 4), (10, 4)]);
     assert_eq!(cells.len(), 6 + 4 + 5);
-    assert_eq!(label_pos(&cells), (2, 0));
+    assert_eq!(label_pos(&cells, None), (2, 0));
 }
 
 #[test]
@@ -245,6 +246,7 @@ fn within_keeps_only_elements_fully_inside_the_area() {
                 from: End::Free(1, 1),
                 to: End::Free(30, 1),
                 label: String::new(),
+                label_at: None,
             }),
         ],
         ..Canvas::default()

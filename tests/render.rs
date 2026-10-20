@@ -85,6 +85,7 @@ fn arrow_between_shapes_ends_in_a_head() {
         from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
+        label_at: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│{}▶│", "─".repeat(19));
@@ -122,6 +123,7 @@ fn arrow_start_has_its_head_at_the_first_cell() {
         from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
+        label_at: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│◀{}│", "─".repeat(19));
@@ -140,6 +142,7 @@ fn arrow_both_has_a_head_at_each_end() {
         from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
+        label_at: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│◀{}▶│", "─".repeat(18));
@@ -162,6 +165,7 @@ fn arrow_between_shapes_on_different_rows_bends_with_rounded_corners() {
         from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
+        label_at: None,
     }));
     let b = draw(&Session::new(c, View::default(), (80, 24)), &Overlay::None);
     assert_eq!(cols(&b, 5, 19, 12), "│─────────╮ ");
@@ -324,6 +328,7 @@ fn line_crossing_the_view_draws_when_both_ends_are_off_screen() {
         from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
+        label_at: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
     assert_eq!(cols(&draw(&s, &Overlay::None), 5, 30, 4), "────");
@@ -481,6 +486,7 @@ fn edit_caret_shows_on_a_line_label() {
         from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: "ab".into(),
+        label_at: None,
     }));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.start_edit_existing(Id::from("cccccccc"));
