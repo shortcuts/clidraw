@@ -16,8 +16,8 @@ impl App {
             "e" if arg.trim().is_empty() => self.status = Some(Status::error("Usage: :e <name>")),
             "e" => self.switch_to(arg.trim()),
             "perf" => self.perf = self.perf.is_none().then(Perf::default),
-            "u" => self.session.undo(),
-            "redo" => self.session.redo(),
+            "u" => self.status = self.session.undo().map(Status::notice),
+            "redo" => self.status = self.session.redo().map(Status::notice),
             _ => self.status = Some(Status::error(format!("Unknown command: {cmd}"))),
         }
     }

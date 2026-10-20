@@ -189,6 +189,7 @@ impl App {
                 KeyOutcome::Command => {
                     self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, String::new()))
                 }
+                KeyOutcome::Notice(text) => self.status = Some(ui::Status::notice(text)),
                 KeyOutcome::None => {}
             }
             return;

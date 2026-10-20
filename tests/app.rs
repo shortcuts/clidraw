@@ -464,6 +464,24 @@ fn colon_u_and_redo_undo_and_redo() {
 }
 
 #[test]
+fn undo_and_redo_name_the_action_in_the_status_line() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    insert_shape(&mut app);
+    let now = Instant::now();
+    let ctrl = |c| Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::CONTROL));
+    let status = |app: &App| app.status.as_ref().map(|s| s.text.clone());
+    app.on_event(ctrl('z'), now);
+    assert_eq!(status(&app).as_deref(), Some("Undid: add 1 element"));
+    app.on_event(ctrl('y'), now);
+    assert_eq!(status(&app).as_deref(), Some("Redid: add 1 element"));
+    run(&mut app, "u");
+    assert_eq!(status(&app).as_deref(), Some("Undid: add 1 element"));
+    app.on_event(ctrl('z'), now);
+    assert_eq!(status(&app), None, "nothing to undo");
+}
+
+#[test]
 fn unknown_command_sets_status_and_esc_cancels_the_prompt() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());

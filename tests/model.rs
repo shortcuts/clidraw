@@ -47,9 +47,9 @@ fn setup() -> (Canvas, History) {
 fn undo_and_redo_replay_every_command() {
     let (mut c, mut h) = setup();
     let full = c.clone();
-    while h.undo(&mut c).unwrap() {}
+    while h.undo(&mut c).unwrap().is_some() {}
     assert!(c.elements.is_empty());
-    while h.redo(&mut c).unwrap() {}
+    while h.redo(&mut c).unwrap().is_some() {}
     assert_eq!(c, full);
 }
 
@@ -66,7 +66,7 @@ fn a_new_edit_clears_redo() {
         },
     )
     .unwrap();
-    assert!(!h.redo(&mut c).unwrap());
+    assert_eq!(h.redo(&mut c).unwrap(), None);
 }
 
 #[test]
@@ -375,7 +375,7 @@ fn history_keeps_only_the_newest_entries_up_to_its_limit() {
         .unwrap();
     }
     let mut undone = 0;
-    while h.undo(&mut c).unwrap() {
+    while h.undo(&mut c).unwrap().is_some() {
         undone += 1;
     }
     assert_eq!(undone, 3);
@@ -493,4 +493,21 @@ fn clone_elements_frees_a_selected_line_end_whose_shape_stays() {
 fn clone_elements_skips_a_line_with_one_end_outside() {
     let (c, _) = setup();
     assert_eq!(c.clone_elements(&[Id::from("aaaaaaaa")], 0, 0).len(), 1);
+}
+
+#[test]
+fn history_labels_name_the_reverted_action() {
+    let (mut c, mut h) = setup();
+    h.exec(&mut c, Command::Remove(Id::from("aaaaaaaa")))
+        .unwrap();
+    assert_eq!(h.undo(&mut c).unwrap().as_deref(), Some("delete 1 element"));
+    assert_eq!(h.redo(&mut c).unwrap().as_deref(), Some("delete 1 element"));
+    h.undo(&mut c).unwrap();
+    let moves = ["aaaaaaaa", "bbbbbbbb"].map(|id| Command::Move {
+        id: Id::from(id),
+        dx: 1,
+        dy: 0,
+    });
+    h.exec(&mut c, Command::Batch(moves.to_vec())).unwrap();
+    assert_eq!(h.undo(&mut c).unwrap().as_deref(), Some("move 2 elements"));
 }

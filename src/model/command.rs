@@ -56,6 +56,41 @@ pub enum Command {
     Batch(Vec<Command>),
 }
 
+impl Command {
+    /// Names the action that this inverse command reverts, for example "move 3 elements".
+    pub fn label(&self) -> String {
+        let mut leaves = vec![];
+        self.leaves(&mut leaves);
+        let Some(first) = leaves.first() else {
+            return "nothing".into();
+        };
+        let n = leaves.iter().filter(|c| c.verb() == first.verb()).count();
+        let s = if n == 1 { "" } else { "s" };
+        format!("{} {n} element{s}", first.verb())
+    }
+
+    fn leaves<'a>(&'a self, out: &mut Vec<&'a Command>) {
+        match self {
+            Command::Batch(cmds) => cmds.iter().for_each(|c| c.leaves(out)),
+            c => out.push(c),
+        }
+    }
+
+    fn verb(&self) -> &'static str {
+        match self {
+            Command::Remove(_) => "add",
+            Command::Insert(..) => "delete",
+            Command::MoveTo { .. } => "reorder",
+            Command::Move { .. } => "move",
+            Command::SetRect { .. } => "resize",
+            Command::SetLabel { .. } => "relabel",
+            Command::SetEnd { .. } => "reconnect",
+            Command::SetKind { .. } | Command::SetLineKind { .. } => "restyle",
+            Command::Batch(_) => unreachable!(),
+        }
+    }
+}
+
 impl Canvas {
     pub fn push(&mut self, e: Element) -> Result<Command, ModelError> {
         self.apply(Command::Insert(self.elements.len(), e))

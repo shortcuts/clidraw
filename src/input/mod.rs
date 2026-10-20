@@ -145,18 +145,18 @@ impl Session {
         }
     }
 
-    pub fn undo(&mut self) {
-        if matches!(self.history.undo(&mut self.canvas), Ok(true)) {
-            self.rev += 1;
-            self.prune_selection();
-        }
+    pub fn undo(&mut self) -> Option<String> {
+        let label = self.history.undo(&mut self.canvas).ok()??;
+        self.rev += 1;
+        self.prune_selection();
+        Some(format!("Undid: {label}"))
     }
 
-    pub fn redo(&mut self) {
-        if matches!(self.history.redo(&mut self.canvas), Ok(true)) {
-            self.rev += 1;
-            self.prune_selection();
-        }
+    pub fn redo(&mut self) -> Option<String> {
+        let label = self.history.redo(&mut self.canvas).ok()??;
+        self.rev += 1;
+        self.prune_selection();
+        Some(format!("Redid: {label}"))
     }
 
     fn idle(&self) -> bool {

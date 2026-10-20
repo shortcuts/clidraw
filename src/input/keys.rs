@@ -10,6 +10,11 @@ pub enum KeyOutcome {
     Menu,
     Help,
     Command,
+    Notice(String),
+}
+
+fn notice(text: Option<String>) -> KeyOutcome {
+    text.map_or(KeyOutcome::None, KeyOutcome::Notice)
 }
 
 pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
@@ -20,8 +25,8 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
     if ctrl {
         match k.code {
             KeyCode::Char('c') => return KeyOutcome::Quit,
-            KeyCode::Char('z') => s.undo(),
-            KeyCode::Char('y') => s.redo(),
+            KeyCode::Char('z') => return notice(s.undo()),
+            KeyCode::Char('y') => return notice(s.redo()),
             KeyCode::Char('a') => {
                 s.selection = s.canvas.elements.iter().map(|e| e.id().clone()).collect()
             }
