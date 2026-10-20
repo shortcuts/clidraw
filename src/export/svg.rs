@@ -63,9 +63,14 @@ fn text(
 }
 
 pub fn svg(canvas: &Canvas) -> String {
+    svg_padded(canvas, MARGIN)
+}
+
+/// `pad` is the blank margin in cells around the drawing.
+pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
     let (bx, by, bw, bh) = canvas.all_bounds().unwrap_or((0, 0, 1, 1));
-    let (vx, vy) = ((bx - MARGIN) * CW, (by - MARGIN) * CH);
-    let (vw, vh) = ((bw + 2 * MARGIN) * CW, (bh + 2 * MARGIN) * CH);
+    let (vx, vy) = ((bx - pad) * CW, (by - pad) * CH);
+    let (vw, vh) = ((bw + 2 * pad) * CW, (bh + 2 * pad) * CH);
     let find = canvas.shape_lookup();
     let mut o = String::new();
     let _ = writeln!(o, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"{vx} {vy} {vw} {vh}\" width=\"{vw}\" height=\"{vh}\" font-family=\"monospace\" font-size=\"14\">");

@@ -1,10 +1,18 @@
 use super::grid::{DIM, REVERSE};
 use super::{boxed, centered, Grid};
 
+/// The part of the canvas an export writes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Extent {
+    Whole,
+    Area((i32, i32, i32, i32)),
+    Selection,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PromptKind {
-    ExportSvg(Option<(i32, i32, i32, i32)>),
-    ExportMermaid(Option<(i32, i32, i32, i32)>),
+    ExportSvg(Extent),
+    ExportMermaid(Extent),
     NewCanvas,
     Rename(String),
     ConfirmDelete(String),

@@ -28,6 +28,9 @@ pub const DEFAULT_TOML: &str = "\
 
 # Most undo steps kept; the oldest drop first.
 # history_limit = 1000
+
+# Blank cells around the drawing in an SVG export.
+# export_padding = 2
 ";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -38,6 +41,7 @@ pub struct Config {
     pub grid: i32,
     pub default_canvas: String,
     pub history_limit: usize,
+    pub export_padding: i32,
 }
 
 impl Default for Config {
@@ -49,6 +53,7 @@ impl Default for Config {
             grid: 1,
             default_canvas: "untitled".into(),
             history_limit: HISTORY_LIMIT,
+            export_padding: 2,
         }
     }
 }
@@ -90,6 +95,7 @@ impl Config {
                 "grid" => grid(value).map(|n| self.grid = n),
                 "default_canvas" => name(value).map(|n| self.default_canvas = n),
                 "history_limit" => count(value).map(|n| self.history_limit = n),
+                "export_padding" => padding(value).map(|n| self.export_padding = n),
                 _ => {
                     warns.push(format!("{FILE}: unknown key {key}"));
                     continue;
@@ -134,6 +140,13 @@ fn grid(v: &toml::Value) -> Result<i32, String> {
     match v.as_integer() {
         Some(n @ 1..=1000) => Ok(n as i32),
         _ => Err("expected an integer from 1 to 1000".into()),
+    }
+}
+
+fn padding(v: &toml::Value) -> Result<i32, String> {
+    match v.as_integer() {
+        Some(n @ 0..=100) => Ok(n as i32),
+        _ => Err("expected an integer from 0 to 100".into()),
     }
 }
 

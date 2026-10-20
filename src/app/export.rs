@@ -1,11 +1,9 @@
 use super::App;
 use crate::export;
-use crate::ui::prompt::{Prompt, PromptKind};
+use crate::ui::prompt::{Extent, Prompt, PromptKind};
 use crate::ui::scope::{ExportFormat, ScopeItem};
 use crate::ui::{Overlay, Status};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
-
-type Area = (i32, i32, i32, i32);
 
 /// An area export waiting for the user to drag its rectangle.
 pub struct Pick {
@@ -17,7 +15,11 @@ impl App {
     pub(super) fn scope_item(&mut self, item: ScopeItem, format: ExportFormat) {
         self.overlay = Overlay::None;
         match item {
-            ScopeItem::Whole => self.open_export_prompt(format, None),
+            ScopeItem::Whole => self.open_export_prompt(format, Extent::Whole),
+            ScopeItem::Selection if self.session.selection.is_empty() => {
+                self.status = Some(Status::error("nothing selected"))
+            }
+            ScopeItem::Selection => self.open_export_prompt(format, Extent::Selection),
             ScopeItem::Area => {
                 self.pick = Some(Pick {
                     format,
@@ -78,25 +80,29 @@ impl App {
         if self.session.canvas.within(area).elements.is_empty() {
             self.status = Some(Status::error("nothing inside the area"));
         } else {
-            self.open_export_prompt(format, Some(area));
+            self.open_export_prompt(format, Extent::Area(area));
         }
     }
 
-    fn open_export_prompt(&mut self, format: ExportFormat, area: Option<Area>) {
+    fn open_export_prompt(&mut self, format: ExportFormat, extent: Extent) {
         let (kind, ext) = match format {
-            ExportFormat::Svg => (PromptKind::ExportSvg(area), "svg"),
-            ExportFormat::Mermaid => (PromptKind::ExportMermaid(area), "mmd"),
+            ExportFormat::Svg => (PromptKind::ExportSvg(extent), "svg"),
+            ExportFormat::Mermaid => (PromptKind::ExportMermaid(extent), "mmd"),
         };
         self.overlay = Overlay::Prompt(Prompt::new(kind, format!("{}.{ext}", self.name)));
     }
 
-    pub(super) fn export(&mut self, path: &str, format: ExportFormat, area: Option<Area>) {
-        let canvas = match area {
-            Some(a) => self.session.canvas.within(a),
-            None => self.session.canvas.clone(),
+    pub(super) fn export(&mut self, path: &str, format: ExportFormat, extent: Extent) {
+        let canvas = match extent {
+            Extent::Whole => self.session.canvas.clone(),
+            Extent::Area(a) => self.session.canvas.within(a),
+            Extent::Selection => self
+                .session
+                .canvas
+                .clone_canvas(&self.session.selection, 0, 0),
         };
         let (text, skipped) = match format {
-            ExportFormat::Svg => (export::svg(&canvas), 0),
+            ExportFormat::Svg => (export::svg_padded(&canvas, self.export_padding), 0),
             ExportFormat::Mermaid => {
                 let out = export::mermaid(&canvas);
                 (out.text, out.skipped)

@@ -160,7 +160,7 @@ fn area_app(dir: &std::path::Path) -> (App, Instant) {
     let t = Instant::now();
     app.on_event(key(KeyCode::Esc), t);
     click(&mut app, 31, 11, t);
-    click(&mut app, 31, 12, t);
+    click(&mut app, 31, 11, t);
     (app, t)
 }
 
@@ -188,6 +188,66 @@ fn exports_only_the_dragged_area() {
     let svg = std::fs::read_to_string(out).unwrap();
     assert!(svg.contains("Alpha") && svg.contains("Beta"), "{svg}");
     assert!(!svg.contains("Gamma"), "{svg}");
+}
+
+#[test]
+fn exports_only_the_selection() {
+    let t = tempfile::tempdir().unwrap();
+    let (mut app, now) = area_app(t.path());
+    app.session.selection = vec![Id::from("bbbbbbbb")];
+    app.on_event(key(KeyCode::Esc), now);
+    app.on_event(key(KeyCode::Esc), now);
+    click(&mut app, 31, 11, now);
+    click(&mut app, 31, 12, now);
+    let out = t.path().join("sel.svg");
+    type_path(&mut app, out.to_str().unwrap(), now);
+    let svg = std::fs::read_to_string(out).unwrap();
+    assert!(svg.contains("Beta"), "{svg}");
+    assert!(!svg.contains("Alpha") && !svg.contains("Gamma"), "{svg}");
+}
+
+#[test]
+fn an_empty_selection_opens_no_prompt() {
+    let t = tempfile::tempdir().unwrap();
+    let (mut app, now) = area_app(t.path());
+    app.on_event(key(KeyCode::Esc), now);
+    app.on_event(key(KeyCode::Esc), now);
+    click(&mut app, 31, 11, now);
+    click(&mut app, 31, 12, now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+    assert_eq!(
+        app.status.as_ref().map(|s| s.text.as_str()),
+        Some("nothing selected")
+    );
+}
+
+#[test]
+fn export_padding_comes_from_the_config() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let cfg = Config {
+        export_padding: 0,
+        ..Config::default()
+    };
+    let mut app = App::open_with(store, Some("demo".into()), (80, 24), cfg, vec![]).unwrap();
+    app.session.exec(Command::Insert(
+        0,
+        Element::Text(Text {
+            id: Id::from("aaaaaaaa"),
+            x: 0,
+            y: 0,
+            text: "hi".into(),
+            color: None,
+        }),
+    ));
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Esc), now);
+    click(&mut app, 31, 11, now);
+    click(&mut app, 31, 10, now);
+    let out = t.path().join("pad.svg");
+    type_path(&mut app, out.to_str().unwrap(), now);
+    let svg = std::fs::read_to_string(out).unwrap();
+    assert!(svg.contains("viewBox=\"0 0 "), "{svg}");
 }
 
 fn status_row_reversed(app: &App) -> bool {

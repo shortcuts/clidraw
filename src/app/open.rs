@@ -45,6 +45,7 @@ impl App {
             last_edit: Instant::now(),
             autosave: config.autosave,
             default_canvas: config.default_canvas,
+            export_padding: config.export_padding,
         };
         app.load_into(&name)?;
         Ok(app)

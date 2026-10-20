@@ -142,3 +142,17 @@ fn grid_defaults_off_and_rejects_out_of_range() {
         vec!["config.toml: key grid: expected an integer from 1 to 1000"]
     );
 }
+
+#[test]
+fn export_padding_defaults_to_two_and_rejects_negative() {
+    assert_eq!(Config::default().export_padding, 2);
+    let (c, w, _t) = load_text("export_padding = 0\n");
+    assert!(w.is_empty(), "{w:?}");
+    assert_eq!(c.export_padding, 0);
+    let (c, w, _t) = load_text("export_padding = -1\n");
+    assert_eq!(c.export_padding, 2);
+    assert_eq!(
+        w,
+        vec!["config.toml: key export_padding: expected an integer from 0 to 100"]
+    );
+}

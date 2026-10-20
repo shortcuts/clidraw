@@ -35,6 +35,7 @@ pub struct App {
     last_edit: Instant,
     autosave: Duration,
     default_canvas: String,
+    export_padding: i32,
 }
 
 impl App {
@@ -372,8 +373,8 @@ impl App {
         };
         match p.kind {
             PromptKind::Command => self.run_command(&p.buf),
-            PromptKind::ExportSvg(a) => self.export(&p.buf, ExportFormat::Svg, a),
-            PromptKind::ExportMermaid(a) => self.export(&p.buf, ExportFormat::Mermaid, a),
+            PromptKind::ExportSvg(x) => self.export(&p.buf, ExportFormat::Svg, x),
+            PromptKind::ExportMermaid(x) => self.export(&p.buf, ExportFormat::Mermaid, x),
             PromptKind::NewCanvas => match self.store.create(&p.buf) {
                 Ok(()) => self.switch_to(&p.buf),
                 Err(e) => self.status = Some(ui::Status::error(e.to_string())),

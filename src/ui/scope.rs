@@ -10,11 +10,13 @@ pub enum ExportFormat {
 pub enum ScopeItem {
     Whole,
     Area,
+    Selection,
 }
 
-const ITEMS: [(ScopeItem, &str); 2] = [
+const ITEMS: [(ScopeItem, &str); 3] = [
     (ScopeItem::Whole, "Whole canvas"),
     (ScopeItem::Area, "Area"),
+    (ScopeItem::Selection, "Selection"),
 ];
 
 fn rect(screen: (u16, u16)) -> (i32, i32, i32, i32) {

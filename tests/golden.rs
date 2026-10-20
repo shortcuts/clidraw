@@ -1,4 +1,4 @@
-use clidraw::export::{mermaid, svg};
+use clidraw::export::{mermaid, svg, svg_padded};
 use clidraw::model::{
     Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Routing, Shape, ShapeKind,
     Stroke, Text, TextAlign,
@@ -169,4 +169,11 @@ fn area_exports_match_golden() {
     let out = mermaid(&area);
     check("sample_area.mmd", &out.text);
     assert_eq!(out.skipped, 0);
+}
+
+#[test]
+fn svg_padding_widens_the_view_box() {
+    let one = sample().within((0, 0, 12, 5));
+    assert!(svg_padded(&one, 0).contains("viewBox=\"0 0 96 80\""));
+    assert!(svg_padded(&one, 3).contains("viewBox=\"-24 -48 144 176\""));
 }
