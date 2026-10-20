@@ -280,9 +280,9 @@ fn question_mark_opens_help_and_right_left_page_clamped() {
     for _ in 0..3 {
         app.on_event(key(KeyCode::Right), now);
     }
-    assert_eq!(help_page(&app), 2);
+    assert_eq!(help_page(&app), 3);
     app.on_event(key(KeyCode::Left), now);
-    assert_eq!(help_page(&app), 1);
+    assert_eq!(help_page(&app), 2);
 }
 
 #[test]
@@ -306,9 +306,9 @@ fn clicking_a_help_tab_selects_its_page() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     app.on_event(key(KeyCode::Char('?')), now);
-    click(&mut app, 38, 8, now);
+    click(&mut app, 38, 7, now);
     assert_eq!(help_page(&app), 2);
-    click(&mut app, 22, 8, now);
+    click(&mut app, 22, 7, now);
     assert_eq!(help_page(&app), 0);
     click(&mut app, 22, 12, now);
     assert_eq!(help_page(&app), 0, "a click off the tabs keeps the modal");

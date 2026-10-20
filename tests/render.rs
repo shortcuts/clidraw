@@ -179,6 +179,7 @@ fn help_pages_list_their_scope() {
         ),
         (1, vec!["Fit all", "Export Mermaid"]),
         (2, vec!["Commit the label"]),
+        (3, vec!["Tools", "Diamond"]),
     ] {
         let b = draw(&s, &Overlay::Help(page));
         let all: String = (0..24).map(|y| row(&b, y)).collect();
@@ -235,19 +236,19 @@ fn help_canvas_row_lists_every_command_line_verb() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
     assert!(
-        row(&b, 15).contains("Commands q w wq e u redo"),
+        row(&b, 14).contains("Commands q w wq e u redo"),
         "{}",
-        row(&b, 15)
+        row(&b, 14)
     );
-    assert_eq!(cols(&b, 15, 62, 1), "│");
+    assert_eq!(cols(&b, 14, 62, 1), "│");
 }
 
 #[test]
 fn help_canvas_esc_row_stays_inside_the_border() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
-    assert!(row(&b, 10).contains("│ Esc"), "{}", row(&b, 10));
-    assert_eq!(cols(&b, 10, 62, 1), "│", "{}", row(&b, 10));
+    assert!(row(&b, 9).contains("│ Esc"), "{}", row(&b, 9));
+    assert_eq!(cols(&b, 9, 62, 1), "│", "{}", row(&b, 9));
 }
 
 #[test]

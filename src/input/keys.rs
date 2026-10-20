@@ -1,4 +1,5 @@
-use super::Session;
+use super::state::Gesture;
+use super::{Session, Tool};
 use crate::model::Command;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
@@ -42,6 +43,11 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         KeyCode::Esc => return KeyOutcome::Menu,
         KeyCode::Char('?') => return KeyOutcome::Help,
         KeyCode::Char(':') => return KeyOutcome::Command,
+        KeyCode::Char(c) if matches!(s.gesture, Gesture::Idle) => {
+            if let Some(t) = Tool::ALL.into_iter().find(|t| t.key() == c) {
+                s.tool = t;
+            }
+        }
         KeyCode::Delete | KeyCode::Backspace if !s.selection.is_empty() => {
             let cmds = s.selection.iter().cloned().map(Command::Remove).collect();
             s.exec(Command::Batch(cmds));

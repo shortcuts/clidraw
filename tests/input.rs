@@ -1,4 +1,6 @@
-use clidraw::input::{handle_key, handle_mouse, Corner, Handle, Hit, KeyOutcome, Session, Tool};
+use clidraw::input::{
+    handle_key, handle_mouse, Corner, Edit, EditTarget, Handle, Hit, KeyOutcome, Session, Tool,
+};
 use clidraw::model::{Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::ui::palette::Dock;
 use clidraw::view::View;
@@ -582,4 +584,21 @@ fn hover_is_empty_for_other_tools_mid_gesture_and_over_the_palette() {
     let mut s = with_shape("aaaaaaaa", 2, 1);
     mouse(&mut s, MouseEventKind::Moved, 2, 1, t);
     assert_eq!(s.hover, Hit::Empty, "palette owns its cells");
+}
+
+#[test]
+fn tool_keys_switch_tools_but_type_into_an_edit() {
+    let mut s = session();
+    for (c, tool) in "vhrodlat".chars().zip(Tool::ALL) {
+        key(&mut s, KeyCode::Char(c));
+        assert_eq!(s.tool, tool);
+    }
+    key(&mut s, KeyCode::Char('v'));
+    s.edit = Some(Edit {
+        target: EditTarget::New(0, 0),
+        buf: String::new(),
+    });
+    key(&mut s, KeyCode::Char('r'));
+    assert_eq!(s.tool, Tool::Select);
+    assert_eq!(s.edit.as_ref().unwrap().buf, "r");
 }

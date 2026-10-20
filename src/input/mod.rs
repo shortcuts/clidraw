@@ -51,6 +51,19 @@ impl Tool {
             Tool::Text => "Text",
         }
     }
+
+    pub fn key(self) -> char {
+        match self {
+            Tool::Select => 'v',
+            Tool::Hand => 'h',
+            Tool::Rect => 'r',
+            Tool::Ellipse => 'o',
+            Tool::Diamond => 'd',
+            Tool::Line => 'l',
+            Tool::Arrow => 'a',
+            Tool::Text => 't',
+        }
+    }
 }
 
 pub enum EditTarget {

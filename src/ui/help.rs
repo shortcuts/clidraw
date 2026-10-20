@@ -1,8 +1,9 @@
 use super::grid::REVERSE;
 use super::menu::ITEMS;
 use super::{boxed, centered, Grid};
+use crate::input::Tool;
 
-pub const SCOPES: [&str; 3] = ["Canvas", "Menu", "Text edit"];
+pub const SCOPES: [&str; 4] = ["Canvas", "Menu", "Text edit", "Tools"];
 
 const CANVAS: [(&str, &str); 6] = [
     ("Esc", "Cancel, else open menu"),
@@ -22,7 +23,7 @@ const TEXT_EDIT: [(&str, &str); 4] = [
 
 const WIDTH: i32 = 46;
 // Two borders, the tab row, a blank row and the longest page; fixed so the box does not jump.
-const HEIGHT: i32 = 10;
+const HEIGHT: i32 = 12;
 const ACTION_COL: i32 = 20;
 
 /// Keys and action for each row of a page.
@@ -38,7 +39,11 @@ pub fn rows(page: usize) -> Vec<(String, String)> {
             .iter()
             .map(|(_, label, key)| (key.to_string(), label.to_string()))
             .collect(),
-        _ => own(&TEXT_EDIT),
+        2 => own(&TEXT_EDIT),
+        _ => Tool::ALL
+            .iter()
+            .map(|t| (t.key().to_string(), t.label().to_string()))
+            .collect(),
     }
 }
 
