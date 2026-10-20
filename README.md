@@ -68,6 +68,8 @@ Budgets for a release build with 5000 elements on a 200x50 screen:
 | Load or save of a canvas | 50 ms, never inside a drag |
 | Export to SVG or Mermaid | 100 ms |
 | Terminal output per frame for a one-cell change | under 4 KB |
+| Peak resident memory, 5000 elements (measured once, perf test process) | 4.3 MB |
+| Peak resident memory, 50000 elements (measured once, perf test process) | 14.1 MB |
 
 `make perf` checks the frame and drag-step budgets. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet. CI runs `make check` with `CLIDRAW_PERF_SLACK=4`, which divides each measured median by 4; local runs leave it unset.
 

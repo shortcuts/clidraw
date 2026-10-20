@@ -10,3 +10,6 @@ The tool must be minimal, fast, effective and work on any OS.
 
 - Export changes need a golden-file update in `tests/golden/`. Review the diff by eye.
 - A bug fix starts with a failing test.
+- A change to rendering, hit testing, input handling or save passes `make perf`.
+- A perf fix starts with a perf test that fails against the budget.
+- The budgets are in the [Performance table](README.md#performance) of the README.
