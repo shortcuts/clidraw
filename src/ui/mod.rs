@@ -21,7 +21,41 @@ pub enum Overlay {
     Help(usize),
 }
 
-pub fn render(buf: &mut Buffer, area: Rect, s: &Session, overlay: &Overlay, status: Option<&str>) {
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Severity {
+    Notice,
+    Error,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Status {
+    pub text: String,
+    pub severity: Severity,
+}
+
+impl Status {
+    pub fn notice(text: impl Into<String>) -> Status {
+        Status {
+            text: text.into(),
+            severity: Severity::Notice,
+        }
+    }
+
+    pub fn error(text: impl Into<String>) -> Status {
+        Status {
+            text: text.into(),
+            severity: Severity::Error,
+        }
+    }
+}
+
+pub fn render(
+    buf: &mut Buffer,
+    area: Rect,
+    s: &Session,
+    overlay: &Overlay,
+    status: Option<&Status>,
+) {
     let mut grid = Grid::new(area.width, area.height);
     canvas_view::draw(&mut grid, s);
     palette::draw(&mut grid, s);
@@ -36,10 +70,14 @@ pub fn render(buf: &mut Buffer, area: Rect, s: &Session, overlay: &Overlay, stat
         Overlay::Prompt(p) => prompt::draw(&mut grid, p),
         Overlay::Help(p) => help::draw(&mut grid, *p),
     }
-    if let Some(msg) = status {
+    if let Some(st) = status {
         let row = grid.h - 1;
         grid.fill(0, row, grid.w, 1);
-        grid.text(0, row, msg, REVERSE);
+        let flags = match st.severity {
+            Severity::Notice => 0,
+            Severity::Error => REVERSE,
+        };
+        grid.text(0, row, &st.text, flags);
     }
     grid.copy_to(buf, area);
 }

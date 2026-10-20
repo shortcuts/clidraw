@@ -3,7 +3,7 @@ use crate::config::Config;
 use crate::input::Session;
 use crate::model::Canvas;
 use crate::store::{Store, StoreError};
-use crate::ui::Overlay;
+use crate::ui::{self, Overlay};
 use crate::view::View;
 use std::time::Instant;
 
@@ -30,7 +30,7 @@ impl App {
         let mut app = App {
             session,
             overlay: Overlay::None,
-            status: (!warnings.is_empty()).then(|| warnings.join("; ")),
+            status: (!warnings.is_empty()).then(|| ui::Status::error(warnings.join("; "))),
             name: String::new(),
             quit: false,
             pick: None,

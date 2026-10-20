@@ -1,4 +1,5 @@
 use super::App;
+use crate::ui::Status;
 
 impl App {
     pub(super) fn run_command(&mut self, line: &str) {
@@ -12,11 +13,11 @@ impl App {
                 self.save();
                 self.quit = true;
             }
-            "e" if arg.trim().is_empty() => self.status = Some("Usage: :e <name>".into()),
+            "e" if arg.trim().is_empty() => self.status = Some(Status::error("Usage: :e <name>")),
             "e" => self.switch_to(arg.trim()),
             "u" => self.session.undo(),
             "redo" => self.session.redo(),
-            _ => self.status = Some(format!("Unknown command: {cmd}")),
+            _ => self.status = Some(Status::error(format!("Unknown command: {cmd}"))),
         }
     }
 }

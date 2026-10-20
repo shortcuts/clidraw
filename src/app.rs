@@ -19,7 +19,7 @@ mod open;
 pub struct App {
     pub session: Session,
     pub overlay: Overlay,
-    pub status: Option<String>,
+    pub status: Option<ui::Status>,
     pub name: String,
     pub quit: bool,
     pick: Option<export::Pick>,
@@ -41,7 +41,7 @@ impl App {
 
     fn report(&mut self, r: Result<(), StoreError>) {
         if let Err(e) = r {
-            self.status = Some(e.to_string());
+            self.status = Some(ui::Status::error(e.to_string()));
         }
     }
 
@@ -78,7 +78,7 @@ impl App {
             area,
             &self.session,
             &self.overlay,
-            self.status.as_deref(),
+            self.status.as_ref(),
         );
     }
 
@@ -236,7 +236,7 @@ impl App {
             PromptKind::ExportMermaid(a) => self.export(&p.buf, ExportFormat::Mermaid, a),
             PromptKind::NewCanvas => match self.store.create(&p.buf) {
                 Ok(()) => self.switch_to(&p.buf),
-                Err(e) => self.status = Some(e.to_string()),
+                Err(e) => self.status = Some(ui::Status::error(e.to_string())),
             },
             PromptKind::Rename(old) => {
                 self.save();

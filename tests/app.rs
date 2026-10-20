@@ -5,6 +5,9 @@ use clidraw::store::Store;
 use crossterm::event::{
     Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+use ratatui::style::Modifier;
 use std::time::{Duration, Instant};
 
 fn mouse(kind: MouseEventKind, column: u16, row: u16) -> Event {
@@ -117,6 +120,33 @@ fn exports_only_the_dragged_area() {
     assert!(!svg.contains("Gamma"), "{svg}");
 }
 
+fn status_row_reversed(app: &App) -> bool {
+    let area = Rect::new(0, 0, 80, 24);
+    let mut buf = Buffer::empty(area);
+    app.render(&mut buf, area);
+    buf[(0, 23)].modifier.contains(Modifier::REVERSED)
+}
+
+#[test]
+fn notice_status_is_plain_and_error_status_is_reversed() {
+    let t = tempfile::tempdir().unwrap();
+    let (mut app, now) = area_app(t.path());
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 0, 0), now);
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 40, 8), now);
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 40, 8), now);
+    type_path(&mut app, t.path().join("area.svg").to_str().unwrap(), now);
+    assert!(app
+        .status
+        .as_ref()
+        .map(|s| s.text.as_str())
+        .unwrap()
+        .starts_with("exported"));
+    assert!(!status_row_reversed(&app), "a notice is not reversed");
+
+    run(&mut app, "nope");
+    assert!(status_row_reversed(&app), "an error is reversed");
+}
+
 #[test]
 fn esc_cancels_the_area_pick() {
     let t = tempfile::tempdir().unwrap();
@@ -136,7 +166,10 @@ fn an_empty_area_opens_no_prompt() {
     let (mut app, now) = area_app(t.path());
     click(&mut app, 70, 2, now);
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
-    assert_eq!(app.status.as_deref(), Some("nothing inside the area"));
+    assert_eq!(
+        app.status.as_ref().map(|s| s.text.as_str()),
+        Some("nothing inside the area")
+    );
 }
 
 #[test]
@@ -271,7 +304,10 @@ fn config_sets_autosave_default_canvas_and_status() {
     let mut app =
         App::open_with(store, None, (80, 24), cfg, vec!["config.toml: oops".into()]).unwrap();
     assert_eq!(app.name, "scratch");
-    assert_eq!(app.status.as_deref(), Some("config.toml: oops"));
+    assert_eq!(
+        app.status.as_ref().map(|s| s.text.as_str()),
+        Some("config.toml: oops")
+    );
     let file = t.path().join("c/scratch.clidraw.json");
     let empty = std::fs::read(&file).unwrap();
     let t0 = Instant::now();
@@ -343,7 +379,12 @@ fn colon_e_opens_or_creates_a_canvas_and_needs_a_name() {
     assert_eq!(app.name, "other");
     assert!(t.path().join("c/other.clidraw.json").exists());
     run(&mut app, "e");
-    assert!(app.status.as_deref().unwrap().contains("Usage"));
+    assert!(app
+        .status
+        .as_ref()
+        .map(|s| s.text.as_str())
+        .unwrap()
+        .contains("Usage"));
     assert_eq!(app.name, "other");
 }
 
@@ -363,7 +404,10 @@ fn unknown_command_sets_status_and_esc_cancels_the_prompt() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     run(&mut app, "nope");
-    assert_eq!(app.status.as_deref(), Some("Unknown command: nope"));
+    assert_eq!(
+        app.status.as_ref().map(|s| s.text.as_str()),
+        Some("Unknown command: nope")
+    );
     assert!(!app.quit);
     let now = Instant::now();
     app.on_event(key(KeyCode::Char(':')), now);

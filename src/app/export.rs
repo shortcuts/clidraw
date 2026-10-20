@@ -2,7 +2,7 @@ use super::App;
 use crate::export;
 use crate::ui::prompt::{Prompt, PromptKind};
 use crate::ui::scope::{ExportFormat, ScopeItem};
-use crate::ui::Overlay;
+use crate::ui::{Overlay, Status};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 type Area = (i32, i32, i32, i32);
@@ -76,7 +76,7 @@ impl App {
             (a.1 - b.1).abs() + 1,
         );
         if self.session.canvas.within(area).elements.is_empty() {
-            self.status = Some("nothing inside the area".into());
+            self.status = Some(Status::error("nothing inside the area"));
         } else {
             self.open_export_prompt(format, Some(area));
         }
@@ -103,11 +103,11 @@ impl App {
             }
         };
         self.status = Some(match std::fs::write(path, text) {
-            Ok(()) if skipped > 0 => {
-                format!("exported {path}, skipped {skipped} element(s) with no Mermaid form")
-            }
-            Ok(()) => format!("exported {path}"),
-            Err(e) => format!("export failed: {e}"),
+            Ok(()) if skipped > 0 => Status::notice(format!(
+                "exported {path}, skipped {skipped} element(s) with no Mermaid form"
+            )),
+            Ok(()) => Status::notice(format!("exported {path}")),
+            Err(e) => Status::error(format!("export failed: {e}")),
         });
     }
 }
