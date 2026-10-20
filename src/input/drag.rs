@@ -246,6 +246,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                     h: MIN_SIZE,
                     label: String::new(),
                     stroke: Default::default(),
+                    border: Default::default(),
                 }),
                 None => Element::Line(Line {
                     id: id.clone(),
@@ -477,6 +478,7 @@ mod tests {
             h: 4,
             label: String::new(),
             stroke: Default::default(),
+            border: Default::default(),
         }));
         s
     }
@@ -634,6 +636,7 @@ mod tests {
             h: 4,
             label: String::new(),
             stroke: Default::default(),
+            border: Default::default(),
         }));
         s
     }

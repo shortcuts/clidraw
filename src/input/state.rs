@@ -265,6 +265,20 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
                 .collect();
             s.exec(Command::Batch(cmds));
         }
+        PaletteHit::Option(Choice::Border(border)) => {
+            let cmds: Vec<Command> = s
+                .selection
+                .iter()
+                .filter(
+                    |id| matches!(s.canvas.get(id), Some(Element::Shape(sh)) if sh.has_border()),
+                )
+                .map(|id| Command::SetBorder {
+                    id: id.clone(),
+                    border,
+                })
+                .collect();
+            s.exec(Command::Batch(cmds));
+        }
         PaletteHit::Option(Choice::Routing(routing)) => {
             let cmds: Vec<Command> = s
                 .selection

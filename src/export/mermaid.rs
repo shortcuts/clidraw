@@ -1,4 +1,4 @@
-use crate::model::{Canvas, Element, End, Id, LineKind, ShapeKind, Stroke};
+use crate::model::{Border, Canvas, Element, End, Id, LineKind, ShapeKind, Stroke};
 use std::fmt::Write;
 
 pub struct MermaidOutput {
@@ -39,6 +39,7 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
             Element::Shape(s) => {
                 let l = label(&s.label);
                 let _ = match s.kind {
+                    ShapeKind::Rect if s.border == Border::Rounded => writeln!(text, "  n{n}({l})"),
                     ShapeKind::Rect => writeln!(text, "  n{n}[{l}]"),
                     ShapeKind::Ellipse => writeln!(text, "  n{n}([{l}])"),
                     ShapeKind::Diamond => writeln!(text, "  n{n}{{{l}}}"),

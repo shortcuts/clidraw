@@ -1,6 +1,7 @@
 use clidraw::input::{Corner, Handle, Hit, Session};
 use clidraw::model::{
-    Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Routing, Shape, ShapeKind, Stroke,
+    Anchor, Border, Canvas, Command, Element, End, Id, Line, LineKind, Routing, Shape, ShapeKind,
+    Stroke,
 };
 use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::switcher::Switcher;
@@ -21,6 +22,7 @@ fn shape(id: &str, x: i32, label: &str) -> Element {
         h: 3,
         label: label.into(),
         stroke: Default::default(),
+        border: Default::default(),
     })
 }
 
@@ -74,6 +76,31 @@ fn dashed_and_dotted_strokes_swap_the_border_glyphs() {
     assert_eq!(cols(&b, 5, 20, 8), "╎      ╎");
     assert_eq!(cols(&b, 4, 40, 8), "┌┄┄┄┄┄┄┐");
     assert_eq!(cols(&b, 5, 40, 8), "┆      ┆");
+}
+
+#[test]
+fn border_styles_swap_the_glyph_set() {
+    let mut c = Canvas::default();
+    for (id, x) in [("aaaaaaaa", 20), ("bbbbbbbb", 40), ("cccccccc", 60)] {
+        c.elements.push(shape(id, x, ""));
+    }
+    for (e, b) in c
+        .elements
+        .iter_mut()
+        .zip([Border::Rounded, Border::Double, Border::Heavy])
+    {
+        if let Element::Shape(s) = e {
+            s.border = b;
+        }
+    }
+    let s = Session::new(c, View::default(), (80, 24));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 4, 20, 8), "╭──────╮");
+    assert_eq!(cols(&b, 6, 20, 8), "╰──────╯");
+    assert_eq!(cols(&b, 4, 40, 8), "╔══════╗");
+    assert_eq!(cols(&b, 5, 40, 8), "║      ║");
+    assert_eq!(cols(&b, 4, 60, 8), "┏━━━━━━┓");
+    assert_eq!(cols(&b, 5, 60, 8), "┃      ┃");
 }
 
 #[test]
@@ -501,6 +528,7 @@ fn long_shape_label_wraps_inside_the_shape() {
         h: 5,
         label: "ab cd ef".into(),
         stroke: Default::default(),
+        border: Default::default(),
     }));
     s.rev += 1;
     let b = draw(&s, &Overlay::None);
@@ -566,6 +594,7 @@ fn overview_session(x: i32, y: i32) -> Session {
         h: 3,
         label: "box".into(),
         stroke: Default::default(),
+        border: Default::default(),
     }));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.overview = true;
@@ -621,6 +650,7 @@ fn kind_session(kind: ShapeKind, w: i32, h: i32) -> Session {
         h,
         label: String::new(),
         stroke: Default::default(),
+        border: Default::default(),
     }));
     Session::new(c, View::default(), (80, 24))
 }

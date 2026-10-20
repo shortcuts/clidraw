@@ -1,7 +1,9 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE, UNDERLINE};
 use super::layout::refresh;
 use crate::input::{handles, EditTarget, Hit, Session};
-use crate::model::{label_pos, wrap, Element, End, Find, Line, LineKind, Shape, ShapeKind, Stroke};
+use crate::model::{
+    label_pos, wrap, Border, Element, End, Find, Line, LineKind, Shape, ShapeKind, Stroke,
+};
 use ratatui::style::Color;
 use std::cmp::Ordering;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
@@ -162,18 +164,21 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     grid.fill(x, y, w, h);
     match s.kind {
         ShapeKind::Rect | ShapeKind::Ellipse => {
-            let corners = if s.kind == ShapeKind::Rect {
-                ['┌', '┐', '└', '┘']
-            } else {
-                ['╭', '╮', '╰', '╯']
+            let (hz, vt, corners) = match (s.border, s.kind) {
+                (Border::Double, _) => ('═', '║', ['╔', '╗', '╚', '╝']),
+                (Border::Heavy, _) => ('━', '┃', ['┏', '┓', '┗', '┛']),
+                (Border::Rounded, _) | (Border::Single, ShapeKind::Ellipse) => {
+                    ('─', '│', ['╭', '╮', '╰', '╯'])
+                }
+                (Border::Single, _) => ('─', '│', ['┌', '┐', '└', '┘']),
             };
             for i in 1..w - 1 {
-                grid.set(x + i, y, dashed(s.stroke, '─'), flags);
-                grid.set(x + i, y + h - 1, dashed(s.stroke, '─'), flags);
+                grid.set(x + i, y, dashed(s.stroke, hz), flags);
+                grid.set(x + i, y + h - 1, dashed(s.stroke, hz), flags);
             }
             for j in 1..h - 1 {
-                grid.set(x, y + j, dashed(s.stroke, '│'), flags);
-                grid.set(x + w - 1, y + j, dashed(s.stroke, '│'), flags);
+                grid.set(x, y + j, dashed(s.stroke, vt), flags);
+                grid.set(x + w - 1, y + j, dashed(s.stroke, vt), flags);
             }
             for (c, (cx, cy)) in corners.into_iter().zip([
                 (x, y),

@@ -3,7 +3,7 @@ use clidraw::input::{
     Session, Tool,
 };
 use clidraw::model::{
-    Anchor, Canvas, Element, End, Id, Line, LineKind, Routing, Shape, ShapeKind, Stroke,
+    Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Routing, Shape, ShapeKind, Stroke,
 };
 use clidraw::ui::palette::Dock;
 use clidraw::view::View;
@@ -92,6 +92,7 @@ fn with_shape(id: &str, x: i32, y: i32) -> Session {
         h: 4,
         label: String::new(),
         stroke: Default::default(),
+        border: Default::default(),
     }));
     s
 }
@@ -172,6 +173,7 @@ fn ctrl_a_selects_everything() {
         h: 4,
         label: String::new(),
         stroke: Default::default(),
+        border: Default::default(),
     }));
     ctrl(&mut s, 'a');
     assert_eq!(
@@ -206,6 +208,7 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
         h: 4,
         label: String::new(),
         stroke: Default::default(),
+        border: Default::default(),
     }));
     pick(&mut s, Tool::Arrow);
     drag(&mut s, (18, 5), (43, 5));
@@ -249,6 +252,7 @@ fn releasing_an_arrow_on_a_border_cell_pins_that_side() {
             h: 4,
             label: String::new(),
             stroke: Default::default(),
+            border: Default::default(),
         }));
         pick(&mut s, Tool::Arrow);
         drag(&mut s, (18, 5), to);
@@ -393,6 +397,7 @@ fn shift_click_toggles_an_element_in_the_selection() {
         h: 4,
         label: String::new(),
         stroke: Default::default(),
+        border: Default::default(),
     }));
     click(&mut s, (22, 6), Instant::now());
     shift_drag(&mut s, (42, 10), (42, 10));
@@ -593,6 +598,35 @@ fn palette_option_sets_the_stroke_of_a_selected_line_and_undoes() {
 }
 
 #[test]
+fn palette_option_sets_the_border_of_a_selected_rect_and_undoes() {
+    let mut s = session();
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("rrrrrrrr"),
+        kind: ShapeKind::Rect,
+        x: 30,
+        y: 5,
+        w: 8,
+        h: 3,
+        label: String::new(),
+        stroke: Default::default(),
+        border: Default::default(),
+    }));
+    s.selection = vec![Id::from("rrrrrrrr")];
+    let border = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
+        Some(Element::Shape(sh)) => sh.border,
+        _ => panic!("no shape"),
+    };
+    // Three stroke options come first, then single, rounded, double, heavy.
+    let row = Tool::ALL.len() as u16 + 2 + 3;
+    click(&mut s, (2, row + 2), Instant::now());
+    assert_eq!(border(&s), Border::Double);
+    click(&mut s, (2, row + 3), Instant::now());
+    assert_eq!(border(&s), Border::Heavy);
+    s.undo();
+    assert_eq!(border(&s), Border::Double);
+}
+
+#[test]
 fn palette_option_sets_the_routing_of_a_selected_line_and_undoes() {
     let mut s = session();
     s.canvas
@@ -631,6 +665,7 @@ fn two_shapes_and_arrow_tool() -> Session {
         h: 4,
         label: String::new(),
         stroke: Default::default(),
+        border: Default::default(),
     }));
     pick(&mut s, Tool::Arrow);
     s
@@ -816,6 +851,7 @@ fn bracket_keys_reorder_the_selection_one_undo_step_per_press() {
         h: 4,
         label: String::new(),
         stroke: Default::default(),
+        border: Default::default(),
     }));
     let ids = |s: &Session| -> Vec<String> {
         s.canvas
@@ -859,6 +895,7 @@ fn diagram() -> Session {
         h: 4,
         label: String::new(),
         stroke: Default::default(),
+        border: Default::default(),
     }));
     s.canvas.elements.push(Element::Line(Line {
         id: Id::from("line0000"),
@@ -1150,6 +1187,7 @@ fn committing_a_wrapped_label_grows_the_shape_in_one_undo_step() {
         h: 3,
         label: String::new(),
         stroke: Default::default(),
+        border: Default::default(),
     }));
     s.start_edit_existing(Id::from("aaaaaaaa"));
     typed(&mut s, "ab");
@@ -1243,6 +1281,7 @@ fn three_shapes() -> Session {
             h: 4,
             label: String::new(),
             stroke: Default::default(),
+            border: Default::default(),
         }));
     }
     s
@@ -1340,6 +1379,7 @@ fn at(id: &str, x: i32, y: i32, w: i32, h: i32) -> Element {
         h,
         label: String::new(),
         stroke: Default::default(),
+        border: Default::default(),
     })
 }
 

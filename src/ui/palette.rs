@@ -1,6 +1,6 @@
 use super::grid::{Grid, REVERSE};
 use crate::input::{Session, Tool};
-use crate::model::{Element, LineKind, Routing, Stroke};
+use crate::model::{Border, Element, LineKind, Routing, Stroke};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dock {
@@ -23,6 +23,7 @@ pub enum Choice {
     Head(LineKind),
     Stroke(Stroke),
     Routing(Routing),
+    Border(Border),
 }
 
 impl Choice {
@@ -31,6 +32,10 @@ impl Choice {
             Choice::Stroke(Stroke::Solid) => "__ solid",
             Choice::Stroke(Stroke::Dashed) => "-- dashed",
             Choice::Stroke(Stroke::Dotted) => ".. dotted",
+            Choice::Border(Border::Single) => "┌┐ single",
+            Choice::Border(Border::Rounded) => "╭╮ round",
+            Choice::Border(Border::Double) => "╔╗ double",
+            Choice::Border(Border::Heavy) => "┏┓ heavy",
             Choice::Routing(Routing::Elbow) => "|_ elbow",
             Choice::Routing(Routing::Straight) => "/ direct",
             Choice::Head(LineKind::Line) => "-- none",
@@ -63,6 +68,17 @@ pub fn choices(s: &Session) -> Vec<Choice> {
     if has(|e| matches!(e, Element::Line(_))) {
         out.extend([Routing::Elbow, Routing::Straight].map(Choice::Routing));
     }
+    if has(|e| matches!(e, Element::Shape(s) if s.has_border())) {
+        out.extend(
+            [
+                Border::Single,
+                Border::Rounded,
+                Border::Double,
+                Border::Heavy,
+            ]
+            .map(Choice::Border),
+        );
+    }
     out
 }
 
@@ -82,6 +98,12 @@ fn active(s: &Session, c: Choice) -> bool {
                 Element::Text(_) => None,
             })
             .all(|k| k == st),
+        Choice::Border(b) => els
+            .filter_map(|e| match e {
+                Element::Shape(s) if s.has_border() => Some(s.border),
+                _ => None,
+            })
+            .all(|k| k == b),
         Choice::Routing(r) => els
             .filter_map(|e| match e {
                 Element::Line(l) => Some(l.routing),

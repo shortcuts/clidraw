@@ -149,6 +149,7 @@ fn area_app(dir: &std::path::Path) -> (App, Instant) {
                 h: 3,
                 label: label.into(),
                 stroke: Default::default(),
+                border: Default::default(),
             }),
         ));
     }
@@ -407,6 +408,7 @@ fn insert_shape(app: &mut App) {
             h: 3,
             label: String::new(),
             stroke: Default::default(),
+            border: Default::default(),
         }),
     ));
 }
@@ -521,6 +523,7 @@ fn drag_app(dir: &std::path::Path) -> App {
             h: 3,
             label: String::new(),
             stroke: Default::default(),
+            border: Default::default(),
         }),
     ));
     app
@@ -609,6 +612,7 @@ fn history_limit_from_config_survives_opening_another_canvas() {
             h: 3,
             label: String::new(),
             stroke: Default::default(),
+            border: Default::default(),
         };
         app.session.exec(Command::Insert(i, Element::Shape(shape)));
     }
@@ -666,6 +670,7 @@ fn moved_redraws_only_when_the_hovered_target_changes() {
             h: 4,
             label: String::new(),
             stroke: Default::default(),
+            border: Default::default(),
         }));
     let t0 = Instant::now();
     app.dirty = false;

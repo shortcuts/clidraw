@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-16 -32 368 144" width="368" height="144" font-family="monospace" font-size="14">
   <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z"/></marker></defs>
-  <rect x="0" y="0" width="96" height="80" fill="none" stroke="black"/>
+  <rect x="0" y="0" width="96" height="80" fill="none" stroke="black" stroke-width="3"/>
   <text x="48" y="40" text-anchor="middle" dominant-baseline="central">Start</text>
   <polygon points="288,0 336,40 288,80 240,40" fill="none" stroke="black"/>
   <text x="288" y="40" text-anchor="middle" dominant-baseline="central">OK?</text>

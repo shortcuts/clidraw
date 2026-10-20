@@ -1,5 +1,5 @@
 use crate::model::{
-    corners, label_pos, wrap, Canvas, Element, LineKind, Routing, ShapeKind, Stroke,
+    corners, label_pos, wrap, Border, Canvas, Element, LineKind, Routing, ShapeKind, Stroke,
 };
 use std::fmt::Write;
 
@@ -52,13 +52,23 @@ pub fn svg(canvas: &Canvas) -> String {
     for e in &canvas.elements {
         match e {
             Element::Shape(s) => {
-                let style = style(s.stroke);
+                let width = match s.border {
+                    Border::Double => " stroke-width=\"2\"",
+                    Border::Heavy => " stroke-width=\"3\"",
+                    _ => "",
+                };
+                let style = format!("{}{width}", style(s.stroke));
+                let rx = if s.border == Border::Rounded {
+                    " rx=\"8\""
+                } else {
+                    ""
+                };
                 let (x, y, w, h) = (s.x * CW, s.y * CH, s.w * CW, s.h * CH);
                 match s.kind {
                     ShapeKind::Rect => {
                         let _ = writeln!(
                             o,
-                            "  <rect x=\"{x}\" y=\"{y}\" width=\"{w}\" height=\"{h}\" {style}/>"
+                            "  <rect x=\"{x}\" y=\"{y}\" width=\"{w}\" height=\"{h}\"{rx} {style}/>"
                         );
                     }
                     ShapeKind::Ellipse => {

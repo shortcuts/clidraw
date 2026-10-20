@@ -13,6 +13,7 @@ fn shape(id: &str, x: i32) -> Element {
         h: 3,
         label: String::new(),
         stroke: Default::default(),
+        border: Default::default(),
     })
 }
 

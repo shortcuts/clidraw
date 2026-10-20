@@ -18,6 +18,7 @@ fn shape(id: &str, x: i32) -> Element {
         h: 3,
         label: "a".into(),
         stroke: Default::default(),
+        border: Default::default(),
     })
 }
 

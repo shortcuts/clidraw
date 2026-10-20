@@ -49,6 +49,23 @@ impl Routing {
     }
 }
 
+/// Border glyph set of a rect or ellipse. `Single` keeps the kind's own corners.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Border {
+    #[default]
+    Single,
+    Rounded,
+    Double,
+    Heavy,
+}
+
+impl Border {
+    fn is_single(&self) -> bool {
+        *self == Border::Single
+    }
+}
+
 /// Side of a shape a bound line end leaves from. `Auto` picks the side facing the other end.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -108,6 +125,8 @@ pub struct Shape {
     pub label: String,
     #[serde(default, skip_serializing_if = "Stroke::is_solid")]
     pub stroke: Stroke,
+    #[serde(default, skip_serializing_if = "Border::is_single")]
+    pub border: Border,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -153,6 +172,11 @@ impl Element {
 }
 
 impl Shape {
+    /// Only rect and ellipse draw a border glyph set.
+    pub fn has_border(&self) -> bool {
+        matches!(self.kind, ShapeKind::Rect | ShapeKind::Ellipse)
+    }
+
     /// Columns the slanted kinds cut off the bounding box at the top and bottom rows.
     pub fn inset(&self) -> i32 {
         match self.kind {
