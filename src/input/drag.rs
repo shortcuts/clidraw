@@ -67,6 +67,25 @@ fn span(fixed: i32, cursor: i32) -> (i32, i32) {
     )
 }
 
+/// Moves `cursor` onto the longer axis of its offset from `start`.
+fn axis_lock(start: P, cursor: P) -> P {
+    if (cursor.0 - start.0).abs() >= (cursor.1 - start.1).abs() {
+        (cursor.0, start.1)
+    } else {
+        (start.0, cursor.1)
+    }
+}
+
+/// Pushes `cursor` out to the longer side of the box it makes with `fixed`.
+fn square(fixed: P, cursor: P) -> P {
+    let (dx, dy) = (cursor.0 - fixed.0, cursor.1 - fixed.1);
+    let n = dx.abs().max(dy.abs());
+    (
+        fixed.0 + n * if dx < 0 { -1 } else { 1 },
+        fixed.1 + n * if dy < 0 { -1 } else { 1 },
+    )
+}
+
 fn set_rect(id: &Id, fixed: P, cursor: P) -> Command {
     let ((x, w), (y, h)) = (span(fixed.0, cursor.0), span(fixed.1, cursor.1));
     Command::SetRect {
@@ -110,7 +129,10 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
     match target {
         Target::PaletteTitle => Action::Palette,
         Target::Pan => Action::Pan(origin),
-        Target::Element(_) => Action::Move(w0),
+        Target::Element(_) => Action::Move {
+            start: w0,
+            last: w0,
+        },
         Target::Empty => Action::Band(w0),
         Target::Handle(Handle::End(side), id) => Action::EndDrag { id, side },
         Target::Handle(Handle::Corner(c), id) => {
@@ -175,7 +197,12 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             s.view.pan(last.0 - screen.0, last.1 - screen.1);
             *last = screen;
         }
-        Action::Move(last) => {
+        Action::Move { start, last } => {
+            let world = if s.shift {
+                axis_lock(*start, world)
+            } else {
+                world
+            };
             let (dx, dy) = (world.0 - last.0, world.1 - last.1);
             if (dx, dy) != (0, 0) {
                 let cmds = s
@@ -191,8 +218,22 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
                 *last = world;
             }
         }
-        Action::Resize { id, fixed } => run(s, inv, set_rect(id, *fixed, world)),
-        Action::Create { id, origin } => run(s, inv, set_rect(id, *origin, world)),
+        Action::Resize { id, fixed } => {
+            let world = if s.shift {
+                square(*fixed, world)
+            } else {
+                world
+            };
+            run(s, inv, set_rect(id, *fixed, world))
+        }
+        Action::Create { id, origin } => {
+            let world = if s.shift {
+                square(*origin, world)
+            } else {
+                world
+            };
+            run(s, inv, set_rect(id, *origin, world))
+        }
         Action::EndDrag { id, side } => {
             s.snap = hit::shape_at(&s.canvas, world);
             let end = End::Free(world.0, world.1);

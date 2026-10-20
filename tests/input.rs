@@ -333,6 +333,58 @@ fn rubber_band_selects_what_it_touches() {
     assert!(s.selection.is_empty());
 }
 
+fn shift_drag(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
+    let (t, m) = (Instant::now(), KeyModifiers::SHIFT);
+    mouse_mod(
+        s,
+        MouseEventKind::Down(MouseButton::Left),
+        m,
+        from.0,
+        from.1,
+        t,
+    );
+    mouse_mod(s, MouseEventKind::Drag(MouseButton::Left), m, to.0, to.1, t);
+    mouse_mod(s, MouseEventKind::Up(MouseButton::Left), m, to.0, to.1, t);
+}
+
+#[test]
+fn shift_click_toggles_an_element_in_the_selection() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("bbbbbbbb"),
+        kind: ShapeKind::Rect,
+        x: 40,
+        y: 9,
+        w: 8,
+        h: 4,
+        label: String::new(),
+    }));
+    click(&mut s, (22, 6), Instant::now());
+    shift_drag(&mut s, (42, 10), (42, 10));
+    assert_eq!(
+        s.selection,
+        vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")]
+    );
+    shift_drag(&mut s, (22, 6), (22, 6));
+    assert_eq!(s.selection, vec![Id::from("bbbbbbbb")]);
+}
+
+#[test]
+fn shift_drag_draws_a_square() {
+    let mut s = session();
+    pick(&mut s, Tool::Rect);
+    shift_drag(&mut s, (20, 5), (30, 8));
+    let sh = shapes(&s);
+    assert_eq!((sh[0].w, sh[0].h), (11, 11));
+}
+
+#[test]
+fn shift_drag_moves_along_one_axis() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    shift_drag(&mut s, (22, 6), (30, 8));
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (28, 5));
+}
+
 #[test]
 fn double_click_edits_a_label_within_400ms_only() {
     let mut s = with_shape("aaaaaaaa", 20, 5);

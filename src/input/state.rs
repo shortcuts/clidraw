@@ -26,7 +26,7 @@ pub(super) enum Target {
 pub(super) enum Action {
     Palette,
     Pan(P),
-    Move(P),
+    Move { start: P, last: P },
     Resize { id: Id, fixed: P },
     EndDrag { id: Id, side: Side },
     Band(P),
@@ -123,6 +123,7 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
         return s.scroll(step, 1, now);
     }
     let world = s.view.to_world(col, row);
+    s.shift = ev.modifiers.contains(KeyModifiers::SHIFT);
     match ev.kind {
         MouseEventKind::Down(MouseButton::Left) => down(s, (col, row), world, now),
         // Some terminals report the wrong button on Drag and Up.
@@ -168,7 +169,15 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         (_, Tool::Hand) => Target::Pan,
         (_, Tool::Line | Tool::Arrow) => Target::Draw(s.tool),
         (Hit::Element(id), _) => {
-            if !s.selection.contains(&id) {
+            if s.shift {
+                match s.selection.iter().position(|i| *i == id) {
+                    Some(at) => {
+                        s.selection.remove(at);
+                        return;
+                    }
+                    None => s.selection.push(id.clone()),
+                }
+            } else if !s.selection.contains(&id) {
                 s.selection = vec![id.clone()];
             }
             Target::Element(id)
@@ -233,7 +242,7 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
 
 pub(super) fn click(s: &mut Session, target: Target, world: P) {
     match target {
-        Target::Element(id) => s.selection = vec![id],
+        Target::Element(id) if !s.shift => s.selection = vec![id],
         Target::Empty if s.tool == Tool::Text => {
             s.start_edit_new(world);
             s.tool = Tool::Select;
@@ -244,7 +253,7 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
                 _ => vec![],
             }
         }
-        Target::PaletteTitle | Target::Pan | Target::Handle(..) => {}
+        Target::Element(_) | Target::PaletteTitle | Target::Pan | Target::Handle(..) => {}
     }
 }
 

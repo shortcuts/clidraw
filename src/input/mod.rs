@@ -101,6 +101,7 @@ pub struct Session {
     /// Time of the last wheel event and the notches in the current burst.
     burst: Option<(Instant, u32)>,
     cursor: (i32, i32),
+    shift: bool,
     last_pan: Option<Instant>,
 }
 
@@ -125,6 +126,7 @@ impl Session {
             last_down: None,
             burst: None,
             cursor: (0, 0),
+            shift: false,
             last_pan: None,
         }
     }
