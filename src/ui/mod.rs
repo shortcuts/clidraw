@@ -1,6 +1,7 @@
 mod canvas_view;
 mod grid;
 pub mod help;
+mod infobar;
 mod layout;
 pub mod menu;
 pub mod palette;
@@ -11,7 +12,7 @@ pub mod switcher;
 mod theme;
 
 use crate::input::Session;
-use grid::{Grid, REVERSE};
+use grid::Grid;
 pub use layout::Layout;
 pub use perf::Perf;
 use ratatui::buffer::Buffer;
@@ -61,6 +62,7 @@ pub fn render(
     overlay: &Overlay,
     status: Option<&Status>,
     perf: Option<&Perf>,
+    saved: bool,
 ) {
     let mut grid = Grid::new(area.width, area.height);
     let (no_color, colorterm) = (
@@ -73,6 +75,7 @@ pub fn render(
     if !s.overview {
         palette::draw(&mut grid, s);
     }
+    infobar::draw(&mut grid, s, overlay, saved);
     if !matches!(overlay, Overlay::None) {
         grid.dim_all();
     }
@@ -85,13 +88,7 @@ pub fn render(
         Overlay::Help(p) => help::draw(&mut grid, *p),
     }
     if let Some(st) = status {
-        let row = grid.h - 1;
-        grid.fill(0, row, grid.w, 1);
-        let flags = match st.severity {
-            Severity::Notice => 0,
-            Severity::Error => REVERSE,
-        };
-        grid.text(0, row, &st.text, flags);
+        infobar::status(&mut grid, s, st, saved);
     }
     if let Some(p) = perf {
         p.draw(&mut grid, s.canvas.elements.len());

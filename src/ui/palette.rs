@@ -160,7 +160,7 @@ pub fn cells(dock: Dock, screen: (u16, u16), opts: &[Choice]) -> Vec<(PaletteHit
             let y = if dock == Dock::Top {
                 0
             } else {
-                (sh - 1).max(0)
+                (sh - 2).max(0)
             };
             out.push((PaletteHit::Title, 0, y, 3));
             let mut x = 3;

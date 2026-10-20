@@ -729,3 +729,37 @@ fn slash_command_selects_matches_in_turn_and_centers_the_view() {
     run(&mut app, "/zzz");
     assert!(app.status.is_some());
 }
+
+fn last_row(app: &App) -> String {
+    let area = Rect::new(0, 0, 80, 24);
+    let mut buf = Buffer::empty(area);
+    app.render(&mut buf, area);
+    (0..80).map(|x| buf[(x, 23)].symbol().to_string()).collect()
+}
+
+#[test]
+fn info_bar_shows_unsaved_until_the_save() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    assert!(last_row(&app).ends_with("saved"));
+    app.session.exec(Command::Insert(
+        0,
+        Element::Shape(Shape {
+            id: "aaaaaaaa".into(),
+            kind: ShapeKind::Rect,
+            x: 1,
+            y: 1,
+            w: 5,
+            h: 3,
+            label: String::new(),
+            stroke: Default::default(),
+            border: Default::default(),
+            color: None,
+            fill: None,
+        }),
+    ));
+    assert!(last_row(&app).ends_with("unsaved"), "{}", last_row(&app));
+    app.save();
+    let r = last_row(&app);
+    assert!(r.ends_with("saved") && !r.ends_with("unsaved"), "{r}");
+}

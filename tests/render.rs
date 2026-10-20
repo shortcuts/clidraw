@@ -1,4 +1,4 @@
-use clidraw::input::{Corner, Handle, Hit, Session};
+use clidraw::input::{Corner, Handle, Hit, Session, Tool};
 use clidraw::model::{
     Anchor, Border, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Routing, Shape,
     ShapeKind, Stroke,
@@ -32,7 +32,7 @@ fn draw(s: &Session, overlay: &Overlay) -> Buffer {
     let mut t = Terminal::new(TestBackend::new(80, 24)).unwrap();
     t.draw(|f| {
         let area = f.area();
-        ui::render(f.buffer_mut(), area, s, overlay, None, None)
+        ui::render(f.buffer_mut(), area, s, overlay, None, None, true)
     })
     .unwrap();
     t.backend().buffer().clone()
@@ -386,7 +386,15 @@ fn help_draws_on_a_tiny_screen() {
     let s = Session::new(Canvas::default(), View::default(), (80, 8));
     t.draw(|f| {
         let area = f.area();
-        ui::render(f.buffer_mut(), area, &s, &Overlay::Help(0), None, None)
+        ui::render(
+            f.buffer_mut(),
+            area,
+            &s,
+            &Overlay::Help(0),
+            None,
+            None,
+            true,
+        )
     })
     .unwrap();
 }
@@ -473,7 +481,15 @@ fn perf_row_shows_the_last_120_frames_at_the_top_right() {
     let mut t = Terminal::new(TestBackend::new(80, 24)).unwrap();
     t.draw(|f| {
         let area = f.area();
-        ui::render(f.buffer_mut(), area, &s, &Overlay::None, None, Some(&perf))
+        ui::render(
+            f.buffer_mut(),
+            area,
+            &s,
+            &Overlay::None,
+            None,
+            Some(&perf),
+            true,
+        )
     })
     .unwrap();
     let b = t.backend().buffer().clone();
@@ -753,4 +769,73 @@ fn new_kinds_draw_at_minimum_and_odd_sizes_without_panicking() {
             draw(&kind_session(kind, w, h), &Overlay::None);
         }
     }
+}
+
+fn bar(s: &Session, w: u16, saved: bool) -> String {
+    let mut t = Terminal::new(TestBackend::new(w, 24)).unwrap();
+    t.draw(|f| {
+        let area = f.area();
+        ui::render(f.buffer_mut(), area, s, &Overlay::None, None, None, saved)
+    })
+    .unwrap();
+    let b = t.backend().buffer();
+    (0..w).map(|x| b[(x, 23)].symbol().to_string()).collect()
+}
+
+fn two_shapes() -> Session {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "a"));
+    c.elements.push(shape("bbbbbbbb", 40, "b"));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.selection = vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")];
+    s
+}
+
+#[test]
+fn info_bar_idle_shows_hints_left_and_tool_with_save_state_right() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let r = bar(&s, 80, true);
+    assert!(
+        r.starts_with("? help  : command  Ctrl-f find  Esc menu  z overview"),
+        "{r}"
+    );
+    assert!(r.ends_with("Select  saved"), "{r}");
+    assert!(bar(&s, 80, false).ends_with("Select  unsaved"));
+}
+
+#[test]
+fn info_bar_hints_follow_the_state() {
+    let mut s = two_shapes();
+    let r = bar(&s, 80, true);
+    assert!(r.starts_with("Del delete"), "{r}");
+    assert!(r.contains("2 sel"), "{r}");
+    s.tool = Tool::Rect;
+    assert!(bar(&s, 80, true).starts_with("drag draw"));
+    s.tool = Tool::Hand;
+    assert!(bar(&s, 80, true).starts_with("drag pan"));
+    s.tool = Tool::Select;
+    s.start_edit_new((5, 5));
+    assert!(bar(&s, 80, true).starts_with("Enter commit"));
+}
+
+#[test]
+fn info_bar_drops_the_right_side_first_on_a_narrow_screen() {
+    let s = two_shapes();
+    let r = bar(&s, 40, true);
+    assert!(r.ends_with("saved"), "{r}");
+    assert!(!r.contains("2 sel"), "{r}");
+    assert!(r.starts_with("Del delete  Shift+arrows connect"), "{r}");
+}
+
+#[test]
+fn bottom_dock_palette_leaves_the_bar_row_alone() {
+    let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
+    s.dock = ui::palette::Dock::Bottom;
+    let b = draw(&s, &Overlay::None);
+    assert!(
+        row(&b, 22).starts_with(" Select") || row(&b, 22).contains("Select"),
+        "{}",
+        row(&b, 22)
+    );
+    assert!(row(&b, 23).starts_with("? help"));
 }

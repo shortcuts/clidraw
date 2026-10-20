@@ -97,6 +97,7 @@ impl App {
             &self.overlay,
             self.status.as_ref(),
             self.perf.as_ref(),
+            self.saved_rev == self.session.rev,
         );
     }
 
