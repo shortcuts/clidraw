@@ -1231,3 +1231,85 @@ fn g_types_a_letter_while_editing_a_label() {
     assert!(s.canvas.groups.is_empty());
     assert_eq!(s.edit.as_ref().unwrap().buf, "g");
 }
+
+fn at(id: &str, x: i32, y: i32, w: i32, h: i32) -> Element {
+    Element::Shape(Shape {
+        id: Id::from(id),
+        kind: ShapeKind::Rect,
+        x,
+        y,
+        w,
+        h,
+        label: String::new(),
+    })
+}
+
+fn boxes(s: &Session) -> Vec<(i32, i32)> {
+    shapes(s).iter().map(|s| (s.x, s.y)).collect()
+}
+
+fn aligned(keys: &str, selected: usize) -> Session {
+    let mut s = session();
+    s.canvas.elements = vec![at("aaaaaaaa", 2, 3, 4, 2), at("bbbbbbbb", 20, 10, 10, 6)];
+    s.canvas.elements.push(at("cccccccc", 12, 30, 6, 4));
+    s.selection = s
+        .canvas
+        .elements
+        .iter()
+        .take(selected)
+        .map(|e| e.id().clone())
+        .collect();
+    for c in keys.chars() {
+        key(&mut s, KeyCode::Char(c));
+    }
+    s
+}
+
+#[test]
+fn align_keys_line_up_the_selection() {
+    assert_eq!(boxes(&aligned("<", 3)), [(2, 3), (2, 10), (2, 30)]);
+    assert_eq!(boxes(&aligned(">", 3)), [(26, 3), (20, 10), (24, 30)]);
+    assert_eq!(boxes(&aligned("^", 3)), [(2, 3), (20, 3), (12, 3)]);
+    assert_eq!(boxes(&aligned("_", 3)), [(2, 32), (20, 28), (12, 30)]);
+    assert_eq!(boxes(&aligned("|", 3)), [(14, 3), (11, 10), (13, 30)]);
+    assert_eq!(boxes(&aligned("-", 3)), [(2, 17), (20, 15), (12, 16)]);
+}
+
+#[test]
+fn distribute_keys_even_the_gaps_and_undo_in_one_step() {
+    let mut s = aligned("=", 3);
+    assert_eq!(boxes(&s), [(2, 3), (20, 10), (10, 30)]);
+    ctrl(&mut s, 'z');
+    assert_eq!(boxes(&s), [(2, 3), (20, 10), (12, 30)]);
+    assert_eq!(boxes(&aligned("#", 3)), [(2, 3), (20, 14), (12, 30)]);
+}
+
+#[test]
+fn align_needs_two_and_distribute_three() {
+    assert_eq!(boxes(&aligned("<=#", 1)), boxes(&aligned("", 0)));
+    assert_eq!(boxes(&aligned("=", 2)), boxes(&aligned("", 0)));
+}
+
+#[test]
+fn bound_arrow_follows_an_aligned_shape() {
+    let mut s = aligned("", 0);
+    s.canvas.elements.push(Element::Line(Line {
+        id: Id::from("llllllll"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Free(40, 40),
+        label: String::new(),
+        label_at: None,
+    }));
+    let before = s.canvas.route(match &s.canvas.elements[3] {
+        Element::Line(l) => l,
+        _ => unreachable!(),
+    });
+    s.selection = vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")];
+    key(&mut s, KeyCode::Char('>'));
+    let after = s.canvas.route(match &s.canvas.elements[3] {
+        Element::Line(l) => l,
+        _ => unreachable!(),
+    });
+    assert_ne!(before, after);
+}

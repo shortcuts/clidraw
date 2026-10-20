@@ -29,6 +29,8 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 |---|---|
 | `Esc` | Cancel the gesture, else open or close the menu |
 | `Delete` / `Backspace` | Delete the selection |
+| `<` `|` `>` `^` `-` `_` | Align the selection left, center, right, top, middle, bottom |
+| `=` / `#` | Distribute the selection evenly, horizontally / vertically |
 | `g` / `G` | Group, ungroup the selection |
 | `]` / `[` | Raise / lower the selection one step |
 | `}` / `{` | Send the selection to the front / back |

@@ -15,6 +15,18 @@ pub enum Z {
     Back,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Align {
+    Left,
+    Center,
+    Right,
+    Top,
+    Middle,
+    Bottom,
+    DistributeH,
+    DistributeV,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Command {
     Insert(usize, Element),
@@ -154,6 +166,70 @@ impl Canvas {
             }
         }
         cmds
+    }
+
+    /// Moves the shapes and text in `selection`; lines are skipped because bound ends follow their
+    /// shapes. Empty when fewer than two items (three to distribute) exist or nothing moves.
+    pub fn align(&self, selection: &[Id], a: Align) -> Vec<Command> {
+        let items: Vec<_> = self
+            .elements
+            .iter()
+            .filter(|e| !matches!(e, Element::Line(_)) && selection.contains(e.id()))
+            .map(|e| (e.id().clone(), self.bounds(e)))
+            .collect();
+        let min = if matches!(a, Align::DistributeH | Align::DistributeV) {
+            3
+        } else {
+            2
+        };
+        if items.len() < min {
+            return vec![];
+        }
+        let left = items.iter().map(|i| i.1 .0).min().unwrap_or(0);
+        let top = items.iter().map(|i| i.1 .1).min().unwrap_or(0);
+        let right = items.iter().map(|i| i.1 .0 + i.1 .2).max().unwrap_or(0);
+        let bottom = items.iter().map(|i| i.1 .1 + i.1 .3).max().unwrap_or(0);
+        let mut moves: Vec<(Id, i32, i32)> = match a {
+            Align::DistributeH | Align::DistributeV => {
+                let h = a == Align::DistributeH;
+                let (start, end) = if h { (left, right) } else { (top, bottom) };
+                let size = |b: &(i32, i32, i32, i32)| if h { b.2 } else { b.3 };
+                let mut sorted = items;
+                sorted.sort_by_key(|i| if h { i.1 .0 } else { i.1 .1 });
+                let free = end - start - sorted.iter().map(|i| size(&i.1)).sum::<i32>();
+                let last = sorted.len() as i32 - 1;
+                let mut at = start;
+                sorted
+                    .into_iter()
+                    .enumerate()
+                    .map(|(n, (id, b))| {
+                        let to = at + free * n as i32 / last;
+                        at += size(&b);
+                        let d = to - if h { b.0 } else { b.1 };
+                        (id, if h { d } else { 0 }, if h { 0 } else { d })
+                    })
+                    .collect()
+            }
+            _ => items
+                .into_iter()
+                .map(|(id, (x, y, w, h))| {
+                    let (dx, dy) = match a {
+                        Align::Left => (left - x, 0),
+                        Align::Center => (left + (right - left - w) / 2 - x, 0),
+                        Align::Right => (right - w - x, 0),
+                        Align::Top => (0, top - y),
+                        Align::Middle => (0, top + (bottom - top - h) / 2 - y),
+                        _ => (0, bottom - h - y),
+                    };
+                    (id, dx, dy)
+                })
+                .collect(),
+        };
+        moves.retain(|m| (m.1, m.2) != (0, 0));
+        moves
+            .into_iter()
+            .map(|(id, dx, dy)| Command::Move { id, dx, dy })
+            .collect()
     }
 
     /// Applies the command and returns the command that undoes it.

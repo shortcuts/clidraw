@@ -240,19 +240,19 @@ fn help_canvas_row_lists_every_command_line_verb() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
     assert!(
-        row(&b, 19).contains("Commands q w wq e u redo"),
+        row(&b, 20).contains("Commands q w wq e u redo"),
         "{}",
-        row(&b, 19)
+        row(&b, 20)
     );
-    assert_eq!(cols(&b, 19, 62, 1), "│");
+    assert_eq!(cols(&b, 20, 62, 1), "│");
 }
 
 #[test]
 fn help_canvas_esc_row_stays_inside_the_border() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
-    assert!(row(&b, 5).contains("│ Esc"), "{}", row(&b, 5));
-    assert_eq!(cols(&b, 5, 62, 1), "│", "{}", row(&b, 5));
+    assert!(row(&b, 4).contains("│ Esc"), "{}", row(&b, 4));
+    assert_eq!(cols(&b, 4, 62, 1), "│", "{}", row(&b, 4));
 }
 
 #[test]
@@ -402,7 +402,7 @@ fn edit_caret_is_a_reversed_cell_after_the_text() {
     let b = draw(&s, &Overlay::None);
     assert_eq!(cols(&b, 5, 22, 3), "box");
     assert_eq!(reversed_blanks(&b, 5), vec![25]);
-    assert!(!row(&b, 5).contains('_'));
+    assert!(!row(&b, 4).contains('_'));
 }
 
 #[test]
