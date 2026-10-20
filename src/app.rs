@@ -1,7 +1,8 @@
 use crate::input::{handle_key, handle_mouse, handle_paste, scroll_step, KeyOutcome, Session};
+use crate::model::Z;
 use crate::names;
 use crate::store::{State, Store, StoreError};
-use crate::ui::menu::{self, MenuItem};
+use crate::ui::menu::{self, Context, ContextItem, MenuItem};
 use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
 use crate::ui::scope::{self, ExportFormat};
 use crate::ui::switcher::{self, Switcher, SwitcherHit};
@@ -161,6 +162,11 @@ impl App {
                 if matches!(self.overlay, Overlay::None) && self.pick_mouse(m) {
                     return;
                 }
+                if m.kind == MouseEventKind::Down(MouseButton::Right)
+                    && matches!(self.overlay, Overlay::None | Overlay::Context(_))
+                {
+                    return self.open_context(i32::from(m.column), i32::from(m.row));
+                }
                 match self.overlay {
                     Overlay::None => {
                         let before = (self.session.hover.clone(), self.session.palette_hover);
@@ -231,6 +237,11 @@ impl App {
                 None if !menu::inside(screen, col, row) => self.overlay = Overlay::None,
                 None => {}
             },
+            Overlay::Context(c) => match c.entry_at(col, row) {
+                Some(item) => self.context_item(item),
+                None if !c.inside(col, row) => self.overlay = Overlay::None,
+                None => {}
+            },
             Overlay::Scope(format) => match scope::entry_at(screen, col, row) {
                 Some(item) => self.scope_item(item, *format),
                 None if !scope::inside(screen, col, row) => self.overlay = Overlay::None,
@@ -254,13 +265,54 @@ impl App {
         self.overlay = Overlay::None;
         match item {
             MenuItem::Canvases => self.open_switcher(),
-            MenuItem::FitAll => {
-                let bounds = self.session.canvas.all_bounds();
-                self.session.view.fit_all(bounds, self.session.screen);
-            }
+            MenuItem::FitAll => self.fit_all(),
             MenuItem::ExportSvg => self.overlay = Overlay::Scope(ExportFormat::Svg),
             MenuItem::ExportMermaid => self.overlay = Overlay::Scope(ExportFormat::Mermaid),
             MenuItem::Quit => self.quit = true,
+        }
+    }
+
+    fn fit_all(&mut self) {
+        let bounds = self.session.canvas.all_bounds();
+        self.session.view.fit_all(bounds, self.session.screen);
+    }
+
+    fn open_context(&mut self, col: i32, row: i32) {
+        self.overlay = Overlay::None;
+        if self.pick.is_some() {
+            return;
+        }
+        let (at, screen) = ((col, row), self.session.screen);
+        self.overlay = match self.session.right_down(col, row) {
+            None => return,
+            Some(true) => Overlay::Context(Context::for_element(
+                at,
+                screen,
+                self.session.selection.len() == 1,
+            )),
+            Some(false) => {
+                let can_paste = !self.session.clipboard.elements.is_empty();
+                Overlay::Context(Context::for_canvas(at, screen, can_paste))
+            }
+        };
+    }
+
+    fn context_item(&mut self, item: ContextItem) {
+        self.overlay = Overlay::None;
+        let s = &mut self.session;
+        match item {
+            ContextItem::EditLabel => {
+                if let Some(id) = s.selection.first().cloned() {
+                    s.start_edit_existing(id);
+                }
+            }
+            ContextItem::Duplicate => s.duplicate(),
+            ContextItem::Delete => s.delete_selection(),
+            ContextItem::Front => s.reorder(Z::Front),
+            ContextItem::Back => s.reorder(Z::Back),
+            ContextItem::Paste => s.paste(),
+            ContextItem::SelectAll => s.select_all(),
+            ContextItem::FitAll => self.fit_all(),
         }
     }
 

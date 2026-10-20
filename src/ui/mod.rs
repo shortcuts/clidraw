@@ -21,6 +21,7 @@ use ratatui::layout::Rect;
 pub enum Overlay {
     None,
     Menu,
+    Context(menu::Context),
     Scope(scope::ExportFormat),
     Switcher(switcher::Switcher),
     Prompt(prompt::Prompt),
@@ -82,6 +83,7 @@ pub fn render(
     match overlay {
         Overlay::None => {}
         Overlay::Menu => menu::draw(&mut grid),
+        Overlay::Context(c) => c.draw(&mut grid),
         Overlay::Scope(_) => scope::draw(&mut grid),
         Overlay::Switcher(sw) => switcher::draw(&mut grid, sw),
         Overlay::Prompt(p) => prompt::draw(&mut grid, p),

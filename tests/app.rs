@@ -802,3 +802,145 @@ fn palette_hover_redraws_once_and_underlines_the_cell() {
     app.on_events(vec![mouse(MouseEventKind::Moved, c, r)], t0);
     assert!(!app.dirty, "same cell stays clean");
 }
+
+fn shape_at(id: &str, x: i32, y: i32) -> Command {
+    Command::Insert(
+        0,
+        Element::Shape(Shape {
+            id: Id::from(id),
+            kind: ShapeKind::Rect,
+            x,
+            y,
+            w: 8,
+            h: 4,
+            label: String::new(),
+            stroke: Default::default(),
+            border: Default::default(),
+            color: None,
+            fill: None,
+            align: Default::default(),
+            bold: false,
+        }),
+    )
+}
+
+fn right_click(app: &mut App, col: u16, row: u16, t: Instant) {
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Right), col, row), t);
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Right), col, row), t);
+}
+
+fn context_open(app: &App) -> bool {
+    matches!(app.overlay, clidraw::ui::Overlay::Context(_))
+}
+
+fn shape_ids(app: &App) -> Vec<String> {
+    app.session
+        .canvas
+        .elements
+        .iter()
+        .map(|e| e.id().to_string())
+        .collect()
+}
+
+#[test]
+fn right_click_menu_runs_element_entries() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    right_click(&mut app, 22, 6, now);
+    assert!(context_open(&app));
+    assert_eq!(app.session.selection, vec![Id::from("aaaaaaaa")]);
+    click(&mut app, 24, 8, now);
+    assert!(!context_open(&app));
+    assert_eq!(app.session.canvas.elements.len(), 2);
+    app.on_event(
+        Event::Key(KeyEvent::new(KeyCode::Char('z'), KeyModifiers::CONTROL)),
+        now,
+    );
+    assert_eq!(app.session.canvas.elements.len(), 1);
+
+    right_click(&mut app, 22, 6, now);
+    click(&mut app, 24, 9, now);
+    assert!(app.session.canvas.elements.is_empty());
+}
+
+#[test]
+fn right_click_menu_brings_a_shape_to_front() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("bbbbbbbb", 40, 5));
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    assert_eq!(shape_ids(&app), ["aaaaaaaa", "bbbbbbbb"]);
+    right_click(&mut app, 22, 6, now);
+    click(&mut app, 24, 10, now);
+    assert_eq!(shape_ids(&app), ["bbbbbbbb", "aaaaaaaa"]);
+}
+
+#[test]
+fn right_click_on_canvas_offers_paste_only_with_a_clipboard() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    right_click(&mut app, 60, 15, now);
+    let clidraw::ui::Overlay::Context(c) = &app.overlay else {
+        panic!("no menu")
+    };
+    assert_eq!(c.labels(), ["Select all", "Fit all"]);
+
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(!context_open(&app));
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    app.session.copy();
+    right_click(&mut app, 60, 15, now);
+    let clidraw::ui::Overlay::Context(c) = &app.overlay else {
+        panic!("no menu")
+    };
+    assert_eq!(c.labels(), ["Paste", "Select all", "Fit all"]);
+    click(&mut app, 62, 16, now);
+    assert_eq!(app.session.canvas.elements.len(), 2);
+}
+
+#[test]
+fn right_click_menu_selects_all() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    app.session.exec(shape_at("bbbbbbbb", 40, 5));
+    right_click(&mut app, 60, 15, now);
+    click(&mut app, 62, 15 + 1, now);
+    assert_eq!(app.session.selection.len(), 2);
+}
+
+#[test]
+fn right_click_menu_closes_and_moves() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    right_click(&mut app, 22, 6, now);
+    click(&mut app, 70, 20, now);
+    assert!(!context_open(&app));
+    right_click(&mut app, 22, 6, now);
+    right_click(&mut app, 60, 15, now);
+    let clidraw::ui::Overlay::Context(c) = &app.overlay else {
+        panic!("no menu")
+    };
+    assert_eq!(c.at, (60, 15));
+}
+
+#[test]
+fn right_click_while_editing_opens_nothing() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    click(&mut app, 22, 6, now);
+    click(&mut app, 22, 6, now);
+    assert!(app.session.edit.is_some());
+    right_click(&mut app, 22, 6, now);
+    assert!(!context_open(&app));
+}

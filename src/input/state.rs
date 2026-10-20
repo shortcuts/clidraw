@@ -383,7 +383,7 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
 }
 
 impl Session {
-    fn select_group_of(&mut self, id: Id) {
+    pub(super) fn select_group_of(&mut self, id: Id) {
         self.selection = vec![id];
         self.canvas.expand_groups(&mut self.selection);
     }

@@ -77,9 +77,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             KeyCode::Char('c') => return KeyOutcome::Quit,
             KeyCode::Char('z') => return notice(s.undo()),
             KeyCode::Char('y') => return notice(s.redo()),
-            KeyCode::Char('a') => {
-                s.selection = s.canvas.elements.iter().map(|e| e.id().clone()).collect()
-            }
+            KeyCode::Char('a') => s.select_all(),
             KeyCode::Char('f') => return KeyOutcome::Find,
             KeyCode::Char('x') => s.cut(),
             KeyCode::Char('v') => s.paste(),
@@ -111,10 +109,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
                 '}' => Z::Front,
                 _ => Z::Back,
             };
-            let cmds = s.canvas.z_order(&s.selection, z);
-            if !cmds.is_empty() {
-                s.exec(Command::Batch(cmds));
-            }
+            s.reorder(z);
         }
         KeyCode::Char(c @ ('<' | '|' | '>' | '^' | '-' | '_' | '=' | '#'))
             if matches!(s.gesture, Gesture::Idle) && !s.selection.is_empty() =>
@@ -180,10 +175,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
                 .collect();
             s.exec(Command::Batch(cmds));
         }
-        KeyCode::Delete | KeyCode::Backspace if !s.selection.is_empty() => {
-            let cmds = s.selection.iter().cloned().map(Command::Remove).collect();
-            s.exec(Command::Batch(cmds));
-        }
+        KeyCode::Delete | KeyCode::Backspace if !s.selection.is_empty() => s.delete_selection(),
         _ => {}
     }
     KeyOutcome::None

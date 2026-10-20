@@ -1671,3 +1671,17 @@ fn palette_cycles_label_align_and_ctrl_b_toggles_bold() {
     ctrl(&mut s, 'b');
     assert_eq!(get(&s), (TextAlign::Right, false));
 }
+
+#[test]
+fn right_down_selects_unselected_keeps_selected_and_ignores_empty() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    assert_eq!(s.right_down(70, 20), Some(false));
+    assert!(s.selection.is_empty());
+    assert_eq!(s.right_down(22, 6), Some(true));
+    assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
+    s.selection = vec![Id::from("zzzzzzzz"), Id::from("aaaaaaaa")];
+    assert_eq!(s.right_down(22, 6), Some(true));
+    assert_eq!(s.selection.len(), 2);
+    s.overview = true;
+    assert_eq!(s.right_down(22, 6), None);
+}

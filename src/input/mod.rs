@@ -11,9 +11,9 @@ pub use state::{handle_mouse, scroll_step};
 
 use crate::model::{
     wrap, Anchor, Canvas, Command, Element, End, History, Id, Line, LineKind, Routing, Shape,
-    Stroke, Text,
+    Stroke, Text, Z,
 };
-use crate::ui::palette::{Dock, PaletteHit};
+use crate::ui::palette::{self, Dock, PaletteHit};
 use crate::ui::Layout;
 use crate::view::View;
 use state::{Action, Gesture};
@@ -296,6 +296,48 @@ impl Session {
             })
             .collect();
         self.exec(Command::Batch(cmds));
+    }
+
+    pub fn select_all(&mut self) {
+        self.selection = self
+            .canvas
+            .elements
+            .iter()
+            .map(|e| e.id().clone())
+            .collect();
+    }
+
+    pub fn delete_selection(&mut self) {
+        let cmds = self
+            .selection
+            .iter()
+            .cloned()
+            .map(Command::Remove)
+            .collect();
+        self.exec(Command::Batch(cmds));
+    }
+
+    pub fn reorder(&mut self, z: Z) {
+        let cmds = self.canvas.z_order(&self.selection, z);
+        if !cmds.is_empty() {
+            self.exec(Command::Batch(cmds));
+        }
+    }
+
+    /// Selects what a right click lands on. None when no menu may open; Some(true) on an element.
+    pub fn right_down(&mut self, col: i32, row: i32) -> Option<bool> {
+        if self.overview || !self.idle() || palette::hit(self, col, row).is_some() {
+            return None;
+        }
+        let world = self.view.to_world(col, row);
+        let id = match hit::test(&self.canvas, &self.selection, world) {
+            Hit::Element(id) | Hit::Handle(_, id) => id,
+            Hit::Empty => return Some(false),
+        };
+        if !self.selection.contains(&id) {
+            self.select_group_of(id);
+        }
+        Some(true)
     }
 
     pub fn duplicate(&mut self) {
