@@ -114,6 +114,35 @@ fn frame_fits_the_budget_on_5000_elements() {
 
 #[test]
 #[ignore = "needs a release build: run `make perf`"]
+fn frame_fits_the_budget_on_2500_labelled_shapes() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = busy_app_of(t.path(), 2);
+    app.session.canvas.elements.clear();
+    for i in 0..2500 {
+        app.session.canvas.elements.push(Element::Shape(Shape {
+            id: Id::from(format!("s{i:07}").as_str()),
+            kind: ShapeKind::Rect,
+            x: i % 4,
+            y: i % 40,
+            w: 100,
+            h: 3,
+            label: "x".repeat(80),
+        }));
+    }
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            frame(&app, &mut term);
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median frame {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
 fn drag_step_fits_the_budget_on_5000_elements() {
     let t = tempfile::tempdir().unwrap();
     let mut app = busy_app(t.path());

@@ -56,6 +56,17 @@ fn draws_palette_and_a_labelled_rect() {
 }
 
 #[test]
+fn wide_char_that_overflows_the_border_is_dropped() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "aaaaa你"));
+    c.elements.push(shape("bbbbbbbb", 40, "abc你你"));
+    let s = Session::new(c, View::default(), (80, 24));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 5, 20, 8), "│aaaaa │");
+    assert_eq!(cols(&b, 5, 40, 8), "│abc你  │");
+}
+
+#[test]
 fn panned_view_shifts_the_drawing_and_handles_negative_coordinates() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", -10, ""));

@@ -3,7 +3,7 @@ use super::layout::refresh;
 use crate::input::{handles, EditTarget, Session};
 use crate::model::{label_pos, Element, End, Find, Line, LineKind, Shape, ShapeKind};
 use ratatui::style::Color;
-use unicode_width::UnicodeWidthStr;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
     let view = s.view;
@@ -111,14 +111,17 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     }
     let room = (w - 2).max(0) as usize;
     let mut shown = String::new();
+    let mut used = 0;
     for ch in label.chars() {
-        if (shown.clone() + &ch.to_string()).width() > room {
+        let cw = ch.width().unwrap_or(0);
+        if used + cw > room {
             break;
         }
+        used += cw;
         shown.push(ch);
     }
     grid.text(
-        x + 1 + (room as i32 - shown.width() as i32) / 2,
+        x + 1 + (room as i32 - used as i32) / 2,
         y + h / 2,
         &shown,
         flags,
