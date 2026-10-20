@@ -153,6 +153,16 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             }
         }
         KeyCode::Left | KeyCode::Right | KeyCode::Up | KeyCode::Down
+            if k.modifiers.contains(KeyModifiers::SHIFT) && matches!(s.gesture, Gesture::Idle) =>
+        {
+            s.connect(match k.code {
+                KeyCode::Left => (-1, 0),
+                KeyCode::Right => (1, 0),
+                KeyCode::Up => (0, -1),
+                _ => (0, 1),
+            });
+        }
+        KeyCode::Left | KeyCode::Right | KeyCode::Up | KeyCode::Down
             if matches!(s.gesture, Gesture::Idle) && !s.selection.is_empty() =>
         {
             let (dx, dy) = match k.code {

@@ -9,7 +9,10 @@ pub use hit::{handles, shape_at, Corner, Handle, Hit};
 pub use keys::{handle_key, handle_paste, KeyOutcome};
 pub use state::{handle_mouse, scroll_step};
 
-use crate::model::{wrap, Canvas, Command, Element, History, Id, Text};
+use crate::model::{
+    wrap, Anchor, Canvas, Command, Element, End, History, Id, Line, LineKind, Routing, Shape,
+    Stroke, Text,
+};
 use crate::ui::palette::Dock;
 use crate::ui::Layout;
 use crate::view::View;
@@ -212,6 +215,41 @@ impl Session {
         let new = self.clipboard.clone_canvas(&ids, 2, 1);
         self.clipboard = new.clone();
         self.insert(new);
+    }
+
+    /// Adds a copy of the selected shape one gap away in `(dx, dy)`, joins them with an arrow, then edits its label.
+    pub fn connect(&mut self, (dx, dy): (i32, i32)) {
+        let [id] = self.selection.as_slice() else {
+            return;
+        };
+        let Some(from) = self.canvas.shape(id).cloned() else {
+            return;
+        };
+        let (new_id, line_id) = (Id::random(), Id::random());
+        let to = Shape {
+            id: new_id.clone(),
+            x: from.x + dx * (from.w + 4),
+            y: from.y + dy * (from.h + 2),
+            label: String::new(),
+            ..from.clone()
+        };
+        let line = Line {
+            id: line_id,
+            kind: LineKind::Arrow,
+            from: End::Bound(from.id, Anchor::Auto),
+            to: End::Bound(new_id.clone(), Anchor::Auto),
+            label: String::new(),
+            label_at: None,
+            stroke: Stroke::Solid,
+            routing: Routing::default(),
+            color: None,
+        };
+        let at = self.canvas.elements.len();
+        self.exec(Command::Batch(vec![
+            Command::Insert(at, Element::Shape(to)),
+            Command::Insert(at + 1, Element::Line(line)),
+        ]));
+        self.start_edit_existing(new_id);
     }
 
     pub fn duplicate(&mut self) {

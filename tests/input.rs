@@ -1540,3 +1540,23 @@ fn bound_arrow_follows_an_aligned_shape() {
     });
     assert_ne!(before, after);
 }
+
+#[test]
+fn shift_arrow_adds_a_linked_shape_in_one_undo_step_and_edits_its_label() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.selection = vec![Id::from("aaaaaaaa")];
+    handle_key(&mut s, KeyEvent::new(KeyCode::Right, KeyModifiers::SHIFT));
+    let sh = shapes(&s);
+    assert_eq!((sh[1].x, sh[1].y, sh[1].w, sh[1].h), (32, 5, 8, 4));
+    let Element::Line(l) = &s.canvas.elements[2] else {
+        panic!("no line")
+    };
+    assert_eq!(l.kind, LineKind::Arrow);
+    assert_eq!(l.from, End::Bound(Id::from("aaaaaaaa"), Anchor::Auto));
+    assert_eq!(l.to, End::Bound(sh[1].id.clone(), Anchor::Auto));
+    assert!(
+        matches!(&s.edit, Some(e) if matches!(&e.target, EditTarget::Existing(i) if *i == sh[1].id))
+    );
+    ctrl(&mut s, 'z');
+    assert_eq!(s.canvas.elements.len(), 1);
+}
