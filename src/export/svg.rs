@@ -55,6 +55,7 @@ pub fn svg(canvas: &Canvas) -> String {
     let (bx, by, bw, bh) = canvas.all_bounds().unwrap_or((0, 0, 1, 1));
     let (vx, vy) = ((bx - MARGIN) * CW, (by - MARGIN) * CH);
     let (vw, vh) = ((bw + 2 * MARGIN) * CW, (bh + 2 * MARGIN) * CH);
+    let find = canvas.shape_lookup();
     let mut o = String::new();
     let _ = writeln!(o, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"{vx} {vy} {vw} {vh}\" width=\"{vw}\" height=\"{vh}\" font-family=\"monospace\" font-size=\"14\">");
     o.push_str("  <defs><marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"8\" markerHeight=\"8\" orient=\"auto-start-reverse\"><path d=\"M0 0 L10 5 L0 10 z\"/></marker></defs>\n");
@@ -177,7 +178,7 @@ pub fn svg(canvas: &Canvas) -> String {
                 text(&mut o, x + w / 2, y + h / 2, "middle", &lines, s.color);
             }
             Element::Line(l) => {
-                let cells = canvas.route(l);
+                let cells = canvas.route_with(l, &find);
                 let mid = |p: (i32, i32)| (p.0 * CW + CW / 2, p.1 * CH + CH / 2);
                 let marker = match l.kind {
                     LineKind::Arrow => " marker-end=\"url(#arrow)\"",

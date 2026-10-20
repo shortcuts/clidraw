@@ -142,11 +142,15 @@ impl Canvas {
     }
 
     pub fn all_bounds(&self) -> Option<(i32, i32, i32, i32)> {
-        self.elements.iter().map(|e| self.bounds(e)).reduce(|a, b| {
-            let (x, y) = (a.0.min(b.0), a.1.min(b.1));
-            let (r, d) = ((a.0 + a.2).max(b.0 + b.2), (a.1 + a.3).max(b.1 + b.3));
-            (x, y, r - x, d - y)
-        })
+        let find = self.shape_lookup();
+        self.elements
+            .iter()
+            .map(|e| self.bounds_with(e, &find))
+            .reduce(|a, b| {
+                let (x, y) = (a.0.min(b.0), a.1.min(b.1));
+                let (r, d) = ((a.0 + a.2).max(b.0 + b.2), (a.1 + a.3).max(b.1 + b.3));
+                (x, y, r - x, d - y)
+            })
     }
 
     /// Copies of the listed elements, plus lines bound at both ends to listed shapes, shifted by
