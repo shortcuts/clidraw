@@ -212,18 +212,18 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
     assert_eq!(s.tool, Tool::Select);
     assert_eq!(s.canvas.line_ends(&l), ((22, 5), (40, 5)));
 
-    drag(&mut s, (42, 4), (42, 8));
+    drag(&mut s, (42, 4), (42, 9));
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(s.canvas.line_ends(&l).1, (40, 9));
+    assert_eq!(s.canvas.line_ends(&l).1, (40, 10));
 
     click(&mut s, (46, 9), Instant::now());
     key(&mut s, KeyCode::Delete);
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(l.to, End::Free(40, 9));
+    assert_eq!(l.to, End::Free(40, 10));
     ctrl(&mut s, 'z');
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")

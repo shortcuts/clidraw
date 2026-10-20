@@ -537,3 +537,15 @@ fn overview_of_an_empty_canvas_draws_nothing() {
     s.canvas.elements.clear();
     assert_eq!(count(&draw(&s, &Overlay::None), "▒"), 0);
 }
+
+#[test]
+fn guide_draws_on_blank_cells_only() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.guides = vec![((24, 2), (24, 8))];
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(b[(24, 3)].symbol(), "┆");
+    assert_eq!(b[(24, 4)].symbol(), "─");
+    assert_eq!(b[(24, 6)].symbol(), "─");
+}

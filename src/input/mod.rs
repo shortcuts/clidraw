@@ -85,6 +85,8 @@ pub struct Session {
     /// Compact read-only view of the whole diagram; `view` stays untouched.
     pub overview: bool,
     pub band: Option<((i32, i32), (i32, i32))>,
+    /// Alignment guide segments (world cells, inclusive) while a move drag snaps to other shapes.
+    pub guides: Vec<((i32, i32), (i32, i32))>,
     /// Shape under a dragged line end; the drop binds it.
     pub snap: Option<Id>,
     /// What a click at the pointer would hit; only the Select tool at rest sets it.
@@ -118,6 +120,7 @@ impl Session {
             edit: None,
             overview: false,
             band: None,
+            guides: vec![],
             snap: None,
             hover: Hit::Empty,
             rev: 0,

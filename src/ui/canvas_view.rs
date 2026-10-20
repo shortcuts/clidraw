@@ -54,6 +54,7 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
     if let Some((a, b)) = s.band {
         band(grid, s, a, b);
     }
+    guides(grid, s);
 }
 
 fn overview(grid: &mut Grid, s: &Session) {
@@ -129,6 +130,19 @@ fn band(grid: &mut Grid, s: &Session, a: (i32, i32), b: (i32, i32)) {
     for y in y0..=y1 {
         grid.set(x0, y, '┆', DIM);
         grid.set(x1, y, '┆', DIM);
+    }
+}
+
+fn guides(grid: &mut Grid, s: &Session) {
+    for &(a, b) in &s.guides {
+        let (x0, y0) = s.view.to_screen(a.0, a.1);
+        let (x1, y1) = s.view.to_screen(b.0, b.1);
+        let ch = if x0 == x1 { '┆' } else { '┄' };
+        for (x, y) in (x0..=x1).flat_map(|x| (y0..=y1).map(move |y| (x, y))) {
+            if grid.get(x, y).is_some_and(|c| c.ch == ' ') {
+                grid.set(x, y, ch, DIM);
+            }
+        }
     }
 }
 

@@ -5,10 +5,13 @@ use crate::model::{
     edge_anchor, Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Shape, ShapeKind, Side,
 };
 use crate::ui::palette;
+use std::collections::HashSet;
 
 const MIN_SIZE: i32 = 3;
 /// Cells the pointer must travel from the press before a drag starts.
 const DRAG_THRESHOLD: i32 = 2;
+/// Cells within which a moved selection snaps to another shape's edge or center.
+const GUIDE_RANGE: i32 = 1;
 
 fn run(s: &mut Session, inv: &mut Vec<Command>, cmd: Command) {
     if let Ok(undo) = s.canvas.apply(cmd) {
@@ -94,6 +97,63 @@ fn snap_to(grid: i32, v: i32) -> i32 {
 
 fn snap_p(grid: i32, p: P) -> P {
     (snap_to(grid, p.0), snap_to(grid, p.1))
+}
+
+/// Min edge, center and max edge of a span; the center matches `geom::center`.
+fn marks(at: i32, len: i32) -> [i32; 3] {
+    [at, at + len / 2, at + len - 1]
+}
+
+/// The correction and matched coordinate of the closest pair within `GUIDE_RANGE`; the first pair wins a tie.
+fn nearest(mine: [i32; 3], theirs: [i32; 3]) -> Option<(i32, i32)> {
+    mine.iter()
+        .flat_map(|m| theirs.iter().map(move |t| (t - m, *t)))
+        .filter(|(d, _)| d.abs() <= GUIDE_RANGE)
+        .min_by_key(|(d, _)| d.abs())
+}
+
+type Match = (i32, i32, (i32, i32, i32, i32));
+
+fn closer(best: &mut Option<Match>, hit: Option<(i32, i32)>, other: &Shape) {
+    if let Some((d, at)) = hit {
+        if best.is_none_or(|b| d.abs() < b.0.abs()) {
+            *best = Some((d, at, (other.x, other.y, other.w, other.h)));
+        }
+    }
+}
+
+/// Snaps the selection box, moved by `(dx, dy)`, to the nearest other shape per axis.
+fn align(s: &Session, dx: i32, dy: i32) -> (i32, i32, Vec<(P, P)>) {
+    let Some((x0, y0, x1, y1)) = s
+        .selection
+        .iter()
+        .filter_map(|id| s.canvas.shape(id))
+        .map(|e| (e.x, e.y, e.x + e.w, e.y + e.h))
+        .reduce(|a, r| (a.0.min(r.0), a.1.min(r.1), a.2.max(r.2), a.3.max(r.3)))
+    else {
+        return (dx, dy, vec![]);
+    };
+    let (mx, my, mw, mh) = (x0 + dx, y0 + dy, x1 - x0, y1 - y0);
+    let picked: HashSet<&Id> = s.selection.iter().collect();
+    let (mut bx, mut by) = (None, None);
+    // shortcut: linear scan, add a spatial index past ~50k shapes
+    for o in s.canvas.elements.iter().filter_map(|e| match e {
+        Element::Shape(o) if !picked.contains(&o.id) => Some(o),
+        _ => None,
+    }) {
+        closer(&mut bx, nearest(marks(mx, mw), marks(o.x, o.w)), o);
+        closer(&mut by, nearest(marks(my, mh), marks(o.y, o.h)), o);
+    }
+    let (cx, cy) = (bx.map_or(0, |b| b.0), by.map_or(0, |b| b.0));
+    let (mx, my) = (mx + cx, my + cy);
+    let mut guides = vec![];
+    if let Some((_, at, (_, oy, _, oh))) = bx {
+        guides.push(((at, my.min(oy)), (at, (my + mh - 1).max(oy + oh - 1))));
+    }
+    if let Some((_, at, (ox, _, ow, _))) = by {
+        guides.push(((mx.min(ox), at), ((mx + mw - 1).max(ox + ow - 1), at)));
+    }
+    (dx + cx, dy + cy, guides)
 }
 
 fn set_rect(id: &Id, fixed: P, cursor: P) -> Command {
@@ -215,6 +275,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             *last = screen;
         }
         Action::Move { start, last } => {
+            s.guides.clear();
             let world = if s.shift {
                 axis_lock(*start, world)
             } else {
@@ -227,6 +288,9 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
                 let (x0, y0) = (sh.x - (last.0 - start.0), sh.y - (last.1 - start.1));
                 let want = snap_p(s.grid, (x0 + world.0 - start.0, y0 + world.1 - start.1));
                 (dx, dy) = (want.0 - sh.x, want.1 - sh.y);
+            }
+            if !s.shift {
+                (dx, dy, s.guides) = align(s, dx, dy);
             }
             if (dx, dy) != (0, 0) {
                 let cmds = s
@@ -327,6 +391,7 @@ pub(super) fn pan_step(s: &mut Session) {
 pub(super) fn up(s: &mut Session, screen: P, world: P) {
     s.last_pan = None;
     s.band = None;
+    s.guides.clear();
     s.snap = None;
     match std::mem::replace(&mut s.gesture, Gesture::Idle) {
         Gesture::Pressed {
@@ -549,5 +614,69 @@ mod tests {
             panic!("unexpected inverse: {:?}", inv(&s));
         };
         assert_eq!(*end, End::Free(100, 30));
+    }
+
+    fn with_neighbour() -> Session {
+        let mut s = with_shape();
+        s.canvas.elements.push(Element::Shape(Shape {
+            id: Id::from("bbbbbbbb"),
+            kind: ShapeKind::Rect,
+            x: 60,
+            y: 30,
+            w: 8,
+            h: 4,
+            label: String::new(),
+        }));
+        s
+    }
+
+    fn hold(s: &mut Session, from: (u16, u16), to: (u16, u16), modifiers: KeyModifiers) {
+        for (kind, (column, row)) in [
+            (MouseEventKind::Down(MouseButton::Left), from),
+            (MouseEventKind::Drag(MouseButton::Left), to),
+        ] {
+            let ev = MouseEvent {
+                kind,
+                column,
+                row,
+                modifiers,
+            };
+            handle_mouse(s, ev, Instant::now());
+        }
+    }
+
+    #[test]
+    fn guide_snaps_a_moved_shape_to_a_neighbour_edge() {
+        let mut s = with_neighbour();
+        hold(&mut s, (32, 16), (61, 30), KeyModifiers::NONE);
+        assert_eq!(rect(&s, "aaaaaaaa"), (60, 29, 8, 4));
+        assert_eq!(s.guides.len(), 2);
+    }
+
+    #[test]
+    fn guide_ignores_a_neighbour_beyond_one_cell() {
+        let mut s = with_neighbour();
+        hold(&mut s, (32, 16), (51, 30), KeyModifiers::NONE);
+        assert_eq!(rect(&s, "aaaaaaaa").0, 49);
+    }
+
+    #[test]
+    fn guide_is_off_with_shift() {
+        let mut s = with_neighbour();
+        hold(&mut s, (32, 16), (61, 30), KeyModifiers::SHIFT);
+        assert_eq!(rect(&s, "aaaaaaaa").0, 59);
+        assert!(s.guides.is_empty());
+    }
+
+    #[test]
+    fn guides_clear_on_release_and_cancel() {
+        let mut s = with_neighbour();
+        drag_to(&mut s, (32, 16), (61, 30));
+        assert!(s.guides.is_empty());
+        let mut s = with_neighbour();
+        hold(&mut s, (32, 16), (61, 30), KeyModifiers::NONE);
+        assert!(!s.guides.is_empty());
+        assert!(s.cancel_gesture());
+        assert!(s.guides.is_empty());
     }
 }

@@ -309,6 +309,7 @@ impl Session {
                 }
                 self.rev += 1;
                 self.band = None;
+                self.guides.clear();
                 self.canvas.retain_present(&mut self.selection);
                 true
             }

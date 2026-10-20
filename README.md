@@ -15,6 +15,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 
 - Pick a tool in the palette: Select, Hand, Rect, Ellipse, Diamond, Line, Arrow, Text.
 - Drag on empty canvas to draw. Drag a selected element to move it.
+- Moving shapes snaps to other shapes' edges and centers within 1 cell and shows dotted guides. Hold Shift to turn guides off. Guides override `grid`.
 - Drag a corner handle to resize. Drag a line end onto a shape to bind it.
 - Double-click a shape or line to edit its label. Double-click empty canvas to place text.
 - In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap and the shape grows to fit.
