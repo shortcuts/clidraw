@@ -367,11 +367,11 @@ fn help_canvas_row_lists_every_command_line_verb() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
     assert!(
-        row(&b, 20).contains("Commands q w wq e u redo"),
+        row(&b, 20).contains("Commands q w wq e u redo layout"),
         "{}",
         row(&b, 20)
     );
-    assert_eq!(cols(&b, 20, 62, 1), "│");
+    assert_eq!(cols(&b, 20, 66, 1), "│");
 }
 
 #[test]
@@ -379,7 +379,7 @@ fn help_canvas_esc_row_stays_inside_the_border() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
     assert!(row(&b, 4).contains("│ Esc"), "{}", row(&b, 4));
-    assert_eq!(cols(&b, 4, 62, 1), "│", "{}", row(&b, 4));
+    assert_eq!(cols(&b, 4, 66, 1), "│", "{}", row(&b, 4));
 }
 
 #[test]

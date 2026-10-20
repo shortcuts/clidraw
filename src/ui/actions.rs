@@ -41,7 +41,7 @@ impl Action {
     }
 }
 
-const TABLE: [(Action, &str, &str); 35] = [
+const TABLE: [(Action, &str, &str); 37] = [
     (Action::Ex("u"), "Undo", "Ctrl-z"),
     (Action::Ex("redo"), "Redo", "Ctrl-y"),
     (Action::Copy, "Copy", "c"),
@@ -94,6 +94,8 @@ const TABLE: [(Action, &str, &str); 35] = [
     ),
     (Action::Menu(MenuItem::ExportText), "Export Text", "Esc t"),
     (Action::Ex("w"), "Save", ":w"),
+    (Action::Ex("layout"), "Layout top-down", ":layout"),
+    (Action::Ex("layout lr"), "Layout left-right", ":layout lr"),
     (Action::Ex("perf"), "Toggle perf overlay", ":perf"),
     (Action::Help, "Shortcuts", "?"),
     (Action::Menu(MenuItem::Quit), "Quit", "Ctrl-c"),

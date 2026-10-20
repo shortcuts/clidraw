@@ -20,6 +20,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Drag a corner handle to resize. Drag a line end onto a shape to bind it: the shape turns bold and `◆` marks the cell where the end will attach.
 - Double-click a shape or line to edit its label. Double-click empty canvas to place text.
 - In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap and the shape grows to fit.
+- Select shapes and run `:layout` (top-down) or `:layout lr` to arrange them by their connecting lines.
 - Group elements to select and move them as one.
 - Click a shape tool while a shape is selected to change its kind.
 - Select a line to show its options in the palette. Pick a head: none, end, start or both.
@@ -45,7 +46,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `Ctrl-c` | Quit |
 | `Ctrl-p` | Open the command palette: type to filter every action, `Enter` runs it |
 | `?` | Show the shortcuts, one page per scope |
-| `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo`, `perf` |
+| `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo`, `layout [td|lr]`, `perf` |
 
 The menu has Canvases, Fit all, Export SVG, Export Mermaid, Export Text and Quit. The command palette lists every action with its key. Saving is automatic.
 

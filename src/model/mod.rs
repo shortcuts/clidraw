@@ -5,6 +5,7 @@ mod error;
 mod geom;
 mod history;
 mod ids;
+mod layout;
 
 pub use canvas::{Canvas, Find};
 pub use command::{Align, Command, Side, Z};
@@ -16,5 +17,6 @@ pub use error::ModelError;
 pub use geom::{corners, edge_anchor, label_pos, route, side_mid, straight, wrap, Axis};
 pub use history::{History, HISTORY_LIMIT};
 pub use ids::Id;
+pub use layout::Dir;
 
 pub const VERSION: u32 = 1;

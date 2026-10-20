@@ -10,7 +10,7 @@ pub use keys::{handle_key, handle_paste, KeyOutcome};
 pub use state::{handle_mouse, scroll_step};
 
 use crate::model::{
-    wrap, Align, Anchor, Canvas, Command, Element, End, History, Id, Line, LineKind, Routing,
+    wrap, Align, Anchor, Canvas, Command, Dir, Element, End, History, Id, Line, LineKind, Routing,
     Shape, Stroke, Text, Z,
 };
 use crate::ui::palette::{self, Dock, PaletteHit};
@@ -319,6 +319,13 @@ impl Session {
 
     pub fn align(&mut self, a: Align) {
         let cmds = self.canvas.align(&self.selection, a);
+        if !cmds.is_empty() {
+            self.exec(Command::Batch(cmds));
+        }
+    }
+
+    pub fn layout(&mut self, dir: Dir) {
+        let cmds = self.canvas.layout(&self.selection, dir);
         if !cmds.is_empty() {
             self.exec(Command::Batch(cmds));
         }

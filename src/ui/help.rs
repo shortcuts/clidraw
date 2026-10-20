@@ -22,7 +22,7 @@ const CANVAS: [(&str, &str); 17] = [
     ("z", "Overview of the whole diagram"),
     ("Ctrl-c", "Quit"),
     ("?, Ctrl-p", "Help, command palette"),
-    (":", "Commands q w wq e u redo"),
+    (":", "Commands q w wq e u redo layout"),
 ];
 
 const TEXT_EDIT: [(&str, &str); 10] = [
@@ -38,7 +38,7 @@ const TEXT_EDIT: [(&str, &str); 10] = [
     ("Esc", "Discard the edit"),
 ];
 
-const WIDTH: i32 = 46;
+const WIDTH: i32 = 54;
 // Two borders, the tab row, a blank row and the longest page; fixed so the box does not jump.
 const HEIGHT: i32 = 21;
 const ACTION_COL: i32 = 20;

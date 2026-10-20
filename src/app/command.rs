@@ -1,4 +1,5 @@
 use super::App;
+use crate::model::Dir;
 use crate::ui::scope::ExportFormat;
 use crate::ui::{Overlay, Perf, Status};
 
@@ -24,6 +25,11 @@ impl App {
             "e" => self.switch_to(arg.trim()),
             "export" => self.overlay = Overlay::Scope(ExportFormat::Text),
             "perf" => self.perf = self.perf.is_none().then(Perf::default),
+            "layout" => match arg.trim() {
+                "" | "td" => self.session.layout(Dir::TopDown),
+                "lr" => self.session.layout(Dir::LeftRight),
+                _ => self.status = Some(Status::error("Usage: :layout [td|lr]")),
+            },
             "u" => self.status = self.session.undo().map(Status::notice),
             "redo" => self.status = self.session.redo().map(Status::notice),
             _ => self.status = Some(Status::error(format!("Unknown command: {cmd}"))),
