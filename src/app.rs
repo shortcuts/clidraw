@@ -20,6 +20,7 @@ pub struct App {
     pub session: Session,
     pub overlay: Overlay,
     pub status: Option<ui::Status>,
+    pub perf: Option<ui::Perf>,
     pub name: String,
     pub quit: bool,
     pub dirty: bool,
@@ -91,6 +92,7 @@ impl App {
             &self.session,
             &self.overlay,
             self.status.as_ref(),
+            self.perf.as_ref(),
         );
     }
 

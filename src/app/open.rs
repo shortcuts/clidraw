@@ -32,6 +32,7 @@ impl App {
             session,
             overlay: Overlay::None,
             status: (!warnings.is_empty()).then(|| ui::Status::error(warnings.join("; "))),
+            perf: None,
             name: String::new(),
             quit: false,
             dirty: true,

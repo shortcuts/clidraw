@@ -776,3 +776,11 @@ fn bytes_per_frame_fit_the_budget_on_5000_elements() {
         assert_eq!(writes, 1, "{name} frame took {writes} write calls");
     }
 }
+
+#[test]
+fn take_bytes_counts_writes_and_resets() {
+    let mut out = FrameWriter::new(Counting::default());
+    out.write_all(b"0123456789").unwrap();
+    assert_eq!(out.take_bytes(), 10);
+    assert_eq!(out.take_bytes(), 0);
+}

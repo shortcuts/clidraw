@@ -595,3 +595,15 @@ fn history_limit_from_config_survives_opening_another_canvas() {
     }
     assert_eq!(app.session.canvas.elements.len(), 1);
 }
+
+#[test]
+fn perf_command_toggles_the_overlay() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let mut app = App::open(store, None, (80, 24)).unwrap();
+    assert!(app.perf.is_none());
+    run(&mut app, "perf");
+    assert!(app.perf.is_some());
+    run(&mut app, "perf");
+    assert!(app.perf.is_none());
+}

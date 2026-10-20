@@ -4,6 +4,7 @@ pub mod help;
 mod layout;
 pub mod menu;
 pub mod palette;
+mod perf;
 pub mod prompt;
 pub mod scope;
 pub mod switcher;
@@ -12,6 +13,7 @@ mod theme;
 use crate::input::Session;
 use grid::{Grid, REVERSE};
 pub use layout::Layout;
+pub use perf::Perf;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -58,6 +60,7 @@ pub fn render(
     s: &Session,
     overlay: &Overlay,
     status: Option<&Status>,
+    perf: Option<&Perf>,
 ) {
     let mut grid = Grid::new(area.width, area.height);
     let accent = theme::accent(
@@ -85,6 +88,9 @@ pub fn render(
             Severity::Error => REVERSE,
         };
         grid.text(0, row, &st.text, flags);
+    }
+    if let Some(p) = perf {
+        p.draw(&mut grid, s.canvas.elements.len());
     }
     grid.copy_to(buf, area);
 }

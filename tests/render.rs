@@ -2,7 +2,7 @@ use clidraw::input::Session;
 use clidraw::model::{Canvas, Command, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::switcher::Switcher;
-use clidraw::ui::{self, Overlay};
+use clidraw::ui::{self, Overlay, Perf};
 use clidraw::view::View;
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
@@ -25,7 +25,7 @@ fn draw(s: &Session, overlay: &Overlay) -> Buffer {
     let mut t = Terminal::new(TestBackend::new(80, 24)).unwrap();
     t.draw(|f| {
         let area = f.area();
-        ui::render(f.buffer_mut(), area, s, overlay, None)
+        ui::render(f.buffer_mut(), area, s, overlay, None, None)
     })
     .unwrap();
     t.backend().buffer().clone()
@@ -245,7 +245,7 @@ fn help_draws_on_a_tiny_screen() {
     let s = Session::new(Canvas::default(), View::default(), (80, 8));
     t.draw(|f| {
         let area = f.area();
-        ui::render(f.buffer_mut(), area, &s, &Overlay::Help(0), None)
+        ui::render(f.buffer_mut(), area, &s, &Overlay::Help(0), None, None)
     })
     .unwrap();
 }
@@ -315,4 +315,27 @@ fn line_crossing_the_view_draws_when_both_ends_are_off_screen() {
     }));
     let s = Session::new(c, View::default(), (80, 24));
     assert_eq!(cols(&draw(&s, &Overlay::None), 5, 30, 4), "────");
+}
+
+#[test]
+fn perf_row_shows_the_last_120_frames_at_the_top_right() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let mut perf = Perf::default();
+    for ms in 1..=150 {
+        perf.events = 3;
+        perf.record_frame(std::time::Duration::from_millis(ms), 1234);
+    }
+    let mut t = Terminal::new(TestBackend::new(80, 24)).unwrap();
+    t.draw(|f| {
+        let area = f.area();
+        ui::render(f.buffer_mut(), area, &s, &Overlay::None, None, Some(&perf))
+    })
+    .unwrap();
+    let b = t.backend().buffer().clone();
+    assert!(
+        row(&b, 0).ends_with(" frame 91.0/150.0ms  ev 3  1234B  0 el "),
+        "{}",
+        row(&b, 0)
+    );
+    assert!(!row(&draw(&s, &Overlay::None), 0).contains("frame"));
 }

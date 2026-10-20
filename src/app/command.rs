@@ -1,5 +1,5 @@
 use super::App;
-use crate::ui::Status;
+use crate::ui::{Perf, Status};
 
 impl App {
     pub(super) fn run_command(&mut self, line: &str) {
@@ -15,6 +15,7 @@ impl App {
             }
             "e" if arg.trim().is_empty() => self.status = Some(Status::error("Usage: :e <name>")),
             "e" => self.switch_to(arg.trim()),
+            "perf" => self.perf = self.perf.is_none().then(Perf::default),
             "u" => self.session.undo(),
             "redo" => self.session.redo(),
             _ => self.status = Some(Status::error(format!("Unknown command: {cmd}"))),

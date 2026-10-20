@@ -43,6 +43,7 @@ fn run(
 ) -> Result<()> {
     while !app.quit {
         if app.dirty {
+            let t0 = app.perf.is_some().then(Instant::now);
             // Terminals without synchronized output ignore the unknown private mode.
             write!(terminal.backend_mut(), "\x1b[?2026h")?;
             terminal.draw(|f| {
@@ -51,6 +52,10 @@ fn run(
             })?;
             write!(terminal.backend_mut(), "\x1b[?2026l")?;
             out.send()?;
+            let bytes = out.take_bytes();
+            if let (Some(t0), Some(p)) = (t0, app.perf.as_mut()) {
+                p.record_frame(t0.elapsed(), bytes);
+            }
             app.dirty = false;
         }
         let ready = match app.next_wake(Instant::now()) {
@@ -62,6 +67,9 @@ fn run(
             let mut queue = vec![event::read()?];
             while event::poll(Duration::ZERO)? {
                 queue.push(event::read()?);
+            }
+            if let Some(p) = app.perf.as_mut() {
+                p.events += queue.len();
             }
             app.on_events(queue, Instant::now());
         }
