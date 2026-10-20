@@ -1,6 +1,7 @@
 use super::grid::{Grid, REVERSE, UNDERLINE};
 use crate::input::{Session, Tool};
-use crate::model::{Border, Element, LineKind, Paint, Routing, Stroke};
+use crate::model::{Border, Element, Id, LineKind, Paint, Routing, Stroke};
+use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dock {
@@ -50,10 +51,18 @@ impl Choice {
     }
 }
 
+/// The selected elements, found with one id map instead of a scan per selected id.
+pub fn selected(s: &Session) -> Vec<&Element> {
+    let by_id: HashMap<&Id, &Element> = s.canvas.elements.iter().map(|e| (e.id(), e)).collect();
+    s.selection
+        .iter()
+        .filter_map(|id| by_id.get(id).copied())
+        .collect()
+}
+
 /// Choices that apply to the selection; empty when the selection has none.
-pub fn choices(s: &Session) -> Vec<Choice> {
-    let has =
-        |f: fn(&Element) -> bool| s.selection.iter().any(|id| s.canvas.get(id).is_some_and(f));
+pub fn choices(els: &[&Element]) -> Vec<Choice> {
+    let has = |f: fn(&Element) -> bool| els.iter().any(|e| f(e));
     let mut out = vec![];
     if has(|e| matches!(e, Element::Line(_))) {
         out.extend(
@@ -101,8 +110,8 @@ pub fn paint(e: &Element, c: Choice) -> Option<Option<Paint>> {
     }
 }
 
-fn active(s: &Session, c: Choice) -> bool {
-    let els = s.selection.iter().filter_map(|id| s.canvas.get(id));
+fn active(els: &[&Element], c: Choice) -> bool {
+    let els = els.iter().copied();
     match c {
         Choice::Head(kind) => els
             .filter_map(|e| match e {
@@ -181,7 +190,7 @@ pub fn cells(dock: Dock, screen: (u16, u16), opts: &[Choice]) -> Vec<(PaletteHit
 }
 
 pub fn hit(s: &Session, col: i32, row: i32) -> Option<PaletteHit> {
-    cells(s.dock, s.screen, &choices(s))
+    cells(s.dock, s.screen, &choices(&selected(s)))
         .into_iter()
         .find(|&(_, x, y, w)| row == y && col >= x && col < x + w)
         .map(|c| c.0)
@@ -202,13 +211,14 @@ pub fn nearest_dock(col: i32, row: i32, screen: (u16, u16)) -> Dock {
 }
 
 pub fn draw(grid: &mut Grid, s: &Session) {
-    for (h, x, y, w) in cells(s.dock, s.screen, &choices(s)) {
+    let els = selected(s);
+    for (h, x, y, w) in cells(s.dock, s.screen, &choices(&els)) {
         let (text, flags) = match h {
             PaletteHit::Title => (TITLE.to_string(), REVERSE),
             PaletteHit::Tool(t) => (t.label().to_string(), if t == s.tool { REVERSE } else { 0 }),
             PaletteHit::Option(c) => (
                 c.label().to_string(),
-                if active(s, c) { REVERSE } else { 0 },
+                if active(&els, c) { REVERSE } else { 0 },
             ),
         };
         let flags = flags

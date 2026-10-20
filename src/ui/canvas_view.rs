@@ -3,10 +3,11 @@ use super::layout::refresh;
 use super::theme;
 use crate::input::{handles, EditTarget, Hit, Session};
 use crate::model::{
-    label_pos, wrap, Border, Element, End, Find, Line, LineKind, Shape, ShapeKind, Stroke,
+    label_pos, wrap, Border, Element, End, Find, Id, Line, LineKind, Shape, ShapeKind, Stroke,
 };
 use ratatui::style::Color;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
@@ -21,12 +22,13 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     let mut slot = s.layout.borrow_mut();
     let layout = refresh(&mut slot, &s.canvas, s.rev);
     let find = layout.find(&s.canvas);
+    let selected: HashSet<&Id> = s.selection.iter().collect();
     for (e, &(x, y, w, h)) in s.canvas.elements.iter().zip(&layout.bounds) {
         let (sx, sy) = view.to_screen(x, y);
         if sx >= grid.w || sy >= grid.h || sx + w <= 0 || sy + h <= 0 {
             continue;
         }
-        let flags = if s.selection.contains(e.id()) {
+        let flags = if selected.contains(e.id()) {
             REVERSE
         } else if s.snap.as_ref() == Some(e.id()) {
             BOLD
@@ -55,7 +57,7 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
                 grid.shade(sx, sy, w, h, theme::fill(p));
             }
         }
-        if let (Some(c), true) = (accent, s.selection.contains(e.id())) {
+        if let (Some(c), true) = (accent, selected.contains(e.id())) {
             grid.tint(sx, sy, w, h, c);
         }
     }

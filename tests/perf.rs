@@ -185,6 +185,19 @@ fn drag_step_fits_the_budget_on_5000_elements() {
 
 #[test]
 #[ignore = "needs a release build: run `make perf`"]
+fn drag_selection_step_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = busy_app(t.path());
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let m = median(drag_selection_gesture(&mut app, &mut term));
+    assert!(
+        m < BUDGET,
+        "median drag selection step {m:?} exceeds {BUDGET:?}"
+    );
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
 fn wheel_step_fits_the_budget_on_5000_elements() {
     let t = tempfile::tempdir().unwrap();
     let mut app = busy_app(t.path());
