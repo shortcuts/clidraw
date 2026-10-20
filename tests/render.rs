@@ -839,3 +839,18 @@ fn bottom_dock_palette_leaves_the_bar_row_alone() {
     );
     assert!(row(&b, 23).starts_with("? help"));
 }
+
+fn screen_text(b: &Buffer) -> String {
+    (0..24).map(|y| row(b, y)).collect::<Vec<_>>().join("\n")
+}
+
+#[test]
+fn empty_canvas_shows_welcome_until_the_first_edit() {
+    let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let hint = "drag to draw";
+    assert!(screen_text(&draw(&s, &Overlay::None)).contains(hint));
+    s.exec(Command::Insert(0, shape("aaaaaaaa", 20, "box")));
+    assert!(!screen_text(&draw(&s, &Overlay::None)).contains(hint));
+    s.undo();
+    assert!(!screen_text(&draw(&s, &Overlay::None)).contains(hint));
+}

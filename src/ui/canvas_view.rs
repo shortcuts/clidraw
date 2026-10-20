@@ -72,6 +72,17 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
         band(grid, s, a, b);
     }
     guides(grid, s);
+    if s.rev == 0 && s.canvas.elements.is_empty() {
+        welcome(grid);
+    }
+}
+
+fn welcome(grid: &mut Grid) {
+    let lines = ["drag to draw", "? for keys", ": for commands"];
+    let y0 = grid.h / 2 - 1;
+    for (y, l) in (y0..).zip(lines) {
+        grid.text((grid.w - l.width() as i32) / 2, y, l, DIM);
+    }
 }
 
 fn overview(grid: &mut Grid, s: &Session) {
