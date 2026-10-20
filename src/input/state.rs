@@ -204,7 +204,15 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
             }
             Target::Element(id)
         }
-        (Hit::Empty, Tool::Rect | Tool::Ellipse | Tool::Diamond) => Target::Draw(s.tool),
+        (
+            Hit::Empty,
+            Tool::Rect
+            | Tool::Ellipse
+            | Tool::Diamond
+            | Tool::Cylinder
+            | Tool::Parallelogram
+            | Tool::Hexagon,
+        ) => Target::Draw(s.tool),
         (Hit::Empty, _) => Target::Empty,
     };
     s.gesture = Gesture::Pressed {
@@ -274,6 +282,9 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
                 Tool::Rect => Some(ShapeKind::Rect),
                 Tool::Ellipse => Some(ShapeKind::Ellipse),
                 Tool::Diamond => Some(ShapeKind::Diamond),
+                Tool::Cylinder => Some(ShapeKind::Cylinder),
+                Tool::Parallelogram => Some(ShapeKind::Parallelogram),
+                Tool::Hexagon => Some(ShapeKind::Hexagon),
                 _ => None,
             };
             let shapes: Vec<Id> = s

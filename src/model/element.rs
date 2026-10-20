@@ -7,6 +7,9 @@ pub enum ShapeKind {
     Rect,
     Ellipse,
     Diamond,
+    Cylinder,
+    Parallelogram,
+    Hexagon,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -145,6 +148,17 @@ impl Element {
             Element::Shape(s) => &s.id,
             Element::Line(l) => &l.id,
             Element::Text(t) => &t.id,
+        }
+    }
+}
+
+impl Shape {
+    /// Columns the slanted kinds cut off the bounding box at the top and bottom rows.
+    pub fn inset(&self) -> i32 {
+        match self.kind {
+            ShapeKind::Parallelogram => (self.h - 1).min(self.w - 2),
+            ShapeKind::Hexagon => ((self.h - 1) / 2).min((self.w - 1) / 2),
+            _ => 0,
         }
     }
 }

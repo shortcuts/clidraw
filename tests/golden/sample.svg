@@ -15,6 +15,13 @@
     <tspan x="48" dy="16">gamma</tspan>
     <tspan x="48" dy="16">delta</tspan>
   </text>
+  <path d="M 128,336 A 48 16 0 0 1 224,336 V 384 A 48 16 0 0 1 128,384 Z" fill="none" stroke="black"/>
+  <path d="M 128,336 A 48 16 0 0 0 224,336" fill="none" stroke="black"/>
+  <text x="176" y="360" text-anchor="middle" dominant-baseline="central">DB</text>
+  <polygon points="272,320 336,320 304,400 240,400" fill="none" stroke="black"/>
+  <text x="288" y="360" text-anchor="middle" dominant-baseline="central">In</text>
+  <polygon points="144,192 208,192 224,232 208,272 144,272 128,232" fill="none" stroke="black"/>
+  <text x="176" y="232" text-anchor="middle" dominant-baseline="central">Prep</text>
   <path d="M92 40 L244 40" fill="none" stroke="black" stroke-linejoin="round" marker-end="url(#arrow)"/>
   <text x="164" y="40" text-anchor="middle" dominant-baseline="central">go</text>
   <path d="M292 72 L292 200" fill="none" stroke="black" stroke-dasharray="8 4" stroke-linejoin="round"/>

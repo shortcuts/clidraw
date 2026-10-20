@@ -487,6 +487,28 @@ fn palette_entry_changes_the_kind_of_a_selected_shape() {
 }
 
 #[test]
+fn palette_entry_changes_a_selected_shape_to_hexagon() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    click(&mut s, (22, 6), Instant::now());
+    pick(&mut s, Tool::Hexagon);
+    assert_eq!(shapes(&s)[0].kind, ShapeKind::Hexagon);
+}
+
+#[test]
+fn dragging_with_a_new_tool_draws_that_kind() {
+    for (tool, kind) in [
+        (Tool::Cylinder, ShapeKind::Cylinder),
+        (Tool::Parallelogram, ShapeKind::Parallelogram),
+        (Tool::Hexagon, ShapeKind::Hexagon),
+    ] {
+        let mut s = session();
+        pick(&mut s, tool);
+        drag(&mut s, (20, 5), (30, 10));
+        assert_eq!(shapes(&s)[0].kind, kind);
+    }
+}
+
+#[test]
 fn palette_title_drag_snaps_to_the_nearest_edge() {
     let mut s = session();
     drag(&mut s, (2, 0), (75, 10));
@@ -771,7 +793,7 @@ fn hover_is_empty_for_other_tools_mid_gesture_and_over_the_palette() {
 #[test]
 fn tool_keys_switch_tools_but_type_into_an_edit() {
     let mut s = session();
-    for (c, tool) in "vhrodlat".chars().zip(Tool::ALL) {
+    for (c, tool) in "vhrodypxlat".chars().zip(Tool::ALL) {
         key(&mut s, KeyCode::Char(c));
         assert_eq!(s.tool, tool);
     }

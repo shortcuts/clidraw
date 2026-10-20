@@ -50,6 +50,9 @@ fn sample() -> Canvas {
                 5,
                 "alpha beta gamma\ndelta",
             ),
+            shape("kkkkkkkk", ShapeKind::Cylinder, 16, 20, 12, 5, "DB"),
+            shape("llllllll", ShapeKind::Parallelogram, 30, 20, 12, 5, "In"),
+            shape("mmmmmmmm", ShapeKind::Hexagon, 16, 12, 12, 5, "Prep"),
             line(
                 "dddddddd",
                 LineKind::Arrow,

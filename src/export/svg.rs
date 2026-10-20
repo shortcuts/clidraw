@@ -71,6 +71,59 @@ pub fn svg(canvas: &Canvas) -> String {
                             h / 2
                         );
                     }
+                    ShapeKind::Cylinder => {
+                        let (rx, ry) = (w / 2, CH);
+                        let _ = writeln!(
+                            o,
+                            "  <path d=\"M {x},{} A {rx} {ry} 0 0 1 {},{} V {} A {rx} {ry} 0 0 1 {x},{} Z\" {style}/>",
+                            y + ry,
+                            x + w,
+                            y + ry,
+                            y + h - ry,
+                            y + h - ry
+                        );
+                        let _ = writeln!(
+                            o,
+                            "  <path d=\"M {x},{} A {rx} {ry} 0 0 0 {},{}\" {style}/>",
+                            y + ry,
+                            x + w,
+                            y + ry
+                        );
+                    }
+                    ShapeKind::Parallelogram => {
+                        let k = s.inset() * CW;
+                        let _ = writeln!(
+                            o,
+                            "  <polygon points=\"{},{} {},{} {},{} {},{}\" {style}/>",
+                            x + k,
+                            y,
+                            x + w,
+                            y,
+                            x + w - k,
+                            y + h,
+                            x,
+                            y + h
+                        );
+                    }
+                    ShapeKind::Hexagon => {
+                        let k = s.inset() * CW;
+                        let _ = writeln!(
+                            o,
+                            "  <polygon points=\"{},{} {},{} {},{} {},{} {},{} {},{}\" {style}/>",
+                            x + k,
+                            y,
+                            x + w - k,
+                            y,
+                            x + w,
+                            y + h / 2,
+                            x + w - k,
+                            y + h,
+                            x + k,
+                            y + h,
+                            x,
+                            y + h / 2
+                        );
+                    }
                     ShapeKind::Diamond => {
                         let _ = writeln!(
                             o,

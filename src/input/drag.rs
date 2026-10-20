@@ -231,6 +231,9 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                 Tool::Rect => Some(ShapeKind::Rect),
                 Tool::Ellipse => Some(ShapeKind::Ellipse),
                 Tool::Diamond => Some(ShapeKind::Diamond),
+                Tool::Cylinder => Some(ShapeKind::Cylinder),
+                Tool::Parallelogram => Some(ShapeKind::Parallelogram),
+                Tool::Hexagon => Some(ShapeKind::Hexagon),
                 _ => None,
             };
             let el = match kind {

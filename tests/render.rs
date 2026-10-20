@@ -237,7 +237,7 @@ fn help_pages_list_their_scope() {
         ),
         (1, vec!["Fit all", "Export Mermaid"]),
         (2, vec!["Commit the label"]),
-        (3, vec!["Tools", "Diamond"]),
+        (3, vec!["Tools", "Diamond", "Hexagon"]),
     ] {
         let b = draw(&s, &Overlay::Help(page));
         let all: String = (0..24).map(|y| row(&b, y)).collect();
@@ -608,4 +608,67 @@ fn guide_draws_on_blank_cells_only() {
     assert_eq!(b[(24, 3)].symbol(), "┆");
     assert_eq!(b[(24, 4)].symbol(), "─");
     assert_eq!(b[(24, 6)].symbol(), "─");
+}
+
+fn kind_session(kind: ShapeKind, w: i32, h: i32) -> Session {
+    let mut c = Canvas::default();
+    c.elements.push(Element::Shape(Shape {
+        id: Id::from("aaaaaaaa"),
+        kind,
+        x: 20,
+        y: 4,
+        w,
+        h,
+        label: String::new(),
+        stroke: Default::default(),
+    }));
+    Session::new(c, View::default(), (80, 24))
+}
+
+#[test]
+fn cylinder_draws_a_lid_under_the_top_row() {
+    let b = draw(&kind_session(ShapeKind::Cylinder, 12, 5), &Overlay::None);
+    assert_eq!(cols(&b, 4, 20, 12), "╭──────────╮");
+    assert_eq!(cols(&b, 5, 20, 12), "╰──────────╯");
+    assert_eq!(cols(&b, 6, 20, 1), "│");
+    assert_eq!(cols(&b, 7, 31, 1), "│");
+    assert_eq!(cols(&b, 8, 20, 12), "╰──────────╯");
+}
+
+#[test]
+fn parallelogram_slants_every_row() {
+    let b = draw(
+        &kind_session(ShapeKind::Parallelogram, 12, 5),
+        &Overlay::None,
+    );
+    assert_eq!(cols(&b, 4, 24, 8), "╱──────╱");
+    assert_eq!(cols(&b, 5, 23, 1), "╱");
+    assert_eq!(cols(&b, 5, 30, 1), "╱");
+    assert_eq!(cols(&b, 8, 20, 8), "╱──────╱");
+}
+
+#[test]
+fn hexagon_points_left_and_right_on_the_middle_row() {
+    let b = draw(&kind_session(ShapeKind::Hexagon, 12, 5), &Overlay::None);
+    assert_eq!(cols(&b, 4, 22, 8), "────────");
+    assert_eq!(cols(&b, 5, 21, 1), "╱");
+    assert_eq!(cols(&b, 5, 30, 1), "╲");
+    assert_eq!(cols(&b, 6, 20, 1), "<");
+    assert_eq!(cols(&b, 6, 31, 1), ">");
+    assert_eq!(cols(&b, 7, 21, 1), "╲");
+    assert_eq!(cols(&b, 7, 30, 1), "╱");
+    assert_eq!(cols(&b, 8, 22, 8), "────────");
+}
+
+#[test]
+fn new_kinds_draw_at_minimum_and_odd_sizes_without_panicking() {
+    for kind in [
+        ShapeKind::Cylinder,
+        ShapeKind::Parallelogram,
+        ShapeKind::Hexagon,
+    ] {
+        for (w, h) in [(3, 3), (5, 3), (3, 9), (4, 8)] {
+            draw(&kind_session(kind, w, h), &Overlay::None);
+        }
+    }
 }

@@ -42,6 +42,9 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
                     ShapeKind::Rect => writeln!(text, "  n{n}[{l}]"),
                     ShapeKind::Ellipse => writeln!(text, "  n{n}([{l}])"),
                     ShapeKind::Diamond => writeln!(text, "  n{n}{{{l}}}"),
+                    ShapeKind::Cylinder => writeln!(text, "  n{n}[({l})]"),
+                    ShapeKind::Parallelogram => writeln!(text, "  n{n}[/{l}/]"),
+                    ShapeKind::Hexagon => writeln!(text, "  n{n}{{{{{l}}}}}"),
                 };
                 n += 1;
             }
