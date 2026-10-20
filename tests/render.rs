@@ -1,5 +1,5 @@
 use clidraw::input::Session;
-use clidraw::model::{Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
+use clidraw::model::{Canvas, Command, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::switcher::Switcher;
 use clidraw::ui::{self, Overlay};
@@ -263,4 +263,56 @@ fn selected_shape_is_reversed_and_others_are_not() {
         !b[(42, 4)].modifier.contains(Modifier::REVERSED),
         "unselected"
     );
+}
+
+#[test]
+fn cached_layout_follows_an_edit() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    assert_eq!(cols(&draw(&s, &Overlay::None), 4, 20, 2), "┌─");
+    s.exec(Command::Move {
+        id: Id::from("aaaaaaaa"),
+        dx: 10,
+        dy: 0,
+    });
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 4, 20, 2), "  ");
+    assert_eq!(cols(&b, 4, 30, 2), "┌─");
+}
+
+#[test]
+fn cached_layout_follows_a_pan() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    assert_eq!(cols(&draw(&s, &Overlay::None), 4, 20, 2), "┌─");
+    s.view = View { ox: -10, oy: 0 };
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 4, 20, 2), "  ");
+    assert_eq!(cols(&b, 4, 30, 2), "┌─");
+}
+
+#[test]
+fn cached_layout_follows_a_push_without_a_rev_bump() {
+    let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
+    draw(&s, &Overlay::None);
+    s.canvas.elements.push(shape("aaaaaaaa", 20, ""));
+    assert_eq!(cols(&draw(&s, &Overlay::None), 4, 20, 2), "┌─");
+}
+
+#[test]
+fn line_crossing_the_view_draws_when_both_ends_are_off_screen() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", -100, ""));
+    c.elements.push(shape("bbbbbbbb", 200, ""));
+    c.elements.push(Element::Line(Line {
+        id: Id::from("cccccccc"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa")),
+        to: End::Bound(Id::from("bbbbbbbb")),
+        label: String::new(),
+    }));
+    let s = Session::new(c, View::default(), (80, 24));
+    assert_eq!(cols(&draw(&s, &Overlay::None), 5, 30, 4), "────");
 }
