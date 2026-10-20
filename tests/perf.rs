@@ -84,7 +84,12 @@ fn ctrl(c: char) -> Event {
 
 fn median(mut v: Vec<Duration>) -> Duration {
     v.sort();
-    v[v.len() / 2]
+    let slack = std::env::var("CLIDRAW_PERF_SLACK")
+        .ok()
+        .and_then(|s| s.parse::<u32>().ok())
+        .filter(|n| *n > 0)
+        .unwrap_or(1);
+    v[v.len() / 2] / slack
 }
 
 fn frame(app: &App, term: &mut Terminal<TestBackend>) {

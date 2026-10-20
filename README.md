@@ -68,7 +68,7 @@ Budgets for a release build with 5000 elements on a 200x50 screen:
 | Export to SVG or Mermaid | 100 ms |
 | Terminal output per frame for a one-cell change | under 4 KB |
 
-`make perf` checks the frame and drag-step budgets. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet.
+`make perf` checks the frame and drag-step budgets. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet. CI runs `make check` with `CLIDRAW_PERF_SLACK=4`, which divides each measured median by 4; local runs leave it unset.
 
 ### Profile
 
