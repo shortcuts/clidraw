@@ -174,10 +174,11 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
         Action::Band(origin) => {
             s.band = Some((*origin, world));
             let canvas = &s.canvas;
+            let find = canvas.shape_lookup();
             s.selection = canvas
                 .elements
                 .iter()
-                .filter(|e| intersects(canvas, e, *origin, world))
+                .filter(|e| intersects(canvas, &find, e, *origin, world))
                 .map(|e| e.id().clone())
                 .collect();
         }

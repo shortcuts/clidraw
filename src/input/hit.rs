@@ -1,4 +1,4 @@
-use crate::model::{Canvas, Element, Id, Side};
+use crate::model::{Canvas, Element, Find, Id, Side};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Corner {
@@ -48,11 +48,11 @@ pub fn handles(canvas: &Canvas, selection: &[Id]) -> Vec<(Handle, Id, (i32, i32)
     }
 }
 
-fn covers(canvas: &Canvas, e: &Element, p: (i32, i32)) -> bool {
+fn covers<'a>(canvas: &'a Canvas, find: &Find<'a>, e: &Element, p: (i32, i32)) -> bool {
     match e {
-        Element::Line(l) => canvas.route(l).contains(&p),
+        Element::Line(l) => canvas.route_with(l, find).contains(&p),
         _ => {
-            let (x, y, w, h) = canvas.bounds(e);
+            let (x, y, w, h) = canvas.bounds_with(e, find);
             p.0 >= x && p.0 < x + w && p.1 >= y && p.1 < y + h
         }
     }
@@ -62,25 +62,33 @@ pub fn test(canvas: &Canvas, selection: &[Id], p: (i32, i32)) -> Hit {
     if let Some((h, id, _)) = handles(canvas, selection).into_iter().find(|h| h.2 == p) {
         return Hit::Handle(h, id);
     }
+    let find = canvas.shape_lookup();
     canvas
         .elements
         .iter()
         .rev()
-        .find(|e| covers(canvas, e, p))
+        .find(|e| covers(canvas, &find, e, p))
         .map_or(Hit::Empty, |e| Hit::Element(e.id().clone()))
 }
 
 pub fn shape_at(canvas: &Canvas, p: (i32, i32)) -> Option<Id> {
+    let find = canvas.shape_lookup();
     canvas
         .elements
         .iter()
         .rev()
-        .find(|e| matches!(e, Element::Shape(_)) && covers(canvas, e, p))
+        .find(|e| matches!(e, Element::Shape(_)) && covers(canvas, &find, e, p))
         .map(|e| e.id().clone())
 }
 
-pub fn intersects(canvas: &Canvas, e: &Element, a: (i32, i32), b: (i32, i32)) -> bool {
-    let (x, y, w, h) = canvas.bounds(e);
+pub fn intersects<'a>(
+    canvas: &'a Canvas,
+    find: &Find<'a>,
+    e: &Element,
+    a: (i32, i32),
+    b: (i32, i32),
+) -> bool {
+    let (x, y, w, h) = canvas.bounds_with(e, find);
     let (x0, x1, y0, y1) = (a.0.min(b.0), a.0.max(b.0), a.1.min(b.1), a.1.max(b.1));
     x <= x1 && x + w > x0 && y <= y1 && y + h > y0
 }
