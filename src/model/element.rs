@@ -17,6 +17,21 @@ pub enum LineKind {
     ArrowBoth,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Stroke {
+    #[default]
+    Solid,
+    Dashed,
+    Dotted,
+}
+
+impl Stroke {
+    fn is_solid(&self) -> bool {
+        *self == Stroke::Solid
+    }
+}
+
 /// Side of a shape a bound line end leaves from. `Auto` picks the side facing the other end.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -74,6 +89,8 @@ pub struct Shape {
     pub w: i32,
     pub h: i32,
     pub label: String,
+    #[serde(default, skip_serializing_if = "Stroke::is_solid")]
+    pub stroke: Stroke,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -86,6 +103,8 @@ pub struct Line {
     /// Where the label sits along the route, in thousandths. `None` centers it on the longest segment.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label_at: Option<u16>,
+    #[serde(default, skip_serializing_if = "Stroke::is_solid")]
+    pub stroke: Stroke,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

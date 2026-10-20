@@ -17,6 +17,7 @@ fn shape(id: &str, x: i32) -> Element {
         w: 4,
         h: 3,
         label: "a".into(),
+        stroke: Default::default(),
     })
 }
 
@@ -31,6 +32,7 @@ fn sample() -> Canvas {
         to: End::Free(-3, 4),
         label: String::new(),
         label_at: None,
+        stroke: Default::default(),
     }));
     c
 }

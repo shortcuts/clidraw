@@ -1,6 +1,6 @@
 use super::grid::{Grid, REVERSE};
 use crate::input::{Session, Tool};
-use crate::model::{Element, LineKind};
+use crate::model::{Element, LineKind, Stroke};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dock {
@@ -21,11 +21,15 @@ pub enum PaletteHit {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Choice {
     Head(LineKind),
+    Stroke(Stroke),
 }
 
 impl Choice {
     fn label(self) -> &'static str {
         match self {
+            Choice::Stroke(Stroke::Solid) => "__ solid",
+            Choice::Stroke(Stroke::Dashed) => "-- dashed",
+            Choice::Stroke(Stroke::Dotted) => ".. dotted",
             Choice::Head(LineKind::Line) => "-- none",
             Choice::Head(LineKind::Arrow) => "-> end",
             Choice::Head(LineKind::ArrowStart) => "<- start",
@@ -36,33 +40,43 @@ impl Choice {
 
 /// Choices that apply to the selection; empty when the selection has none.
 pub fn choices(s: &Session) -> Vec<Choice> {
-    let has_line = s
-        .selection
-        .iter()
-        .any(|id| matches!(s.canvas.get(id), Some(Element::Line(_))));
-    if has_line {
-        [
-            LineKind::Line,
-            LineKind::Arrow,
-            LineKind::ArrowStart,
-            LineKind::ArrowBoth,
-        ]
-        .map(Choice::Head)
-        .to_vec()
-    } else {
-        vec![]
+    let has =
+        |f: fn(&Element) -> bool| s.selection.iter().any(|id| s.canvas.get(id).is_some_and(f));
+    let mut out = vec![];
+    if has(|e| matches!(e, Element::Line(_))) {
+        out.extend(
+            [
+                LineKind::Line,
+                LineKind::Arrow,
+                LineKind::ArrowStart,
+                LineKind::ArrowBoth,
+            ]
+            .map(Choice::Head),
+        );
     }
+    if has(|e| matches!(e, Element::Line(_) | Element::Shape(_))) {
+        out.extend([Stroke::Solid, Stroke::Dashed, Stroke::Dotted].map(Choice::Stroke));
+    }
+    out
 }
 
 fn active(s: &Session, c: Choice) -> bool {
-    let Choice::Head(kind) = c;
-    s.selection
-        .iter()
-        .filter_map(|id| match s.canvas.get(id) {
-            Some(Element::Line(l)) => Some(l.kind),
-            _ => None,
-        })
-        .all(|k| k == kind)
+    let els = s.selection.iter().filter_map(|id| s.canvas.get(id));
+    match c {
+        Choice::Head(kind) => els
+            .filter_map(|e| match e {
+                Element::Line(l) => Some(l.kind),
+                _ => None,
+            })
+            .all(|k| k == kind),
+        Choice::Stroke(st) => els
+            .filter_map(|e| match e {
+                Element::Line(l) => Some(l.stroke),
+                Element::Shape(s) => Some(s.stroke),
+                Element::Text(_) => None,
+            })
+            .all(|k| k == st),
+    }
 }
 
 const COLUMN: i32 = 9;

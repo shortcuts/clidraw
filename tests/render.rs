@@ -1,5 +1,7 @@
 use clidraw::input::{Corner, Handle, Hit, Session};
-use clidraw::model::{Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Shape, ShapeKind};
+use clidraw::model::{
+    Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Shape, ShapeKind, Stroke,
+};
 use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::switcher::Switcher;
 use clidraw::ui::{self, Overlay, Perf};
@@ -18,6 +20,7 @@ fn shape(id: &str, x: i32, label: &str) -> Element {
         w: 8,
         h: 3,
         label: label.into(),
+        stroke: Default::default(),
     })
 }
 
@@ -56,6 +59,24 @@ fn draws_palette_and_a_labelled_rect() {
 }
 
 #[test]
+fn dashed_and_dotted_strokes_swap_the_border_glyphs() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    c.elements.push(shape("bbbbbbbb", 40, ""));
+    for (e, st) in c.elements.iter_mut().zip([Stroke::Dashed, Stroke::Dotted]) {
+        if let Element::Shape(s) = e {
+            s.stroke = st;
+        }
+    }
+    let s = Session::new(c, View::default(), (80, 24));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 4, 20, 8), "┌╌╌╌╌╌╌┐");
+    assert_eq!(cols(&b, 5, 20, 8), "╎      ╎");
+    assert_eq!(cols(&b, 4, 40, 8), "┌┄┄┄┄┄┄┐");
+    assert_eq!(cols(&b, 5, 40, 8), "┆      ┆");
+}
+
+#[test]
 fn wide_char_that_overflows_the_border_is_dropped() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 20, "aaaaa你"));
@@ -86,6 +107,7 @@ fn arrow_between_shapes_ends_in_a_head() {
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
         label_at: None,
+        stroke: Default::default(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│{}▶│", "─".repeat(19));
@@ -124,6 +146,7 @@ fn arrow_start_has_its_head_at_the_first_cell() {
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
         label_at: None,
+        stroke: Default::default(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│◀{}│", "─".repeat(19));
@@ -143,6 +166,7 @@ fn arrow_both_has_a_head_at_each_end() {
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
         label_at: None,
+        stroke: Default::default(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│◀{}▶│", "─".repeat(18));
@@ -166,6 +190,7 @@ fn arrow_between_shapes_on_different_rows_bends_with_rounded_corners() {
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
         label_at: None,
+        stroke: Default::default(),
     }));
     let b = draw(&Session::new(c, View::default(), (80, 24)), &Overlay::None);
     assert_eq!(cols(&b, 5, 19, 12), "│─────────╮ ");
@@ -329,6 +354,7 @@ fn line_crossing_the_view_draws_when_both_ends_are_off_screen() {
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
         label_at: None,
+        stroke: Default::default(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
     assert_eq!(cols(&draw(&s, &Overlay::None), 5, 30, 4), "────");
@@ -444,6 +470,7 @@ fn long_shape_label_wraps_inside_the_shape() {
         w: 7,
         h: 5,
         label: "ab cd ef".into(),
+        stroke: Default::default(),
     }));
     s.rev += 1;
     let b = draw(&s, &Overlay::None);
@@ -487,6 +514,7 @@ fn edit_caret_shows_on_a_line_label() {
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: "ab".into(),
         label_at: None,
+        stroke: Default::default(),
     }));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.start_edit_existing(Id::from("cccccccc"));
@@ -506,6 +534,7 @@ fn overview_session(x: i32, y: i32) -> Session {
         w: 8,
         h: 3,
         label: "box".into(),
+        stroke: Default::default(),
     }));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.overview = true;

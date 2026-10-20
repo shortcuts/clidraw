@@ -2,7 +2,7 @@ use clidraw::input::{
     handle_key, handle_mouse, handle_paste, Corner, Edit, EditTarget, Handle, Hit, KeyOutcome,
     Session, Tool,
 };
-use clidraw::model::{Anchor, Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
+use clidraw::model::{Anchor, Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind, Stroke};
 use clidraw::ui::palette::Dock;
 use clidraw::view::View;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -89,6 +89,7 @@ fn with_shape(id: &str, x: i32, y: i32) -> Session {
         w: 8,
         h: 4,
         label: String::new(),
+        stroke: Default::default(),
     }));
     s
 }
@@ -168,6 +169,7 @@ fn ctrl_a_selects_everything() {
         w: 8,
         h: 4,
         label: String::new(),
+        stroke: Default::default(),
     }));
     ctrl(&mut s, 'a');
     assert_eq!(
@@ -201,6 +203,7 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
         w: 8,
         h: 4,
         label: String::new(),
+        stroke: Default::default(),
     }));
     pick(&mut s, Tool::Arrow);
     drag(&mut s, (18, 5), (43, 5));
@@ -243,6 +246,7 @@ fn releasing_an_arrow_on_a_border_cell_pins_that_side() {
             w: 8,
             h: 4,
             label: String::new(),
+            stroke: Default::default(),
         }));
         pick(&mut s, Tool::Arrow);
         drag(&mut s, (18, 5), to);
@@ -386,6 +390,7 @@ fn shift_click_toggles_an_element_in_the_selection() {
         w: 8,
         h: 4,
         label: String::new(),
+        stroke: Default::default(),
     }));
     click(&mut s, (22, 6), Instant::now());
     shift_drag(&mut s, (42, 10), (42, 10));
@@ -508,6 +513,7 @@ fn palette_option_sets_the_head_of_a_selected_line() {
         to: End::Free(25, 5),
         label: String::new(),
         label_at: None,
+        stroke: Default::default(),
     });
     s.canvas.push(line).unwrap();
     let kind = |s: &Session| match s.canvas.get(&Id::from("llllllll")) {
@@ -531,6 +537,35 @@ fn palette_option_sets_the_head_of_a_selected_line() {
     assert_eq!(kind(&s), LineKind::ArrowBoth);
 }
 
+#[test]
+fn palette_option_sets_the_stroke_of_a_selected_line_and_undoes() {
+    let mut s = session();
+    s.canvas
+        .push(Element::Line(Line {
+            id: Id::from("llllllll"),
+            kind: LineKind::Arrow,
+            from: End::Free(5, 5),
+            to: End::Free(25, 5),
+            label: String::new(),
+            label_at: None,
+            stroke: Default::default(),
+        }))
+        .unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    let stroke = |s: &Session| match s.canvas.get(&Id::from("llllllll")) {
+        Some(Element::Line(l)) => l.stroke,
+        _ => panic!("no line"),
+    };
+    // Four head options come first, then solid, dashed, dotted.
+    let row = Tool::ALL.len() as u16 + 2 + 4;
+    click(&mut s, (2, row + 1), Instant::now());
+    assert_eq!(stroke(&s), Stroke::Dashed);
+    click(&mut s, (2, row + 2), Instant::now());
+    assert_eq!(stroke(&s), Stroke::Dotted);
+    s.undo();
+    assert_eq!(stroke(&s), Stroke::Dashed);
+}
+
 fn two_shapes_and_arrow_tool() -> Session {
     let mut s = with_shape("aaaaaaaa", 15, 3);
     s.canvas.elements.push(Element::Shape(Shape {
@@ -541,6 +576,7 @@ fn two_shapes_and_arrow_tool() -> Session {
         w: 8,
         h: 4,
         label: String::new(),
+        stroke: Default::default(),
     }));
     pick(&mut s, Tool::Arrow);
     s
@@ -725,6 +761,7 @@ fn bracket_keys_reorder_the_selection_one_undo_step_per_press() {
         w: 8,
         h: 4,
         label: String::new(),
+        stroke: Default::default(),
     }));
     let ids = |s: &Session| -> Vec<String> {
         s.canvas
@@ -767,6 +804,7 @@ fn diagram() -> Session {
         w: 8,
         h: 4,
         label: String::new(),
+        stroke: Default::default(),
     }));
     s.canvas.elements.push(Element::Line(Line {
         id: Id::from("line0000"),
@@ -775,6 +813,7 @@ fn diagram() -> Session {
         to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
         label: String::new(),
         label_at: None,
+        stroke: Default::default(),
     }));
     s
 }
@@ -1055,6 +1094,7 @@ fn committing_a_wrapped_label_grows_the_shape_in_one_undo_step() {
         w: 8,
         h: 3,
         label: String::new(),
+        stroke: Default::default(),
     }));
     s.start_edit_existing(Id::from("aaaaaaaa"));
     typed(&mut s, "ab");
@@ -1117,6 +1157,7 @@ fn dragging_a_selected_lines_label_slides_it_along_the_line() {
             to: End::Free(25, 5),
             label: "ab".into(),
             label_at: None,
+            stroke: Default::default(),
         }))
         .unwrap();
     s.selection = vec![id.clone()];
@@ -1145,6 +1186,7 @@ fn three_shapes() -> Session {
             w: 8,
             h: 4,
             label: String::new(),
+            stroke: Default::default(),
         }));
     }
     s
@@ -1241,6 +1283,7 @@ fn at(id: &str, x: i32, y: i32, w: i32, h: i32) -> Element {
         w,
         h,
         label: String::new(),
+        stroke: Default::default(),
     })
 }
 
@@ -1300,6 +1343,7 @@ fn bound_arrow_follows_an_aligned_shape() {
         to: End::Free(40, 40),
         label: String::new(),
         label_at: None,
+        stroke: Default::default(),
     }));
     let before = s.canvas.route(match &s.canvas.elements[3] {
         Element::Line(l) => l,

@@ -1,6 +1,6 @@
 use clidraw::model::{
     corners, label_pos, route, wrap, Anchor, Axis, Canvas, Command, Element, End, History, Id,
-    Line, LineKind, Shape, ShapeKind, Side, Z,
+    Line, LineKind, Shape, ShapeKind, Side, Stroke, Z,
 };
 
 fn shape(id: &str, x: i32) -> Element {
@@ -12,6 +12,7 @@ fn shape(id: &str, x: i32) -> Element {
         w: 6,
         h: 3,
         label: String::new(),
+        stroke: Default::default(),
     })
 }
 
@@ -23,6 +24,7 @@ fn arrow(from: End, to: End) -> Element {
         to,
         label: String::new(),
         label_at: None,
+        stroke: Default::default(),
     })
 }
 
@@ -247,6 +249,7 @@ fn within_keeps_only_elements_fully_inside_the_area() {
                 to: End::Free(30, 1),
                 label: String::new(),
                 label_at: None,
+                stroke: Default::default(),
             }),
         ],
         ..Canvas::default()
@@ -677,4 +680,24 @@ fn undoing_only_a_group_change_reads_group_change() {
         .apply(c.group_cmd(&ids(&["aaaaaaaa", "bbbbbbbb"])).unwrap())
         .unwrap();
     assert_eq!(undo.label(), "group change");
+}
+
+#[test]
+fn stroke_defaults_to_solid_when_absent_and_stays_out_of_solid_json() {
+    let old =
+        r#"{"type":"shape","id":"aaaaaaaa","kind":"Rect","x":0,"y":0,"w":6,"h":3,"label":""}"#;
+    let Element::Shape(s) = serde_json::from_str::<Element>(old).unwrap() else {
+        panic!("not a shape")
+    };
+    assert_eq!(s.stroke, Stroke::Solid);
+    assert!(!serde_json::to_string(&Element::Shape(s.clone()))
+        .unwrap()
+        .contains("stroke"));
+    let dashed = Element::Shape(Shape {
+        stroke: Stroke::Dashed,
+        ..s
+    });
+    assert!(serde_json::to_string(&dashed)
+        .unwrap()
+        .contains(r#""stroke":"dashed""#));
 }

@@ -1,5 +1,7 @@
 use clidraw::export::{mermaid, svg};
-use clidraw::model::{Anchor, Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind, Text};
+use clidraw::model::{
+    Anchor, Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind, Stroke, Text,
+};
 
 fn sample() -> Canvas {
     let shape = |id: &str, kind, x, y, w, h, label: &str| {
@@ -11,6 +13,7 @@ fn sample() -> Canvas {
             w,
             h,
             label: label.into(),
+            stroke: Default::default(),
         })
     };
     let line = |id: &str, kind, from, to, label: &str| {
@@ -21,9 +24,10 @@ fn sample() -> Canvas {
             to,
             label: label.into(),
             label_at: None,
+            stroke: Default::default(),
         })
     };
-    Canvas {
+    let mut c = Canvas {
         elements: vec![
             shape("aaaaaaaa", ShapeKind::Rect, 0, 0, 12, 5, "Start"),
             shape("bbbbbbbb", ShapeKind::Diamond, 30, 0, 12, 5, "OK?"),
@@ -88,7 +92,16 @@ fn sample() -> Canvas {
             }),
         ],
         ..Canvas::default()
+    };
+    for e in &mut c.elements {
+        match e {
+            Element::Shape(s) if s.id == Id::from("jjjjjjjj") => s.stroke = Stroke::Dashed,
+            Element::Line(l) if l.id == Id::from("eeeeeeee") => l.stroke = Stroke::Dashed,
+            Element::Line(l) if l.id == Id::from("hhhhhhhh") => l.stroke = Stroke::Dotted,
+            _ => {}
+        }
     }
+    c
 }
 
 fn check(name: &str, actual: &str) {

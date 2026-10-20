@@ -1,4 +1,4 @@
-use crate::model::{Canvas, Element, End, Id, LineKind, ShapeKind};
+use crate::model::{Canvas, Element, End, Id, LineKind, ShapeKind, Stroke};
 use std::fmt::Write;
 
 pub struct MermaidOutput {
@@ -47,10 +47,15 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
             }
             Element::Line(l) => match (node(&l.from), node(&l.to)) {
                 (Some(a), Some(b)) => {
-                    let arrow = match l.kind {
-                        LineKind::Line => "---",
-                        LineKind::ArrowBoth => "<-->",
-                        _ => "-->",
+                    // Mermaid has no dashed edge, so dashed and dotted both export dotted.
+                    let dotted = l.stroke != Stroke::Solid;
+                    let arrow = match (l.kind, dotted) {
+                        (LineKind::Line, false) => "---",
+                        (LineKind::Line, true) => "-.-",
+                        (LineKind::ArrowBoth, false) => "<-->",
+                        (LineKind::ArrowBoth, true) => "<-.->",
+                        (_, false) => "-->",
+                        (_, true) => "-.->",
                     };
                     let (a, b) = if l.kind == LineKind::ArrowStart {
                         (b, a)

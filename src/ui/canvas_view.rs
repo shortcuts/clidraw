@@ -1,7 +1,7 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE, UNDERLINE};
 use super::layout::refresh;
 use crate::input::{handles, EditTarget, Hit, Session};
-use crate::model::{label_pos, wrap, Element, End, Find, Line, LineKind, Shape, ShapeKind};
+use crate::model::{label_pos, wrap, Element, End, Find, Line, LineKind, Shape, ShapeKind, Stroke};
 use ratatui::style::Color;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
@@ -146,6 +146,16 @@ fn guides(grid: &mut Grid, s: &Session) {
     }
 }
 
+fn dashed(stroke: Stroke, glyph: char) -> char {
+    match (stroke, glyph) {
+        (Stroke::Dashed, '─') => '╌',
+        (Stroke::Dashed, '│') => '╎',
+        (Stroke::Dotted, '─') => '┄',
+        (Stroke::Dotted, '│') => '┆',
+        _ => glyph,
+    }
+}
+
 fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     let (w, h) = (s.w, s.h);
     grid.fill(x, y, w, h);
@@ -157,12 +167,12 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
                 ['╭', '╮', '╰', '╯']
             };
             for i in 1..w - 1 {
-                grid.set(x + i, y, '─', flags);
-                grid.set(x + i, y + h - 1, '─', flags);
+                grid.set(x + i, y, dashed(s.stroke, '─'), flags);
+                grid.set(x + i, y + h - 1, dashed(s.stroke, '─'), flags);
             }
             for j in 1..h - 1 {
-                grid.set(x, y + j, '│', flags);
-                grid.set(x + w - 1, y + j, '│', flags);
+                grid.set(x, y + j, dashed(s.stroke, '│'), flags);
+                grid.set(x + w - 1, y + j, dashed(s.stroke, '│'), flags);
             }
             for (c, (cx, cy)) in corners.into_iter().zip([
                 (x, y),
@@ -234,7 +244,7 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
             _ => '·',
         };
         let (sx, sy) = s.view.to_screen(c.0, c.1);
-        grid.set(sx, sy, glyph, flags);
+        grid.set(sx, sy, dashed(l.stroke, glyph), flags);
     }
     let last = cells.len().saturating_sub(1);
     let end = (last, last.saturating_sub(1), matches!(l.to, End::Bound(..)));

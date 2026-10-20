@@ -245,6 +245,18 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
                 .collect();
             s.exec(Command::Batch(cmds));
         }
+        PaletteHit::Option(Choice::Stroke(stroke)) => {
+            let cmds: Vec<Command> = s
+                .selection
+                .iter()
+                .filter(|id| matches!(s.canvas.get(id), Some(Element::Line(_) | Element::Shape(_))))
+                .map(|id| Command::SetStroke {
+                    id: id.clone(),
+                    stroke,
+                })
+                .collect();
+            s.exec(Command::Batch(cmds));
+        }
         PaletteHit::Tool(t) => {
             let kind = match t {
                 Tool::Rect => Some(ShapeKind::Rect),
