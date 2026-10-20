@@ -458,3 +458,39 @@ fn move_to_undoes_and_keeps_arrows_bound() {
         })
         .is_err());
 }
+
+#[test]
+fn clone_elements_remaps_bound_ends_and_shifts() {
+    let (c, _) = setup();
+    let ids = [Id::from("aaaaaaaa"), Id::from("bbbbbbbb")];
+    let copy = c.clone_elements(&ids, 2, 1);
+    assert_eq!(copy.len(), 3);
+    let Element::Shape(a) = &copy[0] else {
+        panic!()
+    };
+    let Element::Shape(b) = &copy[1] else {
+        panic!()
+    };
+    assert_eq!((a.x, a.y, b.x), (2, 1, 22));
+    assert_ne!(a.id, Id::from("aaaaaaaa"));
+    let Element::Line(l) = &copy[2] else { panic!() };
+    assert_eq!(
+        (&l.from, &l.to),
+        (&End::Bound(a.id.clone()), &End::Bound(b.id.clone()))
+    );
+}
+
+#[test]
+fn clone_elements_frees_a_selected_line_end_whose_shape_stays() {
+    let (c, _) = setup();
+    let copy = c.clone_elements(&[Id::from("aaaaaaaa"), Id::from("line0000")], 0, 0);
+    let Element::Line(l) = &copy[1] else { panic!() };
+    assert!(matches!(l.from, End::Bound(_)));
+    assert_eq!(l.to, End::Free(20, 1));
+}
+
+#[test]
+fn clone_elements_skips_a_line_with_one_end_outside() {
+    let (c, _) = setup();
+    assert_eq!(c.clone_elements(&[Id::from("aaaaaaaa")], 0, 0).len(), 1);
+}

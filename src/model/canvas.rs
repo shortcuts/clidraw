@@ -1,5 +1,5 @@
 use super::geom::{center, route, side_mid, Axis};
-use super::{Element, End, Id, Line, Shape, VERSION};
+use super::{Element, End, Id, Line, Shape, Text, VERSION};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -141,6 +141,53 @@ impl Canvas {
             let (r, d) = ((a.0 + a.2).max(b.0 + b.2), (a.1 + a.3).max(b.1 + b.3));
             (x, y, r - x, d - y)
         })
+    }
+
+    /// Copies of the listed elements, plus lines bound at both ends to listed shapes, shifted by
+    /// (dx, dy) under fresh ids. Bound ends follow the copies; a bound end whose shape is not
+    /// copied turns free at its current cell.
+    pub fn clone_elements(&self, ids: &[Id], dx: i32, dy: i32) -> Vec<Element> {
+        let bound_in = |end: &End| matches!(end, End::Bound(id) if ids.contains(id));
+        let picked: Vec<&Element> = self
+            .elements
+            .iter()
+            .filter(|e| match e {
+                Element::Line(l) => ids.contains(&l.id) || (bound_in(&l.from) && bound_in(&l.to)),
+                _ => ids.contains(e.id()),
+            })
+            .collect();
+        let fresh: HashMap<&Id, Id> = picked.iter().map(|e| (e.id(), Id::random())).collect();
+        picked
+            .into_iter()
+            .map(|e| match e {
+                Element::Shape(s) => Element::Shape(Shape {
+                    id: fresh[&s.id].clone(),
+                    x: s.x + dx,
+                    y: s.y + dy,
+                    ..s.clone()
+                }),
+                Element::Text(t) => Element::Text(Text {
+                    id: fresh[&t.id].clone(),
+                    x: t.x + dx,
+                    y: t.y + dy,
+                    ..t.clone()
+                }),
+                Element::Line(l) => {
+                    let (a, b) = self.line_ends(l);
+                    let end = |end: &End, at: (i32, i32)| match end {
+                        End::Bound(id) if fresh.contains_key(id) => End::Bound(fresh[id].clone()),
+                        End::Free(x, y) => End::Free(x + dx, y + dy),
+                        End::Bound(_) => End::Free(at.0 + dx, at.1 + dy),
+                    };
+                    Element::Line(Line {
+                        id: fresh[&l.id].clone(),
+                        from: end(&l.from, a),
+                        to: end(&l.to, b),
+                        ..l.clone()
+                    })
+                }
+            })
+            .collect()
     }
 
     /// Elements whose whole box lies in the area (x, y, w, h), in order.

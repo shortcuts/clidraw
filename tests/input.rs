@@ -730,3 +730,90 @@ fn bracket_keys_type_into_a_label_edit() {
     key(&mut s, KeyCode::Char(']'));
     assert_eq!(s.edit.as_ref().unwrap().buf, "]");
 }
+
+fn diagram() -> Session {
+    let mut s = with_shape("aaaaaaaa", 5, 5);
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("bbbbbbbb"),
+        kind: ShapeKind::Rect,
+        x: 30,
+        y: 5,
+        w: 8,
+        h: 4,
+        label: String::new(),
+    }));
+    s.canvas.elements.push(Element::Line(Line {
+        id: Id::from("line0000"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa")),
+        to: End::Bound(Id::from("bbbbbbbb")),
+        label: String::new(),
+    }));
+    s
+}
+
+#[test]
+fn copy_paste_adds_offset_copies_in_one_undo_step() {
+    let mut s = diagram();
+    ctrl(&mut s, 'a');
+    key(&mut s, KeyCode::Char('c'));
+    ctrl(&mut s, 'v');
+    assert_eq!(s.canvas.elements.len(), 6);
+    assert_eq!(s.selection.len(), 3);
+    assert_eq!(shapes(&s)[2].x, 7);
+    let Element::Line(l) = &s.canvas.elements[5] else {
+        panic!()
+    };
+    assert_eq!(l.from, End::Bound(shapes(&s)[2].id.clone()));
+    ctrl(&mut s, 'v');
+    assert_eq!(shapes(&s)[4].x, 9);
+    ctrl(&mut s, 'z');
+    assert_eq!(s.canvas.elements.len(), 6);
+    ctrl(&mut s, 'z');
+    assert_eq!(s.canvas.elements.len(), 3);
+}
+
+#[test]
+fn cut_removes_and_paste_restores() {
+    let mut s = diagram();
+    ctrl(&mut s, 'a');
+    ctrl(&mut s, 'x');
+    assert!(s.canvas.elements.is_empty());
+    ctrl(&mut s, 'v');
+    assert_eq!(s.canvas.elements.len(), 3);
+    ctrl(&mut s, 'z');
+    ctrl(&mut s, 'z');
+    assert_eq!(s.canvas.elements.len(), 3);
+}
+
+#[test]
+fn duplicate_leaves_the_buffer_alone() {
+    let mut s = with_shape("aaaaaaaa", 5, 5);
+    ctrl(&mut s, 'a');
+    ctrl(&mut s, 'd');
+    assert_eq!(shapes(&s).len(), 2);
+    assert_eq!(shapes(&s)[1].x, 7);
+    assert!(s.clipboard.elements.is_empty());
+}
+
+#[test]
+fn clipboard_keys_do_nothing_without_input_or_while_editing() {
+    let mut s = with_shape("aaaaaaaa", 5, 5);
+    key(&mut s, KeyCode::Char('c'));
+    ctrl(&mut s, 'v');
+    ctrl(&mut s, 'd');
+    assert_eq!(s.canvas.elements.len(), 1);
+    ctrl(&mut s, 'a');
+    key(&mut s, KeyCode::Char('c'));
+    s.start_edit_new((0, 0));
+    ctrl(&mut s, 'v');
+    ctrl(&mut s, 'd');
+    assert_eq!(s.canvas.elements.len(), 1);
+}
+
+#[test]
+fn d_still_picks_the_diamond_tool() {
+    let mut s = session();
+    key(&mut s, KeyCode::Char('d'));
+    assert_eq!(s.tool, Tool::Diamond);
+}

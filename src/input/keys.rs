@@ -25,6 +25,9 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             KeyCode::Char('a') => {
                 s.selection = s.canvas.elements.iter().map(|e| e.id().clone()).collect()
             }
+            KeyCode::Char('x') => s.cut(),
+            KeyCode::Char('v') => s.paste(),
+            KeyCode::Char('d') => s.duplicate(),
             _ => {}
         }
         return KeyOutcome::None;
@@ -60,6 +63,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
                 s.exec(Command::Batch(cmds));
             }
         }
+        KeyCode::Char('c') => s.copy(),
         KeyCode::Char(c) if matches!(s.gesture, Gesture::Idle) => {
             if let Some(t) = Tool::ALL.into_iter().find(|t| t.key() == c) {
                 s.tool = t;
