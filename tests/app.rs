@@ -586,7 +586,7 @@ fn moved_events_leave_the_screen_clean_but_input_dirties_it() {
     assert!(app.dirty);
     app.dirty = false;
     let t0 = Instant::now();
-    app.on_events(vec![mouse(MouseEventKind::Moved, 5, 5)], t0);
+    app.on_events(vec![mouse(MouseEventKind::Moved, 60, 15)], t0);
     assert!(!app.dirty);
     app.on_events(vec![mouse(MouseEventKind::ScrollDown, 5, 5)], t0);
     assert!(app.dirty);
@@ -762,4 +762,31 @@ fn info_bar_shows_unsaved_until_the_save() {
     app.save();
     let r = last_row(&app);
     assert!(r.ends_with("saved") && !r.ends_with("unsaved"), "{r}");
+}
+
+#[test]
+fn palette_hover_redraws_once_and_underlines_the_cell() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let (c, r) = (0..80u16)
+        .flat_map(|c| (0..24u16).map(move |r| (c, r)))
+        .find(|&(c, r)| {
+            clidraw::ui::palette::hit(&app.session, c.into(), r.into())
+                == Some(clidraw::ui::palette::PaletteHit::Tool(
+                    clidraw::input::Tool::Rect,
+                ))
+        })
+        .unwrap();
+    let t0 = Instant::now();
+    app.dirty = false;
+    app.on_events(vec![mouse(MouseEventKind::Moved, c, r)], t0);
+    assert!(app.dirty, "entering a cell redraws");
+    let area = Rect::new(0, 0, 80, 24);
+    let mut buf = Buffer::empty(area);
+    app.render(&mut buf, area);
+    assert!(buf[(c, r)].modifier.contains(Modifier::UNDERLINED));
+    assert!(!buf[(c, r + 1)].modifier.contains(Modifier::UNDERLINED));
+    app.dirty = false;
+    app.on_events(vec![mouse(MouseEventKind::Moved, c, r)], t0);
+    assert!(!app.dirty, "same cell stays clean");
 }

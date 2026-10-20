@@ -13,7 +13,7 @@ use crate::model::{
     wrap, Anchor, Canvas, Command, Element, End, History, Id, Line, LineKind, Routing, Shape,
     Stroke, Text,
 };
-use crate::ui::palette::Dock;
+use crate::ui::palette::{Dock, PaletteHit};
 use crate::ui::Layout;
 use crate::view::View;
 use state::Gesture;
@@ -108,6 +108,7 @@ pub struct Session {
     pub snap: Option<Id>,
     /// What a click at the pointer would hit; only the Select tool at rest sets it.
     pub hover: Hit,
+    pub palette_hover: Option<PaletteHit>,
     /// Counts canvas mutations; autosave compares it with the saved value.
     pub rev: u64,
     /// Frame cache; `rev` and the element count invalidate it.
@@ -141,6 +142,7 @@ impl Session {
             guides: vec![],
             snap: None,
             hover: Hit::Empty,
+            palette_hover: None,
             rev: 0,
             layout: RefCell::new(None),
             gesture: Gesture::Idle,

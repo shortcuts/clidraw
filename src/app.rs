@@ -163,9 +163,10 @@ impl App {
                 }
                 match self.overlay {
                     Overlay::None => {
-                        let before = self.session.hover.clone();
+                        let before = (self.session.hover.clone(), self.session.palette_hover);
                         handle_mouse(&mut self.session, m, now);
-                        self.dirty |= self.session.hover != before;
+                        self.dirty |=
+                            (self.session.hover.clone(), self.session.palette_hover) != before;
                     }
                     _ if m.kind == MouseEventKind::Down(MouseButton::Left) => {
                         self.overlay_click(i32::from(m.column), i32::from(m.row))

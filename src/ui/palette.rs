@@ -1,4 +1,4 @@
-use super::grid::{Grid, REVERSE};
+use super::grid::{Grid, REVERSE, UNDERLINE};
 use crate::input::{Session, Tool};
 use crate::model::{Border, Element, LineKind, Paint, Routing, Stroke};
 
@@ -211,6 +211,12 @@ pub fn draw(grid: &mut Grid, s: &Session) {
                 if active(s, c) { REVERSE } else { 0 },
             ),
         };
+        let flags = flags
+            | if s.palette_hover == Some(h) {
+                UNDERLINE
+            } else {
+                0
+            };
         let pad = " ".repeat((w as usize).saturating_sub(text.len() + 1));
         grid.text(x, y, &format!(" {text}{pad}"), flags);
     }

@@ -6,7 +6,7 @@ use clidraw::model::{
     Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Routing, Shape, ShapeKind,
     Stroke,
 };
-use clidraw::ui::palette::Dock;
+use clidraw::ui::palette::{self, Dock, PaletteHit};
 use clidraw::view::View;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, Instant};
@@ -895,6 +895,38 @@ fn hover_is_empty_for_other_tools_mid_gesture_and_over_the_palette() {
     let mut s = with_shape("aaaaaaaa", 2, 1);
     mouse(&mut s, MouseEventKind::Moved, 2, 1, t);
     assert_eq!(s.hover, Hit::Empty, "palette owns its cells");
+}
+
+fn tool_cell(s: &Session, tool: Tool) -> (u16, u16) {
+    (0..80u16)
+        .flat_map(|c| (0..24u16).map(move |r| (c, r)))
+        .find(|&(c, r)| palette::hit(s, c.into(), r.into()) == Some(PaletteHit::Tool(tool)))
+        .unwrap()
+}
+
+#[test]
+fn palette_hover_follows_the_pointer_and_clears_on_press_or_gesture() {
+    let t = Instant::now();
+    let mut s = with_shape("aaaaaaaa", 20, 4);
+    assert_eq!(s.palette_hover, None);
+    let (c, r) = tool_cell(&s, Tool::Rect);
+    mouse(&mut s, MouseEventKind::Moved, c, r, t);
+    assert_eq!(s.palette_hover, Some(PaletteHit::Tool(Tool::Rect)));
+    mouse(&mut s, MouseEventKind::Moved, 60, 15, t);
+    assert_eq!(s.palette_hover, None);
+    s.tool = Tool::Hand;
+    mouse(&mut s, MouseEventKind::Moved, c, r, t);
+    assert_eq!(
+        s.palette_hover,
+        Some(PaletteHit::Tool(Tool::Rect)),
+        "any tool"
+    );
+    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), c, r, t);
+    assert_eq!(s.palette_hover, None, "a press clears it");
+    let mut s = with_shape("aaaaaaaa", 20, 4);
+    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 22, 5, t);
+    mouse(&mut s, MouseEventKind::Moved, c, r, t);
+    assert_eq!(s.palette_hover, None, "none mid-gesture");
 }
 
 #[test]
