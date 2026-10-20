@@ -5,7 +5,7 @@ use super::{boxed, centered, Grid};
 pub const SCOPES: [&str; 3] = ["Canvas", "Menu", "Text edit"];
 
 const CANVAS: [(&str, &str); 6] = [
-    ("Esc", "Cancel the gesture, else open the menu"),
+    ("Esc", "Cancel, else open menu"),
     ("Delete, Backspace", "Delete the selection"),
     ("Ctrl-z, Ctrl-y", "Undo, redo"),
     ("Ctrl-c", "Quit"),

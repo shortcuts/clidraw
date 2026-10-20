@@ -232,6 +232,14 @@ fn help_canvas_row_lists_every_command_line_verb() {
 }
 
 #[test]
+fn help_canvas_esc_row_stays_inside_the_border() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let b = draw(&s, &Overlay::Help(0));
+    assert!(row(&b, 10).contains("│ Esc"), "{}", row(&b, 10));
+    assert_eq!(cols(&b, 10, 62, 1), "│", "{}", row(&b, 10));
+}
+
+#[test]
 fn help_draws_on_a_tiny_screen() {
     let mut t = Terminal::new(TestBackend::new(80, 8)).unwrap();
     let s = Session::new(Canvas::default(), View::default(), (80, 8));
