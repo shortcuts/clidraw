@@ -41,7 +41,7 @@ impl Action {
     }
 }
 
-const TABLE: [(Action, &str, &str); 34] = [
+const TABLE: [(Action, &str, &str); 35] = [
     (Action::Ex("u"), "Undo", "Ctrl-z"),
     (Action::Ex("redo"), "Redo", "Ctrl-y"),
     (Action::Copy, "Copy", "c"),

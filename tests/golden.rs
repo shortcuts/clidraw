@@ -1,4 +1,4 @@
-use clidraw::export::{mermaid, svg, svg_padded};
+use clidraw::export::{mermaid, svg, svg_padded, text};
 use clidraw::model::{
     Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Routing, Shape, ShapeKind,
     Stroke, Text, TextAlign,
@@ -176,4 +176,10 @@ fn svg_padding_widens_the_view_box() {
     let one = sample().within((0, 0, 12, 5));
     assert!(svg_padded(&one, 0).contains("viewBox=\"0 0 96 80\""));
     assert!(svg_padded(&one, 3).contains("viewBox=\"-24 -48 144 176\""));
+}
+
+#[test]
+fn text_matches_golden() {
+    check("sample.txt", &text(&sample()));
+    assert_eq!(text(&Canvas::default()), "");
 }

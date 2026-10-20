@@ -47,9 +47,9 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `?` | Show the shortcuts, one page per scope |
 | `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo`, `perf` |
 
-The menu has Canvases, Fit all, Export SVG, Export Mermaid and Quit. The command palette lists every action with its key. Saving is automatic.
+The menu has Canvases, Fit all, Export SVG, Export Mermaid, Export Text and Quit. The command palette lists every action with its key. Saving is automatic.
 
-Export asks what to write: the whole canvas, a dragged area or the selection. Set `export_padding` in `config.toml` for the SVG margin in cells.
+Export asks what to write: the whole canvas, a dragged area or the selection. Export Text (or `:export`) writes the canvas as plain text, as the screen draws it. Set `export_padding` in `config.toml` for the SVG margin in cells.
 
 Mouse capture disables the terminal's own text selection. Hold Shift (Option on macOS) to select text.
 
