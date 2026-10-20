@@ -7,7 +7,7 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
 - `make run` opens the last canvas, or creates `untitled`.
 - `cargo run -- <name>` opens or creates the canvas `<name>`.
 - `cargo run -- config` prints the default `config.toml`. A canvas named `config` opens from the menu, not by argument.
-- `cargo run -- probe` prints every terminal event. Use it to test a terminal.
+- `cargo run -- probe` prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.
 
 The terminal needs true color, SGR mouse reporting and the alternate screen.
 
