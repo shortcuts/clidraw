@@ -306,9 +306,9 @@ fn clicking_a_help_tab_selects_its_page() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     app.on_event(key(KeyCode::Char('?')), now);
-    click(&mut app, 38, 4, now);
+    click(&mut app, 38, 3, now);
     assert_eq!(help_page(&app), 2);
-    click(&mut app, 22, 4, now);
+    click(&mut app, 22, 3, now);
     assert_eq!(help_page(&app), 0);
     click(&mut app, 22, 12, now);
     assert_eq!(help_page(&app), 0, "a click off the tabs keeps the modal");

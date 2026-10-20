@@ -1133,3 +1133,101 @@ fn dragging_a_selected_lines_label_slides_it_along_the_line() {
     s.start_edit_existing(id);
     assert_eq!(s.edit_boxes()[0].x, 20);
 }
+
+fn three_shapes() -> Session {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    for (id, x) in [("bbbbbbbb", 40), ("cccccccc", 60)] {
+        s.canvas.elements.push(Element::Shape(Shape {
+            id: Id::from(id),
+            kind: ShapeKind::Rect,
+            x,
+            y: 5,
+            w: 8,
+            h: 4,
+            label: String::new(),
+        }));
+    }
+    s
+}
+
+fn grouped_ab() -> Session {
+    let mut s = three_shapes();
+    click(&mut s, (22, 6), Instant::now());
+    shift_drag(&mut s, (42, 6), (42, 6));
+    key(&mut s, KeyCode::Char('g'));
+    click(&mut s, (70, 20), Instant::now());
+    assert!(s.selection.is_empty());
+    s
+}
+
+fn ab() -> Vec<Id> {
+    vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")]
+}
+
+#[test]
+fn clicking_a_group_member_selects_the_group_and_shift_click_toggles_it() {
+    let mut s = grouped_ab();
+    click(&mut s, (22, 6), Instant::now());
+    assert_eq!(s.selection, ab());
+    shift_drag(&mut s, (62, 6), (62, 6));
+    assert_eq!(s.selection.len(), 3);
+    shift_drag(&mut s, (42, 6), (42, 6));
+    assert_eq!(s.selection, vec![Id::from("cccccccc")]);
+}
+
+#[test]
+fn a_band_over_one_member_selects_the_group() {
+    let mut s = grouped_ab();
+    drag(&mut s, (36, 3), (50, 12));
+    assert_eq!(
+        s.selection,
+        vec![Id::from("bbbbbbbb"), Id::from("aaaaaaaa")]
+    );
+}
+
+#[test]
+fn a_group_moves_together() {
+    let mut s = grouped_ab();
+    click(&mut s, (22, 6), Instant::now());
+    key(&mut s, KeyCode::Right);
+    assert_eq!(
+        shapes(&s).iter().map(|s| s.x).collect::<Vec<_>>(),
+        vec![21, 41, 60]
+    );
+}
+
+#[test]
+fn capital_g_ungroups_and_one_undo_regroups() {
+    let mut s = grouped_ab();
+    click(&mut s, (22, 6), Instant::now());
+    key(&mut s, KeyCode::Char('G'));
+    click(&mut s, (70, 20), Instant::now());
+    click(&mut s, (22, 6), Instant::now());
+    assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
+    ctrl(&mut s, 'z');
+    click(&mut s, (22, 6), Instant::now() + Duration::from_secs(1));
+    assert_eq!(s.selection, ab());
+}
+
+#[test]
+fn copy_paste_makes_a_second_group_and_one_undo_removes_it() {
+    let mut s = grouped_ab();
+    click(&mut s, (22, 6), Instant::now());
+    key(&mut s, KeyCode::Char('c'));
+    ctrl(&mut s, 'v');
+    assert_eq!(s.canvas.groups.len(), 2);
+    assert_eq!(s.canvas.groups[0], ab());
+    assert_eq!(s.selection, s.canvas.groups[1]);
+    assert_eq!(s.undo().as_deref(), Some("Undid: add 2 elements"));
+    assert_eq!(s.canvas.groups, vec![ab()]);
+    assert_eq!(s.canvas.elements.len(), 3);
+}
+
+#[test]
+fn g_types_a_letter_while_editing_a_label() {
+    let mut s = three_shapes();
+    s.start_edit_existing(Id::from("aaaaaaaa"));
+    key(&mut s, KeyCode::Char('g'));
+    assert!(s.canvas.groups.is_empty());
+    assert_eq!(s.edit.as_ref().unwrap().buf, "g");
+}

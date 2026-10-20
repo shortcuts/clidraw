@@ -1,5 +1,5 @@
 use super::geom::{center, route, side_mid, Axis};
-use super::{Element, End, Id, Line, Shape, Text, VERSION};
+use super::{Command, Element, End, Id, Line, Shape, Text, VERSION};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -7,6 +7,8 @@ use std::collections::HashMap;
 pub struct Canvas {
     pub version: u32,
     pub elements: Vec<Element>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub groups: Vec<Vec<Id>>,
 }
 
 impl Default for Canvas {
@@ -14,6 +16,7 @@ impl Default for Canvas {
         Canvas {
             version: VERSION,
             elements: vec![],
+            groups: vec![],
         }
     }
 }
@@ -147,6 +150,26 @@ impl Canvas {
     /// (dx, dy) under fresh ids. Bound ends follow the copies; a bound end whose shape is not
     /// copied turns free at its current cell.
     pub fn clone_elements(&self, ids: &[Id], dx: i32, dy: i32) -> Vec<Element> {
+        self.clone_mapped(ids, dx, dy).0
+    }
+
+    /// `clone_elements` plus the groups whose members were copied, under the fresh ids.
+    pub fn clone_canvas(&self, ids: &[Id], dx: i32, dy: i32) -> Canvas {
+        let (elements, fresh) = self.clone_mapped(ids, dx, dy);
+        let groups = self
+            .groups
+            .iter()
+            .map(|g| g.iter().filter_map(|id| fresh.get(id).cloned()).collect())
+            .filter(|g: &Vec<Id>| g.len() > 1)
+            .collect();
+        Canvas {
+            version: self.version,
+            elements,
+            groups,
+        }
+    }
+
+    fn clone_mapped(&self, ids: &[Id], dx: i32, dy: i32) -> (Vec<Element>, HashMap<Id, Id>) {
         let bound_in = |end: &End| matches!(end, End::Bound(id, _) if ids.contains(id));
         let picked: Vec<&Element> = self
             .elements
@@ -157,7 +180,7 @@ impl Canvas {
             })
             .collect();
         let fresh: HashMap<&Id, Id> = picked.iter().map(|e| (e.id(), Id::random())).collect();
-        picked
+        let cloned = picked
             .into_iter()
             .map(|e| match e {
                 Element::Shape(s) => Element::Shape(Shape {
@@ -189,7 +212,59 @@ impl Canvas {
                     })
                 }
             })
-            .collect()
+            .collect();
+        let fresh = fresh.into_iter().map(|(k, v)| (k.clone(), v)).collect();
+        (cloned, fresh)
+    }
+
+    /// Adds every present member of each group that `ids` touches.
+    pub fn expand_groups(&self, ids: &mut Vec<Id>) {
+        if self.groups.is_empty() {
+            return;
+        }
+        let touched: Vec<&Vec<Id>> = self
+            .groups
+            .iter()
+            .filter(|g| g.iter().any(|m| ids.contains(m)))
+            .collect();
+        for m in touched.into_iter().flatten() {
+            if !ids.contains(m) && self.get(m).is_some() {
+                ids.push(m.clone());
+            }
+        }
+    }
+
+    /// Groups without the missing ids and without groups under two members.
+    fn live_groups(&self, skip: &[Id]) -> Vec<Vec<Id>> {
+        prune(self.groups.iter(), |m| {
+            self.get(m).is_some() && !skip.contains(m)
+        })
+    }
+
+    /// Joins the present, distinct `ids` in one group; `None` when fewer than two.
+    pub fn group_cmd(&self, ids: &[Id]) -> Option<Command> {
+        let mut members: Vec<Id> = vec![];
+        for id in ids.iter().filter(|id| self.get(id).is_some()) {
+            if !members.contains(id) {
+                members.push(id.clone());
+            }
+        }
+        if members.len() < 2 {
+            return None;
+        }
+        let mut groups = self.live_groups(&members);
+        groups.push(members);
+        (groups != self.groups).then_some(Command::SetGroups(groups))
+    }
+
+    /// Dissolves every group that holds an id of `ids`; `None` when none does.
+    pub fn ungroup_cmd(&self, ids: &[Id]) -> Option<Command> {
+        let touches = |g: &Vec<Id>| g.iter().any(|m| ids.contains(m));
+        if !self.groups.iter().any(touches) {
+            return None;
+        }
+        let rest = self.groups.iter().filter(|g| !touches(g));
+        Some(Command::SetGroups(prune(rest, |m| self.get(m).is_some())))
     }
 
     /// Elements whose whole box lies in the area (x, y, w, h), in order.
@@ -217,10 +292,22 @@ impl Canvas {
                 _ => shapes_in.contains(&e.id()),
             })
             .cloned()
-            .collect();
+            .collect::<Vec<Element>>();
+        let groups = prune(self.groups.iter(), |m| kept.iter().any(|e| e.id() == m));
         Canvas {
             version: self.version,
             elements: kept,
+            groups,
         }
     }
+}
+
+fn prune<'a>(
+    groups: impl Iterator<Item = &'a Vec<Id>>,
+    keep: impl Fn(&Id) -> bool,
+) -> Vec<Vec<Id>> {
+    groups
+        .map(|g| g.iter().filter(|m| keep(m)).cloned().collect::<Vec<_>>())
+        .filter(|g| g.len() > 1)
+        .collect()
 }

@@ -113,6 +113,18 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
                 s.exec(Command::Batch(cmds));
             }
         }
+        KeyCode::Char(c @ ('g' | 'G'))
+            if matches!(s.gesture, Gesture::Idle) && !s.selection.is_empty() =>
+        {
+            let cmd = if c == 'g' {
+                s.canvas.group_cmd(&s.selection)
+            } else {
+                s.canvas.ungroup_cmd(&s.selection)
+            };
+            if let Some(cmd) = cmd {
+                s.exec(cmd);
+            }
+        }
         KeyCode::Char('c') => s.copy(),
         KeyCode::Char('z') if matches!(s.gesture, Gesture::Idle) => s.overview = true,
         KeyCode::Char(c) if matches!(s.gesture, Gesture::Idle) => {

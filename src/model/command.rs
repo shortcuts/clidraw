@@ -57,6 +57,8 @@ pub enum Command {
         id: Id,
         kind: LineKind,
     },
+    /// Replaces the whole group list.
+    SetGroups(Vec<Vec<Id>>),
     Batch(Vec<Command>),
 }
 
@@ -65,6 +67,10 @@ impl Command {
     pub fn label(&self) -> String {
         let mut leaves = vec![];
         self.leaves(&mut leaves);
+        if leaves.iter().all(|c| matches!(c, Command::SetGroups(_))) && !leaves.is_empty() {
+            return "group change".into();
+        }
+        leaves.retain(|c| !matches!(c, Command::SetGroups(_)));
         let Some(first) = leaves.first() else {
             return "nothing".into();
         };
@@ -91,6 +97,7 @@ impl Command {
             Command::SetLabelAt { .. } => "reposition label of",
             Command::SetEnd { .. } => "reconnect",
             Command::SetKind { .. } | Command::SetLineKind { .. } => "restyle",
+            Command::SetGroups(_) => "regroup",
             Command::Batch(_) => unreachable!(),
         }
     }
@@ -331,6 +338,10 @@ impl Canvas {
                 let old = std::mem::replace(&mut l.kind, kind);
                 Ok(Command::SetLineKind { id, kind: old })
             }
+            Command::SetGroups(groups) => Ok(Command::SetGroups(std::mem::replace(
+                &mut self.groups,
+                groups,
+            ))),
             Command::Insert(..)
             | Command::Remove(_)
             | Command::MoveTo { .. }

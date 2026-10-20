@@ -278,12 +278,14 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             s.band = Some((*origin, world));
             let canvas = &s.canvas;
             let find = canvas.shape_lookup();
-            s.selection = canvas
+            let mut hit: Vec<Id> = canvas
                 .elements
                 .iter()
                 .filter(|e| intersects(canvas, &find, e, *origin, world))
                 .map(|e| e.id().clone())
                 .collect();
+            canvas.expand_groups(&mut hit);
+            s.selection = hit;
         }
     }
 }

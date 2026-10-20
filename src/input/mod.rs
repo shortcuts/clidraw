@@ -160,7 +160,7 @@ impl Session {
 
     pub fn copy(&mut self) {
         if self.idle() && !self.selection.is_empty() {
-            self.clipboard.elements = self.canvas.clone_elements(&self.selection, 0, 0);
+            self.clipboard = self.canvas.clone_canvas(&self.selection, 0, 0);
         }
     }
 
@@ -188,29 +188,35 @@ impl Session {
             .iter()
             .map(|e| e.id().clone())
             .collect();
-        let new = self.clipboard.clone_elements(&ids, 2, 1);
-        self.clipboard.elements = new.clone();
+        let new = self.clipboard.clone_canvas(&ids, 2, 1);
+        self.clipboard = new.clone();
         self.insert(new);
     }
 
     pub fn duplicate(&mut self) {
         if self.idle() && !self.selection.is_empty() {
-            let new = self.canvas.clone_elements(&self.selection, 2, 1);
+            let new = self.canvas.clone_canvas(&self.selection, 2, 1);
             self.insert(new);
         }
     }
 
-    fn insert(&mut self, elements: Vec<Element>) {
-        if elements.is_empty() {
+    fn insert(&mut self, new: Canvas) {
+        if new.elements.is_empty() {
             return;
         }
-        let ids: Vec<Id> = elements.iter().map(|e| e.id().clone()).collect();
+        let ids: Vec<Id> = new.elements.iter().map(|e| e.id().clone()).collect();
         let at = self.canvas.elements.len();
-        let cmds = elements
+        let mut cmds: Vec<Command> = new
+            .elements
             .into_iter()
             .enumerate()
             .map(|(i, e)| Command::Insert(at + i, e))
             .collect();
+        if !new.groups.is_empty() {
+            let mut groups = self.canvas.groups.clone();
+            groups.extend(new.groups);
+            cmds.push(Command::SetGroups(groups));
+        }
         self.exec(Command::Batch(cmds));
         self.selection = ids;
     }

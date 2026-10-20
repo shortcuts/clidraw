@@ -18,6 +18,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Drag a corner handle to resize. Drag a line end onto a shape to bind it.
 - Double-click a shape or line to edit its label. Double-click empty canvas to place text.
 - In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap and the shape grows to fit.
+- Group elements to select and move them as one.
 - Click a shape tool while a shape is selected to change its kind.
 - Select a line to show its options in the palette. Pick a head: none, end, start or both.
 - Drag the `::` cell of the palette to dock it to another edge.
@@ -28,6 +29,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 |---|---|
 | `Esc` | Cancel the gesture, else open or close the menu |
 | `Delete` / `Backspace` | Delete the selection |
+| `g` / `G` | Group, ungroup the selection |
 | `]` / `[` | Raise / lower the selection one step |
 | `}` / `{` | Send the selection to the front / back |
 | `Ctrl-z` / `Ctrl-y` | Undo / redo |

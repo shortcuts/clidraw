@@ -596,3 +596,85 @@ fn clone_elements_keeps_the_anchor() {
     let Element::Line(l) = &copy[2] else { panic!() };
     assert!(matches!(l.from, End::Bound(_, Anchor::Left)));
 }
+
+fn ids(s: &[&str]) -> Vec<Id> {
+    s.iter().map(|i| Id::from(*i)).collect()
+}
+
+fn grouped(c: &mut Canvas, groups: &[&[&str]]) {
+    let all = groups.iter().map(|g| ids(g)).collect();
+    c.apply(Command::SetGroups(all)).unwrap();
+}
+
+#[test]
+fn group_cmd_needs_two_elements_and_sets_one_group() {
+    let mut c = five();
+    assert_eq!(c.group_cmd(&ids(&["aaaaaaaa"])), None);
+    let cmd = c.group_cmd(&ids(&["aaaaaaaa", "bbbbbbbb"])).unwrap();
+    let undo = c.apply(cmd).unwrap();
+    assert_eq!(c.groups, vec![ids(&["aaaaaaaa", "bbbbbbbb"])]);
+    c.apply(undo).unwrap();
+    assert!(c.groups.is_empty());
+}
+
+#[test]
+fn regrouping_a_member_moves_it_and_drops_a_group_left_with_one() {
+    let mut c = five();
+    grouped(&mut c, &[&["aaaaaaaa", "bbbbbbbb"]]);
+    let cmd = c.group_cmd(&ids(&["bbbbbbbb", "cccccccc"])).unwrap();
+    c.apply(cmd).unwrap();
+    assert_eq!(c.groups, vec![ids(&["bbbbbbbb", "cccccccc"])]);
+}
+
+#[test]
+fn ungroup_cmd_removes_the_whole_group_on_a_partial_selection() {
+    let mut c = five();
+    grouped(
+        &mut c,
+        &[
+            &["aaaaaaaa", "bbbbbbbb", "cccccccc"],
+            &["dddddddd", "eeeeeeee"],
+        ],
+    );
+    assert_eq!(c.ungroup_cmd(&ids(&["ffffffff"])), None);
+    let cmd = c.ungroup_cmd(&ids(&["bbbbbbbb"])).unwrap();
+    c.apply(cmd).unwrap();
+    assert_eq!(c.groups, vec![ids(&["dddddddd", "eeeeeeee"])]);
+}
+
+#[test]
+fn removing_a_member_then_undoing_restores_the_group() {
+    let mut c = five();
+    grouped(&mut c, &[&["aaaaaaaa", "bbbbbbbb"]]);
+    let undo = c.apply(Command::Remove(Id::from("aaaaaaaa"))).unwrap();
+    let mut sel = ids(&["bbbbbbbb"]);
+    c.expand_groups(&mut sel);
+    assert_eq!(sel, ids(&["bbbbbbbb"]));
+    c.apply(undo).unwrap();
+    let mut sel = ids(&["bbbbbbbb"]);
+    c.expand_groups(&mut sel);
+    assert_eq!(sel, ids(&["bbbbbbbb", "aaaaaaaa"]));
+}
+
+#[test]
+fn clone_canvas_remaps_groups_to_the_fresh_ids() {
+    let mut c = five();
+    grouped(
+        &mut c,
+        &[&["aaaaaaaa", "bbbbbbbb"], &["cccccccc", "dddddddd"]],
+    );
+    let copy = c.clone_canvas(&ids(&["aaaaaaaa", "bbbbbbbb", "cccccccc"]), 2, 1);
+    assert_eq!(copy.elements.len(), 3);
+    assert_eq!(copy.groups.len(), 1);
+    let fresh: Vec<Id> = copy.elements[..2].iter().map(|e| e.id().clone()).collect();
+    assert_eq!(copy.groups[0], fresh);
+}
+
+#[test]
+fn undoing_only_a_group_change_reads_group_change() {
+    let mut c = five();
+    let undo = c
+        .apply(c.group_cmd(&ids(&["aaaaaaaa", "bbbbbbbb"])).unwrap())
+        .unwrap();
+    assert_eq!(undo.label(), "group change");
+}

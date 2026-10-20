@@ -251,8 +251,8 @@ fn help_canvas_row_lists_every_command_line_verb() {
 fn help_canvas_esc_row_stays_inside_the_border() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
-    assert!(row(&b, 6).contains("│ Esc"), "{}", row(&b, 6));
-    assert_eq!(cols(&b, 6, 62, 1), "│", "{}", row(&b, 6));
+    assert!(row(&b, 5).contains("│ Esc"), "{}", row(&b, 5));
+    assert_eq!(cols(&b, 5, 62, 1), "│", "{}", row(&b, 5));
 }
 
 #[test]

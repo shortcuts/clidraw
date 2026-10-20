@@ -190,16 +190,17 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         (_, Tool::Hand) => Target::Pan,
         (_, Tool::Line | Tool::Arrow) => Target::Draw(s.tool),
         (Hit::Element(id), _) => {
+            let mut unit = vec![id.clone()];
+            s.canvas.expand_groups(&mut unit);
             if s.shift {
-                match s.selection.iter().position(|i| *i == id) {
-                    Some(at) => {
-                        s.selection.remove(at);
-                        return;
-                    }
-                    None => s.selection.push(id.clone()),
+                if s.selection.contains(&id) {
+                    s.selection.retain(|i| !unit.contains(i));
+                    return;
                 }
+                let new = unit.into_iter().filter(|i| !s.selection.contains(i));
+                s.selection.extend(new.collect::<Vec<_>>());
             } else if !s.selection.contains(&id) {
-                s.selection = vec![id.clone()];
+                s.selection = unit;
             }
             Target::Element(id)
         }
@@ -273,17 +274,15 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
 
 pub(super) fn click(s: &mut Session, target: Target, world: P) {
     match target {
-        Target::Element(id) if !s.shift => s.selection = vec![id],
+        Target::Element(id) if !s.shift => s.select_group_of(id),
         Target::Empty if s.tool == Tool::Text => {
             s.start_edit_new(world);
             s.tool = Tool::Select;
         }
-        Target::Draw(_) | Target::Empty => {
-            s.selection = match hit::test(&s.canvas, &[], world) {
-                Hit::Element(id) => vec![id],
-                _ => vec![],
-            }
-        }
+        Target::Draw(_) | Target::Empty => match hit::test(&s.canvas, &[], world) {
+            Hit::Element(id) => s.select_group_of(id),
+            _ => s.selection.clear(),
+        },
         Target::Element(_)
         | Target::Label(_)
         | Target::PaletteTitle
@@ -293,6 +292,11 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
 }
 
 impl Session {
+    fn select_group_of(&mut self, id: Id) {
+        self.selection = vec![id];
+        self.canvas.expand_groups(&mut self.selection);
+    }
+
     /// Undoes a gesture in progress. Returns false when there was none.
     pub(super) fn cancel_gesture(&mut self) -> bool {
         self.last_pan = None;

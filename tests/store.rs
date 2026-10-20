@@ -181,3 +181,16 @@ fn a_pinned_end_round_trips_and_auto_ends_write_no_anchor() {
     assert!(text.contains("\"bound\"") && !text.contains("anchored"));
     assert_eq!(s.load("b").unwrap(), sample());
 }
+
+#[test]
+fn groups_round_trip_and_an_ungrouped_canvas_writes_no_key() {
+    let (t, s) = store();
+    let mut c = sample();
+    s.save("a", &c).unwrap();
+    let text = std::fs::read_to_string(t.path().join("c/a.clidraw.json")).unwrap();
+    assert!(!text.contains("groups"));
+    assert!(s.load("a").unwrap().groups.is_empty());
+    c.groups = vec![vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")]];
+    s.save("a", &c).unwrap();
+    assert_eq!(s.load("a").unwrap(), c);
+}
