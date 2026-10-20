@@ -128,3 +128,17 @@ fn zero_history_limit_warns() {
         vec!["config.toml: key history_limit: expected a positive integer"]
     );
 }
+
+#[test]
+fn grid_defaults_off_and_rejects_out_of_range() {
+    assert_eq!(Config::default().grid, 1);
+    let (c, w, _t) = load_text("grid = 4\n");
+    assert!(w.is_empty(), "{w:?}");
+    assert_eq!(c.grid, 4);
+    let (c, w, _t) = load_text("grid = 0\n");
+    assert_eq!(c.grid, 1);
+    assert_eq!(
+        w,
+        vec!["config.toml: key grid: expected an integer from 1 to 1000"]
+    );
+}

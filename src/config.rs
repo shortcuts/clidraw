@@ -23,6 +23,9 @@ pub const DEFAULT_TOML: &str = "\
 # Canvas to create when none exists and no name is given.
 # default_canvas = \"untitled\"
 
+# Cells between snap lines for drawing, moving and resizing shapes. 1 turns snapping off.
+# grid = 1
+
 # Most undo steps kept; the oldest drop first.
 # history_limit = 1000
 ";
@@ -32,6 +35,7 @@ pub struct Config {
     pub autosave: Duration,
     pub double_click: Duration,
     pub dock: Dock,
+    pub grid: i32,
     pub default_canvas: String,
     pub history_limit: usize,
 }
@@ -42,6 +46,7 @@ impl Default for Config {
             autosave: Duration::from_millis(500),
             double_click: Duration::from_millis(400),
             dock: Dock::Left,
+            grid: 1,
             default_canvas: "untitled".into(),
             history_limit: HISTORY_LIMIT,
         }
@@ -82,6 +87,7 @@ impl Config {
                 "autosave_ms" => millis(value).map(|d| self.autosave = d),
                 "double_click_ms" => millis(value).map(|d| self.double_click = d),
                 "dock" => dock(value).map(|d| self.dock = d),
+                "grid" => grid(value).map(|n| self.grid = n),
                 "default_canvas" => name(value).map(|n| self.default_canvas = n),
                 "history_limit" => count(value).map(|n| self.history_limit = n),
                 _ => {
@@ -121,6 +127,13 @@ fn count(v: &toml::Value) -> Result<usize, String> {
     match v.as_integer().map(usize::try_from) {
         Some(Ok(n)) if n > 0 => Ok(n),
         _ => Err("expected a positive integer".into()),
+    }
+}
+
+fn grid(v: &toml::Value) -> Result<i32, String> {
+    match v.as_integer() {
+        Some(n @ 1..=1000) => Ok(n as i32),
+        _ => Err("expected an integer from 1 to 1000".into()),
     }
 }
 

@@ -88,6 +88,14 @@ fn square(fixed: P, cursor: P) -> P {
     )
 }
 
+fn snap_to(grid: i32, v: i32) -> i32 {
+    (v + grid / 2).div_euclid(grid) * grid
+}
+
+fn snap_p(grid: i32, p: P) -> P {
+    (snap_to(grid, p.0), snap_to(grid, p.1))
+}
+
 fn set_rect(id: &Id, fixed: P, cursor: P) -> Command {
     let ((x, w), (y, h)) = (span(fixed.0, cursor.0), span(fixed.1, cursor.1));
     Command::SetRect {
@@ -153,6 +161,11 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
         }
         Target::Draw(tool) => {
             let id = Id::random();
+            let w0 = if matches!(tool, Tool::Line | Tool::Arrow) {
+                w0
+            } else {
+                snap_p(s.grid, w0)
+            };
             let at = s.canvas.elements.len();
             let kind = match tool {
                 Tool::Rect => Some(ShapeKind::Rect),
@@ -207,7 +220,14 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             } else {
                 world
             };
-            let (dx, dy) = (world.0 - last.0, world.1 - last.1);
+            let (mut dx, mut dy) = (world.0 - last.0, world.1 - last.1);
+            let first = s.selection.iter().find_map(|id| s.canvas.shape(id));
+            if let Some(sh) = first {
+                // Snap the first shape's corner; the rest of the selection keeps its offsets.
+                let (x0, y0) = (sh.x - (last.0 - start.0), sh.y - (last.1 - start.1));
+                let want = snap_p(s.grid, (x0 + world.0 - start.0, y0 + world.1 - start.1));
+                (dx, dy) = (want.0 - sh.x, want.1 - sh.y);
+            }
             if (dx, dy) != (0, 0) {
                 let cmds = s
                     .selection
@@ -219,10 +239,11 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
                     })
                     .collect();
                 run(s, inv, Command::Batch(cmds));
-                *last = world;
+                *last = (last.0 + dx, last.1 + dy);
             }
         }
         Action::Resize { id, fixed } => {
+            let world = snap_p(s.grid, world);
             let world = if s.shift {
                 square(*fixed, world)
             } else {
@@ -231,6 +252,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             run(s, inv, set_rect(id, *fixed, world))
         }
         Action::Create { id, origin } => {
+            let world = snap_p(s.grid, world);
             let world = if s.shift {
                 square(*origin, world)
             } else {
@@ -473,6 +495,44 @@ mod tests {
             h: 4,
         };
         assert_eq!(inv(&s), [want]);
+    }
+
+    fn drag_to(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
+        mouse(s, MouseEventKind::Down(MouseButton::Left), from.0, from.1);
+        mouse(s, MouseEventKind::Drag(MouseButton::Left), to.0, to.1);
+        mouse(s, MouseEventKind::Up(MouseButton::Left), to.0, to.1);
+    }
+
+    fn rect(s: &Session, id: &str) -> (i32, i32, i32, i32) {
+        let e = s.canvas.shape(&Id::from(id)).unwrap();
+        (e.x, e.y, e.w, e.h)
+    }
+
+    #[test]
+    fn grid_snaps_a_drawn_shape() {
+        let mut s = with_shape();
+        s.grid = 4;
+        s.tool = Tool::Rect;
+        drag_to(&mut s, (101, 31), (111, 39));
+        let (x, y, w, h) = rect(&s, &s.canvas.elements[1].id().to_string());
+        assert_eq!((x, y, w, h), (100, 32, 13, 9));
+    }
+
+    #[test]
+    fn grid_snaps_a_moved_shape() {
+        let mut s = with_shape();
+        s.grid = 4;
+        drag_to(&mut s, (32, 16), (40, 22));
+        assert_eq!(rect(&s, "aaaaaaaa"), (40, 20, 8, 4));
+    }
+
+    #[test]
+    fn grid_snaps_a_resized_shape() {
+        let mut s = with_shape();
+        s.grid = 4;
+        s.selection = vec![Id::from("aaaaaaaa")];
+        drag_to(&mut s, (37, 18), (46, 25));
+        assert_eq!(rect(&s, "aaaaaaaa"), (30, 15, 19, 10));
     }
 
     #[test]

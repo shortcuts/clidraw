@@ -78,6 +78,8 @@ pub struct Session {
     pub clipboard: Canvas,
     pub dock: Dock,
     pub double_click: Duration,
+    /// Cells between snap lines for drawn, moved and resized shapes; 1 means no snapping.
+    pub grid: i32,
     pub screen: (u16, u16),
     pub edit: Option<Edit>,
     /// Compact read-only view of the whole diagram; `view` stays untouched.
@@ -111,6 +113,7 @@ impl Session {
             clipboard: Canvas::default(),
             dock: Dock::Left,
             double_click: Duration::from_millis(400),
+            grid: 1,
             screen,
             edit: None,
             overview: false,
@@ -229,6 +232,7 @@ impl Session {
         *self = Session {
             dock: self.dock,
             double_click: self.double_click,
+            grid: self.grid,
             history: History::with_limit(self.history.limit),
             ..Session::new(canvas, view, self.screen)
         };
