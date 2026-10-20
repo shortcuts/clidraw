@@ -31,6 +31,9 @@ pub const DEFAULT_TOML: &str = "\
 
 # Blank cells around the drawing in an SVG export.
 # export_padding = 2
+
+# Glide the view for Fit all and search jumps. false snaps instantly.
+# motion = true
 ";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -42,6 +45,7 @@ pub struct Config {
     pub default_canvas: String,
     pub history_limit: usize,
     pub export_padding: i32,
+    pub motion: bool,
 }
 
 impl Default for Config {
@@ -54,6 +58,7 @@ impl Default for Config {
             default_canvas: "untitled".into(),
             history_limit: HISTORY_LIMIT,
             export_padding: 2,
+            motion: true,
         }
     }
 }
@@ -96,6 +101,7 @@ impl Config {
                 "default_canvas" => name(value).map(|n| self.default_canvas = n),
                 "history_limit" => count(value).map(|n| self.history_limit = n),
                 "export_padding" => padding(value).map(|n| self.export_padding = n),
+                "motion" => flag(value).map(|b| self.motion = b),
                 _ => {
                     warns.push(format!("{FILE}: unknown key {key}"));
                     continue;
@@ -127,6 +133,10 @@ fn millis(v: &toml::Value) -> Result<Duration, String> {
         Some(n) if n > 0 => Ok(Duration::from_millis(n as u64)),
         _ => Err("expected a positive integer".into()),
     }
+}
+
+fn flag(v: &toml::Value) -> Result<bool, String> {
+    v.as_bool().ok_or_else(|| "expected true or false".into())
 }
 
 fn count(v: &toml::Value) -> Result<usize, String> {

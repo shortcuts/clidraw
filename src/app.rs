@@ -78,6 +78,7 @@ impl App {
             self.last_edit = now;
         }
         self.dirty |= self.session.edge_pan(now);
+        self.dirty |= self.session.glide_step(now);
         if self.saved_rev != self.session.rev
             && !self.session.dragging()
             && now.duration_since(self.last_edit) >= self.autosave
@@ -88,6 +89,9 @@ impl App {
 
     pub fn next_wake(&self, now: Instant) -> Option<Duration> {
         if let wait @ Some(_) = self.session.edge_wait(now) {
+            return wait;
+        }
+        if let wait @ Some(_) = self.session.glide_wait() {
             return wait;
         }
         if self.saved_rev == self.session.rev || self.session.dragging() {
@@ -296,7 +300,7 @@ impl App {
 
     fn fit_all(&mut self) {
         let bounds = self.session.canvas.all_bounds();
-        self.session.view.fit_all(bounds, self.session.screen);
+        self.session.fit(bounds);
     }
 
     fn open_context(&mut self, col: i32, row: i32) {

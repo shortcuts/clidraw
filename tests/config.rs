@@ -156,3 +156,14 @@ fn export_padding_defaults_to_two_and_rejects_negative() {
         vec!["config.toml: key export_padding: expected an integer from 0 to 100"]
     );
 }
+
+#[test]
+fn motion_defaults_on_and_rejects_non_booleans() {
+    assert!(Config::default().motion);
+    let (c, w, _t) = load_text("motion = false\n");
+    assert!(w.is_empty(), "{w:?}");
+    assert!(!c.motion);
+    let (c, w, _t) = load_text("motion = 3\n");
+    assert!(c.motion);
+    assert_eq!(w, vec!["config.toml: key motion: expected true or false"]);
+}

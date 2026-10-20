@@ -285,6 +285,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
     match action {
         Action::Palette => {}
         Action::Pan(last) => {
+            s.glide = None;
             s.view.pan(last.0 - screen.0, last.1 - screen.1);
             *last = screen;
         }

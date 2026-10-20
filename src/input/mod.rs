@@ -16,7 +16,7 @@ use crate::model::{
 use crate::ui::palette::{self, Dock, PaletteHit};
 use crate::ui::Layout;
 use crate::view::View;
-use state::{Action, Gesture};
+use state::{Action, Gesture, Glide};
 use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
@@ -99,6 +99,8 @@ pub struct Session {
     pub double_click: Duration,
     /// Cells between snap lines for drawn, moved and resized shapes; 1 means no snapping.
     pub grid: i32,
+    /// Whether Fit all and search jumps glide instead of snapping.
+    pub motion: bool,
     /// Last search term; an empty search repeats it.
     pub search: String,
     pub screen: (u16, u16),
@@ -126,6 +128,7 @@ pub struct Session {
     cursor: (i32, i32),
     shift: bool,
     last_pan: Option<Instant>,
+    glide: Option<Glide>,
 }
 
 impl Session {
@@ -140,6 +143,7 @@ impl Session {
             dock: Dock::Left,
             double_click: Duration::from_millis(400),
             grid: 1,
+            motion: true,
             search: String::new(),
             screen,
             edit: None,
@@ -158,6 +162,7 @@ impl Session {
             cursor: (0, 0),
             shift: false,
             last_pan: None,
+            glide: None,
         }
     }
 
@@ -407,6 +412,7 @@ impl Session {
             dock: self.dock,
             double_click: self.double_click,
             grid: self.grid,
+            motion: self.motion,
             history: History::with_limit(self.history.limit),
             ..Session::new(canvas, view, self.screen)
         };
@@ -433,7 +439,7 @@ impl Session {
         let Some(i) = hit else { return false };
         let b = self.canvas.bounds(&els[i]);
         self.selection = vec![els[i].id().clone()];
-        self.view.fit_all(Some(b), self.screen);
+        self.fit(Some(b));
         true
     }
 

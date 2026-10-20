@@ -3,6 +3,7 @@ use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
 use crate::model::{Command, Element, Id, Paint, ShapeKind, Side};
 use crate::ui::palette::{self, paint, Choice, PaletteHit};
+use crate::view::View;
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, Instant};
 
@@ -12,6 +13,13 @@ pub(super) enum Gesture {
     Idle,
     Pressed { origin: P, world: P, target: Target },
     Dragging { action: Action, inv: Vec<Command> },
+}
+
+/// A view move in flight; `start` stays unset until the first tick, which owns the clock.
+pub(super) struct Glide {
+    from: P,
+    to: P,
+    start: Option<Instant>,
 }
 
 pub(super) enum Target {
@@ -38,6 +46,8 @@ pub(super) enum Action {
 
 const EDGE_ZONE: i32 = 2;
 const EDGE_TICK: Duration = Duration::from_millis(30);
+const GLIDE: Duration = Duration::from_millis(120);
+const GLIDE_FRAME: Duration = Duration::from_millis(16);
 const SCROLL_BURST: Duration = Duration::from_millis(100);
 // A flick stays under about 8 rows per notch.
 const SCROLL_MAX: u32 = 4;
@@ -68,9 +78,63 @@ impl Session {
             _ => 0,
         };
         let k = (n * (1 + prior / 2).min(SCROLL_MAX)) as i32;
+        self.glide = None;
         self.view.pan(step.0 * k, step.1 * k);
         self.hover = Hit::Empty;
         self.burst = Some((now, prior + n));
+    }
+
+    /// Centers `bounds` on screen, gliding there when `motion` is on.
+    pub fn fit(&mut self, bounds: Option<(i32, i32, i32, i32)>) {
+        let mut target = self.view;
+        target.fit_all(bounds, self.screen);
+        self.go_to((target.ox, target.oy));
+    }
+
+    // shortcut: the target is not recomputed on resize, fine for a 120 ms glide
+    fn go_to(&mut self, to: P) {
+        let from = (self.view.ox, self.view.oy);
+        if self.motion && from != to {
+            self.glide = Some(Glide {
+                from,
+                to,
+                start: None,
+            });
+        } else {
+            self.glide = None;
+            self.view = View { ox: to.0, oy: to.1 };
+        }
+    }
+
+    /// Time until the next glide frame, or `None` when no glide runs.
+    pub fn glide_wait(&self) -> Option<Duration> {
+        self.glide.as_ref().map(|_| GLIDE_FRAME)
+    }
+
+    /// Moves the view along the ease-out curve. Returns true when the view moved.
+    pub fn glide_step(&mut self, now: Instant) -> bool {
+        let Some(g) = &mut self.glide else {
+            return false;
+        };
+        let start = *g.start.get_or_insert(now);
+        let t = (now.saturating_duration_since(start).as_secs_f64() / GLIDE.as_secs_f64()).min(1.0);
+        let p = 1.0 - (1.0 - t).powi(3);
+        let at = |a: i32, b: i32| a + (f64::from(b - a) * p).round() as i32;
+        let (to, from) = (g.to, g.from);
+        let next = if t >= 1.0 {
+            to
+        } else {
+            (at(from.0, to.0), at(from.1, to.1))
+        };
+        if t >= 1.0 {
+            self.glide = None;
+        }
+        let moved = next != (self.view.ox, self.view.oy);
+        self.view = View {
+            ox: next.0,
+            oy: next.1,
+        };
+        moved
     }
 
     fn edge_velocity(&self) -> P {
@@ -112,6 +176,7 @@ impl Session {
             return false;
         }
         let (dx, dy) = self.edge_velocity();
+        self.glide = None;
         self.view.pan(dx, dy);
         self.last_pan = Some(now);
         pan_step(self);

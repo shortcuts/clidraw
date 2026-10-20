@@ -1777,3 +1777,40 @@ fn frame_with_contents_shows_corner_handles_and_resize_moves_only_the_frame() {
     assert_eq!((f.w, f.h), (25, 12));
     assert_eq!(shapes(&s)[0].x, 22);
 }
+
+#[test]
+fn fit_glides_to_the_target_with_ease_out() {
+    let mut s = session();
+    let t0 = Instant::now();
+    s.fit(Some((100, 50, 10, 4)));
+    assert_eq!((s.view.ox, s.view.oy), (0, 0));
+    assert_eq!(s.glide_wait(), Some(Duration::from_millis(16)));
+    assert!(!s.glide_step(t0));
+    assert!(s.glide_step(t0 + Duration::from_millis(60)));
+    assert_eq!((s.view.ox, s.view.oy), (57, 35));
+    assert!(s.glide_step(t0 + Duration::from_millis(120)));
+    assert_eq!((s.view.ox, s.view.oy), (65, 40));
+    assert_eq!(s.glide_wait(), None);
+    assert!(!s.glide_step(t0 + Duration::from_millis(200)));
+}
+
+#[test]
+fn fit_snaps_when_motion_is_off() {
+    let mut s = session();
+    s.motion = false;
+    s.fit(Some((100, 50, 10, 4)));
+    assert_eq!((s.view.ox, s.view.oy), (65, 40));
+    assert_eq!(s.glide_wait(), None);
+}
+
+#[test]
+fn scrolling_cancels_a_glide() {
+    let mut s = session();
+    let t0 = Instant::now();
+    s.fit(Some((100, 50, 10, 4)));
+    s.glide_step(t0);
+    s.scroll((0, 2), 1, t0);
+    assert_eq!(s.glide_wait(), None);
+    assert!(!s.glide_step(t0 + Duration::from_millis(60)));
+    assert_eq!((s.view.ox, s.view.oy), (0, 2));
+}

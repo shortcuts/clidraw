@@ -794,6 +794,9 @@ fn slash_command_selects_matches_in_turn_and_centers_the_view() {
     assert_eq!(app.session.selection, vec![Id::from("cccccccc")]);
     run(&mut app, "/");
     assert_eq!(app.session.selection, vec![Id::from("aaaaaaaa")]);
+    let t0 = Instant::now();
+    app.tick(t0);
+    app.tick(t0 + Duration::from_millis(120));
     let (sx, _) = app.session.view.to_screen(506, 0);
     assert_eq!(sx, i32::from(app.session.screen.0) / 2);
     run(&mut app, "/zzz");
@@ -1317,4 +1320,22 @@ fn undo_survives_a_reopen_only_while_the_file_is_unchanged() {
         1,
         "edited file drops history"
     );
+}
+
+#[test]
+fn ticks_only_while_the_view_glides() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
+    let t0 = Instant::now();
+    assert_eq!(app.next_wake(t0), None);
+    app.session.fit(Some((100, 50, 10, 4)));
+    assert_eq!(app.next_wake(t0), Some(Duration::from_millis(16)));
+    app.dirty = false;
+    app.tick(t0);
+    app.tick(t0 + Duration::from_millis(60));
+    assert!(app.dirty, "a moving glide frame redraws");
+    app.tick(t0 + Duration::from_millis(120));
+    assert_eq!((app.session.view.ox, app.session.view.oy), (65, 40));
+    assert_eq!(app.next_wake(t0 + Duration::from_millis(120)), None);
 }

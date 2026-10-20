@@ -28,6 +28,7 @@ impl App {
         session.dock = config.dock;
         session.double_click = config.double_click;
         session.grid = config.grid;
+        session.motion = config.motion;
         session.history.limit = config.history_limit;
         let mut app = App {
             session,
