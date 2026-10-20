@@ -63,11 +63,13 @@ pub fn render(
     perf: Option<&Perf>,
 ) {
     let mut grid = Grid::new(area.width, area.height);
-    let accent = theme::accent(
+    let (no_color, colorterm) = (
         std::env::var_os("NO_COLOR").is_some(),
-        std::env::var("COLORTERM").ok().as_deref(),
+        std::env::var("COLORTERM").ok(),
     );
-    canvas_view::draw(&mut grid, s, accent);
+    let colors = theme::colors(no_color, colorterm.as_deref());
+    let accent = theme::accent(no_color, colorterm.as_deref());
+    canvas_view::draw(&mut grid, s, accent, colors);
     if !s.overview {
         palette::draw(&mut grid, s);
     }

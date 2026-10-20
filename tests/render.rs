@@ -1,7 +1,7 @@
 use clidraw::input::{Corner, Handle, Hit, Session};
 use clidraw::model::{
-    Anchor, Border, Canvas, Command, Element, End, Id, Line, LineKind, Routing, Shape, ShapeKind,
-    Stroke,
+    Anchor, Border, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Routing, Shape,
+    ShapeKind, Stroke,
 };
 use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::switcher::Switcher;
@@ -9,7 +9,7 @@ use clidraw::ui::{self, Overlay, Perf};
 use clidraw::view::View;
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
-use ratatui::style::Modifier;
+use ratatui::style::{Color, Modifier};
 use ratatui::Terminal;
 
 fn shape(id: &str, x: i32, label: &str) -> Element {
@@ -23,6 +23,8 @@ fn shape(id: &str, x: i32, label: &str) -> Element {
         label: label.into(),
         stroke: Default::default(),
         border: Default::default(),
+        color: None,
+        fill: None,
     })
 }
 
@@ -104,6 +106,43 @@ fn border_styles_swap_the_glyph_set() {
 }
 
 #[test]
+fn ink_and_fill_draw_only_on_a_truecolor_terminal() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    c.elements.push(shape("bbbbbbbb", 40, ""));
+    for e in &mut c.elements {
+        if let Element::Shape(s) = e {
+            s.color = Some(Paint::Red);
+            s.fill = Some(Paint::Blue);
+            s.kind = if s.x == 20 {
+                ShapeKind::Rect
+            } else {
+                ShapeKind::Diamond
+            };
+            s.h = 5;
+        }
+    }
+    let s = Session::new(c, View::default(), (80, 24));
+    std::env::remove_var("NO_COLOR");
+    std::env::set_var("COLORTERM", "truecolor");
+    let on = draw(&s, &Overlay::None);
+    std::env::set_var("NO_COLOR", "1");
+    let off = draw(&s, &Overlay::None);
+    std::env::remove_var("NO_COLOR");
+    std::env::set_var("COLORTERM", "256color");
+    let basic = draw(&s, &Overlay::None);
+    std::env::remove_var("COLORTERM");
+    assert_eq!(on[(20, 4)].fg, Color::Rgb(255, 95, 95));
+    assert_eq!(on[(23, 5)].bg, Color::Rgb(50, 62, 86));
+    // The diamond top row has one outline glyph, so its fill stops there.
+    assert_eq!(on[(43, 4)].bg, Color::Rgb(50, 62, 86));
+    assert_eq!(on[(41, 4)].bg, Color::Reset);
+    for b in [off, basic] {
+        assert_eq!((b[(20, 4)].fg, b[(23, 5)].bg), (Color::Reset, Color::Reset));
+    }
+}
+
+#[test]
 fn wide_char_that_overflows_the_border_is_dropped() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 20, "aaaaa你"));
@@ -136,6 +175,7 @@ fn arrow_between_shapes_ends_in_a_head() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        color: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│{}▶│", "─".repeat(19));
@@ -176,6 +216,7 @@ fn arrow_start_has_its_head_at_the_first_cell() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        color: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│◀{}│", "─".repeat(19));
@@ -197,6 +238,7 @@ fn arrow_both_has_a_head_at_each_end() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        color: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│◀{}▶│", "─".repeat(18));
@@ -222,6 +264,7 @@ fn arrow_between_shapes_on_different_rows_bends_with_rounded_corners() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        color: None,
     }));
     let b = draw(&Session::new(c, View::default(), (80, 24)), &Overlay::None);
     assert_eq!(cols(&b, 5, 19, 12), "│─────────╮ ");
@@ -247,6 +290,7 @@ fn straight_arrow_between_shapes_on_different_rows_draws_diagonal_cells() {
         label_at: None,
         stroke: Default::default(),
         routing: Routing::Straight,
+        color: None,
     }));
     let b = draw(&Session::new(c, View::default(), (80, 24)), &Overlay::None);
     let screen: String = (0..24).map(|y| row(&b, y)).collect();
@@ -412,6 +456,7 @@ fn line_crossing_the_view_draws_when_both_ends_are_off_screen() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        color: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
     assert_eq!(cols(&draw(&s, &Overlay::None), 5, 30, 4), "────");
@@ -529,6 +574,8 @@ fn long_shape_label_wraps_inside_the_shape() {
         label: "ab cd ef".into(),
         stroke: Default::default(),
         border: Default::default(),
+        color: None,
+        fill: None,
     }));
     s.rev += 1;
     let b = draw(&s, &Overlay::None);
@@ -574,6 +621,7 @@ fn edit_caret_shows_on_a_line_label() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        color: None,
     }));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.start_edit_existing(Id::from("cccccccc"));
@@ -595,6 +643,8 @@ fn overview_session(x: i32, y: i32) -> Session {
         label: "box".into(),
         stroke: Default::default(),
         border: Default::default(),
+        color: None,
+        fill: None,
     }));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.overview = true;
@@ -651,6 +701,8 @@ fn kind_session(kind: ShapeKind, w: i32, h: i32) -> Session {
         label: String::new(),
         stroke: Default::default(),
         border: Default::default(),
+        color: None,
+        fill: None,
     }));
     Session::new(c, View::default(), (80, 24))
 }

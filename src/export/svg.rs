@@ -1,5 +1,6 @@
 use crate::model::{
-    corners, label_pos, wrap, Border, Canvas, Element, LineKind, Routing, ShapeKind, Stroke,
+    corners, label_pos, wrap, Border, Canvas, Element, LineKind, Paint, Routing, ShapeKind, Stroke,
+    FILL_ALPHA,
 };
 use std::fmt::Write;
 
@@ -22,13 +23,22 @@ fn dash(s: Stroke) -> &'static str {
     }
 }
 
-fn text(out: &mut String, x: i32, y: i32, anchor: &str, lines: &[&str]) {
+fn hex(p: Paint) -> String {
+    let (r, g, b) = p.rgb();
+    format!("#{r:02x}{g:02x}{b:02x}")
+}
+
+fn text(out: &mut String, x: i32, y: i32, anchor: &str, lines: &[&str], ink: Option<Paint>) {
     if lines.iter().all(|l| l.is_empty()) {
         return;
     }
     let y = y - (lines.len() as i32 - 1) * CH / 2;
     let head =
         format!("<text x=\"{x}\" y=\"{y}\" text-anchor=\"{anchor}\" dominant-baseline=\"central\"");
+    let head = match ink {
+        Some(p) => format!("{head} fill=\"{}\"", hex(p)),
+        None => head,
+    };
     if let [one] = lines {
         let _ = writeln!(out, "  {head}>{}</text>", esc(one));
         return;
@@ -48,7 +58,16 @@ pub fn svg(canvas: &Canvas) -> String {
     let mut o = String::new();
     let _ = writeln!(o, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"{vx} {vy} {vw} {vh}\" width=\"{vw}\" height=\"{vh}\" font-family=\"monospace\" font-size=\"14\">");
     o.push_str("  <defs><marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"8\" markerHeight=\"8\" orient=\"auto-start-reverse\"><path d=\"M0 0 L10 5 L0 10 z\"/></marker></defs>\n");
-    let style = |s: Stroke| format!("fill=\"none\" stroke=\"black\"{}", dash(s));
+    let style = |s: Stroke, ink: Option<Paint>, fill: Option<Paint>| {
+        let fill = fill.map_or("none".to_string(), hex);
+        let opacity = if fill == "none" {
+            String::new()
+        } else {
+            format!(" fill-opacity=\"{}\"", f64::from(FILL_ALPHA) / 100.0)
+        };
+        let stroke = ink.map_or("black".to_string(), hex);
+        format!("fill=\"{fill}\"{opacity} stroke=\"{stroke}\"{}", dash(s))
+    };
     for e in &canvas.elements {
         match e {
             Element::Shape(s) => {
@@ -57,7 +76,8 @@ pub fn svg(canvas: &Canvas) -> String {
                     Border::Heavy => " stroke-width=\"3\"",
                     _ => "",
                 };
-                let style = format!("{}{width}", style(s.stroke));
+                let arc = format!("{}{width}", style(s.stroke, s.color, None));
+                let style = format!("{}{width}", style(s.stroke, s.color, s.fill));
                 let rx = if s.border == Border::Rounded {
                     " rx=\"8\""
                 } else {
@@ -94,7 +114,7 @@ pub fn svg(canvas: &Canvas) -> String {
                         );
                         let _ = writeln!(
                             o,
-                            "  <path d=\"M {x},{} A {rx} {ry} 0 0 0 {},{}\" {style}/>",
+                            "  <path d=\"M {x},{} A {rx} {ry} 0 0 0 {},{}\" {arc}/>",
                             y + ry,
                             x + w,
                             y + ry
@@ -154,7 +174,7 @@ pub fn svg(canvas: &Canvas) -> String {
                     .into_iter()
                     .map(|r| s.label[r].trim_end_matches([' ', '\n']))
                     .collect();
-                text(&mut o, x + w / 2, y + h / 2, "middle", &lines);
+                text(&mut o, x + w / 2, y + h / 2, "middle", &lines, s.color);
             }
             Element::Line(l) => {
                 let cells = canvas.route(l);
@@ -180,12 +200,19 @@ pub fn svg(canvas: &Canvas) -> String {
                 let _ = writeln!(
                     o,
                     "  <path d=\"{d}\" {} stroke-linejoin=\"round\"{marker}/>",
-                    style(l.stroke)
+                    style(l.stroke, l.color, None)
                 );
                 let (lx, ly) = mid(label_pos(&cells, l.label_at));
-                text(&mut o, lx, ly, "middle", &[&l.label]);
+                text(&mut o, lx, ly, "middle", &[&l.label], l.color);
             }
-            Element::Text(t) => text(&mut o, t.x * CW, t.y * CH + CH / 2, "start", &[&t.text]),
+            Element::Text(t) => text(
+                &mut o,
+                t.x * CW,
+                t.y * CH + CH / 2,
+                "start",
+                &[&t.text],
+                t.color,
+            ),
         }
     }
     o.push_str("</svg>\n");

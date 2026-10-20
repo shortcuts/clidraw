@@ -1,4 +1,6 @@
-use crate::model::{Border, Canvas, Element, End, Id, LineKind, ShapeKind, Stroke};
+use crate::model::{
+    Border, Canvas, Element, End, Id, LineKind, Paint, ShapeKind, Stroke, FILL_ALPHA,
+};
 use std::fmt::Write;
 
 pub struct MermaidOutput {
@@ -9,6 +11,11 @@ pub struct MermaidOutput {
 fn label(s: &str) -> String {
     let s = if s.is_empty() { " " } else { s };
     format!("\"{}\"", s.replace('"', "#quot;").replace('\n', "<br/>"))
+}
+
+fn hex(p: Paint) -> String {
+    let (r, g, b) = p.rgb();
+    format!("#{r:02x}{g:02x}{b:02x}")
 }
 
 pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
@@ -32,6 +39,8 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
     };
     let mut text = String::from("flowchart TD\n");
     let mut edges = String::new();
+    let mut styles = String::new();
+    let mut links = 0;
     let mut skipped = 0;
     let mut n = 0;
     for e in &canvas.elements {
@@ -47,6 +56,19 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
                     ShapeKind::Parallelogram => writeln!(text, "  n{n}[/{l}/]"),
                     ShapeKind::Hexagon => writeln!(text, "  n{n}{{{{{l}}}}}"),
                 };
+                let keys: Vec<String> = [
+                    s.fill.map(|p| {
+                        format!("fill:{}{:02x}", hex(p), u16::from(FILL_ALPHA) * 255 / 100)
+                    }),
+                    s.color.map(|p| format!("stroke:{}", hex(p))),
+                    s.color.map(|p| format!("color:{}", hex(p))),
+                ]
+                .into_iter()
+                .flatten()
+                .collect();
+                if !keys.is_empty() {
+                    let _ = writeln!(styles, "  style n{n} {}", keys.join(","));
+                }
                 n += 1;
             }
             Element::Line(l) => match (node(&l.from), node(&l.to)) {
@@ -72,6 +94,11 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
                         format!("|{}|", label(&l.label))
                     };
                     let _ = writeln!(edges, "  {a} {arrow}{pipe} {b}");
+                    if let Some(p) = l.color {
+                        let _ =
+                            writeln!(styles, "  linkStyle {links} stroke:{0},color:{0}", hex(p));
+                    }
+                    links += 1;
                 }
                 _ => skipped += 1,
             },
@@ -79,5 +106,6 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
         }
     }
     text.push_str(&edges);
+    text.push_str(&styles);
     MermaidOutput { text, skipped }
 }

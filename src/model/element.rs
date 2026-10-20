@@ -66,6 +66,49 @@ impl Border {
     }
 }
 
+/// Named ink and fill color. The terminal and both exporters read the same RGB.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Paint {
+    Red,
+    Orange,
+    Yellow,
+    Green,
+    Blue,
+    Violet,
+}
+
+/// Opacity of a fill over the page, in percent.
+pub const FILL_ALPHA: u8 = 25;
+
+impl Paint {
+    pub const ALL: [Paint; 6] = [
+        Paint::Red,
+        Paint::Orange,
+        Paint::Yellow,
+        Paint::Green,
+        Paint::Blue,
+        Paint::Violet,
+    ];
+
+    pub fn rgb(self) -> (u8, u8, u8) {
+        match self {
+            Paint::Red => (255, 95, 95),
+            Paint::Orange => (255, 160, 60),
+            Paint::Yellow => (240, 220, 80),
+            Paint::Green => (100, 220, 120),
+            Paint::Blue => (110, 160, 255),
+            Paint::Violet => (190, 140, 255),
+        }
+    }
+
+    /// The click cycle: none, each color in order, then none again.
+    pub fn next(cur: Option<Paint>) -> Option<Paint> {
+        let i = cur.map_or(0, |p| Paint::ALL.iter().position(|&a| a == p).unwrap() + 1);
+        Paint::ALL.get(i).copied()
+    }
+}
+
 /// Side of a shape a bound line end leaves from. `Auto` picks the side facing the other end.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -127,6 +170,10 @@ pub struct Shape {
     pub stroke: Stroke,
     #[serde(default, skip_serializing_if = "Border::is_single")]
     pub border: Border,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<Paint>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fill: Option<Paint>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -143,6 +190,8 @@ pub struct Line {
     pub stroke: Stroke,
     #[serde(default, skip_serializing_if = "Routing::is_elbow")]
     pub routing: Routing,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<Paint>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -151,6 +200,8 @@ pub struct Text {
     pub x: i32,
     pub y: i32,
     pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<Paint>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

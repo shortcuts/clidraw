@@ -1,17 +1,42 @@
+use crate::model::{Paint, FILL_ALPHA};
 use ratatui::style::Color;
 
 pub const ACCENT: Color = Color::Rgb(95, 215, 255);
+pub const BACKGROUND: (u8, u8, u8) = (30, 30, 30);
+
+pub fn colors(no_color: bool, colorterm: Option<&str>) -> bool {
+    !no_color && matches!(colorterm, Some("truecolor" | "24bit"))
+}
 
 pub fn accent(no_color: bool, colorterm: Option<&str>) -> Option<Color> {
-    let truecolor = matches!(colorterm, Some("truecolor" | "24bit"));
-    (!no_color && truecolor).then_some(ACCENT)
+    colors(no_color, colorterm).then_some(ACCENT)
+}
+
+pub fn ink(p: Paint) -> Color {
+    let (r, g, b) = p.rgb();
+    Color::Rgb(r, g, b)
+}
+
+/// The ink blended over the background: a terminal cell has no alpha.
+pub fn fill(p: Paint) -> Color {
+    let (r, g, b) = p.rgb();
+    let mix = |c: u8, bg: u8| {
+        ((u16::from(c) * u16::from(FILL_ALPHA) + u16::from(bg) * (100 - u16::from(FILL_ALPHA)))
+            / 100) as u8
+    };
+    Color::Rgb(
+        mix(r, BACKGROUND.0),
+        mix(g, BACKGROUND.1),
+        mix(b, BACKGROUND.2),
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const BACKGROUND: Color = Color::Rgb(30, 30, 30);
+    const BG: Color = Color::Rgb(BACKGROUND.0, BACKGROUND.1, BACKGROUND.2);
+    const TEXT: Color = Color::Rgb(229, 229, 229);
 
     fn luminance(c: Color) -> f64 {
         let Color::Rgb(r, g, b) = c else {
@@ -47,6 +72,25 @@ mod tests {
 
     #[test]
     fn accent_meets_wcag_aa_on_the_dark_background() {
-        assert!(contrast(ACCENT, BACKGROUND) >= 4.5);
+        assert!(contrast(ACCENT, BG) >= 4.5);
+    }
+
+    #[test]
+    fn ink_meets_wcag_aa_on_the_dark_background() {
+        for p in Paint::ALL {
+            assert!(contrast(ink(p), BG) >= 4.5, "{p:?}");
+        }
+    }
+
+    #[test]
+    fn default_text_meets_wcag_aa_on_every_fill() {
+        for p in Paint::ALL {
+            assert!(contrast(TEXT, fill(p)) >= 4.5, "{p:?}");
+        }
+    }
+
+    #[test]
+    fn fill_blends_ink_over_the_background() {
+        assert_eq!(fill(Paint::Red), Color::Rgb(86, 46, 46));
     }
 }

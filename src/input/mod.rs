@@ -317,6 +317,7 @@ impl Session {
                         x,
                         y,
                         text: buf,
+                        color: None,
                     }),
                 ));
                 self.selection = vec![id];

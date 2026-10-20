@@ -44,6 +44,8 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
             label: String::new(),
             stroke: Default::default(),
             border: Default::default(),
+            color: None,
+            fill: None,
         }));
     }
     for i in 0..shapes - 1 {
@@ -56,6 +58,7 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
             label_at: None,
             stroke: Default::default(),
             routing: Default::default(),
+            color: None,
         }));
     }
     els.push(Element::Shape(Shape {
@@ -68,6 +71,8 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
         label: String::new(),
         stroke: Default::default(),
         border: Default::default(),
+        color: None,
+        fill: None,
     }));
     app
 }
@@ -141,6 +146,8 @@ fn frame_fits_the_budget_on_2500_labelled_shapes() {
             label: "x".repeat(80),
             stroke: Default::default(),
             border: Default::default(),
+            color: None,
+            fill: None,
         }));
     }
     let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();

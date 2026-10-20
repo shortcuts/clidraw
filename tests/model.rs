@@ -14,6 +14,8 @@ fn shape(id: &str, x: i32) -> Element {
         label: String::new(),
         stroke: Default::default(),
         border: Default::default(),
+        color: None,
+        fill: None,
     })
 }
 
@@ -27,6 +29,7 @@ fn arrow(from: End, to: End) -> Element {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        color: None,
     })
 }
 
@@ -258,6 +261,7 @@ fn routing_defaults_to_elbow_when_absent_and_stays_out_of_elbow_json() {
         .contains("routing"));
     let direct = Element::Line(Line {
         routing: Routing::Straight,
+        color: None,
         ..l
     });
     assert!(serde_json::to_string(&direct)
@@ -279,6 +283,7 @@ fn set_routing_changes_the_route_and_undoes_as_restyle() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        color: None,
     });
     h.exec(&mut c, Command::Insert(0, line)).unwrap();
     let routing = |c: &Canvas| match c.get(&id) {
@@ -315,6 +320,7 @@ fn within_keeps_only_elements_fully_inside_the_area() {
                 label_at: None,
                 stroke: Default::default(),
                 routing: Default::default(),
+                color: None,
             }),
         ],
         ..Canvas::default()

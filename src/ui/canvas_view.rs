@@ -1,5 +1,6 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE, UNDERLINE};
 use super::layout::refresh;
+use super::theme;
 use crate::input::{handles, EditTarget, Hit, Session};
 use crate::model::{
     label_pos, wrap, Border, Element, End, Find, Line, LineKind, Shape, ShapeKind, Stroke,
@@ -8,7 +9,7 @@ use ratatui::style::Color;
 use std::cmp::Ordering;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
-pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
+pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     if s.overview {
         return overview(grid, s);
     }
@@ -40,6 +41,19 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
             Element::Shape(sh) => shape(grid, sh, sx, sy, label(&sh.label), flags),
             Element::Line(l) => line(grid, s, &find, l, label(&l.label), flags),
             Element::Text(t) => grid.text(sx, sy, label(&t.text), flags),
+        }
+        if colors {
+            let (ink, fill) = match e {
+                Element::Shape(sh) => (sh.color, sh.fill),
+                Element::Line(l) => (l.color, None),
+                Element::Text(t) => (t.color, None),
+            };
+            if let Some(p) = ink {
+                grid.tint(sx, sy, w, h, theme::ink(p));
+            }
+            if let Some(p) = fill {
+                grid.shade(sx, sy, w, h, theme::fill(p));
+            }
         }
         if let (Some(c), true) = (accent, s.selection.contains(e.id())) {
             grid.tint(sx, sy, w, h, c);

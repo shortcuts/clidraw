@@ -150,6 +150,8 @@ fn area_app(dir: &std::path::Path) -> (App, Instant) {
                 label: label.into(),
                 stroke: Default::default(),
                 border: Default::default(),
+                color: None,
+                fill: None,
             }),
         ));
     }
@@ -409,6 +411,8 @@ fn insert_shape(app: &mut App) {
             label: String::new(),
             stroke: Default::default(),
             border: Default::default(),
+            color: None,
+            fill: None,
         }),
     ));
 }
@@ -524,6 +528,8 @@ fn drag_app(dir: &std::path::Path) -> App {
             label: String::new(),
             stroke: Default::default(),
             border: Default::default(),
+            color: None,
+            fill: None,
         }),
     ));
     app
@@ -613,6 +619,8 @@ fn history_limit_from_config_survives_opening_another_canvas() {
             label: String::new(),
             stroke: Default::default(),
             border: Default::default(),
+            color: None,
+            fill: None,
         };
         app.session.exec(Command::Insert(i, Element::Shape(shape)));
     }
@@ -671,6 +679,8 @@ fn moved_redraws_only_when_the_hovered_target_changes() {
             label: String::new(),
             stroke: Default::default(),
             border: Default::default(),
+            color: None,
+            fill: None,
         }));
     let t0 = Instant::now();
     app.dirty = false;

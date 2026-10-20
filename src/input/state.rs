@@ -1,8 +1,8 @@
 use super::drag::{drag, pan_step, up};
 use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
-use crate::model::{Command, Element, Id, ShapeKind, Side};
-use crate::ui::palette::{self, Choice, PaletteHit};
+use crate::model::{Command, Element, Id, Paint, ShapeKind, Side};
+use crate::ui::palette::{self, paint, Choice, PaletteHit};
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, Instant};
 
@@ -275,6 +275,30 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
                 .map(|id| Command::SetBorder {
                     id: id.clone(),
                     border,
+                })
+                .collect();
+            s.exec(Command::Batch(cmds));
+        }
+        PaletteHit::Option(c @ (Choice::Ink | Choice::Fill)) => {
+            let cur = s
+                .selection
+                .iter()
+                .find_map(|id| paint(s.canvas.get(id)?, c))
+                .flatten();
+            let next = Paint::next(cur);
+            let cmds: Vec<Command> = s
+                .selection
+                .iter()
+                .filter(|id| s.canvas.get(id).and_then(|e| paint(e, c)).is_some())
+                .map(|id| match c {
+                    Choice::Ink => Command::SetColor {
+                        id: id.clone(),
+                        color: next,
+                    },
+                    _ => Command::SetFill {
+                        id: id.clone(),
+                        fill: next,
+                    },
                 })
                 .collect();
             s.exec(Command::Batch(cmds));

@@ -13,6 +13,7 @@ pub struct Cell {
     pub ch: char,
     pub flags: u8,
     pub fg: Option<Color>,
+    pub bg: Option<Color>,
 }
 
 /// Our own cell grid: integer cells, no floating-point dots.
@@ -28,6 +29,7 @@ impl Grid {
             ch: ' ',
             flags: 0,
             fg: None,
+            bg: None,
         };
         Grid {
             w: i32::from(w),
@@ -42,6 +44,7 @@ impl Grid {
                 ch,
                 flags,
                 fg: None,
+                bg: None,
             };
         }
     }
@@ -87,6 +90,21 @@ impl Grid {
         }
     }
 
+    /// Per row, paints from the first to the last drawn cell, so any outline keeps its shape.
+    pub fn shade(&mut self, x: i32, y: i32, w: i32, h: i32, bg: Color) {
+        for yy in y.max(0)..(y + h).min(self.h) {
+            let row = &mut self.cells[(yy * self.w) as usize..((yy + 1) * self.w) as usize];
+            let span = &mut row[x.max(0).min(self.w) as usize..(x + w).clamp(0, self.w) as usize];
+            let Some(first) = span.iter().position(|c| c.ch != ' ') else {
+                continue;
+            };
+            let last = span.iter().rposition(|c| c.ch != ' ').unwrap();
+            for c in &mut span[first..=last] {
+                c.bg = Some(bg);
+            }
+        }
+    }
+
     pub fn dim_all(&mut self) {
         for c in &mut self.cells {
             c.flags |= DIM;
@@ -114,6 +132,9 @@ impl Grid {
                 if let Some(fg) = c.fg {
                     style = style.fg(fg);
                 }
+                if let Some(bg) = c.bg {
+                    style = style.bg(bg);
+                }
                 let mut tmp = [0u8; 4];
                 buf[(area.x + x as u16, area.y + y as u16)]
                     .set_symbol(c.ch.encode_utf8(&mut tmp))
@@ -137,5 +158,22 @@ mod tests {
         g.copy_to(&mut buf, area);
         assert_eq!(buf[(0, 0)].fg, Color::Red);
         assert_eq!(buf[(2, 0)].fg, Color::Reset);
+    }
+
+    #[test]
+    fn shade_stops_at_the_outline_glyphs() {
+        let mut g = Grid::new(6, 2);
+        g.text(2, 0, "/\\", 0);
+        g.text(1, 1, "/  \\", 0);
+        g.shade(0, 0, 6, 2, Color::Red);
+        let area = Rect::new(0, 0, 6, 2);
+        let mut buf = Buffer::empty(area);
+        g.copy_to(&mut buf, area);
+        assert_eq!(buf[(1, 0)].bg, Color::Reset);
+        assert_eq!(buf[(2, 0)].bg, Color::Red);
+        assert_eq!(buf[(3, 0)].bg, Color::Red);
+        assert_eq!(buf[(4, 0)].bg, Color::Reset);
+        assert_eq!(buf[(2, 1)].bg, Color::Red);
+        assert_eq!(buf[(0, 1)].bg, Color::Reset);
     }
 }

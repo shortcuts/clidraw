@@ -247,6 +247,8 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                     label: String::new(),
                     stroke: Default::default(),
                     border: Default::default(),
+                    color: None,
+                    fill: None,
                 }),
                 None => Element::Line(Line {
                     id: id.clone(),
@@ -261,6 +263,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                     label_at: None,
                     stroke: Default::default(),
                     routing: Default::default(),
+                    color: None,
                 }),
             };
             run(s, inv, Command::Insert(at, el));
@@ -479,6 +482,8 @@ mod tests {
             label: String::new(),
             stroke: Default::default(),
             border: Default::default(),
+            color: None,
+            fill: None,
         }));
         s
     }
@@ -637,6 +642,8 @@ mod tests {
             label: String::new(),
             stroke: Default::default(),
             border: Default::default(),
+            color: None,
+            fill: None,
         }));
         s
     }

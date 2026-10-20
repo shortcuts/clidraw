@@ -1,5 +1,7 @@
 use super::canvas::{Index, BULK};
-use super::{Border, Canvas, Element, End, Id, LineKind, ModelError, Routing, ShapeKind, Stroke};
+use super::{
+    Border, Canvas, Element, End, Id, LineKind, ModelError, Paint, Routing, ShapeKind, Stroke,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Side {
@@ -81,6 +83,14 @@ pub enum Command {
         id: Id,
         border: Border,
     },
+    SetColor {
+        id: Id,
+        color: Option<Paint>,
+    },
+    SetFill {
+        id: Id,
+        fill: Option<Paint>,
+    },
     /// Replaces the whole group list.
     SetGroups(Vec<Vec<Id>>),
     Batch(Vec<Command>),
@@ -124,7 +134,9 @@ impl Command {
             | Command::SetLineKind { .. }
             | Command::SetStroke { .. }
             | Command::SetRouting { .. }
-            | Command::SetBorder { .. } => "restyle",
+            | Command::SetBorder { .. }
+            | Command::SetColor { .. }
+            | Command::SetFill { .. } => "restyle",
             Command::SetGroups(_) => "regroup",
             Command::Batch(_) => unreachable!(),
         }
@@ -447,6 +459,24 @@ impl Canvas {
                 };
                 let old = std::mem::replace(&mut s.border, border);
                 Ok(Command::SetBorder { id, border: old })
+            }
+            Command::SetColor { id, color } => {
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
+                let slot = match &mut self.elements[i] {
+                    Element::Shape(s) => &mut s.color,
+                    Element::Line(l) => &mut l.color,
+                    Element::Text(t) => &mut t.color,
+                };
+                let old = std::mem::replace(slot, color);
+                Ok(Command::SetColor { id, color: old })
+            }
+            Command::SetFill { id, fill } => {
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
+                let Element::Shape(s) = &mut self.elements[i] else {
+                    return Err(wrong(&id));
+                };
+                let old = std::mem::replace(&mut s.fill, fill);
+                Ok(Command::SetFill { id, fill: old })
             }
             Command::SetRouting { id, routing } => {
                 let i = self.position(&id, index).ok_or_else(|| missing(&id))?;

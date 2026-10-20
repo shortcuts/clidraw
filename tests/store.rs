@@ -1,4 +1,4 @@
-use clidraw::model::{Anchor, Canvas, Element, End, Id, Line, LineKind, Shape, ShapeKind};
+use clidraw::model::{Anchor, Canvas, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind};
 use clidraw::store::{resolve_dir, validate_name, Store, StoreError};
 use std::path::PathBuf;
 
@@ -19,6 +19,8 @@ fn shape(id: &str, x: i32) -> Element {
         label: "a".into(),
         stroke: Default::default(),
         border: Default::default(),
+        color: None,
+        fill: None,
     })
 }
 
@@ -35,6 +37,7 @@ fn sample() -> Canvas {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        color: None,
     }));
     c
 }
@@ -45,6 +48,25 @@ fn round_trip() {
     assert!(s.save("a", &sample()).unwrap());
     assert_eq!(s.load("a").unwrap(), sample());
     assert_eq!(s.list().unwrap(), vec!["a".to_string()]);
+}
+
+#[test]
+fn colors_round_trip_and_uncolored_files_keep_their_bytes() {
+    let (t, s) = store();
+    let path = t.path().join("c/a.clidraw.json");
+    s.save("a", &sample()).unwrap();
+    let plain = std::fs::read_to_string(&path).unwrap();
+    assert!(!plain.contains("color") && !plain.contains("fill"));
+    let mut c = sample();
+    let Element::Shape(sh) = &mut c.elements[0] else {
+        panic!("no shape")
+    };
+    sh.color = Some(Paint::Red);
+    sh.fill = Some(Paint::Blue);
+    s.save("a", &c).unwrap();
+    let colored = std::fs::read_to_string(&path).unwrap();
+    assert!(colored.contains("\"color\": \"red\"") && colored.contains("\"fill\": \"blue\""));
+    assert_eq!(s.load("a").unwrap(), c);
 }
 
 #[test]

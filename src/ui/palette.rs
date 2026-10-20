@@ -1,6 +1,6 @@
 use super::grid::{Grid, REVERSE};
 use crate::input::{Session, Tool};
-use crate::model::{Border, Element, LineKind, Routing, Stroke};
+use crate::model::{Border, Element, LineKind, Paint, Routing, Stroke};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dock {
@@ -24,6 +24,8 @@ pub enum Choice {
     Stroke(Stroke),
     Routing(Routing),
     Border(Border),
+    Ink,
+    Fill,
 }
 
 impl Choice {
@@ -36,6 +38,8 @@ impl Choice {
             Choice::Border(Border::Rounded) => "╭╮ round",
             Choice::Border(Border::Double) => "╔╗ double",
             Choice::Border(Border::Heavy) => "┏┓ heavy",
+            Choice::Ink => "ink >",
+            Choice::Fill => "fill >",
             Choice::Routing(Routing::Elbow) => "|_ elbow",
             Choice::Routing(Routing::Straight) => "/ direct",
             Choice::Head(LineKind::Line) => "-- none",
@@ -79,7 +83,22 @@ pub fn choices(s: &Session) -> Vec<Choice> {
             .map(Choice::Border),
         );
     }
+    out.push(Choice::Ink);
+    if has(|e| matches!(e, Element::Shape(_))) {
+        out.push(Choice::Fill);
+    }
     out
+}
+
+/// The color a selected element holds for this choice; `None` when the element is not eligible.
+pub fn paint(e: &Element, c: Choice) -> Option<Option<Paint>> {
+    match (c, e) {
+        (Choice::Ink, Element::Shape(s)) => Some(s.color),
+        (Choice::Ink, Element::Line(l)) => Some(l.color),
+        (Choice::Ink, Element::Text(t)) => Some(t.color),
+        (Choice::Fill, Element::Shape(s)) => Some(s.fill),
+        _ => None,
+    }
 }
 
 fn active(s: &Session, c: Choice) -> bool {
@@ -110,6 +129,7 @@ fn active(s: &Session, c: Choice) -> bool {
                 _ => None,
             })
             .all(|k| k == r),
+        Choice::Ink | Choice::Fill => els.filter_map(|e| paint(e, c)).any(|p| p.is_some()),
     }
 }
 
