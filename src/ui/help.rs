@@ -5,15 +5,11 @@ use crate::input::Tool;
 
 pub const SCOPES: [&str; 4] = ["Canvas", "Menu", "Text edit", "Tools"];
 
-const CANVAS: [(&str, &str); 18] = [
+const CANVAS: [(&str, &str); 17] = [
     ("Esc", "Cancel, else open menu"),
     ("Delete, Backspace", "Delete the selection"),
     ("Ctrl-a", "Select everything"),
-    ("Arrows", "Move the selection one cell"),
-    (
-        "Shift+Arrows",
-        "Add a linked shape beside the selected shape",
-    ),
+    ("Arrows", "Move one cell; Shift adds linked shape"),
     ("] [", "Raise, lower the selection"),
     ("} {", "Send to front, to back"),
     ("< | > ^ - _", "Align the selection"),
