@@ -422,3 +422,65 @@ fn unknown_command_sets_status_and_esc_cancels_the_prompt() {
 fn help_lists_the_command_line() {
     assert!(clidraw::ui::help::rows(0).iter().any(|(k, _)| k == ":"));
 }
+
+fn drag_app(dir: &std::path::Path) -> App {
+    let store = Store::at(dir.join("c"), dir.join("state"));
+    let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
+    app.session.exec(Command::Insert(
+        0,
+        Element::Shape(Shape {
+            id: Id::from("aaaaaaaa"),
+            kind: ShapeKind::Rect,
+            x: 10,
+            y: 5,
+            w: 8,
+            h: 3,
+            label: String::new(),
+        }),
+    ));
+    app
+}
+
+#[test]
+fn queued_drags_run_the_handler_once_with_the_last_position() {
+    let t = tempfile::tempdir().unwrap();
+    let now = Instant::now();
+    let down = mouse(MouseEventKind::Down(MouseButton::Left), 12, 6);
+    let up = mouse(MouseEventKind::Up(MouseButton::Left), 40, 20);
+    let drag = |i: u16| {
+        mouse(
+            MouseEventKind::Drag(MouseButton::Left),
+            12 + i / 4,
+            6 + i / 8,
+        )
+    };
+
+    let mut one = drag_app(&t.path().join("one"));
+    let one_before = one.session.rev;
+    one.on_event(down.clone(), now);
+    one.on_event(drag(99), now);
+    let one_rev = one.session.rev;
+    one.on_event(up.clone(), now);
+
+    let mut many = drag_app(&t.path().join("many"));
+    let before = many.session.rev;
+    let mut events = vec![down];
+    events.extend((0..100).map(drag));
+    many.on_events(events, now);
+    assert_eq!(many.session.rev - before, one_rev - one_before);
+    many.on_events(vec![up], now);
+    assert_eq!(many.session.canvas, one.session.canvas);
+}
+
+#[test]
+fn queued_scrolls_add_up_and_keep_order_around_other_events() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = drag_app(t.path());
+    let now = Instant::now();
+    let scroll = |k| mouse(k, 30, 10);
+    let mut evs = vec![scroll(MouseEventKind::ScrollDown); 3];
+    evs.push(scroll(MouseEventKind::ScrollRight));
+    evs.extend(vec![scroll(MouseEventKind::ScrollDown); 2]);
+    app.on_events(evs, now);
+    assert_eq!((app.session.view.ox, app.session.view.oy), (4, 10));
+}

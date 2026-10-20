@@ -34,14 +34,24 @@ pub(super) enum Action {
     CreateLine(Id),
 }
 
+/// Screen offset one wheel notch pans the view by.
+pub fn scroll_step(kind: MouseEventKind) -> Option<(i32, i32)> {
+    match kind {
+        MouseEventKind::ScrollUp => Some((0, -2)),
+        MouseEventKind::ScrollDown => Some((0, 2)),
+        MouseEventKind::ScrollLeft => Some((-4, 0)),
+        MouseEventKind::ScrollRight => Some((4, 0)),
+        _ => None,
+    }
+}
+
 pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
     let (col, row) = (i32::from(ev.column), i32::from(ev.row));
+    if let Some((dx, dy)) = scroll_step(ev.kind) {
+        return s.view.pan(dx, dy);
+    }
     let world = s.view.to_world(col, row);
     match ev.kind {
-        MouseEventKind::ScrollUp => s.view.pan(0, -2),
-        MouseEventKind::ScrollDown => s.view.pan(0, 2),
-        MouseEventKind::ScrollLeft => s.view.pan(-4, 0),
-        MouseEventKind::ScrollRight => s.view.pan(4, 0),
         MouseEventKind::Down(MouseButton::Left) => down(s, (col, row), world, now),
         // Some terminals report the wrong button on Drag and Up.
         MouseEventKind::Drag(_) => drag(s, (col, row), world),

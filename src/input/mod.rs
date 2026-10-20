@@ -5,7 +5,7 @@ mod state;
 
 pub use hit::{handles, shape_at, Corner, Handle, Hit};
 pub use keys::{handle_key, handle_paste, KeyOutcome};
-pub use state::handle_mouse;
+pub use state::{handle_mouse, scroll_step};
 
 use crate::model::{Canvas, Command, Element, History, Id, Text};
 use crate::ui::palette::Dock;

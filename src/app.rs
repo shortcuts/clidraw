@@ -1,4 +1,4 @@
-use crate::input::{handle_key, handle_mouse, handle_paste, KeyOutcome, Session};
+use crate::input::{handle_key, handle_mouse, handle_paste, scroll_step, KeyOutcome, Session};
 use crate::names;
 use crate::store::{State, Store, StoreError};
 use crate::ui::menu::{self, MenuItem};
@@ -80,6 +80,38 @@ impl App {
             &self.overlay,
             self.status.as_ref(),
         );
+    }
+
+    /// Handles a queue of events, keeping only the last of each run of drags
+    /// and summing each run of same-direction scrolls.
+    pub fn on_events(&mut self, evs: Vec<Event>, now: Instant) {
+        let kind = |e: Option<&Event>| match e {
+            Some(Event::Mouse(m)) => Some(m.kind),
+            _ => None,
+        };
+        let is_drag = |k| matches!(k, Some(MouseEventKind::Drag(_)));
+        let mut evs = evs.into_iter().peekable();
+        while let Some(ev) = evs.next() {
+            if self.quit {
+                break;
+            }
+            let k = kind(Some(&ev));
+            if is_drag(k) && is_drag(kind(evs.peek())) {
+                continue;
+            }
+            if let Some((dx, dy)) = k.and_then(scroll_step) {
+                let mut n = 1;
+                while kind(evs.peek()) == k {
+                    evs.next();
+                    n += 1;
+                }
+                if matches!(self.overlay, Overlay::None) {
+                    self.session.view.pan(dx * n, dy * n);
+                }
+                continue;
+            }
+            self.on_event(ev, now);
+        }
     }
 
     pub fn on_event(&mut self, ev: Event, now: Instant) {
