@@ -55,6 +55,7 @@ fn right(s: &Session, saved: bool, w: i32, left_w: i32) -> Vec<(String, u8)> {
         ("unsaved", BOLD)
     };
     let mut parts = [
+        s.readout().map(|r| (r, BOLD)),
         Some((s.tool.label().to_string(), 0)),
         (!s.selection.is_empty()).then(|| (format!("{} sel", s.selection.len()), 0)),
         s.overview.then(|| ("Overview".to_string(), 0)),
@@ -64,7 +65,7 @@ fn right(s: &Session, saved: bool, w: i32, left_w: i32) -> Vec<(String, u8)> {
         let shown = p.iter().flatten();
         shown.clone().map(|(t, _)| width(t)).sum::<i32>() + GAP * (shown.count() as i32 - 1)
     };
-    for i in [1, 2, 0] {
+    for i in [2, 3, 1, 0] {
         if left_w + GAP + total(&parts) <= w {
             break;
         }

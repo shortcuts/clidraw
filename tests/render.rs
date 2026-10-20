@@ -868,3 +868,28 @@ fn snap_target_cell_is_marked_with_a_reversed_diamond() {
     assert_eq!(cell.symbol(), "◆");
     assert!(cell.modifier.contains(Modifier::REVERSED));
 }
+
+#[test]
+fn infobar_shows_size_while_drawing_a_rect_and_length_while_drawing_a_line() {
+    let t = std::time::Instant::now();
+    let mouse = |s: &mut Session, kind, col, row| {
+        let ev = crossterm::event::MouseEvent {
+            kind,
+            column: col,
+            row,
+            modifiers: crossterm::event::KeyModifiers::NONE,
+        };
+        clidraw::input::handle_mouse(s, ev, t);
+    };
+    use crossterm::event::{MouseButton::Left, MouseEventKind::*};
+    for (tool, want) in [(Tool::Rect, "11x6"), (Tool::Line, "16 cells")] {
+        let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
+        s.tool = tool;
+        mouse(&mut s, Down(Left), 20, 5);
+        mouse(&mut s, Drag(Left), 30, 10);
+        let b = draw(&s, &Overlay::None);
+        assert!(row(&b, 23).contains(want), "{}", row(&b, 23));
+        mouse(&mut s, Up(Left), 30, 10);
+        assert!(!row(&draw(&s, &Overlay::None), 23).contains(want));
+    }
+}

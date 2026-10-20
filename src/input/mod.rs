@@ -16,7 +16,7 @@ use crate::model::{
 use crate::ui::palette::{Dock, PaletteHit};
 use crate::ui::Layout;
 use crate::view::View;
-use state::Gesture;
+use state::{Action, Gesture};
 use std::cell::RefCell;
 use std::time::{Duration, Instant};
 
@@ -160,6 +160,26 @@ impl Session {
     /// Autosave must not stall a drag step.
     pub fn dragging(&self) -> bool {
         matches!(self.gesture, Gesture::Dragging { .. })
+    }
+
+    /// Size in cells of the shape or line a drag is drawing or resizing.
+    pub fn readout(&self) -> Option<String> {
+        let Gesture::Dragging { action, .. } = &self.gesture else {
+            return None;
+        };
+        match action {
+            Action::Create { id, .. } | Action::Resize { id, .. } => {
+                let sh = self.canvas.shape(id)?;
+                Some(format!("{}x{}", sh.w, sh.h))
+            }
+            Action::CreateLine(id) | Action::EndDrag { id, .. } => {
+                let Some(Element::Line(l)) = self.canvas.get(id) else {
+                    return None;
+                };
+                Some(format!("{} cells", self.canvas.route(l).len()))
+            }
+            _ => None,
+        }
     }
 
     pub fn exec(&mut self, cmd: Command) {
