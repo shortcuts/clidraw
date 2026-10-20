@@ -22,7 +22,7 @@ fmt-check:
 	cargo fmt --check
 
 perf:
-	cargo test --release --test perf -- --ignored
+	cargo test --release --test perf -- --ignored --nocapture --test-threads=1
 
 check: fmt-check lint test perf
 

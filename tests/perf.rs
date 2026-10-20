@@ -18,11 +18,16 @@ const STARTUP_BUDGET: Duration = Duration::from_millis(50);
 const EXPORT_BUDGET: Duration = Duration::from_millis(100);
 
 fn busy_app(dir: &std::path::Path) -> App {
+    busy_app_of(dir, 5000)
+}
+
+fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
     let store = Store::at(dir.join("c"), dir.join("state"));
     let mut app = App::open(store, Some("busy".into()), (200, 50)).unwrap();
     let id = |i: usize| Id::from(format!("s{i:07}").as_str());
+    let shapes = elements / 2;
     let els = &mut app.session.canvas.elements;
-    for i in 0..2500 {
+    for i in 0..shapes {
         els.push(Element::Shape(Shape {
             id: id(i),
             kind: ShapeKind::Rect,
@@ -33,7 +38,7 @@ fn busy_app(dir: &std::path::Path) -> App {
             label: String::new(),
         }));
     }
-    for i in 0..2499 {
+    for i in 0..shapes - 1 {
         els.push(Element::Line(Line {
             id: Id::from(format!("l{i:07}").as_str()),
             kind: LineKind::Arrow,
@@ -424,4 +429,198 @@ fn startup_fits_the_budget_on_5000_elements() {
         m < STARTUP_BUDGET,
         "median startup {m:?} exceeds {STARTUP_BUDGET:?}"
     );
+}
+
+type Gesture = fn(&mut App, &mut Terminal<TestBackend>) -> Vec<Duration>;
+
+fn repeat_event(app: &mut App, term: &mut Terminal<TestBackend>, event: Event) -> Vec<Duration> {
+    let now = Instant::now();
+    (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            app.on_event(event.clone(), now);
+            frame(app, term);
+            t0.elapsed()
+        })
+        .collect()
+}
+
+fn frame_only(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
+    (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            frame(app, term);
+            t0.elapsed()
+        })
+        .collect()
+}
+
+fn drag_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
+    let now = Instant::now();
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left)), now);
+    assert!(!app.session.selection.is_empty(), "press missed the shape");
+    repeat_event(app, term, mouse(MouseEventKind::Drag(MouseButton::Left)))
+}
+
+fn wheel_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
+    repeat_event(app, term, mouse(MouseEventKind::ScrollDown))
+}
+
+fn band_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
+    let now = Instant::now();
+    app.on_event(
+        mouse_at(MouseEventKind::Down(MouseButton::Left), 250, 0),
+        now,
+    );
+    app.on_event(
+        mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
+        now,
+    );
+    assert!(
+        app.session.band.is_some(),
+        "press hit an element, not empty space"
+    );
+    repeat_event(
+        app,
+        term,
+        mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
+    )
+}
+
+fn resize_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
+    let now = Instant::now();
+    let target = Id::from("target");
+    app.session.selection = vec![target.clone()];
+    let (_, _, (x, y)) = handles(&app.session.canvas, &app.session.selection)
+        .pop()
+        .unwrap();
+    app.on_event(
+        mouse_at(MouseEventKind::Down(MouseButton::Left), x as u16, y as u16),
+        now,
+    );
+    app.on_event(
+        mouse_at(MouseEventKind::Drag(MouseButton::Left), 120, 40),
+        now,
+    );
+    assert_eq!(
+        app.session.canvas.shape(&target).map(|s| s.w),
+        Some(21),
+        "press missed the corner handle"
+    );
+    repeat_event(
+        app,
+        term,
+        mouse_at(MouseEventKind::Drag(MouseButton::Left), 120, 40),
+    )
+}
+
+fn line_end_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
+    let now = Instant::now();
+    let line = Id::from("l0000040");
+    app.session.selection = vec![line.clone()];
+    let (_, _, (x, y)) = handles(&app.session.canvas, &app.session.selection)
+        .pop()
+        .unwrap();
+    app.on_event(
+        mouse_at(MouseEventKind::Down(MouseButton::Left), x as u16, y as u16),
+        now,
+    );
+    app.on_event(
+        mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
+        now,
+    );
+    assert!(
+        matches!(
+            app.session.canvas.get(&line),
+            Some(Element::Line(Line {
+                to: End::Free(150, 40),
+                ..
+            }))
+        ),
+        "press missed the line end"
+    );
+    repeat_event(
+        app,
+        term,
+        mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
+    )
+}
+
+fn click_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
+    let now = Instant::now();
+    (0..FRAMES)
+        .map(|i| {
+            let at = now + Duration::from_secs(i as u64);
+            let t0 = Instant::now();
+            app.on_event(mouse(MouseEventKind::Down(MouseButton::Left)), at);
+            app.on_event(mouse(MouseEventKind::Up(MouseButton::Left)), at);
+            frame(app, term);
+            t0.elapsed()
+        })
+        .collect()
+}
+
+fn undo_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
+    let now = Instant::now();
+    move_target_in_100_steps(app, now);
+    (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            app.on_event(ctrl('z'), now);
+            frame(app, term);
+            let elapsed = t0.elapsed();
+            app.on_event(ctrl('y'), now);
+            elapsed
+        })
+        .collect()
+}
+
+fn redo_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
+    let now = Instant::now();
+    move_target_in_100_steps(app, now);
+    (0..FRAMES)
+        .map(|_| {
+            app.on_event(ctrl('z'), now);
+            let t0 = Instant::now();
+            app.on_event(ctrl('y'), now);
+            frame(app, term);
+            t0.elapsed()
+        })
+        .collect()
+}
+
+#[test]
+#[ignore = "prints a table, not a gate: run `make perf`"]
+fn scaling_table() {
+    let gestures: [(&str, Gesture); 9] = [
+        ("frame", frame_only),
+        ("drag", drag_gesture),
+        ("wheel", wheel_gesture),
+        ("band", band_gesture),
+        ("resize", resize_gesture),
+        ("line end", line_end_gesture),
+        ("click", click_gesture),
+        ("undo", undo_gesture),
+        ("redo", redo_gesture),
+    ];
+    println!(
+        "{:<10} {:>9} {:>12} {:>12}",
+        "gesture", "elements", "median", "worst"
+    );
+    for (name, gesture) in gestures {
+        for elements in [500, 5000, 50000] {
+            let t = tempfile::tempdir().unwrap();
+            let mut app = busy_app_of(t.path(), elements);
+            assert_eq!(app.session.canvas.elements.len(), elements);
+            let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+            let times = gesture(&mut app, &mut term);
+            let worst = *times.iter().max().unwrap();
+            let m = median(times);
+            println!(
+                "{name:<10} {elements:>9} {:>12} {:>12}",
+                format!("{m:?}"),
+                format!("{worst:?}")
+            );
+        }
+    }
 }
