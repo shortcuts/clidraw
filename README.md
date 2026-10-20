@@ -70,6 +70,14 @@ Budgets for a release build with 5000 elements on a 200x50 screen:
 
 `make perf` checks the frame and drag-step budgets. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet.
 
+### Profile
+
+Install the profiler once. It is a dev tool, not a project dependency: `cargo install samply`.
+
+Run `make profile`. It builds the perf test with debug symbols in release, then records the drag scenario (`busy_app`, 5000 elements) with samply. samply opens the Firefox Profiler view in a browser. Use that view as the flamegraph.
+
+The samply step is not verified yet: the cargo build runs, but `make profile` was not run to completion.
+
 ## Files
 
 - Canvases: `$CLIDRAW_HOME`, else `$XDG_CONFIG_HOME/clidraw`, else `~/.config/clidraw`. One `<name>.clidraw.json` per canvas. Output is stable, so the files diff cleanly in git.
