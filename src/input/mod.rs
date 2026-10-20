@@ -101,6 +101,11 @@ impl Session {
         }
     }
 
+    /// Autosave must not stall a drag step.
+    pub fn dragging(&self) -> bool {
+        matches!(self.gesture, Gesture::Dragging { .. })
+    }
+
     pub fn exec(&mut self, cmd: Command) {
         if self.history.exec(&mut self.canvas, cmd).is_ok() {
             self.rev += 1;

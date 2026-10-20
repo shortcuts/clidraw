@@ -47,6 +47,37 @@ fn autosaves_edits_after_500ms_and_pan_leaves_the_file_alone() {
 }
 
 #[test]
+fn does_not_autosave_during_a_drag() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
+    let file = t.path().join("c/demo.clidraw.json");
+    let t0 = Instant::now();
+    click(&mut app, 2, 3, t0);
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 30, 9), t0);
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 30, 9), t0);
+    app.tick(t0 + Duration::from_secs(1));
+    let before = std::fs::read(&file).unwrap();
+
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 25, 5), t0);
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 35, 12), t0);
+    app.tick(t0);
+    app.tick(t0 + Duration::from_secs(2));
+    assert_eq!(std::fs::read(&file).unwrap(), before, "saved mid-drag");
+
+    app.save();
+    assert_ne!(std::fs::read(&file).unwrap(), before, "save() must write");
+
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 40, 14), t0);
+    app.tick(t0 + Duration::from_secs(3));
+    let mid = std::fs::read(&file).unwrap();
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 40, 14), t0);
+    app.tick(t0 + Duration::from_secs(4));
+    assert_ne!(std::fs::read(&file).unwrap(), mid, "no save after release");
+}
+
+#[test]
 fn reopens_the_last_canvas() {
     let t = tempfile::tempdir().unwrap();
     let mk = || Store::at(t.path().join("c"), t.path().join("state"));

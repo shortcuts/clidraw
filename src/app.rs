@@ -68,7 +68,9 @@ impl App {
             self.seen_rev = self.session.rev;
             self.last_edit = now;
         }
-        if self.saved_rev != self.session.rev && now.duration_since(self.last_edit) >= self.autosave
+        if self.saved_rev != self.session.rev
+            && !self.session.dragging()
+            && now.duration_since(self.last_edit) >= self.autosave
         {
             self.save();
         }
