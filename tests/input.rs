@@ -687,3 +687,46 @@ fn tool_keys_switch_tools_but_type_into_an_edit() {
     assert_eq!(s.tool, Tool::Select);
     assert_eq!(s.edit.as_ref().unwrap().buf, "r");
 }
+
+#[test]
+fn bracket_keys_reorder_the_selection_one_undo_step_per_press() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("bbbbbbbb"),
+        kind: ShapeKind::Rect,
+        x: 20,
+        y: 5,
+        w: 8,
+        h: 4,
+        label: String::new(),
+    }));
+    let ids = |s: &Session| -> Vec<String> {
+        s.canvas
+            .elements
+            .iter()
+            .map(|e| e.id().to_string())
+            .collect()
+    };
+    s.selection = vec![Id::from("aaaaaaaa")];
+    key(&mut s, KeyCode::Char('['));
+    assert_eq!(ids(&s), ["aaaaaaaa", "bbbbbbbb"]);
+    key(&mut s, KeyCode::Char(']'));
+    assert_eq!(ids(&s), ["bbbbbbbb", "aaaaaaaa"]);
+    key(&mut s, KeyCode::Char('{'));
+    assert_eq!(ids(&s), ["aaaaaaaa", "bbbbbbbb"]);
+    key(&mut s, KeyCode::Char('}'));
+    assert_eq!(ids(&s), ["bbbbbbbb", "aaaaaaaa"]);
+    key(&mut s, KeyCode::Char('}'));
+    ctrl(&mut s, 'z');
+    assert_eq!(ids(&s), ["aaaaaaaa", "bbbbbbbb"]);
+}
+
+#[test]
+fn bracket_keys_type_into_a_label_edit() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (22, 6), Instant::now() + Duration::from_millis(100));
+    assert!(s.edit.is_some());
+    key(&mut s, KeyCode::Char(']'));
+    assert_eq!(s.edit.as_ref().unwrap().buf, "]");
+}

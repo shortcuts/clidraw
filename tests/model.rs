@@ -1,6 +1,6 @@
 use clidraw::model::{
     corners, label_pos, route, Axis, Canvas, Command, Element, End, History, Id, Line, LineKind,
-    Shape, ShapeKind, Side,
+    Shape, ShapeKind, Side, Z,
 };
 
 fn shape(id: &str, x: i32) -> Element {
@@ -380,4 +380,81 @@ fn history_keeps_only_the_newest_entries_up_to_its_limit() {
     }
     assert_eq!(undone, 3);
     assert_eq!(c.elements.len(), 2);
+}
+
+fn order(c: &Canvas) -> Vec<String> {
+    c.elements.iter().map(|e| e.id().to_string()).collect()
+}
+
+fn five() -> Canvas {
+    let mut c = Canvas::default();
+    for id in ["aaaaaaaa", "bbbbbbbb", "cccccccc", "dddddddd", "eeeeeeee"] {
+        c.push(shape(id, 0)).unwrap();
+    }
+    c
+}
+
+fn z(c: &mut Canvas, ids: &[&str], z: Z) -> Vec<String> {
+    let sel: Vec<Id> = ids.iter().map(|i| Id::from(*i)).collect();
+    c.apply(Command::Batch(c.z_order(&sel, z))).unwrap();
+    order(c)
+}
+
+#[test]
+fn z_order_moves_a_selection_as_a_block() {
+    let want = |s: &[&str]| s.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    let sel = ["bbbbbbbb", "cccccccc"];
+    assert_eq!(
+        z(&mut five(), &sel, Z::Forward),
+        want(&["aaaaaaaa", "dddddddd", "bbbbbbbb", "cccccccc", "eeeeeeee"])
+    );
+    assert_eq!(
+        z(&mut five(), &["cccccccc", "dddddddd"], Z::Backward),
+        want(&["aaaaaaaa", "cccccccc", "dddddddd", "bbbbbbbb", "eeeeeeee"])
+    );
+    assert_eq!(
+        z(&mut five(), &["dddddddd", "bbbbbbbb"], Z::Front),
+        want(&["aaaaaaaa", "cccccccc", "eeeeeeee", "bbbbbbbb", "dddddddd"])
+    );
+    assert_eq!(
+        z(&mut five(), &["dddddddd", "bbbbbbbb"], Z::Back),
+        want(&["bbbbbbbb", "dddddddd", "aaaaaaaa", "cccccccc", "eeeeeeee"])
+    );
+}
+
+#[test]
+fn z_order_at_the_limit_or_unknown_ids_emits_nothing() {
+    let c = five();
+    let top = [Id::from("eeeeeeee")];
+    let bottom = [Id::from("aaaaaaaa")];
+    assert!(c.z_order(&top, Z::Forward).is_empty());
+    assert!(c.z_order(&top, Z::Front).is_empty());
+    assert!(c.z_order(&bottom, Z::Backward).is_empty());
+    assert!(c.z_order(&bottom, Z::Back).is_empty());
+    assert!(c.z_order(&[Id::from("zzzzzzzz")], Z::Front).is_empty());
+}
+
+#[test]
+fn move_to_undoes_and_keeps_arrows_bound() {
+    let (mut c, _) = setup();
+    let before = c.clone();
+    let undo = c
+        .apply(Command::MoveTo {
+            id: Id::from("aaaaaaaa"),
+            to: 2,
+        })
+        .unwrap();
+    assert_eq!(order(&c), ["bbbbbbbb", "line0000", "aaaaaaaa"]);
+    let Element::Line(l) = &c.elements[1] else {
+        panic!("no line")
+    };
+    assert_eq!(l.from, bound("aaaaaaaa"));
+    c.apply(undo).unwrap();
+    assert_eq!(c, before);
+    assert!(c
+        .apply(Command::MoveTo {
+            id: Id::from("zzzzzzzz"),
+            to: 0
+        })
+        .is_err());
 }

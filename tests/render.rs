@@ -236,19 +236,19 @@ fn help_canvas_row_lists_every_command_line_verb() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
     assert!(
-        row(&b, 16).contains("Commands q w wq e u redo"),
+        row(&b, 17).contains("Commands q w wq e u redo"),
         "{}",
-        row(&b, 16)
+        row(&b, 17)
     );
-    assert_eq!(cols(&b, 16, 62, 1), "│");
+    assert_eq!(cols(&b, 17, 62, 1), "│");
 }
 
 #[test]
 fn help_canvas_esc_row_stays_inside_the_border() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
-    assert!(row(&b, 9).contains("│ Esc"), "{}", row(&b, 9));
-    assert_eq!(cols(&b, 9, 62, 1), "│", "{}", row(&b, 9));
+    assert!(row(&b, 8).contains("│ Esc"), "{}", row(&b, 8));
+    assert_eq!(cols(&b, 8, 62, 1), "│", "{}", row(&b, 8));
 }
 
 #[test]

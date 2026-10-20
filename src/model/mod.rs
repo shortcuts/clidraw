@@ -7,7 +7,7 @@ mod history;
 mod ids;
 
 pub use canvas::{Canvas, Find};
-pub use command::{Command, Side};
+pub use command::{Command, Side, Z};
 pub use element::{Element, End, Line, LineKind, Shape, ShapeKind, Text};
 pub use error::ModelError;
 pub use geom::{corners, label_pos, route, Axis};

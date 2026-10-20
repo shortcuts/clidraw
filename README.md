@@ -27,6 +27,8 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 |---|---|
 | `Esc` | Cancel the gesture, else open or close the menu |
 | `Delete` / `Backspace` | Delete the selection |
+| `]` / `[` | Raise / lower the selection one step |
+| `}` / `{` | Send the selection to the front / back |
 | `Ctrl-z` / `Ctrl-y` | Undo / redo |
 | `Ctrl-c` | Quit |
 | `?` | Show the shortcuts, one page per scope |

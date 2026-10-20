@@ -1,6 +1,6 @@
 use super::state::Gesture;
 use super::{Session, Tool};
-use crate::model::Command;
+use crate::model::{Command, Z};
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -46,6 +46,20 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         KeyCode::Esc => return KeyOutcome::Menu,
         KeyCode::Char('?') => return KeyOutcome::Help,
         KeyCode::Char(':') => return KeyOutcome::Command,
+        KeyCode::Char(c @ (']' | '[' | '}' | '{'))
+            if matches!(s.gesture, Gesture::Idle) && !s.selection.is_empty() =>
+        {
+            let z = match c {
+                ']' => Z::Forward,
+                '[' => Z::Backward,
+                '}' => Z::Front,
+                _ => Z::Back,
+            };
+            let cmds = s.canvas.z_order(&s.selection, z);
+            if !cmds.is_empty() {
+                s.exec(Command::Batch(cmds));
+            }
+        }
         KeyCode::Char(c) if matches!(s.gesture, Gesture::Idle) => {
             if let Some(t) = Tool::ALL.into_iter().find(|t| t.key() == c) {
                 s.tool = t;

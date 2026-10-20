@@ -7,10 +7,23 @@ pub enum Side {
     To,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Z {
+    Forward,
+    Backward,
+    Front,
+    Back,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Command {
     Insert(usize, Element),
     Remove(Id),
+    /// Reorders without removing, so bound lines stay bound.
+    MoveTo {
+        id: Id,
+        to: usize,
+    },
     Move {
         id: Id,
         dx: i32,
@@ -48,6 +61,54 @@ impl Canvas {
         self.apply(Command::Insert(self.elements.len(), e))
     }
 
+    /// Commands that change the draw order of `selection`; empty when nothing moves.
+    pub fn z_order(&self, selection: &[Id], z: Z) -> Vec<Command> {
+        let mut order: Vec<(Id, bool)> = self
+            .elements
+            .iter()
+            .map(|e| (e.id().clone(), selection.contains(e.id())))
+            .collect();
+        let n = order.len();
+        let mut cmds = vec![];
+        let mut emit = |id: &Id, to| cmds.push(Command::MoveTo { id: id.clone(), to });
+        match z {
+            Z::Front => {
+                // Selected elements above the last unselected one are already in place.
+                let top = order.iter().rposition(|e| !e.1).unwrap_or(0);
+                order[..top]
+                    .iter()
+                    .filter(|e| e.1)
+                    .for_each(|e| emit(&e.0, n - 1));
+            }
+            Z::Back => {
+                let low = order.iter().position(|e| !e.1).unwrap_or(n);
+                order
+                    .iter()
+                    .skip(low)
+                    .rev()
+                    .filter(|e| e.1)
+                    .for_each(|e| emit(&e.0, 0));
+            }
+            Z::Forward => {
+                for i in (0..n.saturating_sub(1)).rev() {
+                    if order[i].1 && !order[i + 1].1 {
+                        emit(&order[i].0, i + 1);
+                        order.swap(i, i + 1);
+                    }
+                }
+            }
+            Z::Backward => {
+                for i in 1..n {
+                    if order[i].1 && !order[i - 1].1 {
+                        emit(&order[i].0, i - 1);
+                        order.swap(i, i - 1);
+                    }
+                }
+            }
+        }
+        cmds
+    }
+
     /// Applies the command and returns the command that undoes it.
     pub fn apply(&mut self, cmd: Command) -> Result<Command, ModelError> {
         self.apply_in(cmd, &mut None)
@@ -69,6 +130,15 @@ impl Canvas {
                 let undo = self.remove(id);
                 *index = None;
                 undo
+            }
+            Command::MoveTo { id, to } => {
+                let from = self
+                    .index_of(&id)
+                    .ok_or_else(|| ModelError::NotFound(id.clone()))?;
+                let e = self.elements.remove(from);
+                self.elements.insert(to.min(self.elements.len()), e);
+                *index = None;
+                Ok(Command::MoveTo { id, to: from })
             }
             Command::Batch(cmds) => {
                 if index.is_none() && cmds.len() > BULK {
@@ -214,7 +284,12 @@ impl Canvas {
                 let old = std::mem::replace(&mut l.kind, kind);
                 Ok(Command::SetLineKind { id, kind: old })
             }
-            Command::Insert(..) | Command::Remove(_) | Command::Batch(_) => unreachable!(),
+            Command::Insert(..)
+            | Command::Remove(_)
+            | Command::MoveTo { .. }
+            | Command::Batch(_) => {
+                unreachable!()
+            }
         }
     }
 }
