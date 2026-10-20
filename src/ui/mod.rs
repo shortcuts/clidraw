@@ -1,3 +1,4 @@
+pub mod actions;
 mod canvas_view;
 mod grid;
 pub mod help;
@@ -26,6 +27,7 @@ pub enum Overlay {
     Switcher(switcher::Switcher),
     Prompt(prompt::Prompt),
     Help(usize),
+    Actions(actions::Actions),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -88,6 +90,7 @@ pub fn render(
         Overlay::Switcher(sw) => switcher::draw(&mut grid, sw),
         Overlay::Prompt(p) => prompt::draw(&mut grid, p),
         Overlay::Help(p) => help::draw(&mut grid, *p),
+        Overlay::Actions(a) => a.draw(&mut grid),
     }
     if let Some(st) = status {
         infobar::status(&mut grid, s, st, saved);

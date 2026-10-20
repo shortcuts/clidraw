@@ -35,6 +35,7 @@ fn hints(s: &Session, overlay: &Overlay) -> Hints {
             ("Esc", "menu"),
             ("z", "overview"),
         ],
+        Overlay::Actions(_) => &[("Enter", "run"), ("Up/Down", "select"), ("Esc", "close")],
         _ => &[("Esc", "close")],
     }
 }

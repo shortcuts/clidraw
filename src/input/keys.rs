@@ -11,6 +11,7 @@ pub enum KeyOutcome {
     Help,
     Command,
     Find,
+    Actions,
     Notice(String),
 }
 
@@ -79,6 +80,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             KeyCode::Char('y') => return notice(s.redo()),
             KeyCode::Char('a') => s.select_all(),
             KeyCode::Char('f') => return KeyOutcome::Find,
+            KeyCode::Char('p') if s.idle() => return KeyOutcome::Actions,
             KeyCode::Char('x') => s.cut(),
             KeyCode::Char('v') => s.paste(),
             KeyCode::Char('d') => s.duplicate(),
@@ -124,22 +126,12 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
                 '=' => Align::DistributeH,
                 _ => Align::DistributeV,
             };
-            let cmds = s.canvas.align(&s.selection, a);
-            if !cmds.is_empty() {
-                s.exec(Command::Batch(cmds));
-            }
+            s.align(a);
         }
         KeyCode::Char(c @ ('g' | 'G'))
             if matches!(s.gesture, Gesture::Idle) && !s.selection.is_empty() =>
         {
-            let cmd = if c == 'g' {
-                s.canvas.group_cmd(&s.selection)
-            } else {
-                s.canvas.ungroup_cmd(&s.selection)
-            };
-            if let Some(cmd) = cmd {
-                s.exec(cmd);
-            }
+            s.group(c == 'g');
         }
         KeyCode::Char('c') => s.copy(),
         KeyCode::Char('z') if matches!(s.gesture, Gesture::Idle) => s.overview = true,

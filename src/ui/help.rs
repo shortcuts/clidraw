@@ -21,7 +21,7 @@ const CANVAS: [(&str, &str); 17] = [
     ("Ctrl-z, Ctrl-y", "Undo, redo"),
     ("z", "Overview of the whole diagram"),
     ("Ctrl-c", "Quit"),
-    ("?", "Show this list"),
+    ("?, Ctrl-p", "Help, command palette"),
     (":", "Commands q w wq e u redo"),
 ];
 

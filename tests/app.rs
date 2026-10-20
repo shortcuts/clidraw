@@ -944,3 +944,149 @@ fn right_click_while_editing_opens_nothing() {
     right_click(&mut app, 22, 6, now);
     assert!(!context_open(&app));
 }
+
+fn ctrl_key(app: &mut App, c: char, t: Instant) {
+    app.on_event(
+        Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::CONTROL)),
+        t,
+    );
+}
+
+fn type_str(app: &mut App, s: &str, t: Instant) {
+    for c in s.chars() {
+        app.on_event(key(KeyCode::Char(c)), t);
+    }
+}
+
+fn palette_labels(app: &App) -> Vec<String> {
+    match &app.overlay {
+        clidraw::ui::Overlay::Actions(a) => a.labels().iter().map(|l| l.to_string()).collect(),
+        _ => panic!("palette is not open"),
+    }
+}
+
+fn palette_open(app: &App) -> bool {
+    matches!(app.overlay, clidraw::ui::Overlay::Actions(_))
+}
+
+#[test]
+fn palette_lists_only_actions_that_can_act() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    let l = palette_labels(&app);
+    assert_eq!(l[0], "Undo");
+    assert!(l.contains(&"Tool: Rect".to_string()));
+    for gone in ["Duplicate", "Align left", "Paste", "Edit label"] {
+        assert!(!l.contains(&gone.to_string()), "{gone}");
+    }
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(!palette_open(&app));
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    ctrl_key(&mut app, 'p', now);
+    let l = palette_labels(&app);
+    for here in ["Duplicate", "Align left", "Edit label"] {
+        assert!(l.contains(&here.to_string()), "{here}");
+    }
+    assert!(!l.contains(&"Paste".to_string()));
+    app.on_event(key(KeyCode::Esc), now);
+    app.session.copy();
+    ctrl_key(&mut app, 'p', now);
+    assert!(palette_labels(&app).contains(&"Paste".to_string()));
+}
+
+#[test]
+fn palette_filters_fuzzily_and_backspace_widens() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "dup", now);
+    assert_eq!(palette_labels(&app)[0], "Duplicate");
+    app.on_event(key(KeyCode::Esc), now);
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "exsvg", now);
+    assert_eq!(palette_labels(&app)[0], "Export SVG");
+    type_str(&mut app, "zzz", now);
+    assert!(palette_labels(&app).is_empty());
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(palette_open(&app));
+    for _ in 0..3 {
+        app.on_event(key(KeyCode::Backspace), now);
+    }
+    assert_eq!(palette_labels(&app)[0], "Export SVG");
+}
+
+#[test]
+fn palette_enter_runs_the_entry() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "rect", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(!palette_open(&app));
+    assert_eq!(app.session.tool, clidraw::input::Tool::Rect);
+
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "delete", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(app.session.canvas.elements.is_empty());
+    ctrl_key(&mut app, 'z', now);
+    assert_eq!(app.session.canvas.elements.len(), 1);
+
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "export svg", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Scope(_)));
+    app.on_event(key(KeyCode::Esc), now);
+
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "perf", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(app.perf.is_some());
+
+    ctrl_key(&mut app, 'p', now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(!palette_open(&app));
+    assert!(app.session.canvas.elements.is_empty());
+}
+
+#[test]
+fn palette_clicks_run_rows_and_outside_closes() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    let third = palette_labels(&app)[2].clone();
+    assert_eq!(third, "Select all");
+    // 80x24 box is 13 rows high at y=5; rows start at y+2.
+    click(&mut app, 40, 5 + 2 + 2, now);
+    assert!(!palette_open(&app));
+    ctrl_key(&mut app, 'p', now);
+    click(&mut app, 1, 1, now);
+    assert!(!palette_open(&app));
+}
+
+#[test]
+fn palette_does_not_open_during_an_edit_and_ctrl_c_quits() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    app.session.start_edit_existing(Id::from("aaaaaaaa"));
+    ctrl_key(&mut app, 'p', now);
+    assert!(!palette_open(&app));
+    assert!(app.session.edit.is_some());
+    app.on_event(key(KeyCode::Esc), now);
+    ctrl_key(&mut app, 'p', now);
+    ctrl_key(&mut app, 'c', now);
+    assert!(app.quit);
+}

@@ -937,3 +937,23 @@ fn context_menu_near_the_corner_stays_on_screen() {
     }
     assert_eq!(b[(79, 23)].symbol(), "┘");
 }
+
+#[test]
+fn actions_palette_draws_query_rows_and_selection() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let b = draw(
+        &s,
+        &Overlay::Actions(clidraw::ui::actions::Actions::new(&s)),
+    );
+    let rows: Vec<String> = (0..24).map(|y| row(&b, y)).collect();
+    assert!(rows.iter().any(|r| r.contains("> _")));
+    let undo = rows.iter().position(|r| r.contains("Undo")).unwrap();
+    assert!(rows[undo].contains("Ctrl-z │"));
+    assert!(b[(30, undo as u16)].modifier.contains(Modifier::REVERSED));
+    let mut a = clidraw::ui::actions::Actions::new(&s);
+    a.push('q');
+    a.push('q');
+    a.push('q');
+    let b = draw(&s, &Overlay::Actions(a));
+    assert!((0..24).any(|y| row(&b, y).contains("No match")));
+}

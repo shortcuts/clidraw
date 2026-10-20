@@ -10,8 +10,8 @@ pub use keys::{handle_key, handle_paste, KeyOutcome};
 pub use state::{handle_mouse, scroll_step};
 
 use crate::model::{
-    wrap, Anchor, Canvas, Command, Element, End, History, Id, Line, LineKind, Routing, Shape,
-    Stroke, Text, Z,
+    wrap, Align, Anchor, Canvas, Command, Element, End, History, Id, Line, LineKind, Routing,
+    Shape, Stroke, Text, Z,
 };
 use crate::ui::palette::{self, Dock, PaletteHit};
 use crate::ui::Layout;
@@ -315,6 +315,25 @@ impl Session {
             .map(Command::Remove)
             .collect();
         self.exec(Command::Batch(cmds));
+    }
+
+    pub fn align(&mut self, a: Align) {
+        let cmds = self.canvas.align(&self.selection, a);
+        if !cmds.is_empty() {
+            self.exec(Command::Batch(cmds));
+        }
+    }
+
+    /// Groups the selection, or ungroups it when `group` is false.
+    pub fn group(&mut self, group: bool) {
+        let cmd = if group {
+            self.canvas.group_cmd(&self.selection)
+        } else {
+            self.canvas.ungroup_cmd(&self.selection)
+        };
+        if let Some(cmd) = cmd {
+            self.exec(cmd);
+        }
     }
 
     pub fn reorder(&mut self, z: Z) {

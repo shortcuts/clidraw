@@ -2,6 +2,7 @@ use crate::input::{handle_key, handle_mouse, handle_paste, scroll_step, KeyOutco
 use crate::model::Z;
 use crate::names;
 use crate::store::{State, Store, StoreError};
+use crate::ui::actions::Actions;
 use crate::ui::menu::{self, Context, ContextItem, MenuItem};
 use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
 use crate::ui::scope::{self, ExportFormat};
@@ -12,6 +13,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use std::time::{Duration, Instant};
 
+mod actions;
 mod command;
 mod export;
 mod help;
@@ -194,6 +196,11 @@ impl App {
                 KeyOutcome::Quit => self.quit = true,
                 KeyOutcome::Menu => self.overlay = Overlay::Menu,
                 KeyOutcome::Help => self.overlay = Overlay::Help(0),
+                KeyOutcome::Actions => {
+                    if self.pick.is_none() {
+                        self.overlay = Overlay::Actions(Actions::new(&self.session));
+                    }
+                }
                 KeyOutcome::Command => {
                     self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, String::new()))
                 }
@@ -211,6 +218,10 @@ impl App {
         }
         if matches!(self.overlay, Overlay::Help(_)) {
             self.help_key(k.code);
+            return;
+        }
+        if matches!(self.overlay, Overlay::Actions(_)) {
+            self.actions_key(k);
             return;
         }
         match (k.code, &mut self.overlay) {
@@ -257,6 +268,11 @@ impl App {
                 None => {}
             },
             Overlay::Help(_) => self.help_click(col, row),
+            Overlay::Actions(a) => match a.row_at(screen, col, row) {
+                Some(action) => self.run_action(action),
+                None if !a.inside(screen, col, row) => self.overlay = Overlay::None,
+                None => {}
+            },
             Overlay::None => {}
         }
     }

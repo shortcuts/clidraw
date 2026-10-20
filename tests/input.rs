@@ -1685,3 +1685,16 @@ fn right_down_selects_unselected_keeps_selected_and_ignores_empty() {
     s.overview = true;
     assert_eq!(s.right_down(22, 6), None);
 }
+
+#[test]
+fn ctrl_p_opens_the_palette_only_when_idle() {
+    let ctrl_p = || KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL);
+    let mut s = session();
+    assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::Actions);
+    s.overview = true;
+    assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::None);
+    s.overview = false;
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.start_edit_existing(Id::from("aaaaaaaa"));
+    assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::None);
+}
