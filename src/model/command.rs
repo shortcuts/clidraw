@@ -1,3 +1,4 @@
+use super::canvas::{Index, BULK};
 use super::{Canvas, Element, End, Id, LineKind, ModelError, ShapeKind};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -49,6 +50,11 @@ impl Canvas {
 
     /// Applies the command and returns the command that undoes it.
     pub fn apply(&mut self, cmd: Command) -> Result<Command, ModelError> {
+        self.apply_in(cmd, &mut None)
+    }
+
+    /// `index` maps ids to positions while a long batch runs. `None` means scan.
+    fn apply_in(&mut self, cmd: Command, index: &mut Option<Index>) -> Result<Command, ModelError> {
         match cmd {
             Command::Insert(i, e) => {
                 let id = e.id().clone();
@@ -56,17 +62,25 @@ impl Canvas {
                     return Err(ModelError::Duplicate(id));
                 }
                 self.elements.insert(i.min(self.elements.len()), e);
+                *index = None;
                 Ok(Command::Remove(id))
             }
-            Command::Remove(id) => self.remove(id),
+            Command::Remove(id) => {
+                let undo = self.remove(id);
+                *index = None;
+                undo
+            }
             Command::Batch(cmds) => {
+                if index.is_none() && cmds.len() > BULK {
+                    *index = Some(self.index_map());
+                }
                 let mut undo = vec![];
                 for c in cmds {
-                    match self.apply(c) {
+                    match self.apply_in(c, index) {
                         Ok(u) => undo.push(u),
                         Err(e) => {
                             for u in undo.into_iter().rev() {
-                                let _ = self.apply(u);
+                                let _ = self.apply_in(u, index);
                             }
                             return Err(e);
                         }
@@ -75,7 +89,7 @@ impl Canvas {
                 undo.reverse();
                 Ok(Command::Batch(undo))
             }
-            other => self.edit(other),
+            other => self.edit(other, index),
         }
     }
 
@@ -117,12 +131,12 @@ impl Canvas {
         Ok(Command::Batch(undo))
     }
 
-    fn edit(&mut self, cmd: Command) -> Result<Command, ModelError> {
+    fn edit(&mut self, cmd: Command, index: &Option<Index>) -> Result<Command, ModelError> {
         let wrong = |id: &Id| ModelError::WrongKind(id.clone());
         let missing = |id: &Id| ModelError::NotFound(id.clone());
         match cmd {
             Command::Move { id, dx, dy } => {
-                let i = self.index_of(&id).ok_or_else(|| missing(&id))?;
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
                 match &mut self.elements[i] {
                     Element::Shape(s) => (s.x, s.y) = (s.x + dx, s.y + dy),
                     Element::Text(t) => (t.x, t.y) = (t.x + dx, t.y + dy),
@@ -141,7 +155,7 @@ impl Canvas {
                 })
             }
             Command::SetRect { id, x, y, w, h } => {
-                let i = self.index_of(&id).ok_or_else(|| missing(&id))?;
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
                 let Element::Shape(s) = &mut self.elements[i] else {
                     return Err(wrong(&id));
                 };
@@ -156,7 +170,7 @@ impl Canvas {
                 Ok(old)
             }
             Command::SetLabel { id, label } => {
-                let i = self.index_of(&id).ok_or_else(|| missing(&id))?;
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
                 let slot = match &mut self.elements[i] {
                     Element::Shape(s) => &mut s.label,
                     Element::Line(l) => &mut l.label,
@@ -167,9 +181,12 @@ impl Canvas {
             }
             Command::SetEnd { id, side, end } => {
                 if let End::Bound(sid) = &end {
-                    self.shape(sid).ok_or_else(|| missing(sid))?;
+                    let bound = self.position(sid, index).map(|i| &self.elements[i]);
+                    if !matches!(bound, Some(Element::Shape(_))) {
+                        return Err(missing(sid));
+                    }
                 }
-                let i = self.index_of(&id).ok_or_else(|| missing(&id))?;
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
                 let Element::Line(l) = &mut self.elements[i] else {
                     return Err(wrong(&id));
                 };
@@ -182,7 +199,7 @@ impl Canvas {
                 Ok(Command::SetEnd { id, side, end: old })
             }
             Command::SetKind { id, kind } => {
-                let i = self.index_of(&id).ok_or_else(|| missing(&id))?;
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
                 let Element::Shape(s) = &mut self.elements[i] else {
                     return Err(wrong(&id));
                 };
@@ -190,7 +207,7 @@ impl Canvas {
                 Ok(Command::SetKind { id, kind: old })
             }
             Command::SetLineKind { id, kind } => {
-                let i = self.index_of(&id).ok_or_else(|| missing(&id))?;
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
                 let Element::Line(l) = &mut self.elements[i] else {
                     return Err(wrong(&id));
                 };

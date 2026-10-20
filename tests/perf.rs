@@ -467,6 +467,33 @@ fn drag_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration
     repeat_event(app, term, mouse(MouseEventKind::Drag(MouseButton::Left)))
 }
 
+fn drag_selection_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
+    let now = Instant::now();
+    let selected = (0..999).map(|i| Id::from(format!("s{i:07}").as_str()));
+    app.session.selection = std::iter::once(Id::from("target"))
+        .chain(selected)
+        .collect();
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left)), now);
+    assert_eq!(
+        app.session.selection.len(),
+        1000,
+        "press dropped the selection"
+    );
+    (0..FRAMES)
+        .map(|i| {
+            let drag = mouse_at(
+                MouseEventKind::Drag(MouseButton::Left),
+                102 + (i % 2) as u16,
+                26,
+            );
+            let t0 = Instant::now();
+            app.on_event(drag, now);
+            frame(app, term);
+            t0.elapsed()
+        })
+        .collect()
+}
+
 fn wheel_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
     repeat_event(app, term, mouse(MouseEventKind::ScrollDown))
 }
@@ -597,9 +624,10 @@ fn redo_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration
 #[test]
 #[ignore = "prints a table, not a gate: run `make perf`"]
 fn scaling_table() {
-    let gestures: [(&str, Gesture); 9] = [
+    let gestures: [(&str, Gesture); 10] = [
         ("frame", frame_only),
         ("drag", drag_gesture),
+        ("drag sel", drag_selection_gesture),
         ("wheel", wheel_gesture),
         ("band", band_gesture),
         ("resize", resize_gesture),

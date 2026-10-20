@@ -21,7 +21,35 @@ impl Default for Canvas {
 /// A shape lookup by id, borrowed from the canvas it serves.
 pub type Find<'a> = dyn Fn(&Id) -> Option<&'a Shape> + 'a;
 
+/// A batch longer than this builds an id index; a shorter one scans faster.
+pub(crate) const BULK: usize = 8;
+
+pub(crate) type Index = HashMap<Id, usize>;
+
 impl Canvas {
+    pub(crate) fn index_map(&self) -> Index {
+        let ids = self.elements.iter().enumerate();
+        ids.map(|(i, e)| (e.id().clone(), i)).collect()
+    }
+
+    pub(crate) fn position(&self, id: &Id, index: &Option<Index>) -> Option<usize> {
+        match index {
+            Some(map) => map.get(id).copied(),
+            None => self.index_of(id),
+        }
+    }
+
+    /// Drops the ids that name no element, keeping the order of the rest.
+    pub fn retain_present(&self, ids: &mut Vec<Id>) {
+        if ids.len() <= BULK {
+            ids.retain(|id| self.get(id).is_some());
+        } else {
+            let present: std::collections::HashSet<&Id> =
+                self.elements.iter().map(|e| e.id()).collect();
+            ids.retain(|id| present.contains(id));
+        }
+    }
+
     pub fn index_of(&self, id: &Id) -> Option<usize> {
         self.elements.iter().position(|e| e.id() == id)
     }

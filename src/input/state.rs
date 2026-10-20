@@ -174,7 +174,7 @@ impl Session {
                 }
                 self.rev += 1;
                 self.band = None;
-                self.selection.retain(|id| self.canvas.get(id).is_some());
+                self.canvas.retain_present(&mut self.selection);
                 true
             }
         }

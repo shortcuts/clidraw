@@ -276,3 +276,89 @@ fn within_drops_a_line_whose_bound_shape_is_outside() {
     let kept = c.within(area);
     assert_eq!(kept.elements.len(), 1);
 }
+
+fn ids_of(n: usize) -> Vec<String> {
+    (0..n).map(|i| format!("shape{i:03}")).collect()
+}
+
+fn row(n: usize) -> Canvas {
+    let elements = ids_of(n).iter().map(|id| shape(id, 0)).collect();
+    Canvas {
+        elements,
+        ..Canvas::default()
+    }
+}
+
+fn moves(ids: &[String]) -> Vec<Command> {
+    ids.iter()
+        .enumerate()
+        .map(|(i, id)| Command::Move {
+            id: Id::from(id.as_str()),
+            dx: i as i32 + 1,
+            dy: 0,
+        })
+        .collect()
+}
+
+fn x_of(c: &Canvas, id: &str) -> i32 {
+    c.shape(&Id::from(id)).unwrap().x
+}
+
+#[test]
+fn large_batch_matches_one_by_one_application() {
+    let mut batched = row(30);
+    let original = batched.clone();
+    let mut single = batched.clone();
+    let cmds = moves(&ids_of(30)[..20]);
+    let undo = batched.apply(Command::Batch(cmds.clone())).unwrap();
+    for c in cmds {
+        single.apply(c).unwrap();
+    }
+    assert_eq!(batched, single);
+    assert_eq!(x_of(&batched, "shape019"), 20);
+    batched.apply(undo).unwrap();
+    assert_eq!(batched, original);
+}
+
+#[test]
+fn large_batch_survives_an_insert_in_the_middle() {
+    let mut c = row(12);
+    let mut cmds = moves(&ids_of(12)[..9]);
+    cmds.push(Command::Insert(0, shape("newshape", 0)));
+    cmds.push(Command::Move {
+        id: Id::from("shape000"),
+        dx: 100,
+        dy: 0,
+    });
+    c.apply(Command::Batch(cmds)).unwrap();
+    assert_eq!(x_of(&c, "shape000"), 101);
+    assert_eq!(x_of(&c, "newshape"), 0);
+}
+
+#[test]
+fn large_batch_survives_a_remove_in_the_middle() {
+    let mut c = row(12);
+    let mut cmds = moves(&ids_of(12)[..9]);
+    cmds.push(Command::Remove(Id::from("shape000")));
+    cmds.push(Command::Move {
+        id: Id::from("shape011"),
+        dx: 100,
+        dy: 0,
+    });
+    c.apply(Command::Batch(cmds)).unwrap();
+    assert!(c.get(&Id::from("shape000")).is_none());
+    assert_eq!(x_of(&c, "shape011"), 100);
+    assert_eq!(x_of(&c, "shape001"), 2);
+}
+
+#[test]
+fn retain_present_drops_missing_ids_in_both_branches() {
+    let c = row(20);
+    for n in [3, 12] {
+        let mut ids: Vec<Id> = ids_of(n).iter().map(|s| Id::from(s.as_str())).collect();
+        ids.insert(1, Id::from("ghost000"));
+        c.retain_present(&mut ids);
+        let want: Vec<Id> = ids_of(n).iter().map(|s| Id::from(s.as_str())).collect();
+        assert_eq!(ids, want);
+    }
+}

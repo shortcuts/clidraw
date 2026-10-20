@@ -128,8 +128,7 @@ impl Session {
     }
 
     fn prune_selection(&mut self) {
-        let canvas = &self.canvas;
-        self.selection.retain(|id| canvas.get(id).is_some());
+        self.canvas.retain_present(&mut self.selection);
     }
 
     pub fn replace_canvas(&mut self, canvas: Canvas, view: View) {
