@@ -992,3 +992,86 @@ fn mouse_does_nothing_in_overview() {
     click(&mut s, (22, 6), Instant::now());
     assert!(s.selection.is_empty());
 }
+
+fn alt_enter(s: &mut Session) {
+    mod_key(s, KeyCode::Enter, KeyModifiers::ALT);
+}
+
+#[test]
+fn newline_keys_insert_in_a_shape_label_only() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.start_edit_existing(Id::from("aaaaaaaa"));
+    typed(&mut s, "a");
+    alt_enter(&mut s);
+    mod_key(&mut s, KeyCode::Char('j'), KeyModifiers::CONTROL);
+    mod_key(&mut s, KeyCode::Enter, KeyModifiers::SHIFT);
+    assert_eq!(buf(&s), "a\n\n\n");
+    assert!(s.edit.is_some());
+    key(&mut s, KeyCode::Enter);
+    assert!(s.edit.is_none());
+
+    s.start_edit_new((0, 0));
+    mod_key(&mut s, KeyCode::Char('j'), KeyModifiers::CONTROL);
+    assert_eq!(buf(&s), "");
+}
+
+#[test]
+fn committing_a_wrapped_label_grows_the_shape_in_one_undo_step() {
+    let mut s = session();
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("aaaaaaaa"),
+        kind: ShapeKind::Rect,
+        x: 20,
+        y: 5,
+        w: 8,
+        h: 3,
+        label: String::new(),
+    }));
+    s.start_edit_existing(Id::from("aaaaaaaa"));
+    typed(&mut s, "ab");
+    alt_enter(&mut s);
+    typed(&mut s, "cd");
+    alt_enter(&mut s);
+    typed(&mut s, "ef");
+    key(&mut s, KeyCode::Enter);
+    assert_eq!(
+        (shapes(&s)[0].h, shapes(&s)[0].label.as_str()),
+        (5, "ab\ncd\nef")
+    );
+    s.undo();
+    assert_eq!((shapes(&s)[0].h, shapes(&s)[0].label.as_str()), (3, ""));
+
+    let mut tall = with_shape("aaaaaaaa", 20, 5);
+    tall.start_edit_existing(Id::from("aaaaaaaa"));
+    typed(&mut tall, "x");
+    key(&mut tall, KeyCode::Enter);
+    assert_eq!(shapes(&tall)[0].h, 4);
+}
+
+#[test]
+fn paste_keeps_newlines_in_a_shape_label_only() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.start_edit_existing(Id::from("aaaaaaaa"));
+    handle_paste(&mut s, "a\r\nb");
+    assert_eq!(buf(&s), "a\nb");
+    s.start_edit_new((0, 0));
+    handle_paste(&mut s, "a\r\nb");
+    assert_eq!(buf(&s), "ab");
+}
+
+#[test]
+fn click_puts_the_caret_on_the_clicked_wrapped_line() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.start_edit_existing(Id::from("aaaaaaaa"));
+    typed(&mut s, "ab");
+    alt_enter(&mut s);
+    typed(&mut s, "cd");
+    let boxes = s.edit_boxes();
+    assert_eq!(boxes.len(), 2);
+    assert_eq!(boxes[1].y, boxes[0].y + 1);
+    let t = Instant::now();
+    click(&mut s, (boxes[0].x as u16, boxes[0].y as u16), t);
+    assert_eq!(caret(&s), 0);
+    click(&mut s, (boxes[1].x as u16 + 1, boxes[1].y as u16), t);
+    assert_eq!(caret(&s), 4);
+}

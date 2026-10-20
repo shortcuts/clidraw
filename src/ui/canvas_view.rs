@@ -1,7 +1,7 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE, UNDERLINE};
 use super::layout::refresh;
 use crate::input::{handles, EditTarget, Hit, Session};
-use crate::model::{label_pos, Element, End, Find, Line, LineKind, Shape, ShapeKind};
+use crate::model::{label_pos, wrap, Element, End, Find, Line, LineKind, Shape, ShapeKind};
 use ratatui::style::Color;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
@@ -86,28 +86,36 @@ fn overview(grid: &mut Grid, s: &Session) {
 }
 
 fn edit_label(grid: &mut Grid, s: &Session) {
-    let (Some(edit), Some(b)) = (&s.edit, s.edit_origin()) else {
+    let Some(edit) = &s.edit else {
         return;
     };
-    let (mut x, y) = s.view.to_screen(b.x, b.y);
+    let boxes = s.edit_boxes();
     let sel = edit.selection();
-    for (i, ch) in edit.buf[b.start..b.end].char_indices() {
-        let i = b.start + i;
-        let hit = match sel {
-            Some((from, to)) => (from..to).contains(&i),
-            None => i == edit.caret,
-        };
-        let mut one = [0; 4];
-        grid.text(
-            x,
-            y,
-            ch.encode_utf8(&mut one),
-            if hit { BOLD | REVERSE } else { BOLD },
-        );
-        x += ch.width().unwrap_or(0) as i32;
+    for b in &boxes {
+        let (mut x, y) = s.view.to_screen(b.x, b.y);
+        for (i, ch) in edit.buf[b.start..b.end].char_indices() {
+            let i = b.start + i;
+            let hit = match sel {
+                Some((from, to)) => (from..to).contains(&i),
+                None => i == edit.caret,
+            };
+            let mut one = [0; 4];
+            grid.text(
+                x,
+                y,
+                ch.encode_utf8(&mut one),
+                if hit { BOLD | REVERSE } else { BOLD },
+            );
+            x += ch.width().unwrap_or(0) as i32;
+        }
     }
-    if sel.is_none() && edit.caret == b.end {
-        grid.set(x, y, ' ', REVERSE);
+    let Some(b) = boxes.iter().rev().find(|b| b.start <= edit.caret) else {
+        return;
+    };
+    if sel.is_none() && edit.caret >= b.end {
+        // shortcut: a caret at the end of a full line draws on the border, reserve a cell if it looks wrong
+        let (x, y) = s.view.to_screen(b.x, b.y);
+        grid.set(x + edit.buf[b.start..b.end].width() as i32, y, ' ', REVERSE);
     }
 }
 
@@ -163,23 +171,23 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
             }
         }
     }
-    let room = (w - 2).max(0) as usize;
-    let mut shown = String::new();
-    let mut used = 0;
-    for ch in label.chars() {
-        let cw = ch.width().unwrap_or(0);
-        if used + cw > room {
-            break;
+    // shortcut: ellipse and diamond use the rect room, narrow the room per row if the text touches the outline
+    let room = (w - 2).max(1) as usize;
+    let lines = wrap(label, room);
+    let top = y + h / 2 - (lines.len() as i32 - 1) / 2;
+    for (r, row) in lines.into_iter().zip(top..) {
+        if row <= y || row >= y + h - 1 {
+            continue;
         }
-        used += cw;
-        shown.push(ch);
+        let text = label[r].trim_end_matches([' ', '\n']);
+        let used = text.width();
+        grid.text(
+            x + 1 + room.saturating_sub(used) as i32 / 2,
+            row,
+            text,
+            flags,
+        );
     }
-    grid.text(
-        x + 1 + (room as i32 - used as i32) / 2,
-        y + h / 2,
-        &shown,
-        flags,
-    );
 }
 
 fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &str, flags: u8) {

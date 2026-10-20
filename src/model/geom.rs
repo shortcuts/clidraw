@@ -1,4 +1,6 @@
 use super::Shape;
+use std::ops::Range;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub fn center(s: &Shape) -> (i32, i32) {
     (s.x + s.w / 2, s.y + s.h / 2)
@@ -85,4 +87,31 @@ pub fn label_pos(cells: &[Pt]) -> Pt {
         [p] => *p,
         _ => unreachable!(),
     }
+}
+
+/// Byte ranges of the lines of `s` wrapped to `room` cells. They are contiguous and cover `s`;
+/// each keeps its trailing `\n` or spaces, so trim them for display.
+pub fn wrap(s: &str, room: usize) -> Vec<Range<usize>> {
+    let (mut out, mut start, mut w, mut brk) = (vec![], 0, 0, None);
+    for (i, c) in s.char_indices() {
+        if c == '\n' {
+            out.push(start..i + 1);
+            (start, w, brk) = (i + 1, 0, None);
+            continue;
+        }
+        let cw = c.width().unwrap_or(0);
+        // A space hangs at the line end, so it never breaks the line.
+        while c != ' ' && w + cw > room && i > start {
+            let cut = brk.take().unwrap_or(i);
+            out.push(start..cut);
+            start = cut;
+            w = s[start..i].width();
+        }
+        if c == ' ' {
+            brk = Some(i + 1);
+        }
+        w += cw;
+    }
+    out.push(start..s.len());
+    out
 }

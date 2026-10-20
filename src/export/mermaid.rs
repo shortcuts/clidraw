@@ -8,7 +8,7 @@ pub struct MermaidOutput {
 
 fn label(s: &str) -> String {
     let s = if s.is_empty() { " " } else { s };
-    format!("\"{}\"", s.replace('"', "#quot;"))
+    format!("\"{}\"", s.replace('"', "#quot;").replace('\n', "<br/>"))
 }
 
 pub fn mermaid(canvas: &Canvas) -> MermaidOutput {

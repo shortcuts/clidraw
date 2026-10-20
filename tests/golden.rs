@@ -35,6 +35,15 @@ fn sample() -> Canvas {
                 5,
                 "Done & \"dusted\"",
             ),
+            shape(
+                "jjjjjjjj",
+                ShapeKind::Rect,
+                0,
+                20,
+                12,
+                5,
+                "alpha beta gamma\ndelta",
+            ),
             line(
                 "dddddddd",
                 LineKind::Arrow,

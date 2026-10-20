@@ -1,5 +1,5 @@
 use super::Session;
-use crate::model::{label_pos, Element, Id};
+use crate::model::{label_pos, wrap, Element, Id};
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub enum EditTarget {
@@ -13,6 +13,7 @@ pub struct Edit {
     pub buf: String,
     pub caret: usize,
     pub anchor: Option<usize>,
+    pub multiline: bool,
 }
 
 /// Where the renderer draws `buf[start..end]` and where a click lands.
@@ -32,6 +33,7 @@ impl Edit {
             buf,
             caret,
             anchor: None,
+            multiline: false,
         }
     }
 
@@ -155,59 +157,55 @@ impl Edit {
 
 impl Session {
     /// The one source of label geometry: the renderer draws from it and clicks hit-test against it.
-    pub fn edit_origin(&self) -> Option<EditBox> {
-        let edit = self.edit.as_ref()?;
-        let whole = |x, y| EditBox {
-            x,
-            y,
-            start: 0,
-            end: edit.buf.len(),
+    pub fn edit_boxes(&self) -> Vec<EditBox> {
+        let Some(edit) = self.edit.as_ref() else {
+            return vec![];
+        };
+        let whole = |x, y| {
+            vec![EditBox {
+                x,
+                y,
+                start: 0,
+                end: edit.buf.len(),
+            }]
         };
         let id = match &edit.target {
             EditTarget::Existing(id) => id,
-            EditTarget::New(x, y) => return Some(whole(*x, *y)),
+            EditTarget::New(x, y) => return whole(*x, *y),
         };
-        Some(match self.canvas.get(id)? {
-            Element::Text(t) => whole(t.x, t.y),
-            Element::Line(l) => {
+        match self.canvas.get(id) {
+            Some(Element::Text(t)) => whole(t.x, t.y),
+            Some(Element::Line(l)) => {
                 let (lx, ly) = label_pos(&self.canvas.route(l));
                 whole(lx - edit.buf.width() as i32 / 2, ly)
             }
-            Element::Shape(sh) => {
+            Some(Element::Shape(sh)) => {
                 // Keep in step with the label placement in `shape` in ui/canvas_view.rs.
-                let room = (sh.w - 2).max(0) as usize;
-                let mut start = edit.caret;
-                let mut taken = 1;
-                for (i, c) in edit.buf[..edit.caret].char_indices().rev() {
-                    taken += c.width().unwrap_or(0);
-                    if taken > room {
-                        break;
-                    }
-                    start = i;
-                }
-                let mut used = 0;
-                let mut end = start;
-                for (i, c) in edit.buf[start..].char_indices() {
-                    used += c.width().unwrap_or(0);
-                    if used > room {
-                        break;
-                    }
-                    end = start + i + c.len_utf8();
-                }
-                let used = edit.buf[start..end].width();
-                EditBox {
-                    x: sh.x + 1 + (room - used) as i32 / 2,
-                    y: sh.y + sh.h / 2,
-                    start,
-                    end,
-                }
+                let room = (sh.w - 2).max(1) as usize;
+                let lines = wrap(&edit.buf, room);
+                let top = sh.y + sh.h / 2 - (lines.len() as i32 - 1) / 2;
+                lines
+                    .into_iter()
+                    .zip(top..)
+                    .map(|(r, y)| {
+                        let end = r.start + edit.buf[r.clone()].trim_end_matches([' ', '\n']).len();
+                        let used = edit.buf[r.start..end].width();
+                        EditBox {
+                            x: sh.x + 1 + room.saturating_sub(used) as i32 / 2,
+                            y,
+                            start: r.start,
+                            end,
+                        }
+                    })
+                    .collect()
             }
-        })
+            None => vec![],
+        }
     }
 
     /// Moves the caret to a click on the label; false when the click is elsewhere.
     pub(super) fn place_caret(&mut self, (wx, wy): (i32, i32)) -> bool {
-        let Some(b) = self.edit_origin() else {
+        let Some(b) = self.edit_boxes().into_iter().find(|b| b.y == wy) else {
             return false;
         };
         let Some(edit) = &mut self.edit else {
@@ -215,7 +213,7 @@ impl Session {
         };
         let shown = &edit.buf[b.start..b.end];
         let col = wx - b.x;
-        if wy != b.y || col < 0 || col > shown.width() as i32 {
+        if col < 0 || col > shown.width() as i32 {
             return false;
         }
         let mut x = 0;

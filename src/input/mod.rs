@@ -9,7 +9,7 @@ pub use hit::{handles, shape_at, Corner, Handle, Hit};
 pub use keys::{handle_key, handle_paste, KeyOutcome};
 pub use state::{handle_mouse, scroll_step};
 
-use crate::model::{Canvas, Command, Element, History, Id, Text};
+use crate::model::{wrap, Canvas, Command, Element, History, Id, Text};
 use crate::ui::palette::Dock;
 use crate::ui::Layout;
 use crate::view::View;
@@ -235,8 +235,12 @@ impl Session {
             Some(Element::Text(t)) => t.text.clone(),
             None => return,
         };
+        let multiline = matches!(self.canvas.get(&id), Some(Element::Shape(_)));
         self.selection = vec![id.clone()];
-        self.edit = Some(Edit::new(EditTarget::Existing(id), buf));
+        self.edit = Some(Edit {
+            multiline,
+            ..Edit::new(EditTarget::Existing(id), buf)
+        });
     }
 
     pub fn start_edit_new(&mut self, p: (i32, i32)) {
@@ -253,6 +257,27 @@ impl Session {
                     matches!(self.canvas.get(&id), Some(Element::Text(_))) && buf.is_empty();
                 if empty_text {
                     self.exec(Command::Remove(id));
+                } else if let Some(Element::Shape(sh)) = self.canvas.get(&id) {
+                    let need = wrap(&buf, (sh.w - 2).max(1) as usize).len() as i32 + 2;
+                    let (x, y, w, h) = (sh.x, sh.y, sh.w, sh.h);
+                    let relabel = Command::SetLabel {
+                        id: id.clone(),
+                        label: buf,
+                    };
+                    self.exec(if need > h {
+                        Command::Batch(vec![
+                            relabel,
+                            Command::SetRect {
+                                id,
+                                x,
+                                y,
+                                w,
+                                h: need,
+                            },
+                        ])
+                    } else {
+                        relabel
+                    });
                 } else {
                     self.exec(Command::SetLabel { id, label: buf });
                 }

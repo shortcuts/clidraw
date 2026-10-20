@@ -42,6 +42,10 @@ fn edit_key(e: &mut Edit, k: &KeyEvent) -> bool {
         (KeyCode::End, false, false) => e.end(shift),
         (KeyCode::Delete, false, false) => e.delete(),
         (KeyCode::Backspace, false, false) => e.backspace(),
+        (KeyCode::Enter, _, _) if e.multiline && (shift || m.contains(KeyModifiers::ALT)) => {
+            e.insert("\n")
+        }
+        (KeyCode::Char('j'), true, _) if e.multiline => e.insert("\n"),
         (KeyCode::Char(c), false, false) => e.insert(c.encode_utf8(&mut [0; 4])),
         _ => return false,
     }
@@ -144,6 +148,8 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
 
 pub fn handle_paste(s: &mut Session, text: &str) {
     if let Some(edit) = &mut s.edit {
-        edit.insert(&text.chars().filter(|c| !c.is_control()).collect::<String>());
+        let keep = |c: &char| !c.is_control() || (edit.multiline && *c == '\n');
+        let text = text.chars().filter(keep).collect::<String>();
+        edit.insert(&text);
     }
 }

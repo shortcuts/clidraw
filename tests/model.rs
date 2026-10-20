@@ -1,6 +1,6 @@
 use clidraw::model::{
-    corners, label_pos, route, Axis, Canvas, Command, Element, End, History, Id, Line, LineKind,
-    Shape, ShapeKind, Side, Z,
+    corners, label_pos, route, wrap, Axis, Canvas, Command, Element, End, History, Id, Line,
+    LineKind, Shape, ShapeKind, Side, Z,
 };
 
 fn shape(id: &str, x: i32) -> Element {
@@ -510,4 +510,34 @@ fn history_labels_name_the_reverted_action() {
     });
     h.exec(&mut c, Command::Batch(moves.to_vec())).unwrap();
     assert_eq!(h.undo(&mut c).unwrap().as_deref(), Some("move 2 elements"));
+}
+
+fn wrapped(s: &str, room: usize) -> Vec<&str> {
+    wrap(s, room)
+        .into_iter()
+        .map(|r| s[r].trim_end_matches([' ', '\n']))
+        .collect()
+}
+
+#[test]
+fn wrap_breaks_at_spaces_newlines_and_inside_long_words() {
+    assert_eq!(wrap("ab cd", 3), [0..3, 3..5]);
+    assert_eq!(wrapped("ab cd", 3), ["ab", "cd"]);
+    assert_eq!(wrapped("abcdef", 4), ["abcd", "ef"]);
+    assert_eq!(wrapped("a\nb", 5), ["a", "b"]);
+    assert_eq!(wrapped("a\n", 5), ["a", ""]);
+    assert_eq!(wrapped("", 5), [""]);
+    assert_eq!(wrapped("ab  cd", 3), ["ab", "cd"]);
+}
+
+#[test]
+fn wrap_ranges_are_contiguous_and_a_wide_char_does_not_hang() {
+    let s = "ab 日本 cdefgh\nx";
+    for room in 1..8 {
+        let r = wrap(s, room);
+        assert_eq!(r[0].start, 0);
+        assert_eq!(r.last().unwrap().end, s.len());
+        assert!(r.windows(2).all(|w| w[0].end == w[1].start));
+    }
+    assert_eq!(wrapped("日本", 1), ["日", "本"]);
 }

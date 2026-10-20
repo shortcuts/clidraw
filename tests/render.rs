@@ -424,14 +424,50 @@ fn edit_selection_draws_reversed_chars() {
 }
 
 #[test]
-fn long_shape_label_shows_the_window_ending_at_the_caret() {
+fn long_shape_label_wraps_inside_the_shape() {
     let mut c = Canvas::default();
-    c.elements.push(shape("aaaaaaaa", 20, "0123456789"));
+    c.elements.push(shape("aaaaaaaa", 20, "ab cd ef"));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 5, 21, 6), "ab cd ");
+    s.canvas.elements.clear();
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("aaaaaaaa"),
+        kind: ShapeKind::Rect,
+        x: 20,
+        y: 4,
+        w: 7,
+        h: 5,
+        label: "ab cd ef".into(),
+    }));
+    s.rev += 1;
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 6, 21, 5), "ab cd");
+    assert_eq!(cols(&b, 7, 21, 5), " ef  ");
+    assert_eq!(cols(&b, 8, 20, 7), "└─────┘");
+}
+
+#[test]
+fn a_shape_too_short_for_its_label_draws_only_inside_its_rows() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "a\nb\nc\nd"));
+    let s = Session::new(c, View::default(), (80, 24));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 3, 20, 8), "        ");
+    assert_eq!(cols(&b, 7, 20, 8), "        ");
+    assert_eq!(cols(&b, 4, 20, 8), "┌──────┐");
+    assert_eq!(cols(&b, 6, 20, 8), "└──────┘");
+}
+
+#[test]
+fn edit_draws_every_wrapped_line() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "ab cd ef"));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.start_edit_existing(Id::from("aaaaaaaa"));
     let b = draw(&s, &Overlay::None);
-    assert_eq!(cols(&b, 5, 21, 6), "56789 ");
-    assert_eq!(reversed_blanks(&b, 5), vec![26]);
+    let all: String = (3..9).map(|y| row(&b, y)).collect();
+    assert!(all.contains("ab cd") && all.contains("ef"));
 }
 
 #[test]

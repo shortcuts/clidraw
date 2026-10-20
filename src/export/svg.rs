@@ -1,4 +1,4 @@
-use crate::model::{corners, label_pos, Canvas, Element, LineKind, ShapeKind};
+use crate::model::{corners, label_pos, wrap, Canvas, Element, LineKind, ShapeKind};
 use std::fmt::Write;
 
 const CW: i32 = 8;
@@ -12,10 +12,23 @@ fn esc(s: &str) -> String {
         .replace('"', "&quot;")
 }
 
-fn text(out: &mut String, x: i32, y: i32, anchor: &str, s: &str) {
-    if !s.is_empty() {
-        let _ = writeln!(out, "  <text x=\"{x}\" y=\"{y}\" text-anchor=\"{anchor}\" dominant-baseline=\"central\">{}</text>", esc(s));
+fn text(out: &mut String, x: i32, y: i32, anchor: &str, lines: &[&str]) {
+    if lines.iter().all(|l| l.is_empty()) {
+        return;
     }
+    let y = y - (lines.len() as i32 - 1) * CH / 2;
+    let head =
+        format!("<text x=\"{x}\" y=\"{y}\" text-anchor=\"{anchor}\" dominant-baseline=\"central\"");
+    if let [one] = lines {
+        let _ = writeln!(out, "  {head}>{}</text>", esc(one));
+        return;
+    }
+    let _ = writeln!(out, "  {head}>");
+    for (i, l) in lines.iter().enumerate() {
+        let dy = if i == 0 { 0 } else { CH };
+        let _ = writeln!(out, "    <tspan x=\"{x}\" dy=\"{dy}\">{}</tspan>", esc(l));
+    }
+    out.push_str("  </text>\n");
 }
 
 pub fn svg(canvas: &Canvas) -> String {
@@ -62,7 +75,12 @@ pub fn svg(canvas: &Canvas) -> String {
                         );
                     }
                 }
-                text(&mut o, x + w / 2, y + h / 2, "middle", &s.label);
+                let room = (s.w - 2).max(1) as usize;
+                let lines: Vec<&str> = wrap(&s.label, room)
+                    .into_iter()
+                    .map(|r| s.label[r].trim_end_matches([' ', '\n']))
+                    .collect();
+                text(&mut o, x + w / 2, y + h / 2, "middle", &lines);
             }
             Element::Line(l) => {
                 let cells = canvas.route(l);
@@ -86,9 +104,9 @@ pub fn svg(canvas: &Canvas) -> String {
                     "  <path d=\"{d}\" {style} stroke-linejoin=\"round\"{marker}/>"
                 );
                 let (lx, ly) = mid(label_pos(&cells));
-                text(&mut o, lx, ly, "middle", &l.label);
+                text(&mut o, lx, ly, "middle", &[&l.label]);
             }
-            Element::Text(t) => text(&mut o, t.x * CW, t.y * CH + CH / 2, "start", &t.text),
+            Element::Text(t) => text(&mut o, t.x * CW, t.y * CH + CH / 2, "start", &[&t.text]),
         }
     }
     o.push_str("</svg>\n");
