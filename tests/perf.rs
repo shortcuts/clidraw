@@ -818,3 +818,20 @@ fn take_bytes_counts_writes_and_resets() {
     assert_eq!(out.take_bytes(), 10);
     assert_eq!(out.take_bytes(), 0);
 }
+
+#[test]
+fn median_divides_by_perf_slack() {
+    let samples = || {
+        vec![
+            Duration::from_millis(40),
+            Duration::from_millis(8),
+            Duration::from_millis(20),
+        ]
+    };
+    std::env::set_var("CLIDRAW_PERF_SLACK", "4");
+    assert_eq!(median(samples()), Duration::from_millis(5));
+    std::env::set_var("CLIDRAW_PERF_SLACK", "0");
+    assert_eq!(median(samples()), Duration::from_millis(20));
+    std::env::remove_var("CLIDRAW_PERF_SLACK");
+    assert_eq!(median(samples()), Duration::from_millis(20));
+}
