@@ -5,7 +5,7 @@ use crate::input::Tool;
 
 pub const SCOPES: [&str; 4] = ["Canvas", "Menu", "Text edit", "Tools"];
 
-const CANVAS: [(&str, &str); 17] = [
+const CANVAS: [(&str, &str); 18] = [
     ("Esc", "Cancel, else open menu"),
     ("Delete, Backspace", "Delete the selection"),
     ("Ctrl-a", "Select everything"),
