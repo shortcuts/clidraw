@@ -1,9 +1,10 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE};
 use crate::input::{handles, EditTarget, Session};
 use crate::model::{label_pos, Element, End, Find, Line, LineKind, Shape, ShapeKind};
+use ratatui::style::Color;
 use unicode_width::UnicodeWidthStr;
 
-pub fn draw(grid: &mut Grid, s: &Session) {
+pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>) {
     let view = s.view;
     let editing = s.edit.as_ref().and_then(|e| match &e.target {
         EditTarget::Existing(id) => Some((id, format!("{}_", e.buf))),
@@ -32,6 +33,9 @@ pub fn draw(grid: &mut Grid, s: &Session) {
             Element::Line(l) => line(grid, s, &find, l, &label(&l.label), flags),
             Element::Text(t) => grid.text(sx, sy, &label(&t.text), flags),
         }
+        if let (Some(c), true) = (accent, s.selection.contains(e.id())) {
+            grid.tint(sx, sy, w, h, c);
+        }
     }
     if let Some(edit) = &s.edit {
         if let EditTarget::New(x, y) = edit.target {
@@ -42,6 +46,9 @@ pub fn draw(grid: &mut Grid, s: &Session) {
     for (_, _, (x, y)) in handles(&s.canvas, &s.selection) {
         let (sx, sy) = view.to_screen(x, y);
         grid.set(sx, sy, '■', REVERSE);
+        if let Some(c) = accent {
+            grid.tint(sx, sy, 1, 1, c);
+        }
     }
     if let Some((a, b)) = s.band {
         band(grid, s, a, b);

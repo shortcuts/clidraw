@@ -6,6 +6,7 @@ pub mod palette;
 pub mod prompt;
 pub mod scope;
 pub mod switcher;
+mod theme;
 
 use crate::input::Session;
 use grid::{Grid, REVERSE};
@@ -57,7 +58,11 @@ pub fn render(
     status: Option<&Status>,
 ) {
     let mut grid = Grid::new(area.width, area.height);
-    canvas_view::draw(&mut grid, s);
+    let accent = theme::accent(
+        std::env::var_os("NO_COLOR").is_some(),
+        std::env::var("COLORTERM").ok().as_deref(),
+    );
+    canvas_view::draw(&mut grid, s, accent);
     palette::draw(&mut grid, s);
     if !matches!(overlay, Overlay::None) {
         grid.dim_all();

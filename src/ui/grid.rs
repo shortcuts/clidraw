@@ -1,6 +1,6 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::{Modifier, Style};
+use ratatui::style::{Color, Modifier, Style};
 use unicode_width::UnicodeWidthChar;
 
 pub const REVERSE: u8 = 1;
@@ -11,6 +11,7 @@ pub const DIM: u8 = 4;
 pub struct Cell {
     pub ch: char,
     pub flags: u8,
+    pub fg: Option<Color>,
 }
 
 /// Our own cell grid: integer cells, no floating-point dots.
@@ -22,7 +23,11 @@ pub struct Grid {
 
 impl Grid {
     pub fn new(w: u16, h: u16) -> Grid {
-        let blank = Cell { ch: ' ', flags: 0 };
+        let blank = Cell {
+            ch: ' ',
+            flags: 0,
+            fg: None,
+        };
         Grid {
             w: i32::from(w),
             h: i32::from(h),
@@ -32,7 +37,11 @@ impl Grid {
 
     pub fn set(&mut self, x: i32, y: i32, ch: char, flags: u8) {
         if x >= 0 && y >= 0 && x < self.w && y < self.h {
-            self.cells[(y * self.w + x) as usize] = Cell { ch, flags };
+            self.cells[(y * self.w + x) as usize] = Cell {
+                ch,
+                flags,
+                fg: None,
+            };
         }
     }
 
@@ -65,6 +74,18 @@ impl Grid {
         }
     }
 
+    /// Skips blanks: reverse video would paint them as colored blocks.
+    pub fn tint(&mut self, x: i32, y: i32, w: i32, h: i32, fg: Color) {
+        for yy in y.max(0)..(y + h).min(self.h) {
+            for xx in x.max(0)..(x + w).min(self.w) {
+                let c = &mut self.cells[(yy * self.w + xx) as usize];
+                if c.ch != ' ' {
+                    c.fg = Some(fg);
+                }
+            }
+        }
+    }
+
     pub fn dim_all(&mut self) {
         for c in &mut self.cells {
             c.flags |= DIM;
@@ -88,11 +109,31 @@ impl Grid {
                         style = style.add_modifier(m);
                     }
                 }
+                if let Some(fg) = c.fg {
+                    style = style.fg(fg);
+                }
                 let mut tmp = [0u8; 4];
                 buf[(area.x + x as u16, area.y + y as u16)]
                     .set_symbol(c.ch.encode_utf8(&mut tmp))
                     .set_style(style);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tint_colors_drawn_cells_and_skips_blanks() {
+        let mut g = Grid::new(3, 1);
+        g.text(0, 0, "a", REVERSE);
+        g.tint(0, 0, 3, 1, Color::Red);
+        let area = Rect::new(0, 0, 3, 1);
+        let mut buf = Buffer::empty(area);
+        g.copy_to(&mut buf, area);
+        assert_eq!(buf[(0, 0)].fg, Color::Red);
+        assert_eq!(buf[(2, 0)].fg, Color::Reset);
     }
 }
