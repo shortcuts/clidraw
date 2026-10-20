@@ -3,8 +3,9 @@ use super::{
     Border, Canvas, Element, End, Id, LineKind, ModelError, Paint, Routing, ShapeKind, Stroke,
     TextAlign,
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Side {
     From,
     To,
@@ -30,7 +31,7 @@ pub enum Align {
     DistributeV,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Command {
     Insert(usize, Element),
     Remove(Id),

@@ -60,6 +60,7 @@ impl App {
         };
         let (ox, oy) = self.state.offsets.get(name).copied().unwrap_or_default();
         self.session.replace_canvas(canvas, View { ox, oy });
+        self.session.history.restore(self.store.load_history(name));
         self.name = name.to_string();
         self.saved_rev = 0;
         self.seen_rev = 0;

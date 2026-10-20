@@ -65,7 +65,10 @@ impl App {
         let r = self
             .store
             .save(&self.name, &self.session.canvas)
-            .map(|_| ());
+            .and_then(|_| {
+                let undo = self.session.history.commands();
+                self.store.save_history(&self.name, undo)
+            });
         self.report(r);
     }
 

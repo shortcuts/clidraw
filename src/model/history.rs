@@ -38,6 +38,14 @@ impl History {
         self.redo.clear();
     }
 
+    pub fn commands(&self) -> Vec<Command> {
+        self.undo.iter().map(|(c, _)| c.clone()).collect()
+    }
+
+    pub fn restore(&mut self, inverses: Vec<Command>) {
+        inverses.into_iter().for_each(|c| self.record(c));
+    }
+
     /// Returns the label of the reverted action, or `None` when the stack is empty.
     pub fn undo(&mut self, canvas: &mut Canvas) -> Result<Option<String>, ModelError> {
         Self::step(&mut self.undo, &mut self.redo, canvas)

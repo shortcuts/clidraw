@@ -1,8 +1,10 @@
-use crate::model::{Canvas, VERSION};
+use crate::model::{Canvas, Command, VERSION};
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -53,6 +55,12 @@ pub struct State {
 pub struct Store {
     dir: PathBuf,
     state_dir: PathBuf,
+}
+
+#[derive(Serialize, Deserialize)]
+struct HistoryFile {
+    canvas_hash: u64,
+    undo: Vec<Command>,
 }
 
 #[derive(Deserialize)]
@@ -206,5 +214,45 @@ impl Store {
             self.state_dir.join("state.json"),
             serde_json::to_vec_pretty(state)?,
         )?)
+    }
+
+    fn history_path(&self, name: &str) -> Result<PathBuf, StoreError> {
+        validate_name(name)?;
+        Ok(self.state_dir.join("history").join(format!("{name}.json")))
+    }
+
+    /// Hashes the canvas file on disk: the saved inverses only fit those exact bytes.
+    fn canvas_hash(&self, name: &str) -> Option<u64> {
+        let bytes = fs::read(self.path(name).ok()?).ok()?;
+        let mut h = DefaultHasher::new();
+        bytes.hash(&mut h);
+        Some(h.finish())
+    }
+
+    /// Call after `save`. An empty stack removes the file.
+    pub fn save_history(&self, name: &str, undo: Vec<Command>) -> Result<(), StoreError> {
+        let path = self.history_path(name)?;
+        let Some(canvas_hash) = self.canvas_hash(name).filter(|_| !undo.is_empty()) else {
+            let _ = fs::remove_file(path);
+            return Ok(());
+        };
+        fs::create_dir_all(self.state_dir.join("history"))?;
+        Ok(fs::write(
+            path,
+            serde_json::to_vec(&HistoryFile { canvas_hash, undo })?,
+        )?)
+    }
+
+    /// Empty when the canvas file changed since the history was saved.
+    pub fn load_history(&self, name: &str) -> Vec<Command> {
+        let file: Option<HistoryFile> = self
+            .history_path(name)
+            .ok()
+            .and_then(|p| fs::read(p).ok())
+            .and_then(|b| serde_json::from_slice(&b).ok());
+        match file {
+            Some(f) if Some(f.canvas_hash) == self.canvas_hash(name) => f.undo,
+            _ => vec![],
+        }
     }
 }

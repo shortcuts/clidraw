@@ -1284,3 +1284,37 @@ fn import_of_a_missing_file_shows_an_error() {
     run(&mut app, "import /no/such.mmd");
     assert!(app.status.unwrap().text.starts_with("import failed"));
 }
+
+#[test]
+fn undo_survives_a_reopen_only_while_the_file_is_unchanged() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    insert_shape(&mut app);
+    app.save();
+    drop(app);
+
+    let mut app = app_in(t.path());
+    assert_eq!(app.session.canvas.elements.len(), 1);
+    run(&mut app, "u");
+    assert_eq!(app.session.canvas.elements.len(), 0);
+    app.save();
+    drop(app);
+
+    let file = t.path().join("c/demo.clidraw.json");
+    let mut app = app_in(t.path());
+    run(&mut app, "u");
+    assert_eq!(app.session.canvas.elements.len(), 0, "stack was drained");
+
+    insert_shape(&mut app);
+    app.save();
+    drop(app);
+    let text = std::fs::read_to_string(&file).unwrap();
+    std::fs::write(&file, text.replace("\"x\": 2", "\"x\": 9")).unwrap();
+    let mut app = app_in(t.path());
+    run(&mut app, "u");
+    assert_eq!(
+        app.session.canvas.elements.len(),
+        1,
+        "edited file drops history"
+    );
+}
