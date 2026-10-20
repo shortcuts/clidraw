@@ -384,6 +384,23 @@ mod tests {
     }
 
     #[test]
+    fn middle_drag_pans_over_an_element_in_any_tool() {
+        let mut s = with_shape();
+        s.tool = Tool::Rect;
+        let before = s.view;
+        mouse(&mut s, MouseEventKind::Down(MouseButton::Middle), 32, 16);
+        mouse(&mut s, MouseEventKind::Drag(MouseButton::Middle), 42, 20);
+        mouse(&mut s, MouseEventKind::Up(MouseButton::Middle), 42, 20);
+        assert_eq!(
+            s.view.to_world(0, 0),
+            (before.to_world(0, 0).0 - 10, before.to_world(0, 0).1 - 4)
+        );
+        assert_eq!(s.canvas.elements.len(), 1);
+        assert_eq!(s.rev, 0);
+        assert!(s.selection.is_empty());
+    }
+
+    #[test]
     fn one_cell_jitter_does_not_move() {
         let mut s = with_shape();
         jitter(&mut s, (32, 16));

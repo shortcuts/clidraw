@@ -126,6 +126,7 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
     s.shift = ev.modifiers.contains(KeyModifiers::SHIFT);
     match ev.kind {
         MouseEventKind::Down(MouseButton::Left) => down(s, (col, row), world, now),
+        MouseEventKind::Down(MouseButton::Middle) => middle_down(s, (col, row), world),
         // Some terminals report the wrong button on Drag and Up.
         MouseEventKind::Drag(_) => {
             s.cursor = (col, row);
@@ -192,6 +193,16 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         origin: screen,
         world,
         target,
+    };
+}
+
+fn middle_down(s: &mut Session, screen: P, world: P) {
+    s.hover = Hit::Empty;
+    s.commit_edit();
+    s.gesture = Gesture::Pressed {
+        origin: screen,
+        world,
+        target: Target::Pan,
     };
 }
 
