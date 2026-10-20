@@ -10,6 +10,10 @@ const CANVAS: [(&str, &str); 17] = [
     ("Delete, Backspace", "Delete the selection"),
     ("Ctrl-a", "Select everything"),
     ("Arrows", "Move the selection one cell"),
+    (
+        "Shift+Arrows",
+        "Add a linked shape beside the selected shape",
+    ),
     ("] [", "Raise, lower the selection"),
     ("} {", "Send to front, to back"),
     ("< | > ^ - _", "Align the selection"),
