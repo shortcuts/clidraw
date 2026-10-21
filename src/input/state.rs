@@ -311,7 +311,6 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         (
             Hit::Empty,
             Tool::Rect
-            | Tool::Ellipse
             | Tool::Diamond
             | Tool::Cylinder
             | Tool::Parallelogram
@@ -435,7 +434,6 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
         PaletteHit::Tool(t) => {
             let kind = match t {
                 Tool::Rect => Some(ShapeKind::Rect),
-                Tool::Ellipse => Some(ShapeKind::Ellipse),
                 Tool::Diamond => Some(ShapeKind::Diamond),
                 Tool::Cylinder => Some(ShapeKind::Cylinder),
                 Tool::Parallelogram => Some(ShapeKind::Parallelogram),

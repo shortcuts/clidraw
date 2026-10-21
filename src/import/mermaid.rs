@@ -35,7 +35,7 @@ const ARROWS: [(&str, LineKind, Stroke); 6] = [
 
 // Two-character openers come first so `([` is not read as `(`.
 const BRACKETS: [(&str, &str, ShapeKind, Border); 7] = [
-    ("([", "])", ShapeKind::Ellipse, Border::Single),
+    ("([", "])", ShapeKind::Rect, Border::Rounded),
     ("[(", ")]", ShapeKind::Cylinder, Border::Single),
     ("[/", "/]", ShapeKind::Parallelogram, Border::Single),
     ("{{", "}}", ShapeKind::Hexagon, Border::Single),

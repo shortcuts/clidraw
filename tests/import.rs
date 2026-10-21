@@ -37,7 +37,7 @@ fn sample_round_trip() {
         [
             (ShapeKind::Rect, Border::Single),
             (ShapeKind::Diamond, Border::Single),
-            (ShapeKind::Ellipse, Border::Single),
+            (ShapeKind::Rect, Border::Single),
             (ShapeKind::Rect, Border::Rounded),
             (ShapeKind::Cylinder, Border::Single),
             (ShapeKind::Parallelogram, Border::Single),
@@ -60,6 +60,16 @@ fn chain_makes_one_line_per_arrow() {
     assert_eq!(
         (shapes(&out.canvas).len(), lines(&out.canvas).len()),
         (3, 2)
+    );
+}
+
+#[test]
+fn stadium_imports_as_rounded_rect() {
+    let out = mermaid("graph TD\nA([hi])").unwrap();
+    let s = shapes(&out.canvas);
+    assert_eq!(
+        (s.len(), s[0].kind, s[0].border, s[0].label.as_str()),
+        (1, ShapeKind::Rect, Border::Rounded, "hi")
     );
 }
 

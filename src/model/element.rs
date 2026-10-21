@@ -5,7 +5,6 @@ use unicode_width::UnicodeWidthStr;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ShapeKind {
     Rect,
-    Ellipse,
     Diamond,
     Cylinder,
     Parallelogram,
@@ -50,7 +49,7 @@ impl Routing {
     }
 }
 
-/// Border glyph set of a rect or ellipse. `Single` keeps the kind's own corners.
+/// Border glyph set of a rect. `Single` keeps the kind's own corners.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Border {
@@ -265,9 +264,9 @@ impl Element {
 }
 
 impl Shape {
-    /// Only rect and ellipse draw a border glyph set.
+    /// Only rect draws a border glyph set.
     pub fn has_border(&self) -> bool {
-        matches!(self.kind, ShapeKind::Rect | ShapeKind::Ellipse)
+        self.kind == ShapeKind::Rect
     }
 
     /// Columns the slanted kinds cut off the bounding box at the top and bottom rows.

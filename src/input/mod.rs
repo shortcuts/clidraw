@@ -27,7 +27,6 @@ pub enum Tool {
     Select,
     Hand,
     Rect,
-    Ellipse,
     Diamond,
     Cylinder,
     Parallelogram,
@@ -39,11 +38,10 @@ pub enum Tool {
 }
 
 impl Tool {
-    pub const ALL: [Tool; 12] = [
+    pub const ALL: [Tool; 11] = [
         Tool::Select,
         Tool::Hand,
         Tool::Rect,
-        Tool::Ellipse,
         Tool::Diamond,
         Tool::Cylinder,
         Tool::Parallelogram,
@@ -59,7 +57,6 @@ impl Tool {
             Tool::Select => "Select",
             Tool::Hand => "Hand",
             Tool::Rect => "Rect",
-            Tool::Ellipse => "Ellipse",
             Tool::Diamond => "Diamond",
             Tool::Cylinder => "Cylinder",
             Tool::Parallelogram => "Slant",
@@ -76,7 +73,6 @@ impl Tool {
             Tool::Select => 'v',
             Tool::Hand => 'h',
             Tool::Rect => 'r',
-            Tool::Ellipse => 'o',
             Tool::Diamond => 'd',
             Tool::Cylinder => 'y',
             Tool::Parallelogram => 'p',

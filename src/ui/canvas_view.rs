@@ -210,14 +210,12 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     }
     match s.kind {
         ShapeKind::Frame => return frame(grid, s, x, y, label, flags),
-        ShapeKind::Rect | ShapeKind::Ellipse => {
-            let (hz, vt, corners) = match (s.border, s.kind) {
-                (Border::Double, _) => ('═', '║', ['╔', '╗', '╚', '╝']),
-                (Border::Heavy, _) => ('━', '┃', ['┏', '┓', '┗', '┛']),
-                (Border::Rounded, _) | (Border::Single, ShapeKind::Ellipse) => {
-                    ('─', '│', ['╭', '╮', '╰', '╯'])
-                }
-                (Border::Single, _) => ('─', '│', ['┌', '┐', '└', '┘']),
+        ShapeKind::Rect => {
+            let (hz, vt, corners) = match s.border {
+                Border::Double => ('═', '║', ['╔', '╗', '╚', '╝']),
+                Border::Heavy => ('━', '┃', ['┏', '┓', '┗', '┛']),
+                Border::Rounded => ('─', '│', ['╭', '╮', '╰', '╯']),
+                Border::Single => ('─', '│', ['┌', '┐', '└', '┘']),
             };
             for i in 1..w - 1 {
                 grid.set(x + i, y, dashed(s.stroke, hz), flags);
@@ -300,7 +298,7 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
             }
         }
     }
-    // shortcut: ellipse, diamond, parallelogram and hexagon use the rect room, narrow the room per row if the text touches the outline
+    // shortcut: diamond, parallelogram and hexagon use the rect room, narrow the room per row if the text touches the outline
     let room = (w - 2).max(1) as usize;
     let lines = wrap(label, room);
     let top = y + h / 2 - (lines.len() as i32 - 1) / 2;

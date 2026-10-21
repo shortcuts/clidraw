@@ -49,7 +49,6 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
                 let _ = match s.kind {
                     ShapeKind::Rect if s.border == Border::Rounded => writeln!(text, "  n{n}({l})"),
                     ShapeKind::Rect => writeln!(text, "  n{n}[{l}]"),
-                    ShapeKind::Ellipse => writeln!(text, "  n{n}([{l}])"),
                     ShapeKind::Diamond => writeln!(text, "  n{n}{{{l}}}"),
                     ShapeKind::Cylinder => writeln!(text, "  n{n}[({l})]"),
                     ShapeKind::Parallelogram => writeln!(text, "  n{n}[/{l}/]"),

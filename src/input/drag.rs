@@ -230,7 +230,6 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
             let at = s.canvas.elements.len();
             let kind = match tool {
                 Tool::Rect => Some(ShapeKind::Rect),
-                Tool::Ellipse => Some(ShapeKind::Ellipse),
                 Tool::Diamond => Some(ShapeKind::Diamond),
                 Tool::Cylinder => Some(ShapeKind::Cylinder),
                 Tool::Parallelogram => Some(ShapeKind::Parallelogram),

@@ -116,16 +116,6 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                             "  <rect x=\"{x}\" y=\"{y}\" width=\"{w}\" height=\"{h}\"{rx} {style}/>"
                         );
                     }
-                    ShapeKind::Ellipse => {
-                        let _ = writeln!(
-                            o,
-                            "  <ellipse cx=\"{}\" cy=\"{}\" rx=\"{}\" ry=\"{}\" {style}/>",
-                            x + w / 2,
-                            y + h / 2,
-                            w / 2,
-                            h / 2
-                        );
-                    }
                     ShapeKind::Cylinder => {
                         let (rx, ry) = (w / 2, CH);
                         let _ = writeln!(

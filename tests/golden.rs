@@ -42,7 +42,7 @@ fn sample() -> Canvas {
             shape("bbbbbbbb", ShapeKind::Diamond, 30, 0, 12, 5, "OK?"),
             shape(
                 "cccccccc",
-                ShapeKind::Ellipse,
+                ShapeKind::Rect,
                 30,
                 12,
                 12,

@@ -983,7 +983,7 @@ fn palette_hover_follows_the_pointer_and_clears_on_press_or_gesture() {
 #[test]
 fn tool_keys_switch_tools_but_type_into_an_edit() {
     let mut s = session();
-    for (c, tool) in "vhrodypxflat".chars().zip(Tool::ALL) {
+    for (c, tool) in "vhrdypxflat".chars().zip(Tool::ALL) {
         key(&mut s, KeyCode::Char(c));
         assert_eq!(s.tool, tool);
     }
