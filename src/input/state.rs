@@ -291,7 +291,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     let target = match (hit, s.tool) {
         (Hit::Handle(h, id), _) => Target::Handle(h, id),
         (_, Tool::Hand) => Target::Pan,
-        (_, Tool::Line | Tool::Arrow) => Target::Draw(s.tool),
+        (_, Tool::Arrow) => Target::Draw(s.tool),
         (Hit::Element(id), _) => {
             let mut unit = vec![id.clone()];
             s.canvas.expand_frames(&mut unit);

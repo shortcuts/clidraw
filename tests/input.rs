@@ -241,9 +241,9 @@ fn hjkl_without_a_selection_keep_the_tool() {
 }
 
 #[test]
-fn hand_and_line_have_no_key() {
+fn hand_has_no_key() {
     assert_eq!(Tool::Hand.key(), None);
-    assert_eq!(Tool::Line.key(), None);
+    assert!(Tool::ALL.iter().all(|t| t.label() != "Line"));
     assert_eq!(Tool::Rect.key(), Some('r'));
 }
 
@@ -332,7 +332,7 @@ fn releasing_an_arrow_on_a_border_cell_pins_that_side() {
 #[test]
 fn dragging_a_line_end_onto_empty_canvas_frees_it() {
     let mut s = with_shape("aaaaaaaa", 15, 3);
-    pick(&mut s, Tool::Line);
+    pick(&mut s, Tool::Arrow);
     drag(&mut s, (18, 5), (50, 12));
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")

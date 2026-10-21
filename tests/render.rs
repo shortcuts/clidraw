@@ -982,7 +982,7 @@ fn infobar_shows_size_while_drawing_a_rect_and_length_while_drawing_a_line() {
         clidraw::input::handle_mouse(s, ev, t);
     };
     use crossterm::event::{MouseButton::Left, MouseEventKind::*};
-    for (tool, want) in [(Tool::Rect, "11x6"), (Tool::Line, "16 cells")] {
+    for (tool, want) in [(Tool::Rect, "11x6"), (Tool::Arrow, "16 cells")] {
         let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
         s.tool = tool;
         mouse(&mut s, Down(Left), 20, 5);

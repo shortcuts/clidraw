@@ -32,13 +32,12 @@ pub enum Tool {
     Parallelogram,
     Hexagon,
     Frame,
-    Line,
     Arrow,
     Text,
 }
 
 impl Tool {
-    pub const ALL: [Tool; 11] = [
+    pub const ALL: [Tool; 10] = [
         Tool::Select,
         Tool::Hand,
         Tool::Rect,
@@ -47,7 +46,6 @@ impl Tool {
         Tool::Parallelogram,
         Tool::Hexagon,
         Tool::Frame,
-        Tool::Line,
         Tool::Arrow,
         Tool::Text,
     ];
@@ -62,7 +60,6 @@ impl Tool {
             Tool::Parallelogram => "Slant",
             Tool::Hexagon => "Hexagon",
             Tool::Frame => "Frame",
-            Tool::Line => "Line",
             Tool::Arrow => "Arrow",
             Tool::Text => "Text",
         }
@@ -78,7 +75,6 @@ impl Tool {
             Tool::Parallelogram => Some('p'),
             Tool::Hexagon => Some('x'),
             Tool::Frame => Some('f'),
-            Tool::Line => None,
             Tool::Arrow => Some('a'),
             Tool::Text => Some('t'),
         }

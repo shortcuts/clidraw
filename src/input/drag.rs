@@ -222,7 +222,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
         }
         Target::Draw(tool) => {
             let id = Id::random();
-            let w0 = if matches!(tool, Tool::Line | Tool::Arrow) {
+            let w0 = if tool == Tool::Arrow {
                 w0
             } else {
                 snap_p(s.grid, w0)
@@ -256,11 +256,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                 }),
                 None => Element::Line(Line {
                     id: id.clone(),
-                    kind: if tool == Tool::Arrow {
-                        LineKind::Arrow
-                    } else {
-                        LineKind::Line
-                    },
+                    kind: LineKind::Arrow,
                     from: bound_at(&s.canvas, w0).unwrap_or(End::Free(w0.0, w0.1)),
                     to: End::Free(w0.0, w0.1),
                     label: String::new(),
@@ -640,7 +636,7 @@ mod tests {
     #[test]
     fn line_draw_keeps_remove_and_the_first_end() {
         let mut s = with_shape();
-        s.tool = Tool::Line;
+        s.tool = Tool::Arrow;
         press_and_drag(&mut s, (100, 30), |i| (100 + i, 30));
         let [Command::Remove(_), Command::SetEnd {
             side: Side::To,
