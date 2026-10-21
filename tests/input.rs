@@ -1814,3 +1814,15 @@ fn scrolling_cancels_a_glide() {
     assert!(!s.glide_step(t0 + Duration::from_millis(60)));
     assert_eq!((s.view.ox, s.view.oy), (0, 2));
 }
+
+#[test]
+fn clicking_the_minimap_centers_the_view_there() {
+    let mut s = with_shape("aaaaaaaa", 0, 4);
+    let far = with_shape("bbbbbbbb", 1000, 4).canvas.elements.remove(0);
+    s.canvas.elements.push(far);
+    s.motion = false;
+    click(&mut s, (78, 20), Instant::now());
+    assert!(s.view.ox > 900, "view stayed at {}", s.view.ox);
+    assert!(s.selection.is_empty());
+    assert_eq!(s.canvas.elements.len(), 2);
+}

@@ -2,6 +2,7 @@ use super::drag::{drag, pan_step, up};
 use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
 use crate::model::{Command, Element, Id, Paint, ShapeKind, Side};
+use crate::ui::minimap;
 use crate::ui::palette::{self, paint, Choice, PaletteHit};
 use crate::view::View;
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -236,6 +237,11 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     s.gesture = Gesture::Idle;
     if let Some(h) = palette::hit(s, screen.0, screen.1) {
         return palette_down(s, h);
+    }
+    if let Some(m) = minimap::hit(s, screen.0, screen.1) {
+        let (wx, wy) = m.world(screen.0, screen.1);
+        let (sw, sh) = (i32::from(s.screen.0), i32::from(s.screen.1));
+        return s.go_to((wx - sw / 2, wy - sh / 2));
     }
     let hit = hit::test(&s.canvas, &s.selection, world);
     if double {

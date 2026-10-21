@@ -13,6 +13,7 @@ use crate::model::{
     wrap, Align, Anchor, Canvas, Command, Dir, Element, End, History, Id, Line, LineKind, Routing,
     Shape, Stroke, Text, Z,
 };
+use crate::ui::minimap;
 use crate::ui::palette::{self, Dock, PaletteHit};
 use crate::ui::theme::Theme;
 use crate::ui::Layout;
@@ -364,7 +365,11 @@ impl Session {
 
     /// Selects what a right click lands on. None when no menu may open; Some(true) on an element.
     pub fn right_down(&mut self, col: i32, row: i32) -> Option<bool> {
-        if self.overview || !self.idle() || palette::hit(self, col, row).is_some() {
+        if self.overview
+            || !self.idle()
+            || palette::hit(self, col, row).is_some()
+            || minimap::hit(self, col, row).is_some()
+        {
             return None;
         }
         let world = self.view.to_world(col, row);

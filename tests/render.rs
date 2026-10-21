@@ -1010,3 +1010,16 @@ fn actions_palette_draws_query_rows_and_selection() {
     let b = draw(&s, &Overlay::Actions(a));
     assert!((0..24).any(|y| row(&b, y).contains("No match")));
 }
+
+#[test]
+fn minimap_shows_only_while_content_is_off_screen() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 0, ""));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    assert_eq!(cols(&draw(&s, &Overlay::None), 15, 56, 1), " ");
+    s.canvas.elements.push(shape("bbbbbbbb", 1000, ""));
+    s.rev += 1;
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 15, 56, 1), "┌");
+    assert!((57..79).any(|x| b[(x, 17)].symbol() == "▒" || b[(x, 18)].symbol() == "▒"));
+}

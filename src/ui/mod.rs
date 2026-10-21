@@ -5,6 +5,7 @@ pub mod help;
 mod infobar;
 mod layout;
 pub mod menu;
+pub mod minimap;
 pub mod palette;
 mod perf;
 pub mod prompt;
@@ -79,6 +80,7 @@ pub fn render(
     canvas_view::draw(&mut grid, s, accent, colors);
     if !s.overview {
         palette::draw(&mut grid, s);
+        minimap::draw(&mut grid, s);
     }
     infobar::draw(&mut grid, s, overlay, saved);
     if !matches!(overlay, Overlay::None) {

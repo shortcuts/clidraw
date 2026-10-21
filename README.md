@@ -31,6 +31,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Drag the `::` cell of the palette to dock it to another edge.
 - Wheel and horizontal scroll pan the canvas. A fast flick pans further. Shift+wheel pans sideways.
 - Dragging within 2 cells of the screen edge pans the view.
+- A map shows in a corner while content lies off screen. The outlined rectangle marks the view. Click the map to center the view there.
 - Right-click an element or empty canvas for a menu: edit label, duplicate, delete, bring to front and send to back, or paste, select all and fit all.
 
 | Key | Action |
