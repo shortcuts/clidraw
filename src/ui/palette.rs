@@ -248,7 +248,10 @@ fn tooltip(grid: &mut Grid, s: &Session, t: Tool, cells: &[(PaletteHit, i32, i32
     let Some(&(_, x, y, w)) = cells.iter().find(|c| c.0 == PaletteHit::Tool(t)) else {
         return;
     };
-    let text = format!(" {}  {} ", t.label(), t.key());
+    let text = match t.key() {
+        Some(k) => format!(" {}  {} ", t.label(), k),
+        None => format!(" {} ", t.label()),
+    };
     let len = text.len() as i32;
     let (tx, ty) = match s.dock {
         Dock::Left => (x + w, y),

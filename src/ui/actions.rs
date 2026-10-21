@@ -149,7 +149,7 @@ impl Actions {
             (
                 Action::Tool(t),
                 format!("Tool: {}", t.label()),
-                t.key().to_string(),
+                t.key().map(String::from).unwrap_or_default(),
             )
         });
         let table = TABLE.map(|(a, l, k)| (a, l.to_string(), k.to_string()));

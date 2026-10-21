@@ -9,7 +9,7 @@ const CANVAS: [(&str, &str); 17] = [
     ("Esc", "Cancel, deselect, menu"),
     ("Delete, Backspace", "Delete the selection"),
     ("Ctrl-a", "Select everything"),
-    ("Arrows", "Move one cell; Shift adds linked shape"),
+    ("Arrows, h j k l", "Move one cell; Shift adds linked shape"),
     ("] [", "Raise, lower the selection"),
     ("} {", "Send to front, to back"),
     ("< | > ^ - _", "Align the selection"),
@@ -59,7 +59,7 @@ pub fn rows(page: usize) -> Vec<(String, String)> {
         2 => own(&TEXT_EDIT),
         _ => Tool::ALL
             .iter()
-            .map(|t| (t.key().to_string(), t.label().to_string()))
+            .filter_map(|t| Some((t.key()?.to_string(), t.label().to_string())))
             .collect(),
     }
 }

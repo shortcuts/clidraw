@@ -1445,7 +1445,8 @@ fn pointer_shape_follows_tool_hover_and_drag() {
 
     app.on_event(key(KeyCode::Char('r')), t0);
     assert_eq!(app.take_pointer(), Some("crosshair"));
-    app.on_event(key(KeyCode::Char('h')), t0);
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 2, 2), t0);
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 2, 2), t0);
     assert_eq!(app.take_pointer(), Some("grab"));
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 30, 10), t0);
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 34, 10), t0);

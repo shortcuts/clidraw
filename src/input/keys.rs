@@ -112,6 +112,23 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         }
         return KeyOutcome::None;
     }
+    let k = match (k.code, s.idle()) {
+        (KeyCode::Char(c @ ('h' | 'j' | 'k' | 'l' | 'H' | 'J' | 'K' | 'L')), true) => {
+            let code = match c.to_ascii_lowercase() {
+                'h' => KeyCode::Left,
+                'j' => KeyCode::Down,
+                'k' => KeyCode::Up,
+                _ => KeyCode::Right,
+            };
+            let shift = if c.is_ascii_uppercase() {
+                KeyModifiers::SHIFT
+            } else {
+                KeyModifiers::NONE
+            };
+            KeyEvent::new(code, k.modifiers | shift)
+        }
+        _ => k,
+    };
     match k.code {
         KeyCode::Esc if s.cancel_gesture() => {}
         KeyCode::Esc if !s.selection.is_empty() => s.selection.clear(),
@@ -152,7 +169,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         KeyCode::Char('c') => s.copy(),
         KeyCode::Char('z') if matches!(s.gesture, Gesture::Idle) => s.overview = true,
         KeyCode::Char(c) if matches!(s.gesture, Gesture::Idle) => {
-            if let Some(t) = Tool::ALL.into_iter().find(|t| t.key() == c) {
+            if let Some(t) = Tool::ALL.into_iter().find(|t| t.key() == Some(c)) {
                 s.tool = t;
             }
         }

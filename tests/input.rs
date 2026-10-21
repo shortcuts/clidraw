@@ -208,6 +208,46 @@ fn arrow_keys_nudge_the_selection_one_undo_step_per_press() {
 }
 
 #[test]
+fn hjkl_nudge_the_selection_like_the_arrows() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    click(&mut s, (22, 6), Instant::now());
+    key(&mut s, KeyCode::Char('l'));
+    key(&mut s, KeyCode::Char('j'));
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (21, 6));
+    key(&mut s, KeyCode::Char('h'));
+    key(&mut s, KeyCode::Char('k'));
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
+    ctrl(&mut s, 'z');
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 6));
+}
+
+#[test]
+fn shift_l_adds_a_linked_shape_like_shift_right() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.selection = vec![Id::from("aaaaaaaa")];
+    key(&mut s, KeyCode::Char('L'));
+    let sh = shapes(&s);
+    assert_eq!((sh[1].x, sh[1].y, sh[1].w, sh[1].h), (32, 5, 8, 4));
+    assert_eq!(s.canvas.elements.len(), 3);
+}
+
+#[test]
+fn hjkl_without_a_selection_keep_the_tool() {
+    let mut s = session();
+    for c in ['h', 'j', 'k', 'l'] {
+        key(&mut s, KeyCode::Char(c));
+    }
+    assert_eq!(s.tool, Tool::Select);
+}
+
+#[test]
+fn hand_and_line_have_no_key() {
+    assert_eq!(Tool::Hand.key(), None);
+    assert_eq!(Tool::Line.key(), None);
+    assert_eq!(Tool::Rect.key(), Some('r'));
+}
+
+#[test]
 fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
     let mut s = with_shape("aaaaaaaa", 15, 3);
     s.canvas.elements.push(Element::Shape(Shape {
@@ -983,7 +1023,8 @@ fn palette_hover_follows_the_pointer_and_clears_on_press_or_gesture() {
 #[test]
 fn tool_keys_switch_tools_but_type_into_an_edit() {
     let mut s = session();
-    for (c, tool) in "vhrdypxflat".chars().zip(Tool::ALL) {
+    for tool in Tool::ALL {
+        let Some(c) = tool.key() else { continue };
         key(&mut s, KeyCode::Char(c));
         assert_eq!(s.tool, tool);
     }

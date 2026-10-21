@@ -68,19 +68,19 @@ impl Tool {
         }
     }
 
-    pub fn key(self) -> char {
+    pub fn key(self) -> Option<char> {
         match self {
-            Tool::Select => 'v',
-            Tool::Hand => 'h',
-            Tool::Rect => 'r',
-            Tool::Diamond => 'd',
-            Tool::Cylinder => 'y',
-            Tool::Parallelogram => 'p',
-            Tool::Hexagon => 'x',
-            Tool::Frame => 'f',
-            Tool::Line => 'l',
-            Tool::Arrow => 'a',
-            Tool::Text => 't',
+            Tool::Select => Some('v'),
+            Tool::Hand => None,
+            Tool::Rect => Some('r'),
+            Tool::Diamond => Some('d'),
+            Tool::Cylinder => Some('y'),
+            Tool::Parallelogram => Some('p'),
+            Tool::Hexagon => Some('x'),
+            Tool::Frame => Some('f'),
+            Tool::Line => None,
+            Tool::Arrow => Some('a'),
+            Tool::Text => Some('t'),
         }
     }
 }
