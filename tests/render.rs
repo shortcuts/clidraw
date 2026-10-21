@@ -12,6 +12,7 @@ use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
 use ratatui::style::{Color, Modifier};
 use ratatui::Terminal;
+use std::sync::Mutex;
 
 fn shape(id: &str, x: i32, label: &str) -> Element {
     Element::Shape(Shape {
@@ -32,7 +33,31 @@ fn shape(id: &str, x: i32, label: &str) -> Element {
     })
 }
 
+static ENV: Mutex<()> = Mutex::new(());
+
 fn draw(s: &Session, overlay: &Overlay) -> Buffer {
+    let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
+    render(s, overlay)
+}
+
+/// Draws with the colour environment set, so parallel tests never see it.
+fn draw_env(s: &Session, no_color: bool, colorterm: Option<&str>) -> Buffer {
+    let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
+    std::env::remove_var("NO_COLOR");
+    std::env::remove_var("COLORTERM");
+    if no_color {
+        std::env::set_var("NO_COLOR", "1");
+    }
+    if let Some(v) = colorterm {
+        std::env::set_var("COLORTERM", v);
+    }
+    let b = render(s, &Overlay::None);
+    std::env::remove_var("NO_COLOR");
+    std::env::remove_var("COLORTERM");
+    b
+}
+
+fn render(s: &Session, overlay: &Overlay) -> Buffer {
     let mut t = Terminal::new(TestBackend::new(80, 24)).unwrap();
     t.draw(|f| {
         let area = f.area();
@@ -127,15 +152,9 @@ fn ink_and_fill_draw_only_on_a_truecolor_terminal() {
         }
     }
     let s = Session::new(c, View::default(), (80, 24));
-    std::env::remove_var("NO_COLOR");
-    std::env::set_var("COLORTERM", "truecolor");
-    let on = draw(&s, &Overlay::None);
-    std::env::set_var("NO_COLOR", "1");
-    let off = draw(&s, &Overlay::None);
-    std::env::remove_var("NO_COLOR");
-    std::env::set_var("COLORTERM", "256color");
-    let basic = draw(&s, &Overlay::None);
-    std::env::remove_var("COLORTERM");
+    let on = draw_env(&s, false, Some("truecolor"));
+    let off = draw_env(&s, true, Some("truecolor"));
+    let basic = draw_env(&s, false, Some("256color"));
     assert_eq!(on[(20, 4)].fg, Color::Rgb(255, 95, 95));
     assert_eq!(on[(23, 5)].bg, Color::Rgb(50, 62, 86));
     // The diamond top row has one outline glyph, so its fill stops there.
@@ -161,13 +180,8 @@ fn light_theme_darkens_ink_and_fill_and_the_selection_ink() {
     let mut s = Session::new(c, View::default(), (80, 24));
     s.theme = Theme::Light;
     s.selection.push(Id::from("bbbbbbbb"));
-    std::env::remove_var("NO_COLOR");
-    std::env::set_var("COLORTERM", "truecolor");
-    let on = draw(&s, &Overlay::None);
-    std::env::set_var("NO_COLOR", "1");
-    let off = draw(&s, &Overlay::None);
-    std::env::remove_var("NO_COLOR");
-    std::env::remove_var("COLORTERM");
+    let on = draw_env(&s, false, Some("truecolor"));
+    let off = draw_env(&s, true, Some("truecolor"));
     assert_eq!(on[(20, 4)].fg, Color::Rgb(114, 42, 42));
     assert_eq!(on[(23, 5)].bg, Color::Rgb(255, 215, 215));
     assert_eq!(on[(41, 4)].fg, Color::Rgb(42, 114, 114));
@@ -446,12 +460,8 @@ fn selected_shape_takes_a_turned_ink_on_truecolor_and_reverses_without_it() {
     let mut s = Session::new(c, View::default(), (80, 24));
     s.selection.push(Id::from("aaaaaaaa"));
     s.selection.push(Id::from("bbbbbbbb"));
-    std::env::remove_var("NO_COLOR");
-    std::env::set_var("COLORTERM", "truecolor");
-    let on = draw(&s, &Overlay::None);
-    std::env::set_var("COLORTERM", "256color");
-    let off = draw(&s, &Overlay::None);
-    std::env::remove_var("COLORTERM");
+    let on = draw_env(&s, false, Some("truecolor"));
+    let off = draw_env(&s, false, Some("256color"));
     for x in [22, 42, 62] {
         assert!(!on[(x, 4)].modifier.contains(Modifier::REVERSED), "{x}");
     }
