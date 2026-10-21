@@ -101,6 +101,10 @@ pub enum Command {
         id: Id,
         bold: bool,
     },
+    SetLink {
+        id: Id,
+        link: Option<String>,
+    },
     /// Replaces the whole group list.
     SetGroups(Vec<Vec<Id>>),
     Batch(Vec<Command>),
@@ -148,7 +152,8 @@ impl Command {
             | Command::SetColor { .. }
             | Command::SetFill { .. }
             | Command::SetAlign { .. }
-            | Command::SetBold { .. } => "restyle",
+            | Command::SetBold { .. }
+            | Command::SetLink { .. } => "restyle",
             Command::SetGroups(_) => "regroup",
             Command::Batch(_) => unreachable!(),
         }
@@ -505,6 +510,14 @@ impl Canvas {
                 };
                 let old = std::mem::replace(&mut s.bold, bold);
                 Ok(Command::SetBold { id, bold: old })
+            }
+            Command::SetLink { id, link } => {
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
+                let Element::Shape(s) = &mut self.elements[i] else {
+                    return Err(wrong(&id));
+                };
+                let old = std::mem::replace(&mut s.link, link);
+                Ok(Command::SetLink { id, link: old })
             }
             Command::SetRouting { id, routing } => {
                 let i = self.position(&id, index).ok_or_else(|| missing(&id))?;

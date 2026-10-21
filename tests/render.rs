@@ -28,6 +28,7 @@ fn shape(id: &str, x: i32, label: &str) -> Element {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     })
 }
 
@@ -628,6 +629,7 @@ fn long_shape_label_wraps_inside_the_shape() {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     s.rev += 1;
     let b = draw(&s, &Overlay::None);
@@ -699,6 +701,7 @@ fn overview_session(x: i32, y: i32) -> Session {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.overview = true;
@@ -759,6 +762,7 @@ fn kind_session(kind: ShapeKind, w: i32, h: i32) -> Session {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     Session::new(c, View::default(), (80, 24))
 }
@@ -1022,4 +1026,16 @@ fn minimap_shows_only_while_content_is_off_screen() {
     let b = draw(&s, &Overlay::None);
     assert_eq!(cols(&b, 15, 56, 1), "┌");
     assert!((57..79).any(|x| b[(x, 17)].symbol() == "▒" || b[(x, 18)].symbol() == "▒"));
+}
+
+#[test]
+fn linked_shape_draws_a_marker_past_its_top_right_corner() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "box"));
+    if let Element::Shape(s) = &mut c.elements[0] {
+        s.link = Some("https://example.com".into());
+    }
+    let s = Session::new(c, View::default(), (80, 24));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(b[(28, 4)].symbol(), "↗");
 }

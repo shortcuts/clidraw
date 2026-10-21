@@ -51,7 +51,7 @@ fn sample_round_trip() {
     assert_eq!(l[0].label, "go");
     assert_eq!((l[1].kind, l[1].stroke), (LineKind::Line, Stroke::Dotted));
     assert_eq!(l[3].kind, LineKind::ArrowBoth);
-    assert_eq!(out.skipped, 3);
+    assert_eq!(out.skipped, 4);
 }
 
 #[test]

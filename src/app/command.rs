@@ -28,6 +28,10 @@ impl App {
             }
             "import" => self.import(arg.trim()),
             "export" => self.overlay = Overlay::Scope(ExportFormat::Text),
+            "link" if !self.session.set_link(arg.trim()) => {
+                self.status = Some(Status::error("Usage: :link <http(s) or mailto url>"))
+            }
+            "link" => {}
             "perf" => self.perf = self.perf.is_none().then(Perf::default),
             "layout" => match arg.trim() {
                 "" | "td" => self.session.layout(Dir::TopDown),

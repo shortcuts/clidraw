@@ -154,6 +154,7 @@ fn area_app(dir: &std::path::Path) -> (App, Instant) {
                 fill: None,
                 align: Default::default(),
                 bold: false,
+                link: None,
             }),
         ));
     }
@@ -477,6 +478,7 @@ fn insert_shape(app: &mut App) {
             fill: None,
             align: Default::default(),
             bold: false,
+            link: None,
         }),
     ));
 }
@@ -596,6 +598,7 @@ fn drag_app(dir: &std::path::Path) -> App {
             fill: None,
             align: Default::default(),
             bold: false,
+            link: None,
         }),
     ));
     app
@@ -689,6 +692,7 @@ fn history_limit_from_config_survives_opening_another_canvas() {
             fill: None,
             align: Default::default(),
             bold: false,
+            link: None,
         };
         app.session.exec(Command::Insert(i, Element::Shape(shape)));
     }
@@ -751,6 +755,7 @@ fn moved_redraws_only_when_the_hovered_target_changes() {
             fill: None,
             align: Default::default(),
             bold: false,
+            link: None,
         }));
     let t0 = Instant::now();
     app.dirty = false;
@@ -831,6 +836,7 @@ fn info_bar_shows_unsaved_until_the_save() {
             fill: None,
             align: Default::default(),
             bold: false,
+            link: None,
         }),
     ));
     assert!(last_row(&app).ends_with("unsaved"), "{}", last_row(&app));
@@ -883,6 +889,7 @@ fn shape_at(id: &str, x: i32, y: i32) -> Command {
             fill: None,
             align: Default::default(),
             bold: false,
+            link: None,
         }),
     )
 }
@@ -1176,6 +1183,7 @@ fn layout_app(dir: &std::path::Path, edges: &[(&str, &str)]) -> App {
                 fill: None,
                 align: Default::default(),
                 bold: false,
+                link: None,
             }),
         ));
     }

@@ -201,6 +201,9 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     if s.kind != ShapeKind::Frame {
         grid.fill(x, y, w, h);
     }
+    if s.link.is_some() {
+        grid.set(x + w, y, '↗', flags);
+    }
     match s.kind {
         ShapeKind::Frame => return frame(grid, s, x, y, label, flags),
         ShapeKind::Rect | ShapeKind::Ellipse => {

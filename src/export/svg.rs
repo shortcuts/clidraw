@@ -62,6 +62,13 @@ fn text(
     out.push_str("  </text>\n");
 }
 
+fn linked(o: &mut String, start: usize, link: &Option<String>) {
+    if let Some(url) = link {
+        o.insert_str(start, &format!("  <a href=\"{}\">\n", esc(url)));
+        o.push_str("  </a>\n");
+    }
+}
+
 pub fn svg(canvas: &Canvas) -> String {
     svg_padded(canvas, MARGIN)
 }
@@ -86,6 +93,7 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
         format!("fill=\"{fill}\"{opacity} stroke=\"{stroke}\"{}", dash(s))
     };
     for e in &canvas.elements {
+        let start = o.len();
         match e {
             Element::Shape(s) => {
                 let width = match s.border {
@@ -189,6 +197,7 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                 if s.kind == ShapeKind::Frame {
                     let label = s.label.replace('\n', " ");
                     text(&mut o, (x + CW, y), "start", &[&label], (s.color, s.bold));
+                    linked(&mut o, start, &s.link);
                     continue;
                 }
                 let room = (s.w - 2).max(1) as usize;
@@ -202,6 +211,7 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                     TextAlign::Right => (x + w - CW, "end"),
                 };
                 text(&mut o, (tx, y + h / 2), anchor, &lines, (s.color, s.bold));
+                linked(&mut o, start, &s.link);
             }
             Element::Line(l) => {
                 let cells = canvas.route_with(l, &find);

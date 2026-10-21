@@ -20,6 +20,7 @@ fn sample() -> Canvas {
             fill: None,
             align: Default::default(),
             bold: false,
+            link: None,
         })
     };
     let line = |id: &str, kind, from, to, label: &str| {
@@ -114,6 +115,7 @@ fn sample() -> Canvas {
             }
             Element::Shape(s) if s.id == Id::from("aaaaaaaa") => {
                 s.border = Border::Heavy;
+                s.link = Some("https://example.com/a?x=1&y=2".into());
                 s.fill = Some(Paint::Blue);
                 s.color = Some(Paint::Red);
             }

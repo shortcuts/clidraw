@@ -98,6 +98,7 @@ fn with_shape(id: &str, x: i32, y: i32) -> Session {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     s
 }
@@ -183,6 +184,7 @@ fn ctrl_a_selects_everything() {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     ctrl(&mut s, 'a');
     assert_eq!(
@@ -222,6 +224,7 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     pick(&mut s, Tool::Arrow);
     drag(&mut s, (18, 5), (43, 5));
@@ -270,6 +273,7 @@ fn releasing_an_arrow_on_a_border_cell_pins_that_side() {
             fill: None,
             align: Default::default(),
             bold: false,
+            link: None,
         }));
         pick(&mut s, Tool::Arrow);
         drag(&mut s, (18, 5), to);
@@ -419,6 +423,7 @@ fn shift_click_toggles_an_element_in_the_selection() {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     click(&mut s, (22, 6), Instant::now());
     shift_drag(&mut s, (42, 10), (42, 10));
@@ -638,6 +643,7 @@ fn palette_option_sets_the_border_of_a_selected_rect_and_undoes() {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
     let border = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
@@ -671,6 +677,7 @@ fn palette_ink_cycles_through_the_colors_and_undoes_one_click_at_a_time() {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     s.canvas.elements.push(Element::Text(clidraw::model::Text {
         id: Id::from("tttttttt"),
@@ -755,6 +762,7 @@ fn two_shapes_and_arrow_tool() -> Session {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     pick(&mut s, Tool::Arrow);
     s
@@ -993,6 +1001,7 @@ fn bracket_keys_reorder_the_selection_one_undo_step_per_press() {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     let ids = |s: &Session| -> Vec<String> {
         s.canvas
@@ -1041,6 +1050,7 @@ fn diagram() -> Session {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     s.canvas.elements.push(Element::Line(Line {
         id: Id::from("line0000"),
@@ -1339,6 +1349,7 @@ fn committing_a_wrapped_label_grows_the_shape_in_one_undo_step() {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     s.start_edit_existing(Id::from("aaaaaaaa"));
     typed(&mut s, "ab");
@@ -1438,6 +1449,7 @@ fn three_shapes() -> Session {
             fill: None,
             align: Default::default(),
             bold: false,
+            link: None,
         }));
     }
     s
@@ -1540,6 +1552,7 @@ fn at(id: &str, x: i32, y: i32, w: i32, h: i32) -> Element {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     })
 }
 
@@ -1653,6 +1666,7 @@ fn palette_cycles_label_align_and_ctrl_b_toggles_bold() {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
     let get = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
@@ -1715,6 +1729,7 @@ fn put(s: &mut Session, id: &str, kind: ShapeKind, r: (i32, i32, i32, i32)) {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     }));
 }
 
@@ -1825,4 +1840,39 @@ fn clicking_the_minimap_centers_the_view_there() {
     assert!(s.view.ox > 900, "view stayed at {}", s.view.ox);
     assert!(s.selection.is_empty());
     assert_eq!(s.canvas.elements.len(), 2);
+}
+
+#[test]
+fn set_link_sets_clears_undoes_and_rejects_unsafe_urls() {
+    let mut s = session();
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("rrrrrrrr"),
+        kind: ShapeKind::Rect,
+        x: 30,
+        y: 5,
+        w: 8,
+        h: 3,
+        label: String::new(),
+        stroke: Default::default(),
+        border: Default::default(),
+        color: None,
+        fill: None,
+        align: Default::default(),
+        bold: false,
+        link: None,
+    }));
+    s.selection = vec![Id::from("rrrrrrrr")];
+    let get = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
+        Some(Element::Shape(sh)) => sh.link.clone(),
+        _ => panic!("no shape"),
+    };
+    assert!(!s.set_link("javascript:alert(1)"));
+    assert!(!s.set_link("https://a b"));
+    assert_eq!(get(&s), None);
+    assert!(s.set_link("https://example.com"));
+    assert_eq!(get(&s).as_deref(), Some("https://example.com"));
+    assert!(s.set_link(""));
+    assert_eq!(get(&s), None);
+    s.undo();
+    assert_eq!(get(&s).as_deref(), Some("https://example.com"));
 }

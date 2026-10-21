@@ -18,6 +18,7 @@ fn shape(id: &str, x: i32) -> Element {
         fill: None,
         align: Default::default(),
         bold: false,
+        link: None,
     })
 }
 

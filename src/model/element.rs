@@ -213,6 +213,9 @@ pub struct Shape {
     pub align: TextAlign,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub bold: bool,
+    /// Target of the shape in the SVG and Mermaid exports.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

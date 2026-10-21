@@ -209,6 +209,7 @@ pub fn mermaid(text: &str) -> Result<MermaidInput, String> {
             fill: None,
             align: Default::default(),
             bold: false,
+            link: None,
         }));
     }
     let ids: Vec<Id> = canvas.elements.iter().map(|e| e.id().clone()).collect();

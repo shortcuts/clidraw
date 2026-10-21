@@ -311,6 +311,29 @@ impl Session {
         self.exec(Command::Batch(cmds));
     }
 
+    /// Links the selected shapes to `url`, or clears their links when `url` is empty.
+    /// Returns false when `url` is not an http, https or mailto address.
+    pub fn set_link(&mut self, url: &str) -> bool {
+        let ok = ["http://", "https://", "mailto:"]
+            .iter()
+            .any(|p| url.starts_with(p))
+            && !url.contains(|c: char| c.is_whitespace() || c == '"');
+        if !url.is_empty() && !ok {
+            return false;
+        }
+        let cmds = self
+            .selection
+            .iter()
+            .filter(|id| self.canvas.shape(id).is_some())
+            .map(|id| Command::SetLink {
+                id: id.clone(),
+                link: (!url.is_empty()).then(|| url.to_string()),
+            })
+            .collect();
+        self.exec(Command::Batch(cmds));
+        true
+    }
+
     pub fn select_all(&mut self) {
         self.selection = self
             .canvas

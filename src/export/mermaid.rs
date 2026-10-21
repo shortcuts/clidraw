@@ -37,6 +37,7 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
     let mut text = String::from("flowchart TD\n");
     let mut edges = String::new();
     let mut styles = String::new();
+    let mut clicks = String::new();
     let mut links = 0;
     let mut skipped = 0;
     let mut n = 0;
@@ -67,6 +68,9 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
                 .collect();
                 if !keys.is_empty() {
                     let _ = writeln!(styles, "  style n{n} {}", keys.join(","));
+                }
+                if let Some(url) = &s.link {
+                    let _ = writeln!(clicks, "  click n{n} \"{url}\" _blank");
                 }
                 n += 1;
             }
@@ -106,5 +110,6 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
     }
     text.push_str(&edges);
     text.push_str(&styles);
+    text.push_str(&clicks);
     MermaidOutput { text, skipped }
 }
