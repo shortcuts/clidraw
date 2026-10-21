@@ -195,9 +195,9 @@ fn exports_only_the_dragged_area() {
 fn exports_only_the_selection() {
     let t = tempfile::tempdir().unwrap();
     let (mut app, now) = area_app(t.path());
+    app.on_event(key(KeyCode::Esc), now);
+    app.on_event(key(KeyCode::Esc), now);
     app.session.selection = vec![Id::from("bbbbbbbb")];
-    app.on_event(key(KeyCode::Esc), now);
-    app.on_event(key(KeyCode::Esc), now);
     click(&mut app, 31, 11, now);
     click(&mut app, 31, 12, now);
     let out = t.path().join("sel.svg");

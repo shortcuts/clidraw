@@ -505,6 +505,16 @@ fn esc_cancels_a_drag_then_opens_the_menu() {
     mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 30, 12, t);
     assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::None);
     assert_eq!(shapes(&s)[0].x, 20);
+    key(&mut s, KeyCode::Esc);
+    assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::Menu);
+}
+
+#[test]
+fn esc_clears_the_selection_before_opening_the_menu() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.selection = vec![shapes(&s)[0].id.clone()];
+    assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::None);
+    assert!(s.selection.is_empty());
     assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::Menu);
 }
 

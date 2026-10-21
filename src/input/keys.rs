@@ -114,6 +114,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
     }
     match k.code {
         KeyCode::Esc if s.cancel_gesture() => {}
+        KeyCode::Esc if !s.selection.is_empty() => s.selection.clear(),
         KeyCode::Esc => return KeyOutcome::Menu,
         KeyCode::Char('?') => return KeyOutcome::Help,
         KeyCode::Char(':') => return KeyOutcome::Command,
