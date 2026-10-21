@@ -62,6 +62,16 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         return KeyOutcome::None;
     }
     let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
+    if s.present {
+        return match k.code {
+            KeyCode::Char('c') if ctrl => KeyOutcome::Quit,
+            KeyCode::F(5) | KeyCode::Esc => {
+                s.present = false;
+                KeyOutcome::None
+            }
+            _ => KeyOutcome::None,
+        };
+    }
     if s.overview {
         return match k.code {
             KeyCode::Char('c') if ctrl => KeyOutcome::Quit,
@@ -72,6 +82,11 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             KeyCode::Char('?') => KeyOutcome::Help,
             _ => KeyOutcome::None,
         };
+    }
+    if k.code == KeyCode::F(5) && s.idle() {
+        s.selection.clear();
+        s.present = true;
+        return KeyOutcome::None;
     }
     if ctrl {
         match k.code {

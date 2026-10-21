@@ -18,6 +18,7 @@ pub enum Action {
     Copy,
     Cut,
     Overview,
+    Present,
     Help,
     Find,
     Ex(&'static str),
@@ -41,7 +42,7 @@ impl Action {
     }
 }
 
-const TABLE: [(Action, &str, &str); 37] = [
+const TABLE: [(Action, &str, &str); 38] = [
     (Action::Ex("u"), "Undo", "Ctrl-z"),
     (Action::Ex("redo"), "Redo", "Ctrl-y"),
     (Action::Copy, "Copy", "c"),
@@ -84,6 +85,7 @@ const TABLE: [(Action, &str, &str); 37] = [
     (Action::Order(Z::Backward), "Lower", "["),
     (Action::Menu(MenuItem::FitAll), "Fit all", "Esc f"),
     (Action::Overview, "Overview", "z"),
+    (Action::Present, "Present", "F5"),
     (Action::Find, "Find", "Ctrl-f"),
     (Action::Menu(MenuItem::Canvases), "Canvases", "Esc c"),
     (Action::Menu(MenuItem::ExportSvg), "Export SVG", "Esc s"),

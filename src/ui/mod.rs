@@ -78,11 +78,13 @@ pub fn render(
     let colors = theme::colors(no_color, colorterm.as_deref());
     let accent = theme::accent(s.theme, no_color, colorterm.as_deref());
     canvas_view::draw(&mut grid, s, accent, colors);
-    if !s.overview {
+    if !s.overview && !s.present {
         palette::draw(&mut grid, s);
         minimap::draw(&mut grid, s);
     }
-    infobar::draw(&mut grid, s, overlay, saved);
+    if !s.present {
+        infobar::draw(&mut grid, s, overlay, saved);
+    }
     if !matches!(overlay, Overlay::None) {
         grid.dim_all();
     }
@@ -96,7 +98,7 @@ pub fn render(
         Overlay::Help(p) => help::draw(&mut grid, *p),
         Overlay::Actions(a) => a.draw(&mut grid),
     }
-    if let Some(st) = status {
+    if let Some(st) = status.filter(|_| !s.present) {
         infobar::status(&mut grid, s, st, saved);
     }
     if let Some(p) = perf {

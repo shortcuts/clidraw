@@ -110,6 +110,8 @@ pub struct Session {
     pub edit: Option<Edit>,
     /// Compact read-only view of the whole diagram; `view` stays untouched.
     pub overview: bool,
+    /// Full-screen read-only canvas for talks; only scrolling and exit work.
+    pub present: bool,
     pub band: Option<((i32, i32), (i32, i32))>,
     /// Alignment guide segments (world cells, inclusive) while a move drag snaps to other shapes.
     pub guides: Vec<((i32, i32), (i32, i32))>,
@@ -152,6 +154,7 @@ impl Session {
             screen,
             edit: None,
             overview: false,
+            present: false,
             band: None,
             guides: vec![],
             snap: None,
@@ -389,6 +392,7 @@ impl Session {
     /// Selects what a right click lands on. None when no menu may open; Some(true) on an element.
     pub fn right_down(&mut self, col: i32, row: i32) -> Option<bool> {
         if self.overview
+            || self.present
             || !self.idle()
             || palette::hit(self, col, row).is_some()
             || minimap::hit(self, col, row).is_some()

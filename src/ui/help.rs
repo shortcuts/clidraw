@@ -19,7 +19,7 @@ const CANVAS: [(&str, &str); 17] = [
     ("Ctrl-v", "Paste, offset from the last"),
     ("Ctrl-d, Ctrl-b", "Duplicate, bold labels"),
     ("Ctrl-z, Ctrl-y", "Undo, redo"),
-    ("z", "Overview of the whole diagram"),
+    ("z, F5", "Overview, present (Esc returns)"),
     ("Ctrl-c", "Quit"),
     ("?, Ctrl-p", "Help, command palette"),
     (":", "Commands q w wq e u redo layout"),

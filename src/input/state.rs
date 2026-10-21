@@ -193,6 +193,9 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
     if let Some(step) = scroll_step(&ev) {
         return s.scroll(step, 1, now);
     }
+    if s.present {
+        return;
+    }
     let world = s.view.to_world(col, row);
     s.shift = ev.modifiers.contains(KeyModifiers::SHIFT);
     match ev.kind {

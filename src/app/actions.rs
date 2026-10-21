@@ -39,6 +39,10 @@ impl App {
             Action::Copy => s.copy(),
             Action::Cut => s.cut(),
             Action::Overview => s.overview = true,
+            Action::Present => {
+                s.selection.clear();
+                s.present = true;
+            }
             Action::Help => self.overlay = Overlay::Help(0),
             Action::Find => {
                 self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, "/".into()))

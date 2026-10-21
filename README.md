@@ -47,6 +47,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `Ctrl-b` | Toggle bold on the labels of the selected shapes |
 | `Ctrl-z` / `Ctrl-y` | Undo / redo |
 | `z` | Overview of the whole diagram, read-only; `z` or `Esc` returns |
+| `F5` | Present: hides palette, minimap and status line; wheel scrolls; `F5` or `Esc` returns |
 | `Ctrl-f` | Find a label: type the text, `Enter` selects and centers the match; repeat to cycle (`:/text` does the same) |
 | `Ctrl-c` | Quit |
 | `Ctrl-p` | Open the command palette: type to filter every action, `Enter` runs it |

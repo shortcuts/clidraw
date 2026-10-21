@@ -722,6 +722,18 @@ fn overview_draws_blocks_without_border_label_or_palette() {
 }
 
 #[test]
+fn present_hides_palette_and_status_line() {
+    let mut s = overview_session(100, 40);
+    s.overview = false;
+    let normal = draw(&s, &Overlay::None);
+    assert!(row(&normal, 23).contains("saved"));
+    s.present = true;
+    let b = draw(&s, &Overlay::None);
+    assert!((0..24).all(|y| !row(&b, y).contains("saved")));
+    assert!(!row(&b, 1).contains(" Select"));
+}
+
+#[test]
 fn overview_shows_a_negative_coordinate_shape() {
     let b = draw(&overview_session(-300, -90), &Overlay::None);
     assert!(count(&b, "▒") > 0);

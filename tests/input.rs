@@ -1310,6 +1310,33 @@ fn mouse_does_nothing_in_overview() {
     assert!(s.selection.is_empty());
 }
 
+#[test]
+fn f5_presents_blocks_edits_and_esc_returns() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    click(&mut s, (22, 6), Instant::now());
+    key(&mut s, KeyCode::F(5));
+    assert!(s.present);
+    assert!(s.selection.is_empty());
+    key(&mut s, KeyCode::Char('r'));
+    click(&mut s, (22, 6), Instant::now());
+    assert!(s.selection.is_empty());
+    assert_eq!(s.tool, Tool::Select);
+    key(&mut s, KeyCode::Esc);
+    assert!(!s.present);
+    key(&mut s, KeyCode::F(5));
+    key(&mut s, KeyCode::F(5));
+    assert!(!s.present);
+}
+
+#[test]
+fn wheel_still_scrolls_while_presenting() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    key(&mut s, KeyCode::F(5));
+    let before = s.view;
+    mouse(&mut s, MouseEventKind::ScrollDown, 5, 5, Instant::now());
+    assert_ne!(s.view, before);
+}
+
 fn alt_enter(s: &mut Session) {
     mod_key(s, KeyCode::Enter, KeyModifiers::ALT);
 }
