@@ -1330,8 +1330,23 @@ fn import_adds_selected_shapes_as_one_undo_step() {
     let file = t.path().join("d.mmd");
     std::fs::write(&file, "flowchart TD\nA --> B\nB --> C\n").unwrap();
     run(&mut app, &format!("import {}", file.display()));
-    assert_eq!(app.session.canvas.elements.len(), 5);
-    assert_eq!(app.session.selection.len(), 5);
+    assert_eq!(app.session.canvas.elements.len(), 6);
+    assert_eq!(app.session.selection.len(), 6);
+    let frame = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .find_map(|e| match e {
+            Element::Shape(s) if s.kind == clidraw::model::ShapeKind::Frame => Some(s.clone()),
+            _ => None,
+        })
+        .unwrap();
+    let mut unit = vec![frame.id.clone()];
+    app.session.canvas.expand_frames(&mut unit);
+    assert_eq!(unit.len(), 6);
+    let (wx, wy) = app.session.view.to_world(2, 1);
+    assert_eq!((frame.x, frame.y), (wx - 1, wy - 1));
     assert!(app
         .status
         .as_ref()
@@ -1345,6 +1360,28 @@ fn import_adds_selected_shapes_as_one_undo_step() {
     assert!(app.session.canvas.elements.is_empty());
 }
 
+#[test]
+fn second_import_frame_lands_below_the_first() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let file = t.path().join("d.mmd");
+    std::fs::write(&file, "flowchart TD\nA --> B\n").unwrap();
+    run(&mut app, &format!("import {}", file.display()));
+    run(&mut app, &format!("import {}", file.display()));
+    let frames: Vec<_> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Shape(s) if s.kind == clidraw::model::ShapeKind::Frame => Some(s),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(frames.len(), 2);
+    assert!(frames[1].y >= frames[0].y + frames[0].h);
+}
+
 fn status(app: &App) -> &str {
     app.status.as_ref().map_or("", |s| s.text.as_str())
 }
@@ -1356,7 +1393,7 @@ fn lib_save_then_insert_adds_fresh_selected_copies_in_one_undo_step() {
     let file = t.path().join("d.mmd");
     std::fs::write(&file, "flowchart TD\nA --> B\n").unwrap();
     run(&mut app, &format!("import {}", file.display()));
-    assert_eq!(app.session.selection.len(), 3);
+    assert_eq!(app.session.selection.len(), 4);
     run(&mut app, "lib save pair");
     assert_eq!(status(&app), "saved pair to the library");
     assert!(t.path().join("c/library/pair.clidraw.json").exists());
@@ -1364,8 +1401,8 @@ fn lib_save_then_insert_adds_fresh_selected_copies_in_one_undo_step() {
     run(&mut app, "e other");
     run(&mut app, "lib insert pair");
     assert_eq!(status(&app), "inserted pair");
-    assert_eq!(app.session.canvas.elements.len(), 3);
-    assert_eq!(app.session.selection.len(), 3);
+    assert_eq!(app.session.canvas.elements.len(), 4);
+    assert_eq!(app.session.selection.len(), 4);
     let (wx, wy) = app.session.view.to_world(2, 1);
     assert_eq!(app.session.canvas.origin(), (wx, wy));
     let bound = app.session.canvas.elements.iter().any(|e| {
@@ -1375,9 +1412,9 @@ fn lib_save_then_insert_adds_fresh_selected_copies_in_one_undo_step() {
     assert!(bound);
 
     run(&mut app, "lib insert pair");
-    assert_eq!(app.session.canvas.elements.len(), 6);
+    assert_eq!(app.session.canvas.elements.len(), 8);
     run(&mut app, "u");
-    assert_eq!(app.session.canvas.elements.len(), 3);
+    assert_eq!(app.session.canvas.elements.len(), 4);
 }
 
 #[test]
