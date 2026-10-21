@@ -147,7 +147,7 @@ fn ink_and_fill_draw_only_on_a_truecolor_terminal() {
 }
 
 #[test]
-fn light_theme_darkens_ink_and_fill_and_the_selection_accent() {
+fn light_theme_darkens_ink_and_fill_and_the_selection_ink() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 20, ""));
     c.elements.push(shape("bbbbbbbb", 40, ""));
@@ -170,7 +170,7 @@ fn light_theme_darkens_ink_and_fill_and_the_selection_accent() {
     std::env::remove_var("COLORTERM");
     assert_eq!(on[(20, 4)].fg, Color::Rgb(114, 42, 42));
     assert_eq!(on[(23, 5)].bg, Color::Rgb(255, 215, 215));
-    assert_eq!(on[(40, 4)].fg, Color::Rgb(0, 95, 135));
+    assert_eq!(on[(41, 4)].fg, Color::Rgb(42, 114, 114));
     assert_eq!(
         (off[(20, 4)].fg, off[(23, 5)].bg),
         (Color::Reset, Color::Reset)
@@ -435,18 +435,31 @@ fn help_draws_on_a_tiny_screen() {
 }
 
 #[test]
-fn selected_shape_is_reversed_and_others_are_not() {
+fn selected_shape_takes_a_turned_ink_on_truecolor_and_reverses_without_it() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 20, "box"));
     c.elements.push(shape("bbbbbbbb", 40, "box"));
+    c.elements.push(shape("cccccccc", 60, "box"));
+    if let Element::Shape(s) = &mut c.elements[1] {
+        s.color = Some(Paint::Red);
+    }
     let mut s = Session::new(c, View::default(), (80, 24));
     s.selection.push(Id::from("aaaaaaaa"));
-    let b = draw(&s, &Overlay::None);
-    assert!(b[(22, 4)].modifier.contains(Modifier::REVERSED), "selected");
-    assert!(
-        !b[(42, 4)].modifier.contains(Modifier::REVERSED),
-        "unselected"
-    );
+    s.selection.push(Id::from("bbbbbbbb"));
+    std::env::remove_var("NO_COLOR");
+    std::env::set_var("COLORTERM", "truecolor");
+    let on = draw(&s, &Overlay::None);
+    std::env::set_var("COLORTERM", "256color");
+    let off = draw(&s, &Overlay::None);
+    std::env::remove_var("COLORTERM");
+    for x in [22, 42, 62] {
+        assert!(!on[(x, 4)].modifier.contains(Modifier::REVERSED), "{x}");
+    }
+    assert_eq!(on[(22, 4)].fg, Color::Rgb(95, 215, 255));
+    assert_eq!(on[(42, 4)].fg, Color::Rgb(135, 255, 255));
+    assert_eq!(on[(62, 4)].fg, Color::Reset);
+    assert!(off[(22, 4)].modifier.contains(Modifier::REVERSED));
+    assert!(!off[(62, 4)].modifier.contains(Modifier::REVERSED));
 }
 
 #[test]

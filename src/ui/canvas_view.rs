@@ -28,8 +28,13 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
         if sx >= grid.w || sy >= grid.h || sx + w <= 0 || sy + h <= 0 {
             continue;
         }
-        let flags = if selected.contains(e.id()) {
-            REVERSE
+        let is_selected = selected.contains(e.id());
+        let flags = if is_selected {
+            if colors {
+                0
+            } else {
+                REVERSE
+            }
         } else if s.snap.as_ref() == Some(e.id()) {
             BOLD
         } else if matches!(&s.hover, Hit::Element(id) if id == e.id()) {
@@ -50,15 +55,14 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
                 Element::Line(l) => (l.color, None),
                 Element::Text(t) => (t.color, None),
             };
-            if let Some(p) = ink {
+            if is_selected {
+                grid.tint(sx, sy, w, h, theme::selected(s.theme, ink));
+            } else if let Some(p) = ink {
                 grid.tint(sx, sy, w, h, theme::ink(s.theme, p));
             }
             if let Some(p) = fill {
                 grid.shade(sx, sy, w, h, theme::fill(s.theme, p));
             }
-        }
-        if let (Some(c), true) = (accent, selected.contains(e.id())) {
-            grid.tint(sx, sy, w, h, c);
         }
     }
     edit_label(grid, s);
