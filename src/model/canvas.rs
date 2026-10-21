@@ -35,6 +35,18 @@ impl Canvas {
         ids.map(|(i, e)| (e.id().clone(), i)).collect()
     }
 
+    /// The top-left corner of the shapes and text, `(0, 0)` when there are none.
+    pub fn origin(&self) -> (i32, i32) {
+        let corners = self.elements.iter().filter_map(|e| match e {
+            Element::Shape(s) => Some((s.x, s.y)),
+            Element::Text(t) => Some((t.x, t.y)),
+            Element::Line(_) => None,
+        });
+        corners
+            .reduce(|m, p| (m.0.min(p.0), m.1.min(p.1)))
+            .unwrap_or((0, 0))
+    }
+
     pub(crate) fn position(&self, id: &Id, index: &Option<Index>) -> Option<usize> {
         match index {
             Some(map) => map.get(id).copied(),

@@ -111,6 +111,11 @@ impl Store {
         Store { dir, state_dir }
     }
 
+    /// Snippets share the canvas file format.
+    pub fn library(&self) -> Store {
+        Store::at(self.dir.join("library"), self.state_dir.clone())
+    }
+
     pub fn dir(&self) -> &Path {
         &self.dir
     }

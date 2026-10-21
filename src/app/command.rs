@@ -32,6 +32,7 @@ impl App {
                 self.status = Some(Status::error("Usage: :link <http(s) or mailto url>"))
             }
             "link" => {}
+            "lib" => self.library(arg.trim()),
             "perf" => self.perf = self.perf.is_none().then(Perf::default),
             "layout" => match arg.trim() {
                 "" | "td" => self.session.layout(Dir::TopDown),

@@ -18,6 +18,7 @@ mod command;
 mod export;
 mod help;
 mod import;
+mod library;
 mod open;
 
 pub struct App {

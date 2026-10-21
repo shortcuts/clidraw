@@ -235,3 +235,13 @@ fn groups_round_trip_and_an_ungrouped_canvas_writes_no_key() {
     s.save("a", &c).unwrap();
     assert_eq!(s.load("a").unwrap(), c);
 }
+
+#[test]
+fn library_lives_in_a_subdirectory_that_list_ignores() {
+    let (t, s) = store();
+    s.save("library", &sample()).unwrap();
+    s.library().save("pair", &sample()).unwrap();
+    assert!(t.path().join("c/library/pair.clidraw.json").exists());
+    assert_eq!(s.list().unwrap(), vec!["library".to_string()]);
+    assert_eq!(s.library().load("pair").unwrap().elements.len(), 3);
+}

@@ -1288,6 +1288,60 @@ fn import_adds_selected_shapes_as_one_undo_step() {
     assert!(app.session.canvas.elements.is_empty());
 }
 
+fn status(app: &App) -> &str {
+    app.status.as_ref().map_or("", |s| s.text.as_str())
+}
+
+#[test]
+fn lib_save_then_insert_adds_fresh_selected_copies_in_one_undo_step() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let file = t.path().join("d.mmd");
+    std::fs::write(&file, "flowchart TD\nA --> B\n").unwrap();
+    run(&mut app, &format!("import {}", file.display()));
+    assert_eq!(app.session.selection.len(), 3);
+    run(&mut app, "lib save pair");
+    assert_eq!(status(&app), "saved pair to the library");
+    assert!(t.path().join("c/library/pair.clidraw.json").exists());
+
+    run(&mut app, "e other");
+    run(&mut app, "lib insert pair");
+    assert_eq!(status(&app), "inserted pair");
+    assert_eq!(app.session.canvas.elements.len(), 3);
+    assert_eq!(app.session.selection.len(), 3);
+    let (wx, wy) = app.session.view.to_world(2, 1);
+    assert_eq!(app.session.canvas.origin(), (wx, wy));
+    let bound = app.session.canvas.elements.iter().any(|e| {
+        matches!(e, Element::Line(l) if matches!(l.from, clidraw::model::End::Bound(..))
+            && matches!(l.to, clidraw::model::End::Bound(..)))
+    });
+    assert!(bound);
+
+    run(&mut app, "lib insert pair");
+    assert_eq!(app.session.canvas.elements.len(), 6);
+    run(&mut app, "u");
+    assert_eq!(app.session.canvas.elements.len(), 3);
+}
+
+#[test]
+fn lib_errors_write_nothing() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    run(&mut app, "lib");
+    assert_eq!(status(&app), "Usage: :lib save|insert <name>");
+    run(&mut app, "lib save");
+    assert_eq!(status(&app), "Usage: :lib save|insert <name>");
+    run(&mut app, "lib save box");
+    assert_eq!(status(&app), "Select shapes to save first");
+    assert!(!t.path().join("c/library").exists());
+    insert_shape(&mut app);
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    run(&mut app, "lib save a/b");
+    assert!(status(&app).starts_with("lib failed"));
+    run(&mut app, "lib insert nope");
+    assert!(status(&app).starts_with("lib failed"));
+}
+
 #[test]
 fn import_of_a_missing_file_shows_an_error() {
     let t = tempfile::tempdir().unwrap();

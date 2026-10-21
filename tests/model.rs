@@ -823,3 +823,12 @@ fn stroke_defaults_to_solid_when_absent_and_stays_out_of_solid_json() {
         .unwrap()
         .contains(r#""stroke":"dashed""#));
 }
+
+#[test]
+fn origin_is_the_minimum_corner_of_shapes_and_text_or_zero() {
+    let mut c = Canvas::default();
+    assert_eq!(c.origin(), (0, 0));
+    c.elements.push(shape("aaaaaaaa", 7));
+    c.elements.push(shape("bbbbbbbb", 3));
+    assert_eq!(c.origin(), (3, 0));
+}

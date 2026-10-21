@@ -17,14 +17,7 @@ impl App {
                     .iter()
                     .filter(|e| matches!(e, Element::Shape(_)))
                     .count();
-                let (x, y) = canvas
-                    .elements
-                    .iter()
-                    .filter_map(|e| match e {
-                        Element::Shape(s) => Some((s.x, s.y)),
-                        _ => None,
-                    })
-                    .fold((i32::MAX, i32::MAX), |m, p| (m.0.min(p.0), m.1.min(p.1)));
+                let (x, y) = canvas.origin();
                 let (wx, wy) = self.session.view.to_world(2, 1);
                 self.session
                     .insert(canvas.clone_canvas(&ids, wx - x, wy - y));
