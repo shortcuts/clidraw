@@ -59,6 +59,36 @@ Export asks what to write: the whole canvas, a dragged area or the selection. Ex
 
 Mouse capture disables the terminal's own text selection. Hold Shift (Option on macOS) to select text.
 
+## Scope
+
+clidraw takes its core model from [excalidraw](https://excalidraw.com) and [tldraw](https://tldraw.com). It does not match either one feature for feature.
+
+### Covered
+
+- Shapes: rectangle, ellipse, diamond, slant, hexagon, cylinder and frame.
+- Lines and arrows that bind to shapes. A bound end follows its shape when the shape moves.
+- Frames that move their content together.
+- Marquee select, multi-select drag, group and ungroup.
+- Align, distribute and z-order commands.
+- Snapping to shape edges and centers, and a grid.
+- Labels with line breaks, word wrap, bold and alignment.
+- Undo and redo, kept across sessions.
+- Find by label, a command palette and a corner minimap.
+- Auto layout, and Mermaid flowchart import.
+- A library of reusable snippets.
+- Shape links, exported to SVG and Mermaid.
+- Export to SVG, Mermaid and plain text.
+
+### Not covered
+
+- Zoom. The view pans only.
+- Images, freehand drawing, sticky notes, video and embeds.
+
+### Left out on purpose
+
+- Live collaboration and shared canvases. Each canvas is one local file.
+- Accounts and cloud storage.
+
 ## Render Mermaid as SVG
 
 The built-in SVG export draws plain shapes. For a Mermaid render, export Mermaid and render it with [pele](https://pele.run). pele needs Node.
