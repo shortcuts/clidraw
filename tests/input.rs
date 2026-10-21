@@ -1868,6 +1868,18 @@ fn scrolling_cancels_a_glide() {
 }
 
 #[test]
+fn dragging_with_the_hand_cancels_a_glide() {
+    let mut s = session();
+    let t0 = Instant::now();
+    pick(&mut s, Tool::Hand);
+    s.fit(Some((100, 50, 10, 4)));
+    s.glide_step(t0);
+    drag(&mut s, (30, 10), (27, 10));
+    assert_eq!(s.glide_wait(), None);
+    assert_eq!((s.view.ox, s.view.oy), (3, 0));
+}
+
+#[test]
 fn clicking_the_minimap_centers_the_view_there() {
     let mut s = with_shape("aaaaaaaa", 0, 4);
     let far = with_shape("bbbbbbbb", 1000, 4).canvas.elements.remove(0);
