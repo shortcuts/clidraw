@@ -414,18 +414,7 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
         PaletteHit::Option(Choice::Place(a)) => s.align(a),
         PaletteHit::Option(Choice::Group) => s.group(true),
         PaletteHit::Option(Choice::Ungroup) => s.group(false),
-        PaletteHit::Option(Choice::Routing(routing)) => {
-            let cmds: Vec<Command> = s
-                .selection
-                .iter()
-                .filter(|id| matches!(s.canvas.get(id), Some(Element::Line(_))))
-                .map(|id| Command::SetRouting {
-                    id: id.clone(),
-                    routing,
-                })
-                .collect();
-            s.exec(Command::Batch(cmds));
-        }
+        PaletteHit::Option(Choice::Routing(routing)) => s.set_routing(routing),
         PaletteHit::Tool(t) => {
             let kind = match t {
                 Tool::Rect => Some(ShapeKind::Rect),

@@ -1006,6 +1006,37 @@ fn right_click_menu_brings_a_shape_to_front() {
 }
 
 #[test]
+fn right_click_menu_switches_a_line_routing() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(Command::Insert(
+        0,
+        Element::Line(Line {
+            id: Id::from("lllllll1"),
+            kind: LineKind::Arrow,
+            from: End::Free(20, 5),
+            to: End::Free(40, 5),
+            label: String::new(),
+            label_at: None,
+            stroke: Default::default(),
+            routing: Default::default(),
+            color: None,
+        }),
+    ));
+    right_click(&mut app, 30, 5, now);
+    let clidraw::ui::Overlay::Context(c) = &app.overlay else {
+        panic!("no menu")
+    };
+    assert_eq!(c.labels().last(), Some(&"Straight line"));
+    click(&mut app, 32, 5 + 1 + 5, now);
+    let Some(Element::Line(l)) = app.session.canvas.get(&Id::from("lllllll1")) else {
+        panic!("no line")
+    };
+    assert_eq!(l.routing, clidraw::model::Routing::Straight);
+}
+
+#[test]
 fn right_click_on_canvas_offers_paste_only_with_a_clipboard() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());

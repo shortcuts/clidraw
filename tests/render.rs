@@ -1020,7 +1020,7 @@ fn label_align_places_the_text_and_bold_sets_the_modifier() {
 #[test]
 fn context_menu_near_the_corner_stays_on_screen() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let menu = ui::menu::Context::for_element((79, 23), (80, 24), true);
+    let menu = ui::menu::Context::for_element((79, 23), (80, 24), true, None);
     let b = draw(&s, &Overlay::Context(menu));
     let all: String = (0..24).map(|y| row(&b, y)).collect();
     for e in ["Duplicate", "Send to back"] {

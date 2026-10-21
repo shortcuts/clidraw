@@ -413,6 +413,29 @@ impl Session {
         }
     }
 
+    pub fn set_routing(&mut self, routing: Routing) {
+        let cmds: Vec<Command> = self
+            .selection
+            .iter()
+            .filter(|id| matches!(self.canvas.get(id), Some(Element::Line(_))))
+            .map(|id| Command::SetRouting {
+                id: id.clone(),
+                routing,
+            })
+            .collect();
+        self.exec(Command::Batch(cmds));
+    }
+
+    /// Routing of the first selected line, if any.
+    pub fn line_routing(&self) -> Option<Routing> {
+        self.selection
+            .iter()
+            .find_map(|id| match self.canvas.get(id) {
+                Some(Element::Line(l)) => Some(l.routing),
+                _ => None,
+            })
+    }
+
     pub fn reorder(&mut self, z: Z) {
         let cmds = self.canvas.z_order(&self.selection, z);
         if !cmds.is_empty() {
