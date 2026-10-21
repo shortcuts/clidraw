@@ -552,7 +552,7 @@ impl Session {
                                 id,
                                 x,
                                 y,
-                                w,
+                                w: w.max(Shape::ratio_width(sh.kind, need).unwrap_or(0)),
                                 h: need,
                             },
                         ])

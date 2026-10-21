@@ -847,3 +847,18 @@ fn origin_is_the_minimum_corner_of_shapes_and_text_or_zero() {
     c.elements.push(shape("bbbbbbbb", 3));
     assert_eq!(c.origin(), (3, 0));
 }
+
+#[test]
+fn snap_size_holds_the_ratio_of_bound_kinds() {
+    assert_eq!(Shape::snap_size(ShapeKind::Diamond, 12, 5), (11, 6));
+    assert_eq!(Shape::snap_size(ShapeKind::Diamond, 1, 1), (5, 3));
+    assert_eq!(Shape::snap_size(ShapeKind::Hexagon, 3, 3), (6, 3));
+    assert_eq!(Shape::snap_size(ShapeKind::Parallelogram, 20, 2), (12, 6));
+}
+
+#[test]
+fn snap_size_leaves_free_kinds_alone() {
+    for kind in [ShapeKind::Rect, ShapeKind::Cylinder, ShapeKind::Frame] {
+        assert_eq!(Shape::snap_size(kind, 7, 2), (7, 2));
+    }
+}

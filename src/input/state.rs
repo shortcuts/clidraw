@@ -1,7 +1,7 @@
 use super::drag::{drag, pan_step, up};
 use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
-use crate::model::{Command, Element, Id, Paint, ShapeKind, Side};
+use crate::model::{Command, Element, Id, Paint, Shape, ShapeKind, Side};
 use crate::ui::minimap;
 use crate::ui::palette::{self, paint, Choice, PaletteHit};
 use crate::view::View;
@@ -444,10 +444,22 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
                 .collect();
             match kind {
                 Some(kind) if !shapes.is_empty() => {
-                    let cmds = shapes
-                        .into_iter()
-                        .map(|id| Command::SetKind { id, kind })
-                        .collect();
+                    let mut cmds = vec![];
+                    for id in shapes {
+                        if let Some(sh) = s.canvas.shape(&id) {
+                            let (w, h) = Shape::snap_size(kind, sh.w, sh.h);
+                            if (w, h) != (sh.w, sh.h) {
+                                cmds.push(Command::SetRect {
+                                    id: id.clone(),
+                                    x: sh.x,
+                                    y: sh.y,
+                                    w,
+                                    h,
+                                });
+                            }
+                        }
+                        cmds.push(Command::SetKind { id, kind });
+                    }
                     s.exec(Command::Batch(cmds));
                 }
                 _ => s.tool = t,

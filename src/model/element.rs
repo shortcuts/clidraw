@@ -263,10 +263,32 @@ impl Element {
     }
 }
 
+/// Smallest width and height of any shape.
+pub const MIN_SIZE: i32 = 3;
+
 impl Shape {
     /// Only rect draws a border glyph set.
     pub fn has_border(&self) -> bool {
         self.kind == ShapeKind::Rect
+    }
+
+    /// Width a `kind` shape of height `h` needs to keep its silhouette; `None` for free-form kinds.
+    pub fn ratio_width(kind: ShapeKind, h: i32) -> Option<i32> {
+        match kind {
+            ShapeKind::Diamond => Some(2 * h - 1),
+            ShapeKind::Hexagon | ShapeKind::Parallelogram => Some(2 * h),
+            _ => None,
+        }
+    }
+
+    /// Nearest size to `(w, h)` that holds the ratio of `kind`; free-form kinds keep `(w, h)`.
+    pub fn snap_size(kind: ShapeKind, w: i32, h: i32) -> (i32, i32) {
+        let Some(offset) = Self::ratio_width(kind, 0) else {
+            return (w, h);
+        };
+        // Closest point to (w, h) on the ratio line, with width halved to weigh both axes alike.
+        let h = ((2 * h + w - offset + 2) / 4).max(MIN_SIZE);
+        (Self::ratio_width(kind, h).unwrap_or(w), h)
     }
 
     /// Columns the slanted kinds cut off the bounding box at the top and bottom rows.

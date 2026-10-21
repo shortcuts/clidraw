@@ -3,11 +3,10 @@ use super::state::{click, Action, Gesture, Target, P};
 use super::{Session, Tool};
 use crate::model::{
     edge_anchor, side_mid, Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Shape,
-    ShapeKind, Side,
+    ShapeKind, Side, MIN_SIZE,
 };
 use std::collections::HashSet;
 
-const MIN_SIZE: i32 = 3;
 /// Cells the pointer must travel from the press before a drag starts.
 const DRAG_THRESHOLD: i32 = 2;
 /// Cells within which a moved selection snaps to another shape's edge or center.
@@ -156,7 +155,20 @@ fn align(s: &Session, dx: i32, dy: i32) -> (i32, i32, Vec<(P, P)>) {
     (dx + cx, dy + cy, guides)
 }
 
-fn set_rect(id: &Id, fixed: P, cursor: P) -> Command {
+/// Resizes `id` between `fixed` and `cursor`, then snaps ratio-bound kinds around `fixed`.
+fn set_rect(canvas: &Canvas, id: &Id, fixed: P, cursor: P) -> Command {
+    let cursor = match canvas.shape(id) {
+        Some(sh) => {
+            let (w, h) = (span(fixed.0, cursor.0).1, span(fixed.1, cursor.1).1);
+            let (w, h) = Shape::snap_size(sh.kind, w, h);
+            let sign = |f: i32, c: i32| if c < f { -1 } else { 1 };
+            (
+                fixed.0 + sign(fixed.0, cursor.0) * (w - 1),
+                fixed.1 + sign(fixed.1, cursor.1) * (h - 1),
+            )
+        }
+        None => cursor,
+    };
     let ((x, w), (y, h)) = (span(fixed.0, cursor.0), span(fixed.1, cursor.1));
     Command::SetRect {
         id: id.clone(),
@@ -321,7 +333,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             } else {
                 world
             };
-            run(s, inv, set_rect(id, *fixed, world))
+            run(s, inv, set_rect(&s.canvas, id, *fixed, world))
         }
         Action::Create { id, origin } => {
             let world = snap_p(s.grid, world);
@@ -330,7 +342,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             } else {
                 world
             };
-            run(s, inv, set_rect(id, *origin, world))
+            run(s, inv, set_rect(&s.canvas, id, *origin, world))
         }
         Action::EndDrag { id, side } => {
             let end = End::Free(world.0, world.1);

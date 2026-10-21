@@ -2045,3 +2045,98 @@ fn bar_options_wrap_inside_a_narrow_screen_and_hit_at_their_row() {
     assert!(y > 1);
     assert_eq!(palette::hit(&s, x, y), Some(h));
 }
+
+fn rect_of(s: &Session) -> (i32, i32, i32, i32) {
+    let sh = shapes(s)[0];
+    (sh.x, sh.y, sh.w, sh.h)
+}
+
+#[test]
+fn ratio_create_drag_snaps_bound_kinds_and_leaves_free_ones() {
+    for (tool, size) in [
+        (Tool::Diamond, (11, 6)),
+        (Tool::Hexagon, (12, 6)),
+        (Tool::Parallelogram, (12, 6)),
+        (Tool::Rect, (12, 5)),
+        (Tool::Cylinder, (12, 5)),
+        (Tool::Frame, (12, 5)),
+    ] {
+        let mut s = session();
+        pick(&mut s, tool);
+        drag(&mut s, (20, 5), (31, 9));
+        assert_eq!(rect_of(&s), (20, 5, size.0, size.1), "{tool:?}");
+    }
+}
+
+#[test]
+fn ratio_create_drag_never_leaves_a_noisy_minimum() {
+    let mut s = session();
+    pick(&mut s, Tool::Diamond);
+    drag(&mut s, (20, 5), (22, 5));
+    assert_eq!(rect_of(&s), (20, 5, 5, 3));
+}
+
+#[test]
+fn ratio_handle_resize_snaps_and_keeps_the_fixed_corner() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.selection = vec![Id::from("aaaaaaaa")];
+    if let Element::Shape(sh) = &mut s.canvas.elements[0] {
+        sh.kind = ShapeKind::Hexagon;
+    }
+    drag(&mut s, (27, 8), (33, 10));
+    assert_eq!(rect_of(&s), (20, 5, 14, 7));
+    drag(&mut s, (20, 5), (10, 3));
+    assert_eq!(rect_of(&s), (12, 1, 22, 11));
+}
+
+#[test]
+fn ratio_shift_drag_ends_at_the_ratio_size() {
+    let mut s = session();
+    pick(&mut s, Tool::Hexagon);
+    shift_drag(&mut s, (20, 5), (30, 8));
+    assert_eq!(rect_of(&s), (20, 5, 16, 8));
+}
+
+#[test]
+fn ratio_label_growth_widens_a_bound_shape() {
+    let mut s = session();
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("aaaaaaaa"),
+        kind: ShapeKind::Diamond,
+        x: 20,
+        y: 5,
+        w: 9,
+        h: 5,
+        label: String::new(),
+        stroke: Default::default(),
+        border: Default::default(),
+        color: None,
+        fill: None,
+        align: Default::default(),
+        bold: false,
+        link: None,
+    }));
+    s.start_edit_existing(Id::from("aaaaaaaa"));
+    for line in ["a", "b", "c"] {
+        typed(&mut s, line);
+        alt_enter(&mut s);
+    }
+    typed(&mut s, "d");
+    key(&mut s, KeyCode::Enter);
+    assert_eq!(rect_of(&s), (20, 5, 11, 6));
+}
+
+#[test]
+fn ratio_kind_change_snaps_and_one_undo_restores() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    click(&mut s, (22, 6), Instant::now());
+    pick(&mut s, Tool::Diamond);
+    assert_eq!(rect_of(&s), (20, 5, 7, 4));
+    s.undo();
+    assert_eq!(
+        (rect_of(&s), shapes(&s)[0].kind),
+        ((20, 5, 8, 4), ShapeKind::Rect)
+    );
+    pick(&mut s, Tool::Cylinder);
+    assert_eq!(rect_of(&s), (20, 5, 8, 4));
+}
