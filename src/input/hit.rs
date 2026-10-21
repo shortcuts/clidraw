@@ -1,4 +1,4 @@
-use crate::model::{label_pos, Canvas, Element, Find, Id, ShapeKind, Side};
+use crate::model::{label_pos, Canvas, Element, Find, Id, Router, ShapeKind, Side, MARGIN};
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -72,9 +72,23 @@ fn frame_unit(canvas: &Canvas, id: &Id, selection: &[Id]) -> bool {
     unit.len() == selection.len() && unit.iter().all(|u| selection.contains(u))
 }
 
-fn covers<'a>(canvas: &'a Canvas, find: &Find<'a>, e: &Element, p: (i32, i32)) -> bool {
+fn covers<'a>(
+    canvas: &'a Canvas,
+    find: &Find<'a>,
+    router: &Router,
+    e: &Element,
+    p: (i32, i32),
+) -> bool {
     match e {
-        Element::Line(l) => canvas.route_with(l, find).contains(&p),
+        Element::Line(l) => {
+            // A detour stays within MARGIN of the end cells; routing every line per hover is too slow.
+            let (x, y, w, h) = canvas.bounds_with(e, find);
+            p.0 >= x - MARGIN
+                && p.0 < x + w + MARGIN
+                && p.1 >= y - MARGIN
+                && p.1 < y + h + MARGIN
+                && canvas.route_with(l, find, router).contains(&p)
+        }
         _ => {
             let (x, y, w, h) = canvas.bounds_with(e, find);
             let frame = matches!(e, Element::Shape(s) if s.kind == ShapeKind::Frame);
@@ -103,21 +117,23 @@ pub fn test(canvas: &Canvas, selection: &[Id], p: (i32, i32)) -> Hit {
         return Hit::Handle(h, id);
     }
     let find = canvas.shape_lookup();
+    let router = canvas.router();
     canvas
         .elements
         .iter()
         .rev()
-        .find(|e| covers(canvas, &find, e, p))
+        .find(|e| covers(canvas, &find, &router, e, p))
         .map_or(Hit::Empty, |e| Hit::Element(e.id().clone()))
 }
 
 pub fn shape_at(canvas: &Canvas, p: (i32, i32)) -> Option<Id> {
     let find = canvas.shape_lookup();
+    let router = canvas.router();
     canvas
         .elements
         .iter()
         .rev()
-        .find(|e| matches!(e, Element::Shape(_)) && covers(canvas, &find, e, p))
+        .find(|e| matches!(e, Element::Shape(_)) && covers(canvas, &find, &router, e, p))
         .map(|e| e.id().clone())
 }
 

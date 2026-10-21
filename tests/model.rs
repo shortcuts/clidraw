@@ -1,6 +1,7 @@
 use clidraw::model::{
     corners, edge_anchor, label_pos, route, side_mid, straight, wrap, Anchor, Axis, Canvas,
-    Command, Element, End, History, Id, Line, LineKind, Routing, Shape, ShapeKind, Side, Stroke, Z,
+    Command, Element, End, History, Id, Line, LineKind, Routing, Shape, ShapeKind, Side, Stroke,
+    Text, Z,
 };
 
 fn shape(id: &str, x: i32) -> Element {
@@ -886,4 +887,148 @@ fn snap_size_leaves_free_kinds_alone() {
     for kind in [ShapeKind::Rect, ShapeKind::Cylinder, ShapeKind::Frame] {
         assert_eq!(Shape::snap_size(kind, 7, 2), (7, 2));
     }
+}
+
+fn rect(id: &str, kind: ShapeKind, (x, y, w, h): (i32, i32, i32, i32)) -> Element {
+    let Element::Shape(s) = shape(id, x) else {
+        unreachable!()
+    };
+    Element::Shape(Shape { kind, y, w, h, ..s })
+}
+
+fn elbow(id: &str, from: End, to: End) -> Line {
+    let Element::Line(l) = arrow(from, to) else {
+        unreachable!()
+    };
+    Line {
+        id: Id::from(id),
+        ..l
+    }
+}
+
+/// A at (0,4), B at (20,4) and an `Auto` arrow between them, which leaves A at (3,5) and enters B at (19,5).
+fn ab(extra: Vec<Element>) -> (Canvas, Line) {
+    let line = elbow("arrow000", bound("aaaaaaaa"), bound("bbbbbbbb"));
+    let mut c = Canvas {
+        elements: vec![
+            rect("aaaaaaaa", ShapeKind::Rect, (0, 4, 3, 3)),
+            rect("bbbbbbbb", ShapeKind::Rect, (20, 4, 3, 3)),
+        ],
+        ..Canvas::default()
+    };
+    c.elements.extend(extra);
+    c.elements.push(Element::Line(line.clone()));
+    (c, line)
+}
+
+fn inside(p: (i32, i32), (x, y, w, h): (i32, i32, i32, i32)) -> bool {
+    p.0 >= x && p.0 < x + w && p.1 >= y && p.1 < y + h
+}
+
+fn walks(cells: &[(i32, i32)]) {
+    assert!(cells
+        .windows(2)
+        .all(|w| (w[0].0 - w[1].0).abs() + (w[0].1 - w[1].1).abs() == 1));
+}
+
+const O: (i32, i32, i32, i32) = (10, 4, 3, 3);
+
+#[test]
+fn an_elbow_goes_around_a_shape_in_its_way() {
+    let (c, l) = ab(vec![rect("oooooooo", ShapeKind::Rect, O)]);
+    let cells = c.route(&l);
+    assert_eq!((cells[0], cells[cells.len() - 1]), ((3, 5), (19, 5)));
+    walks(&cells);
+    assert!(!cells.iter().any(|&p| inside(p, O)));
+}
+
+#[test]
+fn a_clear_elbow_keeps_the_plain_route() {
+    let (c, l) = ab(vec![]);
+    let plain = route(
+        (3, 5),
+        Some(Axis::Horizontal),
+        (19, 5),
+        Some(Axis::Horizontal),
+    );
+    assert_eq!(c.route(&l), plain);
+}
+
+#[test]
+fn a_straight_line_ignores_obstacles() {
+    let (mut c, mut l) = ab(vec![rect("oooooooo", ShapeKind::Rect, O)]);
+    l.routing = Routing::Straight;
+    c.elements.pop();
+    c.elements.push(Element::Line(l.clone()));
+    assert_eq!(c.route(&l), straight((3, 5), (19, 5)));
+}
+
+#[test]
+fn text_and_foreign_frames_are_obstacles() {
+    let (c, l) = ab(vec![rect("ffffffff", ShapeKind::Frame, (10, 4, 5, 3))]);
+    assert!(!c.route(&l).iter().any(|&p| inside(p, (10, 4, 5, 3))));
+    let (c, l) = ab(vec![Element::Text(Text {
+        id: Id::from("tttttttt"),
+        x: 10,
+        y: 5,
+        text: "xxxx".into(),
+        color: None,
+    })]);
+    assert!(!c.route(&l).iter().any(|&p| inside(p, (10, 5, 4, 1))));
+}
+
+#[test]
+fn a_wall_costs_the_fewest_cells_inside_it() {
+    let wall = (10, -40, 3, 100);
+    let (c, l) = ab(vec![rect("wwwwwwww", ShapeKind::Rect, wall)]);
+    let cells = c.route(&l);
+    walks(&cells);
+    assert_eq!(cells.iter().filter(|&&p| inside(p, wall)).count(), 3);
+    assert!(cells.iter().all(|&p| inside(p, (0, 2, 23, 7))));
+}
+
+#[test]
+fn a_frame_around_both_ends_is_no_obstacle_but_a_shape_inside_it_is() {
+    let (c, l) = ab(vec![
+        rect("ffffffff", ShapeKind::Frame, (-2, 2, 27, 10)),
+        rect("cccccccc", ShapeKind::Rect, O),
+    ]);
+    let cells = c.route(&l);
+    assert!(!cells.iter().any(|&p| inside(p, O)));
+}
+
+#[test]
+fn other_lines_only_break_ties_between_clean_paths() {
+    for (row, free_row) in [(7, 3), (3, 7)] {
+        let (mut c, l) = ab(vec![rect("oooooooo", ShapeKind::Rect, O)]);
+        let other = elbow("other000", End::Free(8, free_row), End::Free(14, free_row));
+        c.elements.push(Element::Line(other));
+        let cells = c.route(&l);
+        assert!(cells.iter().any(|&p| p.1 == row && (8..14).contains(&p.0)));
+        assert!(!cells
+            .iter()
+            .any(|&p| p.1 == free_row && (8..14).contains(&p.0)));
+    }
+}
+
+#[test]
+fn the_route_follows_a_moved_obstacle_live() {
+    let (mut c, l) = ab(vec![rect("oooooooo", ShapeKind::Rect, O)]);
+    let plain = route(
+        (3, 5),
+        Some(Axis::Horizontal),
+        (19, 5),
+        Some(Axis::Horizontal),
+    );
+    let detour = c.route(&l);
+    assert_ne!(detour, plain);
+    let mv = |dy| Command::Move {
+        id: Id::from("oooooooo"),
+        dx: 0,
+        dy,
+    };
+    c.apply(mv(20)).unwrap();
+    assert_eq!(c.route(&l), plain);
+    c.apply(mv(-20)).unwrap();
+    assert_eq!(c.route(&l), detour);
 }

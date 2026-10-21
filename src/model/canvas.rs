@@ -1,5 +1,5 @@
 use super::geom::{center, route, side_mid, straight, Axis};
-use super::{Command, Element, End, Id, Line, Routing, Shape, ShapeKind, Text, VERSION};
+use super::{Command, Element, End, Id, Line, Router, Routing, Shape, ShapeKind, Text, VERSION};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -113,17 +113,37 @@ impl Canvas {
         [anchor(&l.from, from, to), anchor(&l.to, to, from)]
     }
 
-    /// Cells of the line from start to end: at most two bends, or a diagonal for `Routing::Straight`.
+    /// Cells of the line from start to end: two bends unless an elbow must go around an obstacle,
+    /// or a diagonal for `Routing::Straight`.
     pub fn route(&self, l: &Line) -> Vec<(i32, i32)> {
-        self.route_with(l, &|id| self.shape(id))
+        self.route_with(l, &|id| self.shape(id), &self.router())
     }
 
-    pub fn route_with<'a>(&'a self, l: &Line, find: &Find<'a>) -> Vec<(i32, i32)> {
+    pub fn route_with<'a>(&'a self, l: &Line, find: &Find<'a>, router: &Router) -> Vec<(i32, i32)> {
+        let plain = self.plain_with(l, find);
+        match l.routing {
+            Routing::Elbow => router.around(self, find, l, self.anchors(l, find), plain),
+            Routing::Straight => plain,
+        }
+    }
+
+    /// The route ignoring obstacles.
+    pub(crate) fn plain_with<'a>(&'a self, l: &Line, find: &Find<'a>) -> Vec<(i32, i32)> {
         let [(a, ax_a), (b, ax_b)] = self.anchors(l, find);
         match l.routing {
             Routing::Elbow => route(a, ax_a, b, ax_b),
             Routing::Straight => straight(a, b),
         }
+    }
+
+    pub fn router(&self) -> Router {
+        let find = self.shape_lookup();
+        let bounds: Vec<_> = self
+            .elements
+            .iter()
+            .map(|e| self.bounds_with(e, &find))
+            .collect();
+        Router::from_bounds(self, &bounds)
     }
 
     /// Cells where the line starts and ends. Bound ends sit one cell outside the shape edge.

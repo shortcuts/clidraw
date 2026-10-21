@@ -1,11 +1,12 @@
-use crate::model::{Canvas, Element, Id, Shape};
+use crate::model::{Canvas, Element, Id, Router, Shape};
 use std::collections::HashMap;
 
-/// Shape index and element bounds, reused until the canvas changes.
+/// Shape index, element bounds and obstacle index, reused until the canvas changes.
 pub struct Layout {
     key: (u64, usize),
     index: HashMap<Id, usize>,
     pub bounds: Vec<(i32, i32, i32, i32)>,
+    pub router: Router,
 }
 
 impl Layout {
@@ -25,6 +26,7 @@ pub fn refresh<'a>(slot: &'a mut Option<Layout>, canvas: &Canvas, rev: u64) -> &
             key,
             index: canvas.index_map(),
             bounds: vec![],
+            router: Router::default(),
         };
         layout.bounds = {
             let find = layout.find(canvas);
@@ -34,6 +36,7 @@ pub fn refresh<'a>(slot: &'a mut Option<Layout>, canvas: &Canvas, rev: u64) -> &
                 .map(|e| canvas.bounds_with(e, &find))
                 .collect()
         };
+        layout.router = Router::from_bounds(canvas, &layout.bounds);
         *slot = Some(layout);
     }
     slot.as_ref().expect("filled above")

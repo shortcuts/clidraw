@@ -3,7 +3,7 @@ use super::layout::refresh;
 use super::theme;
 use crate::input::{handles, EditTarget, Hit, Session};
 use crate::model::{
-    label_pos, wrap, Border, Element, Find, Id, Line, LineKind, Shape, ShapeKind, Stroke,
+    label_pos, wrap, Border, Element, Find, Id, Line, LineKind, Router, Shape, ShapeKind, Stroke,
 };
 use ratatui::style::Color;
 use std::cmp::Ordering;
@@ -46,7 +46,7 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
         let label = |own| if hide { "" } else { own };
         match e {
             Element::Shape(sh) => shape(grid, sh, sx, sy, label(&sh.label), flags),
-            Element::Line(l) => line(grid, s, &find, l, label(&l.label), flags),
+            Element::Line(l) => line(grid, s, &find, &layout.router, l, label(&l.label), flags),
             Element::Text(t) => grid.text(sx, sy, label(&t.text), flags),
         }
         if colors {
@@ -112,7 +112,7 @@ fn overview(grid: &mut Grid, s: &Session) {
     let find = layout.find(&s.canvas);
     for (e, &(x, y, w, h)) in s.canvas.elements.iter().zip(&layout.bounds) {
         if let Element::Line(l) = e {
-            for c in s.canvas.route_with(l, &find) {
+            for c in s.canvas.route_with(l, &find, &layout.router) {
                 let (sx, sy) = cell(c.0, c.1);
                 grid.set(sx, sy, '·', 0);
             }
@@ -350,8 +350,16 @@ fn frame(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     }
 }
 
-fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &str, flags: u8) {
-    let cells = s.canvas.route_with(l, find);
+fn line<'a>(
+    grid: &mut Grid,
+    s: &'a Session,
+    find: &Find<'a>,
+    router: &Router,
+    l: &Line,
+    label: &str,
+    flags: u8,
+) {
+    let cells = s.canvas.route_with(l, find, router);
     let dirs = |p: (i32, i32), q: (i32, i32)| (q.0 < p.0, q.0 > p.0, q.1 < p.1, q.1 > p.1);
     for (i, &c) in cells.iter().enumerate() {
         let (mut left, mut right, mut up, mut down) = (false, false, false, false);

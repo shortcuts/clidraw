@@ -2142,3 +2142,38 @@ fn ratio_kind_change_snaps_and_one_undo_restores() {
     pick(&mut s, Tool::Cylinder);
     assert_eq!(rect_of(&s), (20, 5, 8, 4));
 }
+
+#[test]
+fn hover_picks_a_detour_cell_for_the_line_and_the_crossed_shape_elsewhere() {
+    let mut s = session();
+    for (id, x) in [("aaaaaaaa", 0), ("oooooooo", 10), ("bbbbbbbb", 20)] {
+        put(&mut s, id, ShapeKind::Rect, (x, 4, 3, 3));
+    }
+    s.canvas.elements.push(Element::Line(Line {
+        id: Id::from("arrow000"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        routing: Default::default(),
+        color: None,
+    }));
+    let Some(Element::Line(l)) = s.canvas.elements.last() else {
+        unreachable!()
+    };
+    let detour = s.canvas.route(l).into_iter().find(|p| p.0 == 11).unwrap();
+    assert_ne!(detour.1, 5);
+    let t = Instant::now();
+    mouse(
+        &mut s,
+        MouseEventKind::Moved,
+        detour.0 as u16,
+        detour.1 as u16,
+        t,
+    );
+    assert_eq!(s.hover, Hit::Element(Id::from("arrow000")));
+    mouse(&mut s, MouseEventKind::Moved, 11, 5, t);
+    assert_eq!(s.hover, Hit::Element(Id::from("oooooooo")));
+}

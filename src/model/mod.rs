@@ -6,6 +6,7 @@ mod geom;
 mod history;
 mod ids;
 mod layout;
+mod router;
 
 pub use canvas::{Canvas, Find};
 pub use command::{Align, Command, Side, Z};
@@ -18,5 +19,6 @@ pub use geom::{corners, edge_anchor, label_pos, route, side_mid, straight, wrap,
 pub use history::{History, HISTORY_LIMIT};
 pub use ids::Id;
 pub use layout::Dir;
+pub use router::{Router, MARGIN};
 
 pub const VERSION: u32 = 1;
