@@ -905,6 +905,30 @@ fn palette_tooltip_names_the_tool_and_key_after_a_rest() {
     assert!(!row(&app).contains("Rect  r"));
 }
 
+#[test]
+fn palette_tooltip_names_an_order_cell_and_its_key_after_a_rest() {
+    use clidraw::ui::palette::{hit, Choice, PaletteHit};
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    app.session.exec(shape_at("aaaaaaaa", 20, 8));
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    let (c, r) = (0..80u16)
+        .flat_map(|c| (0..24u16).map(move |r| (c, r)))
+        .find(|&(c, r)| {
+            hit(&app.session, c.into(), r.into())
+                == Some(PaletteHit::Option(Choice::Order(clidraw::model::Z::Front)))
+        })
+        .unwrap();
+    let area = Rect::new(0, 0, 80, 24);
+    let t0 = Instant::now();
+    app.on_events(vec![mouse(MouseEventKind::Moved, c, r)], t0);
+    app.tick(t0 + Duration::from_millis(400));
+    let mut buf = Buffer::empty(area);
+    app.render(&mut buf, area);
+    let row: String = (0..80u16).map(|x| buf[(x, r + 1)].symbol()).collect();
+    assert!(row.contains(" front  } "), "{row}");
+}
+
 fn shape_at(id: &str, x: i32, y: i32) -> Command {
     Command::Insert(
         0,

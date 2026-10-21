@@ -3,10 +3,10 @@ use clidraw::input::{
     Session, Tool,
 };
 use clidraw::model::{
-    Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Routing, Shape, ShapeKind,
-    Stroke, TextAlign,
+    Align, Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Routing, Shape,
+    ShapeKind, Stroke, TextAlign, Z,
 };
-use clidraw::ui::palette::{self, PaletteHit};
+use clidraw::ui::palette::{self, Choice, PaletteHit};
 use clidraw::view::View;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, Instant};
@@ -66,14 +66,29 @@ fn pick(s: &mut Session, tool: Tool) {
     click(s, tool_cell(s, tool), Instant::now());
 }
 
-/// Clicks the `i`-th option cell of the selection.
-fn option(s: &mut Session, i: usize) {
-    let cells = palette::cells(&palette::choices(&palette::selected(s)));
-    let (_, x, y, _) = cells
+fn option_cells(s: &Session) -> Vec<(PaletteHit, i32, i32, i32)> {
+    let cells = palette::cells(
+        &palette::choices(&palette::selected(s), &s.canvas.groups),
+        i32::from(s.screen.0),
+    );
+    cells
         .into_iter()
         .filter(|c| matches!(c.0, PaletteHit::Option(_)))
-        .nth(i)
+        .collect()
+}
+
+/// Clicks the option cell showing `c`.
+fn click_choice(s: &mut Session, c: Choice) {
+    let (_, x, y, _) = option_cells(s)
+        .into_iter()
+        .find(|c2| c2.0 == PaletteHit::Option(c))
         .unwrap();
+    click(s, (x as u16, y as u16), Instant::now());
+}
+
+/// Clicks the `i`-th option cell of the selection.
+fn option(s: &mut Session, i: usize) {
+    let (_, x, y, _) = option_cells(s).into_iter().nth(i).unwrap();
     click(s, (x as u16, y as u16), Instant::now());
 }
 
@@ -629,8 +644,10 @@ fn palette_option_sets_the_head_of_a_selected_line() {
         _ => panic!("no line"),
     };
     // Options on row 1: none, end, start, both.
-    option(&mut s, 0);
-    assert_eq!(kind(&s), LineKind::Arrow, "no options without a selection");
+    assert!(
+        option_cells(&s).is_empty(),
+        "no options without a selection"
+    );
     s.selection = vec![Id::from("llllllll")];
     option(&mut s, 2);
     assert_eq!(kind(&s), LineKind::ArrowStart);
@@ -1958,4 +1975,73 @@ fn set_link_sets_clears_undoes_and_rejects_unsafe_urls() {
     assert_eq!(get(&s), None);
     s.undo();
     assert_eq!(get(&s).as_deref(), Some("https://example.com"));
+}
+
+fn two_selected() -> Session {
+    let mut s = two_shapes_and_arrow_tool();
+    s.tool = Tool::Select;
+    s.selection = vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")];
+    s
+}
+
+fn order(s: &Session) -> Vec<String> {
+    s.canvas
+        .elements
+        .iter()
+        .map(|e| e.id().to_string())
+        .collect()
+}
+
+#[test]
+fn bar_raise_cell_reorders_and_undo_restores() {
+    let mut s = two_selected();
+    s.selection = vec![Id::from("aaaaaaaa")];
+    click_choice(&mut s, Choice::Order(Z::Forward));
+    assert_eq!(order(&s), ["bbbbbbbb", "aaaaaaaa"]);
+    s.undo();
+    assert_eq!(order(&s), ["aaaaaaaa", "bbbbbbbb"]);
+}
+
+#[test]
+fn bar_group_cell_groups_then_ungroup_cell_appears_and_clears_it() {
+    let mut s = two_selected();
+    assert!(!option_cells(&s)
+        .iter()
+        .any(|c| c.0 == PaletteHit::Option(Choice::Ungroup)));
+    click_choice(&mut s, Choice::Group);
+    assert_eq!(s.canvas.groups.len(), 1);
+    click_choice(&mut s, Choice::Ungroup);
+    assert!(s.canvas.groups.is_empty());
+}
+
+#[test]
+fn bar_align_left_cell_aligns_left_edges() {
+    let mut s = two_selected();
+    click_choice(&mut s, Choice::Place(Align::Left));
+    let xs: Vec<i32> = shapes(&s).iter().map(|sh| sh.x).collect();
+    assert_eq!(xs, [15, 15]);
+}
+
+#[test]
+fn bar_hides_place_and_group_with_one_selected_and_all_with_none() {
+    let mut s = two_selected();
+    s.selection = vec![Id::from("aaaaaaaa")];
+    let has = |s: &Session, c| option_cells(s).iter().any(|k| k.0 == PaletteHit::Option(c));
+    assert!(has(&s, Choice::Order(Z::Front)));
+    assert!(!has(&s, Choice::Group));
+    assert!(!has(&s, Choice::Place(Align::Left)));
+    s.selection.clear();
+    assert!(option_cells(&s).is_empty());
+}
+
+#[test]
+fn bar_options_wrap_inside_a_narrow_screen_and_hit_at_their_row() {
+    let mut s = Session::new(Canvas::default(), View::default(), (40, 24));
+    s.canvas = two_selected().canvas;
+    s.selection = vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")];
+    let cells = option_cells(&s);
+    assert!(cells.iter().all(|&(_, x, _, w)| x + w <= 40));
+    let &(h, x, y, _) = cells.last().unwrap();
+    assert!(y > 1);
+    assert_eq!(palette::hit(&s, x, y), Some(h));
 }

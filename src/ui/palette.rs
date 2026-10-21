@@ -1,6 +1,6 @@
 use super::grid::{Grid, REVERSE, UNDERLINE};
 use crate::input::{Session, Tool};
-use crate::model::{Border, Element, Id, LineKind, Paint, Routing, Stroke, TextAlign};
+use crate::model::{Align, Border, Element, Id, LineKind, Paint, Routing, Stroke, TextAlign, Z};
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -19,6 +19,10 @@ pub enum Choice {
     Align(TextAlign),
     Ink,
     Fill,
+    Order(Z),
+    Place(Align),
+    Group,
+    Ungroup,
 }
 
 impl Choice {
@@ -42,6 +46,30 @@ impl Choice {
             Choice::Head(LineKind::Arrow) => "-> end",
             Choice::Head(LineKind::ArrowStart) => "<- start",
             Choice::Head(LineKind::ArrowBoth) => "<-> both",
+            Choice::Order(Z::Back) => "{ back",
+            Choice::Order(Z::Backward) => "[ lower",
+            Choice::Order(Z::Forward) => "] raise",
+            Choice::Order(Z::Front) => "} front",
+            Choice::Place(Align::Left) => "< align-l",
+            Choice::Place(Align::Center) => "| align-c",
+            Choice::Place(Align::Right) => "> align-r",
+            Choice::Place(Align::Top) => "^ align-t",
+            Choice::Place(Align::Middle) => "- align-m",
+            Choice::Place(Align::Bottom) => "_ align-b",
+            Choice::Place(Align::DistributeH) => "= spread-h",
+            Choice::Place(Align::DistributeV) => "# spread-v",
+            Choice::Group => "g group",
+            Choice::Ungroup => "G ungroup",
+        }
+    }
+
+    /// Word and key of a one-shot action; the other choices have no key.
+    fn hint(self) -> Option<(&'static str, &'static str)> {
+        match self {
+            Choice::Order(_) | Choice::Place(_) | Choice::Group | Choice::Ungroup => {
+                self.label().split_once(' ').map(|(key, word)| (word, key))
+            }
+            _ => None,
         }
     }
 }
@@ -55,8 +83,11 @@ pub fn selected(s: &Session) -> Vec<&Element> {
         .collect()
 }
 
-/// Choices that apply to the selection; empty when the selection has none.
-pub fn choices(els: &[&Element]) -> Vec<Choice> {
+/// Choices that apply to the selection; empty when nothing is selected.
+pub fn choices(els: &[&Element], groups: &[Vec<Id>]) -> Vec<Choice> {
+    if els.is_empty() {
+        return vec![];
+    }
     let has = |f: fn(&Element) -> bool| els.iter().any(|e| f(e));
     let mut out = vec![];
     if has(|e| matches!(e, Element::Line(_))) {
@@ -93,6 +124,30 @@ pub fn choices(els: &[&Element]) -> Vec<Choice> {
     out.push(Choice::Ink);
     if has(|e| matches!(e, Element::Shape(_))) {
         out.push(Choice::Fill);
+    }
+    out.extend([Z::Back, Z::Backward, Z::Forward, Z::Front].map(Choice::Order));
+    if els.len() > 1 {
+        out.extend(
+            [
+                Align::Left,
+                Align::Center,
+                Align::Right,
+                Align::Top,
+                Align::Middle,
+                Align::Bottom,
+                Align::DistributeH,
+                Align::DistributeV,
+            ]
+            .map(Choice::Place),
+        );
+        out.push(Choice::Group);
+    }
+    if groups
+        .iter()
+        .flatten()
+        .any(|m| els.iter().any(|e| e.id() == m))
+    {
+        out.push(Choice::Ungroup);
     }
     out
 }
@@ -138,43 +193,45 @@ fn active(els: &[&Element], c: Choice) -> bool {
             })
             .all(|k| k == r),
         Choice::Ink | Choice::Fill => els.filter_map(|e| paint(e, c)).any(|p| p.is_some()),
+        Choice::Order(_) | Choice::Place(_) | Choice::Group | Choice::Ungroup => false,
     }
 }
 
-/// Every clickable cell run as (hit, x, y, width). Tools fill row 0, options row 1.
-pub fn cells(opts: &[Choice]) -> Vec<(PaletteHit, i32, i32, i32)> {
-    let run = |labels: Vec<(PaletteHit, usize)>, y: i32| {
-        let mut x = 0;
-        labels
-            .into_iter()
-            .map(|(h, len)| {
-                let w = len as i32 + 2;
-                x += w;
-                (h, x - w, y, w)
-            })
-            .collect::<Vec<_>>()
-    };
-    let tools = Tool::ALL
-        .iter()
-        .map(|t| (PaletteHit::Tool(*t), t.label().len()));
-    let opts = opts
-        .iter()
-        .map(|c| (PaletteHit::Option(*c), c.label().len()));
-    let mut out = run(tools.collect(), 0);
-    out.extend(run(opts.collect(), 1));
+/// Every clickable cell run as (hit, x, y, width). Tools fill row 0; options start on row 1 and wrap at `width`.
+pub fn cells(opts: &[Choice], width: i32) -> Vec<(PaletteHit, i32, i32, i32)> {
+    let mut out = vec![];
+    let mut x = 0;
+    for t in Tool::ALL {
+        let w = t.label().len() as i32 + 2;
+        out.push((PaletteHit::Tool(t), x, 0, w));
+        x += w;
+    }
+    let (mut x, mut y) = (0, 1);
+    for c in opts {
+        let w = c.label().len() as i32 + 2;
+        if x > 0 && x + w > width {
+            (x, y) = (0, y + 1);
+        }
+        out.push((PaletteHit::Option(*c), x, y, w));
+        x += w;
+    }
     out
 }
 
 pub fn hit(s: &Session, col: i32, row: i32) -> Option<PaletteHit> {
-    cells(&choices(&selected(s)))
-        .into_iter()
-        .find(|&(_, x, y, w)| row == y && col >= x && col < x + w)
-        .map(|c| c.0)
+    cells(
+        &choices(&selected(s), &s.canvas.groups),
+        i32::from(s.screen.0),
+    )
+    .into_iter()
+    .find(|&(_, x, y, w)| row == y && col >= x && col < x + w)
+    .map(|c| c.0)
 }
 
 pub fn draw(grid: &mut Grid, s: &Session) {
     let els = selected(s);
-    for (h, x, y, w) in cells(&choices(&els)) {
+    let cells = cells(&choices(&els, &s.canvas.groups), grid.w);
+    for &(h, x, y, w) in &cells {
         let (text, flags) = match h {
             PaletteHit::Tool(t) => (t.label().to_string(), if t == s.tool { REVERSE } else { 0 }),
             PaletteHit::Option(c) => (
@@ -191,19 +248,25 @@ pub fn draw(grid: &mut Grid, s: &Session) {
         let pad = " ".repeat((w as usize).saturating_sub(text.len() + 1));
         grid.text(x, y, &format!(" {text}{pad}"), flags);
     }
-    if let (true, Some(PaletteHit::Tool(t))) = (s.tip, s.palette_hover) {
-        tooltip(grid, t, &cells(&[]));
+    if let (true, Some(h)) = (s.tip, s.palette_hover) {
+        tooltip(grid, h, &cells);
     }
 }
 
-/// Draws the tool's name and key beside its cell, on the side facing the canvas.
-fn tooltip(grid: &mut Grid, t: Tool, cells: &[(PaletteHit, i32, i32, i32)]) {
-    let Some(&(_, x, y, _)) = cells.iter().find(|c| c.0 == PaletteHit::Tool(t)) else {
+/// Draws the cell's name and key below it, when it has a key.
+fn tooltip(grid: &mut Grid, h: PaletteHit, cells: &[(PaletteHit, i32, i32, i32)]) {
+    let Some(&(_, x, y, _)) = cells.iter().find(|c| c.0 == h) else {
         return;
     };
-    let text = match t.key() {
-        Some(k) => format!(" {}  {} ", t.label(), k),
-        None => format!(" {} ", t.label()),
+    let text = match h {
+        PaletteHit::Tool(t) => match t.key() {
+            Some(k) => format!(" {}  {} ", t.label(), k),
+            None => format!(" {} ", t.label()),
+        },
+        PaletteHit::Option(c) => match c.hint() {
+            Some((word, key)) => format!(" {word}  {key} "),
+            None => return,
+        },
     };
     grid.text(x, y + 1, &text, REVERSE);
 }
