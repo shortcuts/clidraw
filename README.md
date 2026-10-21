@@ -10,6 +10,7 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
 - `cargo run -- export <name> --svg|--mermaid <path>` writes a saved canvas to a file without opening the UI, for scripts and CI. A canvas named `export` opens from the menu, not by argument.
 - `cargo run -- probe` prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.
 - `cargo run --release -- bench` replays a scripted drag and pan on a generated 5000-element canvas in your terminal and prints the frame times.
+- `cargo test --test e2e` runs the real binary in a pty and asserts on the parsed screen. Use it to prove a Live box without a human.
 
 The terminal needs true color, SGR mouse reporting and the alternate screen.
 
