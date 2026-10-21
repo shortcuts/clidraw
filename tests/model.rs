@@ -1,6 +1,6 @@
 use clidraw::model::{
-    corners, label_pos, route, straight, wrap, Anchor, Axis, Canvas, Command, Element, End,
-    History, Id, Line, LineKind, Routing, Shape, ShapeKind, Side, Stroke, Z,
+    corners, label_pos, route, side_mid, straight, wrap, Anchor, Axis, Canvas, Command, Element,
+    End, History, Id, Line, LineKind, Routing, Shape, ShapeKind, Side, Stroke, Z,
 };
 
 fn shape(id: &str, x: i32) -> Element {
@@ -89,7 +89,7 @@ fn removing_a_shape_frees_bound_ends_at_their_last_position_and_undo_rebinds() {
         panic!("no line")
     };
     assert_eq!(l.from, bound("aaaaaaaa"));
-    assert_eq!(l.to, End::Free(20, 1));
+    assert_eq!(l.to, End::Free(19, 1));
     h.undo(&mut c).unwrap();
     let Element::Line(l) = c.elements.last().unwrap() else {
         panic!("no line")
@@ -143,7 +143,7 @@ fn moving_a_shape_moves_the_bound_line_end_but_free_ends_stay() {
     let Element::Line(l) = c.get(&line).unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(c.line_ends(&l).1, (20, 11));
+    assert_eq!(c.line_ends(&l).1, (19, 11));
     h.exec(
         &mut c,
         Command::SetEnd {
@@ -616,7 +616,7 @@ fn clone_elements_frees_a_selected_line_end_whose_shape_stays() {
     let copy = c.clone_elements(&[Id::from("aaaaaaaa"), Id::from("line0000")], 0, 0);
     let Element::Line(l) = &copy[1] else { panic!() };
     assert!(matches!(l.from, End::Bound(..)));
-    assert_eq!(l.to, End::Free(20, 1));
+    assert_eq!(l.to, End::Free(19, 1));
 }
 
 #[test]
@@ -696,9 +696,24 @@ fn line_of(c: &Canvas) -> Line {
 #[test]
 fn a_pinned_end_leaves_its_side_and_auto_faces_the_other_end() {
     let (c, _) = pinned(Anchor::Top);
-    assert_eq!(c.line_ends(&line_of(&c)).0, (3, 0));
+    assert_eq!(c.line_ends(&line_of(&c)).0, (3, -1));
     let (c, _) = pinned(Anchor::Auto);
-    assert_eq!(c.line_ends(&line_of(&c)).0, (5, 1));
+    assert_eq!(c.line_ends(&line_of(&c)).0, (6, 1));
+}
+
+#[test]
+fn side_mid_lands_one_cell_outside_the_border() {
+    let Element::Shape(mut s) = shape("aaaaaaaa", 2) else {
+        panic!()
+    };
+    (s.y, s.w) = (1, 7);
+    let at = |a, t| side_mid(&s, a, t).0;
+    assert_eq!(at(Anchor::Top, (0, 0)), (5, 0));
+    assert_eq!(at(Anchor::Bottom, (0, 0)), (5, 4));
+    assert_eq!(at(Anchor::Left, (0, 0)), (1, 2));
+    assert_eq!(at(Anchor::Right, (0, 0)), (9, 2));
+    assert_eq!(at(Anchor::Auto, (50, 2)), (9, 2));
+    assert_eq!(at(Anchor::Auto, (5, 40)), (5, 4));
 }
 
 #[test]

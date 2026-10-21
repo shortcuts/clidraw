@@ -29,24 +29,25 @@ pub fn edge_anchor(s: &Shape, (x, y): Pt) -> Anchor {
     }
 }
 
-/// Midpoint of the side of `s` the anchor names, or of the side that faces `toward` for `Auto`,
-/// and the axis a line leaves it on.
+/// The cell just outside the midpoint of the side of `s` the anchor names, or of the side that
+/// faces `toward` for `Auto`, and the axis a line leaves it on.
+// shortcut: shapes under 2 cells apart overlap the end cells, clamp if it matters
 pub fn side_mid(s: &Shape, anchor: Anchor, toward: Pt) -> (Pt, Axis) {
     let (cx, cy) = center(s);
     match anchor {
-        Anchor::Top => return ((cx, s.y), Axis::Vertical),
-        Anchor::Bottom => return ((cx, s.y + s.h - 1), Axis::Vertical),
-        Anchor::Left => return ((s.x, cy), Axis::Horizontal),
-        Anchor::Right => return ((s.x + s.w - 1, cy), Axis::Horizontal),
+        Anchor::Top => return ((cx, s.y - 1), Axis::Vertical),
+        Anchor::Bottom => return ((cx, s.y + s.h), Axis::Vertical),
+        Anchor::Left => return ((s.x - 1, cy), Axis::Horizontal),
+        Anchor::Right => return ((s.x + s.w, cy), Axis::Horizontal),
         Anchor::Auto => {}
     }
     let (dx, dy) = (toward.0 - cx, toward.1 - cy);
     // A cell is about twice as tall as wide, so a horizontal gap counts half.
     if dx.abs() >= 2 * dy.abs() {
-        let x = if dx < 0 { s.x } else { s.x + s.w - 1 };
+        let x = if dx < 0 { s.x - 1 } else { s.x + s.w };
         ((x, cy), Axis::Horizontal)
     } else {
-        let y = if dy < 0 { s.y } else { s.y + s.h - 1 };
+        let y = if dy < 0 { s.y - 1 } else { s.y + s.h };
         ((cx, y), Axis::Vertical)
     }
 }

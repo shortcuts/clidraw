@@ -274,20 +274,20 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
     assert_eq!(l.from, End::Bound(Id::from("aaaaaaaa"), Anchor::Auto));
     assert_eq!(l.to, End::Bound(Id::from("bbbbbbbb"), Anchor::Auto));
     assert_eq!(s.tool, Tool::Select);
-    assert_eq!(s.canvas.line_ends(&l), ((22, 5), (40, 5)));
+    assert_eq!(s.canvas.line_ends(&l), ((23, 5), (39, 5)));
 
     drag(&mut s, (42, 4), (42, 9));
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(s.canvas.line_ends(&l).1, (40, 10));
+    assert_eq!(s.canvas.line_ends(&l).1, (39, 10));
 
     click(&mut s, (46, 9), Instant::now());
     key(&mut s, KeyCode::Delete);
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(l.to, End::Free(40, 10));
+    assert_eq!(l.to, End::Free(39, 10));
     ctrl(&mut s, 'z');
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
@@ -825,9 +825,9 @@ fn shape_under_a_dragged_line_end_is_the_snap_target_until_release() {
     mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 18, 5, t);
     mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 43, 10, t);
     assert_eq!(s.snap, Some(Id::from("bbbbbbbb")));
-    assert_eq!(s.snap_at, Some((40, 11)));
+    assert_eq!(s.snap_at, Some((39, 11)));
     mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 43, 9, t);
-    assert_eq!(s.snap_at, Some((44, 9)));
+    assert_eq!(s.snap_at, Some((44, 8)));
     mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 30, 20, t);
     assert_eq!(s.snap, None);
     assert_eq!(s.snap_at, None);

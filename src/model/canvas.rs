@@ -126,7 +126,7 @@ impl Canvas {
         }
     }
 
-    /// Cells where the line starts and ends. Bound ends sit on the shape edge.
+    /// Cells where the line starts and ends. Bound ends sit one cell outside the shape edge.
     pub fn line_ends(&self, l: &Line) -> ((i32, i32), (i32, i32)) {
         self.line_ends_with(l, &|id| self.shape(id))
     }

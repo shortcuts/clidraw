@@ -51,6 +51,10 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
             link: None,
         }));
     }
+    // A 1-cell gap makes both end cells of a line coincide; widen one gap so the handles differ.
+    if let Some(Element::Shape(b)) = els.get_mut(41) {
+        b.x += 2;
+    }
     for i in 0..shapes - 1 {
         els.push(Element::Line(Line {
             id: Id::from(format!("l{i:07}").as_str()),

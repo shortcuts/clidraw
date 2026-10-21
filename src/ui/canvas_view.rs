@@ -3,7 +3,7 @@ use super::layout::refresh;
 use super::theme;
 use crate::input::{handles, EditTarget, Hit, Session};
 use crate::model::{
-    label_pos, wrap, Border, Element, End, Find, Id, Line, LineKind, Shape, ShapeKind, Stroke,
+    label_pos, wrap, Border, Element, Find, Id, Line, LineKind, Shape, ShapeKind, Stroke,
 };
 use ratatui::style::Color;
 use std::cmp::Ordering;
@@ -354,11 +354,6 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
     let cells = s.canvas.route_with(l, find);
     let dirs = |p: (i32, i32), q: (i32, i32)| (q.0 < p.0, q.0 > p.0, q.1 < p.1, q.1 > p.1);
     for (i, &c) in cells.iter().enumerate() {
-        let skip = (i == 0 && matches!(l.from, End::Bound(..)))
-            || (i == cells.len() - 1 && matches!(l.to, End::Bound(..)));
-        if skip {
-            continue;
-        }
         let (mut left, mut right, mut up, mut down) = (false, false, false, false);
         let mut diagonal = None;
         for n in [
@@ -388,8 +383,8 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
         grid.set(sx, sy, dashed(l.stroke, glyph), flags);
     }
     let last = cells.len().saturating_sub(1);
-    let end = (last, last.saturating_sub(1), matches!(l.to, End::Bound(..)));
-    let start = (0, 1, matches!(l.from, End::Bound(..)));
+    let end = (last, last.saturating_sub(1));
+    let start = (0, 1);
     let heads = match l.kind {
         LineKind::Arrow => vec![end],
         LineKind::ArrowStart => vec![start],
@@ -397,8 +392,7 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
         LineKind::ArrowBoth => vec![start, end],
         LineKind::Line => vec![],
     };
-    for (tip, prev, bound) in heads.into_iter().filter(|_| cells.len() >= 2) {
-        let head_at = if bound && last >= 2 { prev } else { tip };
+    for (tip, prev) in heads.into_iter().filter(|_| cells.len() >= 2) {
         let (p, c) = (cells[prev], cells[tip]);
         let glyph = match (c.0 - p.0, c.1 - p.1) {
             (1.., _) => '▶',
@@ -406,7 +400,7 @@ fn line<'a>(grid: &mut Grid, s: &'a Session, find: &Find<'a>, l: &Line, label: &
             (_, 1..) => '▼',
             _ => '▲',
         };
-        let (sx, sy) = s.view.to_screen(cells[head_at].0, cells[head_at].1);
+        let (sx, sy) = s.view.to_screen(cells[tip].0, cells[tip].1);
         grid.set(sx, sy, glyph, flags);
     }
     if !label.is_empty() {
