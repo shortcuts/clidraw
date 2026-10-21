@@ -238,4 +238,23 @@ pub fn draw(grid: &mut Grid, s: &Session) {
         let pad = " ".repeat((w as usize).saturating_sub(text.len() + 1));
         grid.text(x, y, &format!(" {text}{pad}"), flags);
     }
+    if let (true, Some(PaletteHit::Tool(t))) = (s.tip, s.palette_hover) {
+        tooltip(grid, s, t, &cells(s.dock, s.screen, &[]));
+    }
+}
+
+/// Draws the tool's name and key beside its cell, on the side facing the canvas.
+fn tooltip(grid: &mut Grid, s: &Session, t: Tool, cells: &[(PaletteHit, i32, i32, i32)]) {
+    let Some(&(_, x, y, w)) = cells.iter().find(|c| c.0 == PaletteHit::Tool(t)) else {
+        return;
+    };
+    let text = format!(" {}  {} ", t.label(), t.key());
+    let len = text.len() as i32;
+    let (tx, ty) = match s.dock {
+        Dock::Left => (x + w, y),
+        Dock::Right => (x - len, y),
+        Dock::Top => (x, y + 1),
+        Dock::Bottom => (x, y - 1),
+    };
+    grid.text(tx, ty, &text, REVERSE);
 }

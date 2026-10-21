@@ -872,6 +872,39 @@ fn palette_hover_redraws_once_and_underlines_the_cell() {
     assert!(!app.dirty, "same cell stays clean");
 }
 
+#[test]
+fn palette_tooltip_names_the_tool_and_key_after_a_rest() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let (c, r) = (0..80u16)
+        .flat_map(|c| (0..24u16).map(move |r| (c, r)))
+        .find(|&(c, r)| {
+            clidraw::ui::palette::hit(&app.session, c.into(), r.into())
+                == Some(clidraw::ui::palette::PaletteHit::Tool(
+                    clidraw::input::Tool::Rect,
+                ))
+        })
+        .unwrap();
+    let area = Rect::new(0, 0, 80, 24);
+    let row = |app: &App| {
+        let mut buf = Buffer::empty(area);
+        app.render(&mut buf, area);
+        (0..80u16).map(|x| buf[(x, r)].symbol()).collect::<String>()
+    };
+    let t0 = Instant::now();
+    app.on_events(vec![mouse(MouseEventKind::Moved, c, r)], t0);
+    assert_eq!(app.next_wake(t0), Some(Duration::from_millis(400)));
+    app.dirty = false;
+    app.tick(t0 + Duration::from_millis(399));
+    assert!(!app.dirty);
+    assert!(!row(&app).contains("Rect  r"));
+    app.tick(t0 + Duration::from_millis(400));
+    assert!(app.dirty, "the tooltip appears");
+    assert!(row(&app).contains(" Rect  r "));
+    app.on_events(vec![mouse(MouseEventKind::Moved, 70, 20)], t0);
+    assert!(!row(&app).contains("Rect  r"));
+}
+
 fn shape_at(id: &str, x: i32, y: i32) -> Command {
     Command::Insert(
         0,

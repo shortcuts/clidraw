@@ -47,6 +47,7 @@ pub(super) enum Action {
 
 const EDGE_ZONE: i32 = 2;
 const EDGE_TICK: Duration = Duration::from_millis(30);
+const TIP_DELAY: Duration = Duration::from_millis(400);
 const GLIDE: Duration = Duration::from_millis(120);
 const GLIDE_FRAME: Duration = Duration::from_millis(16);
 const SCROLL_BURST: Duration = Duration::from_millis(100);
@@ -105,6 +106,26 @@ impl Session {
             self.glide = None;
             self.view = View { ox: to.0, oy: to.1 };
         }
+    }
+
+    /// Restarts the tooltip delay after the palette hover changed.
+    pub fn tip_reset(&mut self, now: Instant) {
+        self.tip = false;
+        self.tip_due = self.palette_hover.map(|_| now + TIP_DELAY);
+    }
+
+    pub fn tip_wait(&self, now: Instant) -> Option<Duration> {
+        self.tip_due.map(|d| d.saturating_duration_since(now))
+    }
+
+    /// Shows the tooltip once its delay passed. Returns true when it appeared.
+    pub fn tip_step(&mut self, now: Instant) -> bool {
+        if self.tip_wait(now) != Some(Duration::ZERO) {
+            return false;
+        }
+        self.tip_due = None;
+        self.tip = true;
+        true
     }
 
     /// Time until the next glide frame, or `None` when no glide runs.

@@ -122,6 +122,9 @@ pub struct Session {
     /// What a click at the pointer would hit; only the Select tool at rest sets it.
     pub hover: Hit,
     pub palette_hover: Option<PaletteHit>,
+    /// Whether the pointer rested on `palette_hover` long enough to show its tooltip.
+    pub tip: bool,
+    tip_due: Option<Instant>,
     /// Counts canvas mutations; autosave compares it with the saved value.
     pub rev: u64,
     /// Frame cache; `rev` and the element count invalidate it.
@@ -161,6 +164,8 @@ impl Session {
             snap_at: None,
             hover: Hit::Empty,
             palette_hover: None,
+            tip: false,
+            tip_due: None,
             rev: 0,
             layout: RefCell::new(None),
             gesture: Gesture::Idle,

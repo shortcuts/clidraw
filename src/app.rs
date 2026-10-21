@@ -80,6 +80,7 @@ impl App {
         }
         self.dirty |= self.session.edge_pan(now);
         self.dirty |= self.session.glide_step(now);
+        self.dirty |= self.session.tip_step(now);
         if self.saved_rev != self.session.rev
             && !self.session.dragging()
             && now.duration_since(self.last_edit) >= self.autosave
@@ -93,6 +94,9 @@ impl App {
             return wait;
         }
         if let wait @ Some(_) = self.session.glide_wait() {
+            return wait;
+        }
+        if let wait @ Some(_) = self.session.tip_wait(now) {
             return wait;
         }
         if self.saved_rev == self.session.rev || self.session.dragging() {
@@ -185,6 +189,9 @@ impl App {
                         handle_mouse(&mut self.session, m, now);
                         self.dirty |=
                             (self.session.hover.clone(), self.session.palette_hover) != before;
+                        if self.session.palette_hover != before.1 {
+                            self.session.tip_reset(now);
+                        }
                     }
                     _ if m.kind == MouseEventKind::Down(MouseButton::Left) => {
                         self.overlay_click(i32::from(m.column), i32::from(m.row))
