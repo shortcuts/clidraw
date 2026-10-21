@@ -61,6 +61,7 @@ pub enum ContextItem {
     Front,
     Back,
     Routing(Routing),
+    ResetRoute,
     Paste,
     SelectAll,
     FitAll,
@@ -80,6 +81,7 @@ impl Context {
         screen: (u16, u16),
         single: bool,
         line: Option<Routing>,
+        bent: bool,
     ) -> Context {
         let edit = single.then_some((ContextItem::EditLabel, "Edit label"));
         let items = edit.into_iter().chain([
@@ -92,7 +94,8 @@ impl Context {
             Routing::Elbow => (ContextItem::Routing(Routing::Straight), "Straight line"),
             Routing::Straight => (ContextItem::Routing(Routing::Elbow), "Elbow line"),
         });
-        let items = items.chain(other);
+        let reset = bent.then_some((ContextItem::ResetRoute, "Reset route"));
+        let items = items.chain(other).chain(reset);
         Context::new(at, screen, "Element", items.collect())
     }
 

@@ -27,6 +27,7 @@ pub(super) enum Target {
     Handle(Handle, Id),
     Element(Id),
     Label(Id),
+    Route(Id),
     Empty,
     Draw(Tool),
     Pan,
@@ -38,6 +39,7 @@ pub(super) enum Action {
     Resize { id: Id, fixed: P },
     EndDrag { id: Id, side: Side },
     LabelDrag(Id),
+    BendDrag { id: Id, at: usize },
     Band(P),
     Create { id: Id, origin: P },
     CreateLine(Id),
@@ -291,6 +293,9 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         (_, Tool::Hand) => Target::Pan,
         (_, Tool::Arrow) => Target::Draw(s.tool),
         (Hit::Element(id), _) => {
+            let reshape = !s.shift
+                && s.selection == [id.clone()]
+                && matches!(s.canvas.get(&id), Some(Element::Line(_)));
             let mut unit = vec![id.clone()];
             s.canvas.expand_frames(&mut unit);
             s.canvas.expand_groups(&mut unit);
@@ -304,7 +309,11 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
             } else if !s.selection.contains(&id) {
                 s.selection = unit;
             }
-            Target::Element(id)
+            if reshape {
+                Target::Route(id)
+            } else {
+                Target::Element(id)
+            }
         }
         (
             Hit::Empty,
@@ -468,7 +477,11 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
             Hit::Element(id) => s.select_group_of(id),
             _ => s.selection.clear(),
         },
-        Target::Element(_) | Target::Label(_) | Target::Pan | Target::Handle(..) => {}
+        Target::Element(_)
+        | Target::Label(_)
+        | Target::Route(_)
+        | Target::Pan
+        | Target::Handle(..) => {}
     }
 }
 

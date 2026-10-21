@@ -104,3 +104,25 @@ fn fit_all_glides_then_goes_idle() {
     assert_ne!(t.canvas(), panned);
     assert_eq!(t.bytes_in(std::time::Duration::from_millis(500)), 0);
 }
+
+#[test]
+fn drag_a_line_to_bend_it_and_reset_the_route() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut t = Term::spawn(tmp.path(), &["scratch"]);
+    t.draw_rect();
+    t.key("r");
+    t.drag((50, 18), (62, 23));
+    t.key("a");
+    t.drag((22, 10), (55, 20));
+    let handles = |t: &Term| t.screen().matches('■').count();
+    assert_eq!(handles(&t), 2, "{}", t.screen());
+    let (col, row) = t.find("╮");
+    t.drag((col, row + 2), (col + 8, row + 2));
+    assert_eq!(handles(&t), 3, "{}", t.screen());
+    t.right_click(col + 8, row + 2);
+    t.wait_for("Reset route");
+    let (c, r) = t.find("Reset route");
+    t.click(c, r);
+    t.quiet();
+    assert_eq!(handles(&t), 2, "{}", t.screen());
+}

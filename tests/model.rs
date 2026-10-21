@@ -33,6 +33,7 @@ fn arrow(from: End, to: End) -> Element {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     })
 }
@@ -287,6 +288,7 @@ fn set_routing_changes_the_route_and_undoes_as_restyle() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     });
     h.exec(&mut c, Command::Insert(0, line)).unwrap();
@@ -324,6 +326,7 @@ fn within_keeps_only_elements_fully_inside_the_area() {
                 label_at: None,
                 stroke: Default::default(),
                 routing: Default::default(),
+                bends: vec![],
                 color: None,
             }),
         ],
@@ -1031,4 +1034,62 @@ fn the_route_follows_a_moved_obstacle_live() {
     assert_eq!(c.route(&l), plain);
     c.apply(mv(-20)).unwrap();
     assert_eq!(c.route(&l), detour);
+}
+
+#[test]
+fn a_bent_line_keeps_the_users_path_through_an_obstacle() {
+    let wall = rect("wwwwwwww", ShapeKind::Rect, O);
+    let (mut c, line) = ab(vec![wall]);
+    let plain = c.route(&line);
+    let bend = (11, 5);
+    assert!(!plain.contains(&bend), "router detours around the wall");
+    let Some(Element::Line(l)) = c.elements.last_mut() else {
+        unreachable!()
+    };
+    l.bends = vec![bend];
+    let l = l.clone();
+    let cells = c.route(&l);
+    assert!(cells.contains(&bend));
+    assert_eq!(cells[0], (3, 5));
+    assert_eq!(*cells.last().unwrap(), (19, 5));
+}
+
+#[test]
+fn bends_stay_put_when_a_bound_shape_moves() {
+    let (mut c, mut line) = ab(vec![]);
+    line.bends = vec![(11, 9)];
+    *c.elements.last_mut().unwrap() = Element::Line(line.clone());
+    c.apply(Command::Move {
+        id: Id::from("bbbbbbbb"),
+        dx: 0,
+        dy: 6,
+    })
+    .unwrap();
+    let cells = c.route(&line);
+    assert!(cells.contains(&(11, 9)));
+    assert_eq!(cells[0].0, 3);
+}
+
+#[test]
+fn set_bends_returns_the_old_list_and_cloned_lines_shift_their_bends() {
+    let mut c = Canvas::default();
+    let mut line = elbow("arrow000", End::Free(0, 0), End::Free(10, 0));
+    line.bends = vec![(5, 4)];
+    c.elements.push(Element::Line(line));
+    let undo = c
+        .apply(Command::SetBends {
+            id: Id::from("arrow000"),
+            bends: vec![],
+        })
+        .unwrap();
+    c.apply(undo).unwrap();
+    let Some(Element::Line(l)) = c.get(&Id::from("arrow000")) else {
+        unreachable!()
+    };
+    assert_eq!(l.bends, vec![(5, 4)]);
+    let copy = c.clone_elements(&[Id::from("arrow000")], 2, 3);
+    let Element::Line(copy) = &copy[0] else {
+        unreachable!()
+    };
+    assert_eq!(copy.bends, vec![(7, 7)]);
 }

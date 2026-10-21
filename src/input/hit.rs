@@ -13,6 +13,7 @@ pub enum Corner {
 pub enum Handle {
     Corner(Corner),
     End(Side),
+    Bend(usize),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -50,10 +51,15 @@ pub fn handles(canvas: &Canvas, selection: &[Id]) -> Vec<(Handle, Id, (i32, i32)
         }
         Some(Element::Line(l)) => {
             let (a, b) = canvas.line_ends(l);
-            vec![
+            let bends = l.bends.iter().enumerate();
+            let bends = bends.map(|(i, &p)| (Handle::Bend(i), id.clone(), p));
+            [
                 (Handle::End(Side::From), id.clone(), a),
                 (Handle::End(Side::To), id.clone(), b),
             ]
+            .into_iter()
+            .chain(bends)
+            .collect()
         }
         _ => vec![],
     }

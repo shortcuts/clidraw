@@ -40,6 +40,7 @@ fn sample() -> Canvas {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     }));
     c
@@ -246,4 +247,18 @@ fn library_lives_in_a_subdirectory_that_list_ignores() {
     assert!(t.path().join("c/library/pair.clidraw.json").exists());
     assert_eq!(s.list().unwrap(), vec!["library".to_string()]);
     assert_eq!(s.library().load("pair").unwrap().elements.len(), 3);
+}
+
+#[test]
+fn bends_round_trip_and_an_empty_list_writes_no_key() {
+    let (_t, s) = store();
+    let mut c = sample();
+    let Some(Element::Line(l)) = c.elements.last_mut() else {
+        unreachable!()
+    };
+    l.bends = vec![(1, 2), (3, 4)];
+    s.save("a", &c).unwrap();
+    assert_eq!(s.load("a").unwrap(), c);
+    assert!(!serde_json::to_string(&sample()).unwrap().contains("bends"));
+    assert!(serde_json::to_string(&c).unwrap().contains("bends"));
 }

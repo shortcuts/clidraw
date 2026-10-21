@@ -217,7 +217,11 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                 };
                 let pts = match l.routing {
                     Routing::Elbow => corners(&cells),
-                    Routing::Straight => vec![cells[0], cells[cells.len() - 1]],
+                    Routing::Straight => [cells[0]]
+                        .into_iter()
+                        .chain(l.bends.iter().copied())
+                        .chain([cells[cells.len() - 1]])
+                        .collect(),
                 };
                 let d = pts
                     .into_iter()

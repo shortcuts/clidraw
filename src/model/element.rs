@@ -232,6 +232,9 @@ pub struct Line {
     pub stroke: Stroke,
     #[serde(default, skip_serializing_if = "Routing::is_elbow")]
     pub routing: Routing,
+    /// Cells the user bent the route through, from `from` to `to`. Empty means the automatic route.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub bends: Vec<(i32, i32)>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<Paint>,
 }

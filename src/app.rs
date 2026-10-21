@@ -345,6 +345,7 @@ impl App {
                 screen,
                 self.session.selection.len() == 1,
                 self.session.line_routing(),
+                self.session.line_has_bends(),
             )),
             Some(false) => {
                 let can_paste = !self.session.clipboard.elements.is_empty();
@@ -367,6 +368,7 @@ impl App {
             ContextItem::Front => s.reorder(Z::Front),
             ContextItem::Back => s.reorder(Z::Back),
             ContextItem::Routing(r) => s.set_routing(r),
+            ContextItem::ResetRoute => s.reset_route(),
             ContextItem::Paste => s.paste(),
             ContextItem::SelectAll => s.select_all(),
             ContextItem::FitAll => self.fit_all(),

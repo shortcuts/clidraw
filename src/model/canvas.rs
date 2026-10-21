@@ -99,6 +99,10 @@ impl Canvas {
             End::Bound(id, _) => find(id).map_or((0, 0), center),
         };
         let (from, to) = (raw(&l.from), raw(&l.to));
+        let (face_from, face_to) = (
+            l.bends.first().copied().unwrap_or(to),
+            l.bends.last().copied().unwrap_or(from),
+        );
         let shape_of = |end: &End| match end {
             End::Bound(id, a) => find(id).map(|s| (s, *a)),
             End::Free(..) => None,
@@ -110,7 +114,7 @@ impl Canvas {
             }
             None => (own, None),
         };
-        [anchor(&l.from, from, to), anchor(&l.to, to, from)]
+        [anchor(&l.from, from, face_from), anchor(&l.to, to, face_to)]
     }
 
     /// Cells of the line from start to end: two bends unless an elbow must go around an obstacle,
@@ -122,6 +126,7 @@ impl Canvas {
     pub fn route_with<'a>(&'a self, l: &Line, find: &Find<'a>, router: &Router) -> Vec<(i32, i32)> {
         let plain = self.plain_with(l, find);
         match l.routing {
+            _ if !l.bends.is_empty() => plain,
             Routing::Elbow => router.around(self, find, l, self.anchors(l, find), plain),
             Routing::Straight => plain,
         }
@@ -130,10 +135,36 @@ impl Canvas {
     /// The route ignoring obstacles.
     pub(crate) fn plain_with<'a>(&'a self, l: &Line, find: &Find<'a>) -> Vec<(i32, i32)> {
         let [(a, ax_a), (b, ax_b)] = self.anchors(l, find);
-        match l.routing {
-            Routing::Elbow => route(a, ax_a, b, ax_b),
-            Routing::Straight => straight(a, b),
+        let mut stops = vec![(a, ax_a)];
+        stops.extend(l.bends.iter().map(|&p| (p, None)));
+        stops.push((b, ax_b));
+        let mut cells: Vec<(i32, i32)> = vec![];
+        for w in stops.windows(2) {
+            let ((p, ax_p), (q, ax_q)) = (w[0], w[1]);
+            let leg = match l.routing {
+                Routing::Elbow => route(p, ax_p, q, ax_q),
+                Routing::Straight => straight(p, q),
+            };
+            cells.extend(leg.into_iter().skip(usize::from(!cells.is_empty())));
         }
+        cells
+    }
+
+    /// Index in `l.bends` where a bend dragged from cell `p` belongs: the leg that holds `p`.
+    pub fn bend_slot(&self, l: &Line, p: (i32, i32)) -> usize {
+        let find = |id: &Id| self.shape(id);
+        let [(a, ax_a), (b, ax_b)] = self.anchors(l, &find);
+        let mut stops = vec![(a, ax_a)];
+        stops.extend(l.bends.iter().map(|&q| (q, None)));
+        stops.push((b, ax_b));
+        let holds = |w: &[((i32, i32), Option<Axis>)]| {
+            let leg = match l.routing {
+                Routing::Elbow => route(w[0].0, w[0].1, w[1].0, w[1].1),
+                Routing::Straight => straight(w[0].0, w[1].0),
+            };
+            leg.contains(&p)
+        };
+        stops.windows(2).position(holds).unwrap_or(l.bends.len())
     }
 
     pub fn router(&self) -> Router {
@@ -167,8 +198,16 @@ impl Canvas {
             Element::Text(t) => (t.x, t.y, t.width(), 1),
             Element::Line(l) => {
                 let (a, b) = self.line_ends_with(l, find);
-                let (x, y) = (a.0.min(b.0), a.1.min(b.1));
-                (x, y, (a.0 - b.0).abs() + 1, (a.1 - b.1).abs() + 1)
+                let pts = || l.bends.iter().copied().chain([a, b]);
+                let (x, y) = (
+                    pts().map(|p| p.0).min().unwrap(),
+                    pts().map(|p| p.1).min().unwrap(),
+                );
+                let (r, d) = (
+                    pts().map(|p| p.0).max().unwrap(),
+                    pts().map(|p| p.1).max().unwrap(),
+                );
+                (x, y, r - x + 1, d - y + 1)
             }
         }
     }
@@ -247,6 +286,7 @@ impl Canvas {
                         id: fresh[&l.id].clone(),
                         from: end(&l.from, a),
                         to: end(&l.to, b),
+                        bends: l.bends.iter().map(|p| (p.0 + dx, p.1 + dy)).collect(),
                         ..l.clone()
                     })
                 }

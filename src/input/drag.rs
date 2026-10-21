@@ -28,6 +28,9 @@ fn fold(inv: &mut Vec<Command>, undo: Command) {
         Command::SetEnd { id, side, .. } => inv
             .iter()
             .any(|c| matches!(c, Command::SetEnd { id: i, side: d, .. } if i == id && d == side)),
+        Command::SetBends { id, .. } => inv
+            .iter()
+            .any(|c| matches!(c, Command::SetBends { id: i, .. } if i == id)),
         _ => false,
     };
     if redundant {
@@ -215,6 +218,24 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
             last: w0,
         },
         Target::Label(id) => Action::LabelDrag(id),
+        Target::Route(id) => {
+            let Some(Element::Line(l)) = s.canvas.get(&id) else {
+                return Action::Band(w0);
+            };
+            let at = s.canvas.bend_slot(l, w0);
+            let mut bends = l.bends.clone();
+            bends.insert(at, snap_p(s.grid, w0));
+            run(
+                s,
+                inv,
+                Command::SetBends {
+                    id: id.clone(),
+                    bends,
+                },
+            );
+            Action::BendDrag { id, at }
+        }
+        Target::Handle(Handle::Bend(at), id) => Action::BendDrag { id, at },
         Target::Empty => Action::Band(w0),
         Target::Handle(Handle::End(side), id) => Action::EndDrag { id, side },
         Target::Handle(Handle::Corner(c), id) => {
@@ -273,6 +294,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                     label_at: None,
                     stroke: Default::default(),
                     routing: Default::default(),
+                    bends: vec![],
                     color: None,
                 }),
             };
@@ -353,6 +375,21 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             };
             run(s, inv, cmd);
             snap_to_shape(s, id, *side, world);
+        }
+        Action::BendDrag { id, at } => {
+            let Some(Element::Line(l)) = s.canvas.get(id) else {
+                return;
+            };
+            let mut bends = l.bends.clone();
+            bends[*at] = snap_p(s.grid, world);
+            run(
+                s,
+                inv,
+                Command::SetBends {
+                    id: id.clone(),
+                    bends,
+                },
+            );
         }
         Action::LabelDrag(id) => {
             let Some(Element::Line(l)) = s.canvas.get(id) else {

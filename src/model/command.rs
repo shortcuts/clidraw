@@ -81,6 +81,10 @@ pub enum Command {
         id: Id,
         routing: Routing,
     },
+    SetBends {
+        id: Id,
+        bends: Vec<(i32, i32)>,
+    },
     SetBorder {
         id: Id,
         border: Border,
@@ -143,6 +147,7 @@ impl Command {
             Command::SetRect { .. } => "resize",
             Command::SetLabel { .. } => "relabel",
             Command::SetLabelAt { .. } => "reposition label of",
+            Command::SetBends { .. } => "reshape",
             Command::SetEnd { .. } => "reconnect",
             Command::SetKind { .. }
             | Command::SetLineKind { .. }
@@ -383,6 +388,9 @@ impl Canvas {
                                 (*x, *y) = (*x + dx, *y + dy);
                             }
                         }
+                        for b in &mut l.bends {
+                            *b = (b.0 + dx, b.1 + dy);
+                        }
                     }
                 }
                 Ok(Command::Move {
@@ -526,6 +534,14 @@ impl Canvas {
                 };
                 let old = std::mem::replace(&mut l.routing, routing);
                 Ok(Command::SetRouting { id, routing: old })
+            }
+            Command::SetBends { id, bends } => {
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
+                let Element::Line(l) = &mut self.elements[i] else {
+                    return Err(wrong(&id));
+                };
+                let old = std::mem::replace(&mut l.bends, bends);
+                Ok(Command::SetBends { id, bends: old })
             }
             Command::SetGroups(groups) => Ok(Command::SetGroups(std::mem::replace(
                 &mut self.groups,

@@ -224,6 +224,7 @@ fn arrow_between_shapes_ends_in_a_head() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
@@ -265,6 +266,7 @@ fn arrow_start_has_its_head_at_the_first_cell() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
@@ -287,6 +289,7 @@ fn arrow_both_has_a_head_at_each_end() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
@@ -313,6 +316,7 @@ fn arrow_between_shapes_on_different_rows_bends_with_rounded_corners() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     }));
     let b = draw(&Session::new(c, View::default(), (80, 24)), &Overlay::None);
@@ -339,6 +343,7 @@ fn straight_arrow_between_shapes_on_different_rows_draws_diagonal_cells() {
         label_at: None,
         stroke: Default::default(),
         routing: Routing::Straight,
+        bends: vec![],
         color: None,
     }));
     let b = draw(&Session::new(c, View::default(), (80, 24)), &Overlay::None);
@@ -522,6 +527,7 @@ fn line_crossing_the_view_draws_when_both_ends_are_off_screen() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     }));
     let s = Session::new(c, View::default(), (80, 24));
@@ -698,6 +704,7 @@ fn edit_caret_shows_on_a_line_label() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     }));
     let mut s = Session::new(c, View::default(), (80, 24));
@@ -1020,7 +1027,7 @@ fn label_align_places_the_text_and_bold_sets_the_modifier() {
 #[test]
 fn context_menu_near_the_corner_stays_on_screen() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let menu = ui::menu::Context::for_element((79, 23), (80, 24), true, None);
+    let menu = ui::menu::Context::for_element((79, 23), (80, 24), true, None, false);
     let b = draw(&s, &Overlay::Context(menu));
     let all: String = (0..24).map(|y| row(&b, y)).collect();
     for e in ["Duplicate", "Send to back"] {

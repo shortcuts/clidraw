@@ -181,6 +181,7 @@ impl Session {
                 Action::Pan(_) | Action::Move { .. } | Action::LabelDrag(_) => "grabbing",
                 Action::Resize { .. }
                 | Action::EndDrag { .. }
+                | Action::BendDrag { .. }
                 | Action::Create { .. }
                 | Action::CreateLine(_) => "crosshair",
                 Action::Band(_) => "default",
@@ -196,7 +197,7 @@ impl Session {
                 "nwse-resize"
             }
             (Tool::Select, Hit::Handle(Handle::Corner(_), _)) => "nesw-resize",
-            (Tool::Select, Hit::Handle(Handle::End(_), _)) => "crosshair",
+            (Tool::Select, Hit::Handle(Handle::End(_) | Handle::Bend(_), _)) => "crosshair",
             (Tool::Select, _) if self.label_hover => "text",
             (Tool::Select, Hit::Element(_)) => "grab",
             (Tool::Select, Hit::Empty) => "default",
@@ -314,6 +315,7 @@ impl Session {
             label_at: None,
             stroke: Stroke::Solid,
             routing: Routing::default(),
+            bends: vec![],
             color: None,
         };
         let at = self.canvas.elements.len();
@@ -434,6 +436,27 @@ impl Session {
                 Some(Element::Line(l)) => Some(l.routing),
                 _ => None,
             })
+    }
+
+    pub fn line_has_bends(&self) -> bool {
+        self.selection
+            .iter()
+            .any(|id| matches!(self.canvas.get(id), Some(Element::Line(l)) if !l.bends.is_empty()))
+    }
+
+    pub fn reset_route(&mut self) {
+        let cmds: Vec<Command> = self
+            .selection
+            .iter()
+            .filter(
+                |id| matches!(self.canvas.get(id), Some(Element::Line(l)) if !l.bends.is_empty()),
+            )
+            .map(|id| Command::SetBends {
+                id: id.clone(),
+                bends: vec![],
+            })
+            .collect();
+        self.exec(Command::Batch(cmds));
     }
 
     pub fn reorder(&mut self, z: Z) {

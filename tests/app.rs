@@ -1021,6 +1021,7 @@ fn right_click_menu_switches_a_line_routing() {
             label_at: None,
             stroke: Default::default(),
             routing: Default::default(),
+            bends: vec![],
             color: None,
         }),
     ));
@@ -1287,6 +1288,7 @@ fn layout_app(dir: &std::path::Path, edges: &[(&str, &str)]) -> App {
                 label_at: None,
                 stroke: Default::default(),
                 routing: Default::default(),
+                bends: vec![],
                 color: None,
             }),
         ));
@@ -1545,4 +1547,36 @@ fn pointer_shape_follows_tool_hover_and_drag() {
     app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 34, 10), t0);
     app.on_event(key(KeyCode::Esc), t0);
     assert_eq!(app.take_pointer(), Some("default"));
+}
+
+#[test]
+fn right_click_menu_resets_the_route_of_a_bent_line() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(Command::Insert(
+        0,
+        Element::Line(Line {
+            id: Id::from("lllllll1"),
+            kind: LineKind::Arrow,
+            from: End::Free(20, 5),
+            to: End::Free(40, 5),
+            label: String::new(),
+            label_at: None,
+            stroke: Default::default(),
+            routing: Default::default(),
+            bends: vec![(30, 9)],
+            color: None,
+        }),
+    ));
+    right_click(&mut app, 30, 9, now);
+    let clidraw::ui::Overlay::Context(c) = &app.overlay else {
+        panic!("no menu")
+    };
+    assert_eq!(c.labels().last(), Some(&"Reset route"));
+    click(&mut app, 32, 9 + 1 + 6, now);
+    let Some(Element::Line(l)) = app.session.canvas.get(&Id::from("lllllll1")) else {
+        panic!("no line")
+    };
+    assert_eq!(l.bends, vec![]);
 }

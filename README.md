@@ -20,6 +20,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Draw a frame around shapes, then click its border to move them together.
 - Drag on empty canvas to draw. Drag a selected element to move it.
 - Moving shapes snaps to other shapes' edges and centers within 1 cell and shows dotted guides. Hold Shift to turn guides off. Guides override `grid`.
+- Drag a selected line to bend it. Drag a bend handle to move it. Right-click the line and choose Reset route to go back to the automatic route.
 - Drag a corner handle to resize. Drag a line end onto a shape to bind it: the shape turns bold and `◆` marks the cell where the end will attach.
 - Double-click a shape or line to edit its label. Double-click empty canvas to place text.
 - In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap and the shape grows to fit.

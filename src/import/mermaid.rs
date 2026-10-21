@@ -223,6 +223,7 @@ pub fn mermaid(text: &str) -> Result<MermaidInput, String> {
             label_at: None,
             stroke,
             routing: Routing::default(),
+            bends: vec![],
             color: None,
         }));
     }

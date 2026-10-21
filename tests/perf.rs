@@ -65,6 +65,7 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
             label_at: None,
             stroke: Default::default(),
             routing: Default::default(),
+            bends: vec![],
             color: None,
         }));
     }

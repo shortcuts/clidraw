@@ -638,6 +638,7 @@ fn palette_option_sets_the_head_of_a_selected_line() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     });
     s.canvas.push(line).unwrap();
@@ -675,6 +676,7 @@ fn palette_option_sets_the_stroke_of_a_selected_line_and_undoes() {
             label_at: None,
             stroke: Default::default(),
             routing: Default::default(),
+            bends: vec![],
             color: None,
         }))
         .unwrap();
@@ -794,6 +796,7 @@ fn palette_option_sets_the_routing_of_a_selected_line_and_undoes() {
             label_at: None,
             stroke: Default::default(),
             routing: Default::default(),
+            bends: vec![],
             color: None,
         }))
         .unwrap();
@@ -1125,6 +1128,7 @@ fn diagram() -> Session {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     }));
     s
@@ -1505,6 +1509,7 @@ fn dragging_a_selected_lines_label_slides_it_along_the_line() {
             label_at: None,
             stroke: Default::default(),
             routing: Default::default(),
+            bends: vec![],
             color: None,
         }))
         .unwrap();
@@ -1705,6 +1710,7 @@ fn bound_arrow_follows_an_aligned_shape() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     }));
     let before = s.canvas.route(match &s.canvas.elements[3] {
@@ -2158,6 +2164,7 @@ fn hover_picks_a_detour_cell_for_the_line_and_the_crossed_shape_elsewhere() {
         label_at: None,
         stroke: Default::default(),
         routing: Default::default(),
+        bends: vec![],
         color: None,
     }));
     let Some(Element::Line(l)) = s.canvas.elements.last() else {
@@ -2176,4 +2183,69 @@ fn hover_picks_a_detour_cell_for_the_line_and_the_crossed_shape_elsewhere() {
     assert_eq!(s.hover, Hit::Element(Id::from("arrow000")));
     mouse(&mut s, MouseEventKind::Moved, 11, 5, t);
     assert_eq!(s.hover, Hit::Element(Id::from("oooooooo")));
+}
+
+fn free_line(id: &str, bends: Vec<(i32, i32)>) -> Element {
+    Element::Line(Line {
+        id: Id::from(id),
+        kind: LineKind::Arrow,
+        from: End::Free(5, 5),
+        to: End::Free(25, 5),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        routing: Routing::Straight,
+        bends,
+        color: None,
+    })
+}
+
+fn bends_of(s: &Session) -> Vec<(i32, i32)> {
+    match s.canvas.get(&Id::from("llllllll")) {
+        Some(Element::Line(l)) => l.bends.clone(),
+        _ => panic!("no line"),
+    }
+}
+
+#[test]
+fn dragging_a_selected_line_adds_a_bend_and_one_undo_removes_it() {
+    let mut s = session();
+    s.canvas.push(free_line("llllllll", vec![])).unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    drag(&mut s, (15, 5), (15, 8));
+    assert_eq!(bends_of(&s), vec![(15, 8)]);
+    ctrl(&mut s, 'z');
+    assert_eq!(bends_of(&s), vec![]);
+}
+
+#[test]
+fn the_first_drag_on_an_unselected_line_does_not_bend_it() {
+    let mut s = session();
+    s.canvas.push(free_line("llllllll", vec![])).unwrap();
+    drag(&mut s, (15, 5), (15, 8));
+    assert_eq!(bends_of(&s), vec![]);
+}
+
+#[test]
+fn dragging_a_bend_handle_moves_that_bend_and_undo_restores_it() {
+    let mut s = session();
+    s.canvas.push(free_line("llllllll", vec![(15, 8)])).unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    drag(&mut s, (15, 8), (18, 10));
+    assert_eq!(bends_of(&s), vec![(18, 10)]);
+    ctrl(&mut s, 'z');
+    assert_eq!(bends_of(&s), vec![(15, 8)]);
+}
+
+#[test]
+fn reset_route_clears_the_bends_and_undo_restores_them() {
+    let mut s = session();
+    s.canvas.push(free_line("llllllll", vec![(15, 8)])).unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    assert!(s.line_has_bends());
+    s.reset_route();
+    assert_eq!(bends_of(&s), vec![]);
+    assert!(!s.line_has_bends());
+    ctrl(&mut s, 'z');
+    assert_eq!(bends_of(&s), vec![(15, 8)]);
 }

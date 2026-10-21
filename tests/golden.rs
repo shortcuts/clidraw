@@ -33,6 +33,7 @@ fn sample() -> Canvas {
             label_at: None,
             stroke: Default::default(),
             routing: Default::default(),
+            bends: vec![],
             color: None,
         })
     };
@@ -131,7 +132,9 @@ fn sample() -> Canvas {
             Element::Line(l) if l.id == Id::from("hhhhhhhh") => {
                 l.stroke = Stroke::Dotted;
                 l.routing = Routing::Straight;
+                l.bends = vec![(20, 9)];
             }
+            Element::Line(l) if l.id == Id::from("iiiiiiii") => l.bends = vec![(26, 8)],
             _ => {}
         }
     }
@@ -220,6 +223,7 @@ fn svg_follows_the_free_anchor_cell() {
                 label_at: None,
                 stroke: Default::default(),
                 routing: Default::default(),
+                bends: vec![],
                 color: None,
             }),
         ],
