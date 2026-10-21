@@ -81,9 +81,9 @@ fn draws_palette_and_a_labelled_rect() {
     c.elements.push(shape("aaaaaaaa", 20, "box"));
     let s = Session::new(c, View::default(), (80, 24));
     let b = draw(&s, &Overlay::None);
-    assert!(row(&b, 1).starts_with(" Select"));
+    assert!(row(&b, 0).starts_with(" Select"));
     assert!(
-        b[(1, 1)].modifier.contains(Modifier::REVERSED),
+        b[(1, 0)].modifier.contains(Modifier::REVERSED),
         "active tool is reversed"
     );
     assert_eq!(cols(&b, 4, 20, 8), "┌──────┐");
@@ -928,16 +928,15 @@ fn info_bar_drops_the_right_side_first_on_a_narrow_screen() {
 }
 
 #[test]
-fn bottom_dock_palette_leaves_the_bar_row_alone() {
-    let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
-    s.dock = ui::palette::Dock::Bottom;
+fn tool_bar_sits_on_row_0_and_options_on_row_1() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "box"));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.selection = vec![Id::from("aaaaaaaa")];
     let b = draw(&s, &Overlay::None);
-    assert!(
-        row(&b, 22).starts_with(" Select") || row(&b, 22).contains("Select"),
-        "{}",
-        row(&b, 22)
-    );
-    assert!(row(&b, 23).starts_with("? help"));
+    assert!(row(&b, 0).contains("Select"), "{}", row(&b, 0));
+    assert!(row(&b, 1).contains("solid"), "{}", row(&b, 1));
+    assert!(row(&b, 23).starts_with("Del delete"));
 }
 
 fn screen_text(b: &Buffer) -> String {

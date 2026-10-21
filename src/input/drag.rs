@@ -5,7 +5,6 @@ use crate::model::{
     edge_anchor, side_mid, Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Shape,
     ShapeKind, Side,
 };
-use crate::ui::palette;
 use std::collections::HashSet;
 
 const MIN_SIZE: i32 = 3;
@@ -198,7 +197,6 @@ pub(super) fn drag(s: &mut Session, screen: P, world: P) {
 
 fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0: P) -> Action {
     match target {
-        Target::PaletteTitle => Action::Palette,
         Target::Pan => Action::Pan(origin),
         Target::Element(_) => Action::Move {
             start: w0,
@@ -279,7 +277,6 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
 
 fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P, world: P) {
     match action {
-        Action::Palette => {}
         Action::Pan(last) => {
             s.glide = None;
             s.view.pan(last.0 - screen.0, last.1 - screen.1);
@@ -413,7 +410,7 @@ pub(super) fn pan_step(s: &mut Session) {
     }
 }
 
-pub(super) fn up(s: &mut Session, screen: P, world: P) {
+pub(super) fn up(s: &mut Session, world: P) {
     s.last_pan = None;
     s.band = None;
     s.guides.clear();
@@ -425,7 +422,6 @@ pub(super) fn up(s: &mut Session, screen: P, world: P) {
         } => click(s, target, w0),
         Gesture::Dragging { action, mut inv } => {
             match &action {
-                Action::Palette => s.dock = palette::nearest_dock(screen.0, screen.1, s.screen),
                 Action::EndDrag { id, side } => bind(s, &mut inv, id, *side, world),
                 Action::CreateLine(id) => {
                     bind(s, &mut inv, id, Side::To, world);

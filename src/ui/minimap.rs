@@ -1,6 +1,5 @@
 use super::grid::{Grid, REVERSE};
 use super::layout::refresh;
-use super::palette::Dock;
 use crate::input::Session;
 
 const W: i32 = 24;
@@ -59,16 +58,8 @@ pub fn map(s: &Session) -> Option<Map> {
     }
     let (ax, ay) = (x0.min(vx), y0.min(vy));
     let area = (ax, ay, x1.max(vx + sw) - ax, y1.max(vy + sh) - ay);
-    let y = match s.dock {
-        Dock::Left | Dock::Top => sh - 1 - H,
-        Dock::Right | Dock::Bottom => 1,
-    };
-    let x = match s.dock {
-        Dock::Left | Dock::Top => sw - W,
-        Dock::Right | Dock::Bottom => 0,
-    };
     Some(Map {
-        rect: (x, y, W, H),
+        rect: (sw - W, sh - 1 - H, W, H),
         area,
     })
 }

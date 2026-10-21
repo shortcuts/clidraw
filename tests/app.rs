@@ -32,8 +32,7 @@ fn autosaves_edits_after_500ms_and_pan_leaves_the_file_alone() {
     app.tick(t0 + Duration::from_secs(2));
     assert_eq!(std::fs::read(&file).unwrap(), empty);
 
-    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 2, 3), t0);
-    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 2, 3), t0);
+    app.on_event(key(KeyCode::Char('r')), t0);
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 30, 9), t0);
     app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 30, 9), t0);
@@ -54,7 +53,7 @@ fn sleeps_until_the_autosave_deadline_only_while_an_edit_is_unsaved() {
     let t0 = Instant::now();
     assert_eq!(app.next_wake(t0), None, "idle must block");
 
-    click(&mut app, 2, 3, t0);
+    app.on_event(key(KeyCode::Char('r')), t0);
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 30, 9), t0);
     app.tick(t0);
@@ -86,7 +85,7 @@ fn does_not_autosave_during_a_drag() {
     let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
     let file = t.path().join("c/demo.clidraw.json");
     let t0 = Instant::now();
-    click(&mut app, 2, 3, t0);
+    app.on_event(key(KeyCode::Char('r')), t0);
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 30, 9), t0);
     app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 30, 9), t0);
@@ -442,8 +441,7 @@ fn config_sets_autosave_default_canvas_and_status() {
     let file = t.path().join("c/scratch.clidraw.json");
     let empty = std::fs::read(&file).unwrap();
     let t0 = Instant::now();
-    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 2, 3), t0);
-    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 2, 3), t0);
+    app.on_event(key(KeyCode::Char('r')), t0);
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 30, 9), t0);
     app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 30, 9), t0);
@@ -720,7 +718,7 @@ fn wakes_to_pan_while_a_drag_holds_the_edge() {
     let store = Store::at(t.path().join("c"), t.path().join("state"));
     let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
     let t0 = Instant::now();
-    click(&mut app, 2, 3, t0);
+    app.on_event(key(KeyCode::Char('r')), t0);
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 40, 9), t0);
     assert_eq!(app.next_wake(t0), None, "mid-screen drag blocks");
@@ -889,7 +887,9 @@ fn palette_tooltip_names_the_tool_and_key_after_a_rest() {
     let row = |app: &App| {
         let mut buf = Buffer::empty(area);
         app.render(&mut buf, area);
-        (0..80u16).map(|x| buf[(x, r)].symbol()).collect::<String>()
+        (0..80u16)
+            .map(|x| buf[(x, r + 1)].symbol())
+            .collect::<String>()
     };
     let t0 = Instant::now();
     app.on_events(vec![mouse(MouseEventKind::Moved, c, r)], t0);
@@ -1445,8 +1445,7 @@ fn pointer_shape_follows_tool_hover_and_drag() {
 
     app.on_event(key(KeyCode::Char('r')), t0);
     assert_eq!(app.take_pointer(), Some("crosshair"));
-    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 2, 2), t0);
-    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 2, 2), t0);
+    click(&mut app, 9, 0, t0);
     assert_eq!(app.take_pointer(), Some("grab"));
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 30, 10), t0);
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 34, 10), t0);

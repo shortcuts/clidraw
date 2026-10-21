@@ -24,7 +24,6 @@ pub(super) struct Glide {
 }
 
 pub(super) enum Target {
-    PaletteTitle,
     Handle(Handle, Id),
     Element(Id),
     Label(Id),
@@ -34,7 +33,6 @@ pub(super) enum Target {
 }
 
 pub(super) enum Action {
-    Palette,
     Pan(P),
     Move { start: P, last: P },
     Resize { id: Id, fixed: P },
@@ -163,7 +161,7 @@ impl Session {
         let Gesture::Dragging { action, .. } = &self.gesture else {
             return (0, 0);
         };
-        if matches!(action, Action::Palette | Action::Pan(_)) {
+        if matches!(action, Action::Pan(_)) {
             return (0, 0);
         }
         let axis = |pos: i32, len: i32| {
@@ -227,7 +225,7 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
             s.cursor = (col, row);
             drag(s, (col, row), world)
         }
-        MouseEventKind::Up(_) => up(s, (col, row), world),
+        MouseEventKind::Up(_) => up(s, world),
         MouseEventKind::Moved => hover(s, (col, row), world),
         _ => {}
     }
@@ -338,13 +336,6 @@ fn middle_down(s: &mut Session, screen: P, world: P) {
 
 fn palette_down(s: &mut Session, h: PaletteHit) {
     match h {
-        PaletteHit::Title => {
-            s.gesture = Gesture::Pressed {
-                origin: (0, 0),
-                world: (0, 0),
-                target: Target::PaletteTitle,
-            }
-        }
         PaletteHit::Option(Choice::Head(kind)) => {
             let cmds: Vec<Command> = s
                 .selection
@@ -472,11 +463,7 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
             Hit::Element(id) => s.select_group_of(id),
             _ => s.selection.clear(),
         },
-        Target::Element(_)
-        | Target::Label(_)
-        | Target::PaletteTitle
-        | Target::Pan
-        | Target::Handle(..) => {}
+        Target::Element(_) | Target::Label(_) | Target::Pan | Target::Handle(..) => {}
     }
 }
 

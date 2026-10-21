@@ -14,7 +14,7 @@ use crate::model::{
     Shape, Stroke, Text, Z,
 };
 use crate::ui::minimap;
-use crate::ui::palette::{self, Dock, PaletteHit};
+use crate::ui::palette::{self, PaletteHit};
 use crate::ui::theme::Theme;
 use crate::ui::Layout;
 use crate::view::View;
@@ -90,7 +90,6 @@ pub struct Session {
     pub theme: Theme,
     pub selection: Vec<Id>,
     pub clipboard: Canvas,
-    pub dock: Dock,
     pub double_click: Duration,
     /// Cells between snap lines for drawn, moved and resized shapes; 1 means no snapping.
     pub grid: i32,
@@ -143,7 +142,6 @@ impl Session {
             theme: Theme::Dark,
             selection: vec![],
             clipboard: Canvas::default(),
-            dock: Dock::Left,
             double_click: Duration::from_millis(400),
             grid: 1,
             motion: true,
@@ -185,7 +183,7 @@ impl Session {
                 | Action::EndDrag { .. }
                 | Action::Create { .. }
                 | Action::CreateLine(_) => "crosshair",
-                Action::Palette | Action::Band(_) => "default",
+                Action::Band(_) => "default",
             };
         }
         if self.palette_hover.is_some() {
@@ -477,7 +475,6 @@ impl Session {
 
     pub fn replace_canvas(&mut self, canvas: Canvas, view: View) {
         *self = Session {
-            dock: self.dock,
             double_click: self.double_click,
             grid: self.grid,
             motion: self.motion,

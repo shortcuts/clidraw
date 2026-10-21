@@ -6,7 +6,7 @@ use clidraw::model::{
     Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Routing, Shape, ShapeKind,
     Stroke, TextAlign,
 };
-use clidraw::ui::palette::{self, Dock, PaletteHit};
+use clidraw::ui::palette::{self, PaletteHit};
 use clidraw::view::View;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, Instant};
@@ -62,10 +62,19 @@ fn ctrl(s: &mut Session, c: char) {
     handle_key(s, KeyEvent::new(KeyCode::Char(c), KeyModifiers::CONTROL));
 }
 
-/// Palette rows: title at 0, then one row per tool.
 fn pick(s: &mut Session, tool: Tool) {
-    let row = Tool::ALL.iter().position(|t| *t == tool).unwrap() as u16 + 1;
-    click(s, (2, row), Instant::now());
+    click(s, tool_cell(s, tool), Instant::now());
+}
+
+/// Clicks the `i`-th option cell of the selection.
+fn option(s: &mut Session, i: usize) {
+    let cells = palette::cells(&palette::choices(&palette::selected(s)));
+    let (_, x, y, _) = cells
+        .into_iter()
+        .filter(|c| matches!(c.0, PaletteHit::Option(_)))
+        .nth(i)
+        .unwrap();
+    click(s, (x as u16, y as u16), Instant::now());
 }
 
 fn shapes(s: &Session) -> Vec<&Shape> {
@@ -591,15 +600,6 @@ fn dragging_with_a_new_tool_draws_that_kind() {
 }
 
 #[test]
-fn palette_title_drag_snaps_to_the_nearest_edge() {
-    let mut s = session();
-    drag(&mut s, (2, 0), (75, 10));
-    assert_eq!(s.dock, Dock::Right);
-    drag(&mut s, (75, 0), (40, 22));
-    assert_eq!(s.dock, Dock::Bottom);
-}
-
-#[test]
 fn ctrl_c_quits() {
     let mut s = session();
     let out = handle_key(
@@ -628,10 +628,8 @@ fn palette_option_sets_the_head_of_a_selected_line() {
         Some(Element::Line(l)) => l.kind,
         _ => panic!("no line"),
     };
-    // Options sit two rows under the last tool: none, end, start, both.
-    let option =
-        |s: &mut Session, i: u16| click(s, (2, Tool::ALL.len() as u16 + 2 + i), Instant::now());
-    option(&mut s, 2);
+    // Options on row 1: none, end, start, both.
+    option(&mut s, 0);
     assert_eq!(kind(&s), LineKind::Arrow, "no options without a selection");
     s.selection = vec![Id::from("llllllll")];
     option(&mut s, 2);
@@ -667,10 +665,9 @@ fn palette_option_sets_the_stroke_of_a_selected_line_and_undoes() {
         _ => panic!("no line"),
     };
     // Four head options come first, then solid, dashed, dotted.
-    let row = Tool::ALL.len() as u16 + 2 + 4;
-    click(&mut s, (2, row + 1), Instant::now());
+    option(&mut s, 5);
     assert_eq!(stroke(&s), Stroke::Dashed);
-    click(&mut s, (2, row + 2), Instant::now());
+    option(&mut s, 6);
     assert_eq!(stroke(&s), Stroke::Dotted);
     s.undo();
     assert_eq!(stroke(&s), Stroke::Dashed);
@@ -701,10 +698,9 @@ fn palette_option_sets_the_border_of_a_selected_rect_and_undoes() {
         _ => panic!("no shape"),
     };
     // Three stroke options come first, then single, rounded, double, heavy.
-    let row = Tool::ALL.len() as u16 + 2 + 3;
-    click(&mut s, (2, row + 2), Instant::now());
+    option(&mut s, 5);
     assert_eq!(border(&s), Border::Double);
-    click(&mut s, (2, row + 3), Instant::now());
+    option(&mut s, 6);
     assert_eq!(border(&s), Border::Heavy);
     s.undo();
     assert_eq!(border(&s), Border::Double);
@@ -742,25 +738,24 @@ fn palette_ink_cycles_through_the_colors_and_undoes_one_click_at_a_time() {
         _ => panic!("no shape"),
     };
     // Stroke (3), border (4) and align come first, then ink and fill.
-    let row = Tool::ALL.len() as u16 + 2 + 8;
-    click(&mut s, (2, row), Instant::now());
+    option(&mut s, 8);
     assert_eq!(ink(&s), (Some(Paint::Red), None));
-    click(&mut s, (2, row), Instant::now());
+    option(&mut s, 8);
     assert_eq!(ink(&s), (Some(Paint::Orange), None));
     s.undo();
     assert_eq!(ink(&s), (Some(Paint::Red), None));
     for _ in 0..6 {
-        click(&mut s, (2, row), Instant::now());
+        option(&mut s, 8);
     }
     assert_eq!(ink(&s), (None, None));
-    click(&mut s, (2, row + 1), Instant::now());
+    option(&mut s, 9);
     assert_eq!(ink(&s), (None, Some(Paint::Red)));
     s.undo();
     assert_eq!(ink(&s), (None, None));
 
     s.selection = vec![Id::from("tttttttt")];
     // A text offers ink only: no stroke, border or fill rows.
-    click(&mut s, (2, Tool::ALL.len() as u16 + 2), Instant::now());
+    option(&mut s, 0);
     assert!(matches!(
         s.canvas.get(&Id::from("tttttttt")),
         Some(Element::Text(t)) if t.color == Some(Paint::Red)
@@ -789,8 +784,7 @@ fn palette_option_sets_the_routing_of_a_selected_line_and_undoes() {
         _ => panic!("no line"),
     };
     // Four head options and three strokes come first, then elbow, direct.
-    let row = Tool::ALL.len() as u16 + 2 + 4 + 3;
-    click(&mut s, (2, row + 1), Instant::now());
+    option(&mut s, 8);
     assert_eq!(routing(&s), Routing::Straight);
     s.undo();
     assert_eq!(routing(&s), Routing::Elbow);
@@ -983,8 +977,8 @@ fn hover_is_empty_for_other_tools_mid_gesture_and_over_the_palette() {
     assert_eq!(s.hover, Hit::Empty, "a press clears hover");
     mouse(&mut s, MouseEventKind::Moved, 22, 5, t);
     assert_eq!(s.hover, Hit::Empty, "no hover while pressed");
-    let mut s = with_shape("aaaaaaaa", 2, 1);
-    mouse(&mut s, MouseEventKind::Moved, 2, 1, t);
+    let mut s = with_shape("aaaaaaaa", 2, 0);
+    mouse(&mut s, MouseEventKind::Moved, 2, 0, t);
     assert_eq!(s.hover, Hit::Empty, "palette owns its cells");
 }
 
@@ -1752,10 +1746,9 @@ fn palette_cycles_label_align_and_ctrl_b_toggles_bold() {
         _ => panic!("no shape"),
     };
     // Three strokes and four borders come first, then the align cell.
-    let row = Tool::ALL.len() as u16 + 2 + 7;
-    click(&mut s, (2, row), Instant::now());
+    option(&mut s, 7);
     assert_eq!(get(&s), (TextAlign::Right, false));
-    click(&mut s, (2, row), Instant::now());
+    option(&mut s, 7);
     assert_eq!(get(&s), (TextAlign::Left, false));
     s.undo();
     assert_eq!(get(&s), (TextAlign::Right, false));

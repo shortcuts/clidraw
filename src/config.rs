@@ -1,6 +1,5 @@
 use crate::model::HISTORY_LIMIT;
 use crate::store::validate_name;
-use crate::ui::palette::Dock;
 use crate::ui::theme::ThemeSetting;
 use std::io::{self, Write};
 use std::path::Path;
@@ -17,9 +16,6 @@ pub const DEFAULT_TOML: &str = "\
 
 # Longest gap in milliseconds between two clicks that make a double click.
 # double_click_ms = 400
-
-# Screen edge of the tool palette: left, top, right or bottom.
-# dock = \"left\"
 
 # Canvas to create when none exists and no name is given.
 # default_canvas = \"untitled\"
@@ -44,7 +40,6 @@ pub const DEFAULT_TOML: &str = "\
 pub struct Config {
     pub autosave: Duration,
     pub double_click: Duration,
-    pub dock: Dock,
     pub grid: i32,
     pub default_canvas: String,
     pub history_limit: usize,
@@ -58,7 +53,6 @@ impl Default for Config {
         Config {
             autosave: Duration::from_millis(500),
             double_click: Duration::from_millis(400),
-            dock: Dock::Left,
             grid: 1,
             default_canvas: "untitled".into(),
             history_limit: HISTORY_LIMIT,
@@ -102,7 +96,6 @@ impl Config {
             let done = match key.as_str() {
                 "autosave_ms" => millis(value).map(|d| self.autosave = d),
                 "double_click_ms" => millis(value).map(|d| self.double_click = d),
-                "dock" => dock(value).map(|d| self.dock = d),
                 "grid" => grid(value).map(|n| self.grid = n),
                 "default_canvas" => name(value).map(|n| self.default_canvas = n),
                 "history_limit" => count(value).map(|n| self.history_limit = n),
@@ -164,16 +157,6 @@ fn padding(v: &toml::Value) -> Result<i32, String> {
     match v.as_integer() {
         Some(n @ 0..=100) => Ok(n as i32),
         _ => Err("expected an integer from 0 to 100".into()),
-    }
-}
-
-fn dock(v: &toml::Value) -> Result<Dock, String> {
-    match v.as_str().map(str::to_lowercase).as_deref() {
-        Some("left") => Ok(Dock::Left),
-        Some("top") => Ok(Dock::Top),
-        Some("right") => Ok(Dock::Right),
-        Some("bottom") => Ok(Dock::Bottom),
-        _ => Err("expected \"left\", \"top\", \"right\" or \"bottom\"".into()),
     }
 }
 

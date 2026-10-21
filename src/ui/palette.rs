@@ -4,16 +4,7 @@ use crate::model::{Border, Element, Id, LineKind, Paint, Routing, Stroke, TextAl
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Dock {
-    Left,
-    Top,
-    Right,
-    Bottom,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PaletteHit {
-    Title,
     Tool(Tool),
     Option(Choice),
 }
@@ -150,79 +141,41 @@ fn active(els: &[&Element], c: Choice) -> bool {
     }
 }
 
-const COLUMN: i32 = 9;
-const TITLE: &str = "::";
-
-/// Every clickable cell run as (hit, x, y, width). One row high.
-pub fn cells(dock: Dock, screen: (u16, u16), opts: &[Choice]) -> Vec<(PaletteHit, i32, i32, i32)> {
-    let (sw, sh) = (i32::from(screen.0), i32::from(screen.1));
-    let mut out = vec![];
-    match dock {
-        Dock::Left | Dock::Right => {
-            let x = if dock == Dock::Left {
-                0
-            } else {
-                (sw - COLUMN).max(0)
-            };
-            out.push((PaletteHit::Title, x, 0, COLUMN));
-            for (i, t) in Tool::ALL.iter().enumerate() {
-                out.push((PaletteHit::Tool(*t), x, i as i32 + 1, COLUMN));
-            }
-            for (i, c) in opts.iter().enumerate() {
-                let row = Tool::ALL.len() as i32 + 2 + i as i32;
-                out.push((PaletteHit::Option(*c), x, row, COLUMN));
-            }
-        }
-        Dock::Top | Dock::Bottom => {
-            let y = if dock == Dock::Top {
-                0
-            } else {
-                (sh - 2).max(0)
-            };
-            out.push((PaletteHit::Title, 0, y, 3));
-            let mut x = 3;
-            for t in Tool::ALL {
-                let w = t.label().len() as i32 + 2;
-                out.push((PaletteHit::Tool(t), x, y, w));
+/// Every clickable cell run as (hit, x, y, width). Tools fill row 0, options row 1.
+pub fn cells(opts: &[Choice]) -> Vec<(PaletteHit, i32, i32, i32)> {
+    let run = |labels: Vec<(PaletteHit, usize)>, y: i32| {
+        let mut x = 0;
+        labels
+            .into_iter()
+            .map(|(h, len)| {
+                let w = len as i32 + 2;
                 x += w;
-            }
-            x += 1;
-            for c in opts {
-                let w = c.label().len() as i32 + 2;
-                out.push((PaletteHit::Option(*c), x, y, w));
-                x += w;
-            }
-        }
-    }
+                (h, x - w, y, w)
+            })
+            .collect::<Vec<_>>()
+    };
+    let tools = Tool::ALL
+        .iter()
+        .map(|t| (PaletteHit::Tool(*t), t.label().len()));
+    let opts = opts
+        .iter()
+        .map(|c| (PaletteHit::Option(*c), c.label().len()));
+    let mut out = run(tools.collect(), 0);
+    out.extend(run(opts.collect(), 1));
     out
 }
 
 pub fn hit(s: &Session, col: i32, row: i32) -> Option<PaletteHit> {
-    cells(s.dock, s.screen, &choices(&selected(s)))
+    cells(&choices(&selected(s)))
         .into_iter()
         .find(|&(_, x, y, w)| row == y && col >= x && col < x + w)
         .map(|c| c.0)
 }
 
-pub fn nearest_dock(col: i32, row: i32, screen: (u16, u16)) -> Dock {
-    let (sw, sh) = (i32::from(screen.0), i32::from(screen.1));
-    let edges = [
-        (col, Dock::Left),
-        (row, Dock::Top),
-        (sw - 1 - col, Dock::Right),
-        (sh - 1 - row, Dock::Bottom),
-    ];
-    edges
-        .into_iter()
-        .min_by_key(|e| e.0)
-        .map_or(Dock::Left, |e| e.1)
-}
-
 pub fn draw(grid: &mut Grid, s: &Session) {
     let els = selected(s);
-    for (h, x, y, w) in cells(s.dock, s.screen, &choices(&els)) {
+    for (h, x, y, w) in cells(&choices(&els)) {
         let (text, flags) = match h {
-            PaletteHit::Title => (TITLE.to_string(), REVERSE),
             PaletteHit::Tool(t) => (t.label().to_string(), if t == s.tool { REVERSE } else { 0 }),
             PaletteHit::Option(c) => (
                 c.label().to_string(),
@@ -239,25 +192,18 @@ pub fn draw(grid: &mut Grid, s: &Session) {
         grid.text(x, y, &format!(" {text}{pad}"), flags);
     }
     if let (true, Some(PaletteHit::Tool(t))) = (s.tip, s.palette_hover) {
-        tooltip(grid, s, t, &cells(s.dock, s.screen, &[]));
+        tooltip(grid, t, &cells(&[]));
     }
 }
 
 /// Draws the tool's name and key beside its cell, on the side facing the canvas.
-fn tooltip(grid: &mut Grid, s: &Session, t: Tool, cells: &[(PaletteHit, i32, i32, i32)]) {
-    let Some(&(_, x, y, w)) = cells.iter().find(|c| c.0 == PaletteHit::Tool(t)) else {
+fn tooltip(grid: &mut Grid, t: Tool, cells: &[(PaletteHit, i32, i32, i32)]) {
+    let Some(&(_, x, y, _)) = cells.iter().find(|c| c.0 == PaletteHit::Tool(t)) else {
         return;
     };
     let text = match t.key() {
         Some(k) => format!(" {}  {} ", t.label(), k),
         None => format!(" {} ", t.label()),
     };
-    let len = text.len() as i32;
-    let (tx, ty) = match s.dock {
-        Dock::Left => (x + w, y),
-        Dock::Right => (x - len, y),
-        Dock::Top => (x, y + 1),
-        Dock::Bottom => (x, y - 1),
-    };
-    grid.text(tx, ty, &text, REVERSE);
+    grid.text(x, y + 1, &text, REVERSE);
 }

@@ -15,7 +15,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 
 ## Use
 
-- Pick a tool in the palette: Select, Hand, Rect, Diamond, Cylinder, Slant, Hexagon, Frame (`f`), Arrow, Text.
+- Pick a tool in the top bar: Select, Hand, Rect, Diamond, Cylinder, Slant, Hexagon, Frame (`f`), Arrow, Text.
 - Draw a frame around shapes, then click its border to move them together.
 - Drag on empty canvas to draw. Drag a selected element to move it.
 - Moving shapes snaps to other shapes' edges and centers within 1 cell and shows dotted guides. Hold Shift to turn guides off. Guides override `grid`.
@@ -27,9 +27,8 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Select shapes and run `:lib save <name>` to keep them in the library. `:lib insert <name>` adds them to any canvas.
 - Group elements to select and move them as one.
 - Click a shape tool while a shape is selected to change its kind.
-- Select a line to show its options in the palette. Pick a head: none, end, start or both.
-- Select a shape and click the align cell in the palette to cycle its label: left, middle, right.
-- Drag the `::` cell of the palette to dock it to another edge.
+- Select a line to show its options in the top bar. Pick a head: none, end, start or both.
+- Select a shape and click the align cell in the top bar to cycle its label: left, middle, right.
 - Wheel and horizontal scroll pan the canvas. A fast flick pans further. Shift+wheel pans sideways.
 - Dragging within 2 cells of the screen edge pans the view.
 - A map shows in a corner while content lies off screen. The outlined rectangle marks the view. Click the map to center the view there.
@@ -47,7 +46,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `Ctrl-b` | Toggle bold on the labels of the selected shapes |
 | `Ctrl-z` / `Ctrl-y` | Undo / redo |
 | `z` | Overview of the whole diagram, read-only; `z` or `Esc` returns |
-| `F5` | Present: hides palette, minimap and status line; wheel scrolls; `F5` or `Esc` returns |
+| `F5` | Present: hides the top bar, minimap and status line; wheel scrolls; `F5` or `Esc` returns |
 | `Ctrl-f` | Find a label: type the text, `Enter` selects and centers the match; repeat to cycle (`:/text` does the same) |
 | `Ctrl-c` | Quit |
 | `Ctrl-p` | Open the command palette: type to filter every action, `Enter` runs it |
@@ -151,6 +150,6 @@ The samply step is not verified yet: the cargo build runs, but `make profile` wa
 ## Files
 
 - Canvases: `$CLIDRAW_HOME`, else `$XDG_CONFIG_HOME/clidraw`, else `~/.config/clidraw`. One `<name>.clidraw.json` per canvas. Output is stable, so the files diff cleanly in git.
-- Settings: `config.toml` in the canvas directory. The first run writes it with every key commented. Keys: `autosave_ms` (500), `double_click_ms` (400), `dock` (`left`, `top`, `right`, `bottom`; default `left`), `default_canvas` (`untitled`), `grid` (1 = no snapping; a larger number snaps drawn, moved and resized shapes to multiples of that many cells), `theme` (`auto`, `dark`, `light`; default `auto`; auto asks the terminal for its background and falls back to dark), `motion` (`true`; `false` makes Fit all and search jump snap instead of gliding over 120 ms). A bad or unknown key shows a status line and keeps the default.
+- Settings: `config.toml` in the canvas directory. The first run writes it with every key commented. Keys: `autosave_ms` (500), `double_click_ms` (400), `default_canvas` (`untitled`), `grid` (1 = no snapping; a larger number snaps drawn, moved and resized shapes to multiples of that many cells), `theme` (`auto`, `dark`, `light`; default `auto`; auto asks the terminal for its background and falls back to dark), `motion` (`true`; `false` makes Fit all and search jump snap instead of gliding over 120 ms). A bad or unknown key shows a status line and keeps the default.
 - Viewport and last canvas: `$XDG_STATE_HOME/clidraw/state.json`, else `~/.local/state/clidraw/state.json`.
 - Undo history: `history/<name>.json` beside `state.json`. It holds at most `history_limit` steps and is dropped when the canvas file changes outside clidraw. Redo does not persist.

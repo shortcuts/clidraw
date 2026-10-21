@@ -1,5 +1,4 @@
 use clidraw::config::{Config, DEFAULT_TOML};
-use clidraw::ui::palette::Dock;
 use clidraw::ui::theme::ThemeSetting;
 use std::time::Duration;
 
@@ -29,12 +28,11 @@ fn missing_file_gives_defaults_and_writes_commented_file() {
 #[test]
 fn overrides_apply() {
     let (c, w, _t) = load_text(
-        "autosave_ms = 100\ndouble_click_ms = 250\ndock = \"Bottom\"\ndefault_canvas = \"scratch\"\nhistory_limit = 50\n",
+        "autosave_ms = 100\ndouble_click_ms = 250\ndefault_canvas = \"scratch\"\nhistory_limit = 50\n",
     );
     assert!(w.is_empty(), "{w:?}");
     assert_eq!(c.autosave, Duration::from_millis(100));
     assert_eq!(c.double_click, Duration::from_millis(250));
-    assert_eq!(c.dock, Dock::Bottom);
     assert_eq!(c.default_canvas, "scratch");
     assert_eq!(c.history_limit, 50);
 }
@@ -71,10 +69,10 @@ fn wrong_type_keeps_default_for_that_key() {
 }
 
 #[test]
-fn bad_dock_name_warns() {
-    let (c, w, _t) = load_text("dock = \"middle\"\n");
-    assert_eq!(c.dock, Dock::Left);
-    assert!(w[0].starts_with("config.toml: key dock: "), "{w:?}");
+fn dock_key_is_unknown_and_warns() {
+    let (_c, w, _t) = load_text("dock = \"left\"\n");
+    assert_eq!(w.len(), 1, "{w:?}");
+    assert!(w[0].contains("dock"), "{w:?}");
 }
 
 #[test]

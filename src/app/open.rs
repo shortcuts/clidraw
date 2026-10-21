@@ -25,7 +25,6 @@ impl App {
             .or_else(|| state.last.clone())
             .unwrap_or_else(|| config.default_canvas.clone());
         let mut session = Session::new(Canvas::default(), View::default(), screen);
-        session.dock = config.dock;
         session.double_click = config.double_click;
         session.grid = config.grid;
         session.motion = config.motion;
