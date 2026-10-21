@@ -214,9 +214,11 @@ fn a_pinned_end_round_trips_and_auto_ends_write_no_anchor() {
     let Element::Line(l) = &mut c.elements[2] else {
         panic!()
     };
-    l.from = End::Bound(Id::from("aaaaaaaa"), Anchor::Left);
+    l.from = End::Bound(Id::from("aaaaaaaa"), Anchor::Left(2));
     s.save("a", &c).unwrap();
     assert_eq!(s.load("a").unwrap(), c);
+    let text = std::fs::read_to_string(t.path().join("c/a.clidraw.json")).unwrap();
+    assert!(text.contains("\"left\": 2"));
     s.save("b", &sample()).unwrap();
     let text = std::fs::read_to_string(t.path().join("c/b.clidraw.json")).unwrap();
     assert!(text.contains("\"bound\"") && !text.contains("anchored"));

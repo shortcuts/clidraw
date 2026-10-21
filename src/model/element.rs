@@ -143,16 +143,17 @@ impl Paint {
     }
 }
 
-/// Side of a shape a bound line end leaves from. `Auto` picks the side facing the other end.
+/// Side of a shape a bound line end leaves from, and the cell along that side counted from its
+/// start. `Auto` picks the side facing the other end, at its midpoint.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Anchor {
     #[default]
     Auto,
-    Top,
-    Right,
-    Bottom,
-    Left,
+    Top(i32),
+    Right(i32),
+    Bottom(i32),
+    Left(i32),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -186,3 +186,45 @@ fn text_matches_golden() {
     check("sample.txt", &text(&sample()));
     assert_eq!(text(&Canvas::default()), "");
 }
+
+#[test]
+fn svg_follows_the_free_anchor_cell() {
+    let shape = |id: &str, x| {
+        Element::Shape(Shape {
+            id: Id::from(id),
+            kind: ShapeKind::Rect,
+            x,
+            y: 5,
+            w: 8,
+            h: 3,
+            label: String::new(),
+            stroke: Default::default(),
+            border: Default::default(),
+            color: None,
+            fill: None,
+            align: Default::default(),
+            bold: false,
+            link: None,
+        })
+    };
+    let with = |a| Canvas {
+        elements: vec![
+            shape("aaaaaaaa", 0),
+            shape("bbbbbbbb", 20),
+            Element::Line(Line {
+                id: Id::from("cccccccc"),
+                kind: LineKind::Arrow,
+                from: End::Bound(Id::from("aaaaaaaa"), a),
+                to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
+                label: String::new(),
+                label_at: None,
+                stroke: Default::default(),
+                routing: Default::default(),
+                color: None,
+            }),
+        ],
+        ..Canvas::default()
+    };
+    assert!(svg(&with(Anchor::Top(1))).contains("d=\"M12 72 L12 88 "));
+    assert!(svg(&with(Anchor::Top(4))).contains("d=\"M36 72 L36 88 "));
+}

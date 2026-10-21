@@ -1,6 +1,6 @@
 use clidraw::model::{
-    corners, label_pos, route, side_mid, straight, wrap, Anchor, Axis, Canvas, Command, Element,
-    End, History, Id, Line, LineKind, Routing, Shape, ShapeKind, Side, Stroke, Z,
+    corners, edge_anchor, label_pos, route, side_mid, straight, wrap, Anchor, Axis, Canvas,
+    Command, Element, End, History, Id, Line, LineKind, Routing, Shape, ShapeKind, Side, Stroke, Z,
 };
 
 fn shape(id: &str, x: i32) -> Element {
@@ -695,7 +695,7 @@ fn line_of(c: &Canvas) -> Line {
 
 #[test]
 fn a_pinned_end_leaves_its_side_and_auto_faces_the_other_end() {
-    let (c, _) = pinned(Anchor::Top);
+    let (c, _) = pinned(Anchor::Top(3));
     assert_eq!(c.line_ends(&line_of(&c)).0, (3, -1));
     let (c, _) = pinned(Anchor::Auto);
     assert_eq!(c.line_ends(&line_of(&c)).0, (6, 1));
@@ -708,33 +708,58 @@ fn side_mid_lands_one_cell_outside_the_border() {
     };
     (s.y, s.w) = (1, 7);
     let at = |a, t| side_mid(&s, a, t).0;
-    assert_eq!(at(Anchor::Top, (0, 0)), (5, 0));
-    assert_eq!(at(Anchor::Bottom, (0, 0)), (5, 4));
-    assert_eq!(at(Anchor::Left, (0, 0)), (1, 2));
-    assert_eq!(at(Anchor::Right, (0, 0)), (9, 2));
+    assert_eq!(at(Anchor::Top(3), (0, 0)), (5, 0));
+    assert_eq!(at(Anchor::Bottom(3), (0, 0)), (5, 4));
+    assert_eq!(at(Anchor::Left(1), (0, 0)), (1, 2));
+    assert_eq!(at(Anchor::Right(1), (0, 0)), (9, 2));
+    assert_eq!(at(Anchor::Top(1), (0, 0)), (3, 0));
+    assert_eq!(at(Anchor::Top(0), (0, 0)), (2, 0));
+    assert_eq!(at(Anchor::Top(99), (0, 0)), (8, 0));
+    assert_eq!(at(Anchor::Left(-4), (0, 0)), (1, 1));
     assert_eq!(at(Anchor::Auto, (50, 2)), (9, 2));
     assert_eq!(at(Anchor::Auto, (5, 40)), (5, 4));
 }
 
 #[test]
+fn edge_anchor_snaps_to_midpoint_clamps_corners_and_pulls_interior_to_the_border() {
+    let mut s = match shape("aaaaaaaa", 0) {
+        Element::Shape(s) => s,
+        _ => panic!(),
+    };
+    (s.w, s.h) = (12, 7);
+    assert_eq!(edge_anchor(&s, (7, 0)), Anchor::Top(6));
+    assert_eq!(edge_anchor(&s, (9, 0)), Anchor::Top(9));
+    assert_eq!(edge_anchor(&s, (0, 0)), Anchor::Top(1));
+    assert_eq!(edge_anchor(&s, (11, 6)), Anchor::Bottom(10));
+    assert_eq!(edge_anchor(&s, (0, 5)), Anchor::Left(5));
+    assert_eq!(edge_anchor(&s, (11, 1)), Anchor::Right(1));
+    assert_eq!(edge_anchor(&s, (2, 3)), Anchor::Left(3));
+    assert_eq!(edge_anchor(&s, (12, 3)), Anchor::Auto);
+    assert_eq!(edge_anchor(&s, (5, -1)), Anchor::Auto);
+    (s.w, s.h) = (2, 2);
+    assert_eq!(edge_anchor(&s, (0, 0)), Anchor::Top(1));
+    assert_eq!(edge_anchor(&s, (1, 1)), Anchor::Bottom(1));
+}
+
+#[test]
 fn undoing_a_shape_delete_restores_the_anchor() {
-    let (mut c, mut h) = pinned(Anchor::Top);
+    let (mut c, mut h) = pinned(Anchor::Top(3));
     h.exec(&mut c, Command::Remove(Id::from("aaaaaaaa")))
         .unwrap();
     assert!(matches!(line_of(&c).from, End::Free(..)));
     h.undo(&mut c).unwrap();
     assert_eq!(
         line_of(&c).from,
-        End::Bound(Id::from("aaaaaaaa"), Anchor::Top)
+        End::Bound(Id::from("aaaaaaaa"), Anchor::Top(3))
     );
 }
 
 #[test]
 fn clone_elements_keeps_the_anchor() {
-    let (c, _) = pinned(Anchor::Left);
+    let (c, _) = pinned(Anchor::Left(1));
     let copy = c.clone_elements(&[Id::from("aaaaaaaa"), Id::from("bbbbbbbb")], 0, 5);
     let Element::Line(l) = &copy[2] else { panic!() };
-    assert!(matches!(l.from, End::Bound(_, Anchor::Left)));
+    assert!(matches!(l.from, End::Bound(_, Anchor::Left(1))));
 }
 
 fn ids(s: &[&str]) -> Vec<Id> {

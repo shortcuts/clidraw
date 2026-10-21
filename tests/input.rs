@@ -295,28 +295,28 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(l.from, End::Bound(Id::from("aaaaaaaa"), Anchor::Auto));
-    assert_eq!(l.to, End::Bound(Id::from("bbbbbbbb"), Anchor::Auto));
+    assert_eq!(l.from, End::Bound(Id::from("aaaaaaaa"), Anchor::Bottom(4)));
+    assert_eq!(l.to, End::Bound(Id::from("bbbbbbbb"), Anchor::Bottom(4)));
     assert_eq!(s.tool, Tool::Select);
-    assert_eq!(s.canvas.line_ends(&l), ((23, 5), (39, 5)));
+    assert_eq!(s.canvas.line_ends(&l), ((19, 7), (44, 7)));
 
     drag(&mut s, (42, 4), (42, 9));
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(s.canvas.line_ends(&l).1, (39, 10));
+    assert_eq!(s.canvas.line_ends(&l).1, (44, 12));
 
     click(&mut s, (46, 9), Instant::now());
     key(&mut s, KeyCode::Delete);
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(l.to, End::Free(39, 10));
+    assert_eq!(l.to, End::Free(44, 12));
     ctrl(&mut s, 'z');
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
-    assert_eq!(l.to, End::Bound(Id::from("bbbbbbbb"), Anchor::Auto));
+    assert_eq!(l.to, End::Bound(Id::from("bbbbbbbb"), Anchor::Bottom(4)));
 }
 
 #[test]
@@ -347,10 +347,12 @@ fn releasing_an_arrow_on_a_border_cell_pins_that_side() {
         l.to
     };
     let b = Id::from("bbbbbbbb");
-    assert_eq!(end_on((43, 3)), End::Bound(b.clone(), Anchor::Top));
-    assert_eq!(end_on((40, 5)), End::Bound(b.clone(), Anchor::Left));
-    assert_eq!(end_on((40, 3)), End::Bound(b.clone(), Anchor::Auto));
-    assert_eq!(end_on((43, 5)), End::Bound(b, Anchor::Auto));
+    assert_eq!(end_on((43, 3)), End::Bound(b.clone(), Anchor::Top(4)));
+    assert_eq!(end_on((46, 3)), End::Bound(b.clone(), Anchor::Top(6)));
+    assert_eq!(end_on((40, 5)), End::Bound(b.clone(), Anchor::Left(2)));
+    assert_eq!(end_on((40, 3)), End::Bound(b.clone(), Anchor::Top(1)));
+    assert_eq!(end_on((43, 5)), End::Bound(b.clone(), Anchor::Bottom(4)));
+    assert_eq!(end_on((60, 5)), End::Free(60, 5));
 }
 
 #[test]
@@ -362,7 +364,7 @@ fn dragging_a_line_end_onto_empty_canvas_frees_it() {
         panic!("no line")
     };
     assert_eq!(l.to, End::Free(50, 12));
-    assert_eq!(l.from, End::Bound(Id::from("aaaaaaaa"), Anchor::Auto));
+    assert_eq!(l.from, End::Bound(Id::from("aaaaaaaa"), Anchor::Bottom(4)));
 }
 
 #[test]
@@ -836,9 +838,9 @@ fn shape_under_a_dragged_line_end_is_the_snap_target_until_release() {
     mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 18, 5, t);
     mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 43, 10, t);
     assert_eq!(s.snap, Some(Id::from("bbbbbbbb")));
-    assert_eq!(s.snap_at, Some((39, 11)));
-    mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 43, 9, t);
     assert_eq!(s.snap_at, Some((44, 8)));
+    mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 46, 9, t);
+    assert_eq!(s.snap_at, Some((46, 8)));
     mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 30, 20, t);
     assert_eq!(s.snap, None);
     assert_eq!(s.snap_at, None);
@@ -868,7 +870,7 @@ fn clicking_the_middle_run_of_a_bent_route_selects_the_line() {
     };
     click(&mut s, (70, 20), Instant::now());
     assert!(s.selection.is_empty());
-    click(&mut s, (31, 8), Instant::now());
+    click(&mut s, (31, 7), Instant::now());
     assert_eq!(s.selection, vec![l.id]);
 }
 

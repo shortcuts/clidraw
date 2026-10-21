@@ -14,31 +14,48 @@ pub enum Axis {
 
 type Pt = (i32, i32);
 
-/// Anchor for a pointer on a non-corner border cell of `s`; `Auto` anywhere else.
+/// Anchor for a pointer on or inside `s`: the nearest side and the cell along it. The cell
+/// is never a corner, and snaps to the side midpoint within 1 of it. `Auto` outside `s`.
 pub fn edge_anchor(s: &Shape, (x, y): Pt) -> Anchor {
     let (right, bottom) = (s.x + s.w - 1, s.y + s.h - 1);
     if x < s.x || x > right || y < s.y || y > bottom {
         return Anchor::Auto;
     }
-    match (x == s.x, x == right, y == s.y, y == bottom) {
-        (false, false, true, _) => Anchor::Top,
-        (false, false, _, true) => Anchor::Bottom,
-        (true, _, false, false) => Anchor::Left,
-        (_, true, false, false) => Anchor::Right,
-        _ => Anchor::Auto,
+    let d = [y - s.y, bottom - y, x - s.x, right - x];
+    let side = (0..4).min_by_key(|&i| d[i]).unwrap_or(0);
+    let (off, len) = if side < 2 {
+        (x - s.x, s.w)
+    } else {
+        (y - s.y, s.h)
+    };
+    let mid = len / 2;
+    let off = if len < 3 || (off - mid).abs() <= 1 {
+        mid
+    } else {
+        off.clamp(1, len - 2)
+    };
+    match side {
+        0 => Anchor::Top(off),
+        1 => Anchor::Bottom(off),
+        2 => Anchor::Left(off),
+        _ => Anchor::Right(off),
     }
 }
 
-/// The cell just outside the midpoint of the side of `s` the anchor names, or of the side that
-/// faces `toward` for `Auto`, and the axis a line leaves it on.
+/// The cell just outside the side of `s` the anchor names, at its offset along it, or at the
+/// midpoint of the side that faces `toward` for `Auto`, and the axis a line leaves it on.
 // shortcut: shapes under 2 cells apart overlap the end cells, clamp if it matters
 pub fn side_mid(s: &Shape, anchor: Anchor, toward: Pt) -> (Pt, Axis) {
     let (cx, cy) = center(s);
+    let (ox, oy) = (
+        |o: i32| s.x + o.clamp(0, s.w - 1),
+        |o: i32| s.y + o.clamp(0, s.h - 1),
+    );
     match anchor {
-        Anchor::Top => return ((cx, s.y - 1), Axis::Vertical),
-        Anchor::Bottom => return ((cx, s.y + s.h), Axis::Vertical),
-        Anchor::Left => return ((s.x - 1, cy), Axis::Horizontal),
-        Anchor::Right => return ((s.x + s.w, cy), Axis::Horizontal),
+        Anchor::Top(o) => return ((ox(o), s.y - 1), Axis::Vertical),
+        Anchor::Bottom(o) => return ((ox(o), s.y + s.h), Axis::Vertical),
+        Anchor::Left(o) => return ((s.x - 1, oy(o)), Axis::Horizontal),
+        Anchor::Right(o) => return ((s.x + s.w, oy(o)), Axis::Horizontal),
         Anchor::Auto => {}
     }
     let (dx, dy) = (toward.0 - cx, toward.1 - cy);
