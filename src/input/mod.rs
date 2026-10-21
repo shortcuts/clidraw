@@ -121,6 +121,8 @@ pub struct Session {
     pub snap_at: Option<(i32, i32)>,
     /// What a click at the pointer would hit; only the Select tool at rest sets it.
     pub hover: Hit,
+    /// Whether a click at the pointer would grab a label to drag or edit it.
+    pub label_hover: bool,
     pub palette_hover: Option<PaletteHit>,
     /// Whether the pointer rested on `palette_hover` long enough to show its tooltip.
     pub tip: bool,
@@ -163,6 +165,7 @@ impl Session {
             snap: None,
             snap_at: None,
             hover: Hit::Empty,
+            label_hover: false,
             palette_hover: None,
             tip: false,
             tip_due: None,
@@ -175,6 +178,39 @@ impl Session {
             shift: false,
             last_pan: None,
             glide: None,
+        }
+    }
+
+    /// OSC 22 name of the mouse pointer shape for the current state.
+    pub fn pointer(&self) -> &'static str {
+        if self.edit.is_some() {
+            return "text";
+        }
+        if let Gesture::Dragging { action, .. } = &self.gesture {
+            return match action {
+                Action::Pan(_) | Action::Move { .. } | Action::LabelDrag(_) => "grabbing",
+                Action::Resize { .. }
+                | Action::EndDrag { .. }
+                | Action::Create { .. }
+                | Action::CreateLine(_) => "crosshair",
+                Action::Palette | Action::Band(_) => "default",
+            };
+        }
+        if self.palette_hover.is_some() {
+            return "pointer";
+        }
+        match (self.tool, &self.hover) {
+            (Tool::Hand, _) => "grab",
+            (Tool::Text, _) => "text",
+            (Tool::Select, Hit::Handle(Handle::Corner(Corner::Nw | Corner::Se), _)) => {
+                "nwse-resize"
+            }
+            (Tool::Select, Hit::Handle(Handle::Corner(_), _)) => "nesw-resize",
+            (Tool::Select, Hit::Handle(Handle::End(_), _)) => "crosshair",
+            (Tool::Select, _) if self.label_hover => "text",
+            (Tool::Select, Hit::Element(_)) => "grab",
+            (Tool::Select, Hit::Empty) => "default",
+            _ => "crosshair",
         }
     }
 

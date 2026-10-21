@@ -29,6 +29,8 @@ pub struct App {
     pub name: String,
     pub quit: bool,
     pub dirty: bool,
+    pointer: &'static str,
+    pointer_sent: &'static str,
     pick: Option<export::Pick>,
     store: Store,
     state: State,
@@ -162,6 +164,25 @@ impl App {
     }
 
     pub fn on_event(&mut self, ev: Event, now: Instant) {
+        self.dispatch(ev, now);
+        let shape = self.pointer_shape();
+        self.dirty |= shape != std::mem::replace(&mut self.pointer, shape);
+    }
+
+    fn pointer_shape(&self) -> &'static str {
+        match self.overlay {
+            Overlay::None => self.session.pointer(),
+            _ => "default",
+        }
+    }
+
+    /// The pointer shape to send, or `None` when the terminal already shows it.
+    pub fn take_pointer(&mut self) -> Option<&'static str> {
+        (self.pointer != std::mem::replace(&mut self.pointer_sent, self.pointer))
+            .then_some(self.pointer)
+    }
+
+    fn dispatch(&mut self, ev: Event, now: Instant) {
         self.dirty |= !matches!(&ev, Event::Mouse(m) if m.kind == MouseEventKind::Moved);
         match ev {
             Event::Resize(w, h) => self.session.screen = (w, h),

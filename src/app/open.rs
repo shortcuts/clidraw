@@ -38,6 +38,8 @@ impl App {
             name: String::new(),
             quit: false,
             dirty: true,
+            pointer: "default",
+            pointer_sent: "default",
             pick: None,
             store,
             state,

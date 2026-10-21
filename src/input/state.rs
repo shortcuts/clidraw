@@ -240,6 +240,7 @@ fn hover(s: &mut Session, screen: P, world: P) {
     } else {
         Hit::Empty
     };
+    s.label_hover = idle && hit::label_hit(&s.canvas, &s.selection, world).is_some();
     s.palette_hover = if matches!(s.gesture, Gesture::Idle) {
         palette::hit(s, screen.0, screen.1)
     } else {
@@ -249,6 +250,7 @@ fn hover(s: &mut Session, screen: P, world: P) {
 
 fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     s.hover = Hit::Empty;
+    s.label_hover = false;
     s.palette_hover = None;
     if s.place_caret(world) {
         return;

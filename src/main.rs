@@ -37,6 +37,10 @@ fn restore() {
         LeaveAlternateScreen,
         cursor::Show
     );
+    // Pops the shape pushed at startup; terminals without OSC 22 ignore it.
+    let _ = stdout()
+        .write_all(b"\x1b]22;<\x1b\\")
+        .and_then(|_| stdout().flush());
 }
 
 fn draw_frame(
@@ -46,6 +50,9 @@ fn draw_frame(
 ) -> Result<usize> {
     // Terminals without synchronized output ignore the unknown private mode.
     write!(terminal.backend_mut(), "\x1b[?2026h")?;
+    if let Some(shape) = app.take_pointer() {
+        write!(terminal.backend_mut(), "\x1b]22;={shape}\x1b\\")?;
+    }
     terminal.draw(|f| {
         let area = f.area();
         app.render(f.buffer_mut(), area)
@@ -138,6 +145,7 @@ fn main() -> Result<()> {
         EnableMouseCapture,
         EnableBracketedPaste
     )?;
+    stdout().write_all(b"\x1b]22;>default\x1b\\")?;
     app.session.theme = theme::resolve(
         setting,
         std::env::var_os("NO_COLOR").is_some(),

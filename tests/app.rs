@@ -1434,3 +1434,23 @@ fn ticks_only_while_the_view_glides() {
     assert_eq!((app.session.view.ox, app.session.view.oy), (65, 40));
     assert_eq!(app.next_wake(t0 + Duration::from_millis(120)), None);
 }
+
+#[test]
+fn pointer_shape_follows_tool_hover_and_drag() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
+    let t0 = Instant::now();
+    assert_eq!(app.take_pointer(), None);
+
+    app.on_event(key(KeyCode::Char('r')), t0);
+    assert_eq!(app.take_pointer(), Some("crosshair"));
+    app.on_event(key(KeyCode::Char('h')), t0);
+    assert_eq!(app.take_pointer(), Some("grab"));
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 30, 10), t0);
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 34, 10), t0);
+    assert_eq!(app.take_pointer(), Some("grabbing"));
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 34, 10), t0);
+    app.on_event(key(KeyCode::Esc), t0);
+    assert_eq!(app.take_pointer(), Some("default"));
+}
