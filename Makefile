@@ -30,5 +30,7 @@ profile:
 
 check: fmt-check lint test perf
 
+# Also deletes every saved canvas, the config and the history. Paths mirror resolve_dir and resolve_state_dir in src/store.rs.
 clean:
 	cargo clean
+	rm -rf "$${CLIDRAW_HOME:-$${XDG_CONFIG_HOME:-$$HOME/.config}/clidraw}" "$${XDG_STATE_HOME:-$$HOME/.local/state}/clidraw"
