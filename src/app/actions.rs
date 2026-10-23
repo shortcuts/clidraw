@@ -18,6 +18,8 @@ impl App {
             }
             KeyCode::Up => a.up(),
             KeyCode::Down => a.down(),
+            KeyCode::Char('p') if k.modifiers.contains(KeyModifiers::CONTROL) => a.up(),
+            KeyCode::Char('n') if k.modifiers.contains(KeyModifiers::CONTROL) => a.down(),
             KeyCode::Backspace => a.pop(),
             KeyCode::Char(c) if !k.modifiers.contains(KeyModifiers::CONTROL) => a.push(c),
             _ => {}

@@ -1775,3 +1775,24 @@ fn clicking_the_bar_creates_nothing() {
     click(&mut app, 70, 23, now);
     assert_eq!(shape_count(&app), 0);
 }
+
+#[test]
+fn palette_ctrl_n_and_ctrl_p_move_the_selection() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    let selected = |app: &App| match &app.overlay {
+        clidraw::ui::Overlay::Actions(a) => a.selected_action(),
+        _ => panic!("palette is not open"),
+    };
+    ctrl_key(&mut app, 'p', now);
+    let first = selected(&app);
+    ctrl_key(&mut app, 'n', now);
+    let second = selected(&app);
+    assert_ne!(first, second);
+    ctrl_key(&mut app, 'p', now);
+    assert_eq!(selected(&app), first);
+    assert!(palette_open(&app));
+    app.on_event(key(KeyCode::Down), now);
+    assert_eq!(selected(&app), second);
+}
