@@ -1,4 +1,4 @@
-use super::grid::{Grid, REVERSE, UNDERLINE};
+use super::grid::{Grid, DIM, REVERSE, UNDERLINE};
 use crate::input::{Session, Tool};
 use crate::model::{Align, Border, Element, Id, LineKind, Paint, Routing, Stroke, TextAlign, Z};
 use std::collections::HashMap;
@@ -197,12 +197,18 @@ fn active(els: &[&Element], c: Choice) -> bool {
     }
 }
 
-/// Every clickable cell run as (hit, x, y, width). Tools fill row 0; options start on row 1 and wrap at `width`.
+/// Every clickable cell run as (hit, x, y, width). Tools fill row 0, with their key when the row fits; options start on row 1 and wrap at `width`.
 pub fn cells(opts: &[Choice], width: i32) -> Vec<(PaletteHit, i32, i32, i32)> {
     let mut out = vec![];
     let mut x = 0;
+    let key_w = |t: Tool| t.key().map_or(0, |_| 2);
+    let keyed = Tool::ALL
+        .iter()
+        .map(|&t| t.label().len() as i32 + 2 + key_w(t))
+        .sum::<i32>()
+        <= width;
     for t in Tool::ALL {
-        let w = t.label().len() as i32 + 2;
+        let w = t.label().len() as i32 + 2 + if keyed { key_w(t) } else { 0 };
         out.push((PaletteHit::Tool(t), x, 0, w));
         x += w;
     }
@@ -245,8 +251,15 @@ pub fn draw(grid: &mut Grid, s: &Session) {
             } else {
                 0
             };
+        let key = match h {
+            PaletteHit::Tool(t) if w as usize > text.len() + 2 => t.key(),
+            _ => None,
+        };
         let pad = " ".repeat((w as usize).saturating_sub(text.len() + 1));
         grid.text(x, y, &format!(" {text}{pad}"), flags);
+        if let Some(k) = key {
+            grid.text(x + w - 2, y, &k.to_string(), flags | DIM);
+        }
     }
     if let (true, Some(h)) = (s.tip, s.palette_hover) {
         tooltip(grid, h, &cells);

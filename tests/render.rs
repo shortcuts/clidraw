@@ -1097,3 +1097,27 @@ fn linked_shape_draws_a_marker_past_its_top_right_corner() {
     let b = draw(&s, &Overlay::None);
     assert_eq!(b[(28, 4)].symbol(), "↗");
 }
+
+fn top_row(s: &Session, w: u16) -> (String, Buffer) {
+    let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
+    let mut t = Terminal::new(TestBackend::new(w, 24)).unwrap();
+    t.draw(|f| {
+        let area = f.area();
+        ui::render(f.buffer_mut(), area, s, &Overlay::None, None, None, true)
+    })
+    .unwrap();
+    let b = t.backend().buffer().clone();
+    (row(&b, 0), b)
+}
+
+#[test]
+fn tool_bar_shows_each_key_dimmed_when_the_row_fits() {
+    let s = Session::new(Canvas::default(), View::default(), (100, 24));
+    let (line, b) = top_row(&s, 100);
+    assert!(line.starts_with(" Select v  Hand  Rect r "), "{line}");
+    assert!(b[(8, 0)].modifier.contains(Modifier::DIM));
+    assert_eq!(b[(8, 0)].symbol(), "v");
+    assert!(!b[(1, 0)].modifier.contains(Modifier::DIM));
+    let (line, _) = top_row(&s, 80);
+    assert!(line.starts_with(" Select  Hand  Rect "), "{line}");
+}
