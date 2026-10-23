@@ -1,6 +1,8 @@
 use super::geom::{center, route, side_mid, Axis};
+use super::router::union;
 use super::{Command, Element, End, Id, Line, Router, Shape, ShapeKind, Text, VERSION};
 use serde::{Deserialize, Serialize};
+use std::cell::Cell;
 use std::collections::HashMap;
 
 type Stop = ((i32, i32), Option<Axis>);
@@ -134,18 +136,28 @@ impl Canvas {
     }
 
     pub fn route_with<'a>(&'a self, l: &Line, find: &Find<'a>, router: &Router) -> Vec<(i32, i32)> {
-        if l.bends.is_empty() {
-            return router.around(
+        if let Some(path) = router.cached(&l.id) {
+            return path;
+        }
+        let (path, foot) = if l.bends.is_empty() {
+            router.around(
                 self,
                 find,
                 l,
                 self.anchors(l, find),
                 self.plain_with(l, find),
-            );
-        }
-        self.chain(l, find, |(p, q)| {
-            router.around(self, find, l, [p, q], route(p.0, p.1, q.0, q.1))
-        })
+            )
+        } else {
+            let foot = Cell::new(None::<(i32, i32, i32, i32)>);
+            let path = self.chain(l, find, |(p, q)| {
+                let (path, f) = router.around(self, find, l, [p, q], route(p.0, p.1, q.0, q.1));
+                foot.set(Some(foot.get().map_or(f, |g| union(g, f))));
+                path
+            });
+            (path, foot.get().expect("a bent line has a leg"))
+        };
+        router.store(l.id.clone(), path.clone(), foot);
+        path
     }
 
     /// The route ignoring obstacles.

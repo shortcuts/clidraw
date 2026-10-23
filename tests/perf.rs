@@ -144,6 +144,42 @@ fn overlapped_app(dir: &std::path::Path) -> App {
     app
 }
 
+const CROSSING_PAN: i32 = -12;
+
+/// `busy_app` panned to a band of small pluses: each vertical arrow crosses a short horizontal one it can go round.
+fn crossing_app(dir: &std::path::Path) -> App {
+    let mut app = busy_app(dir);
+    app.session.view.oy = CROSSING_PAN;
+    let free = |id: String, from: (i32, i32), to: (i32, i32)| {
+        Element::Line(Line {
+            id: Id::from(id.as_str()),
+            kind: LineKind::Arrow,
+            from: End::Free(from.0, from.1),
+            to: End::Free(to.0, to.1),
+            label: String::new(),
+            label_at: None,
+            stroke: Default::default(),
+            bends: vec![],
+            color: None,
+        })
+    };
+    for k in 0..25 {
+        let x = k * 8;
+        let els = &mut app.session.canvas.elements;
+        els.push(free(format!("h{k:07}"), (x + 2, -7), (x + 4, -7)));
+        els.push(free(format!("v{k:07}"), (x + 3, -10), (x + 3, -4)));
+    }
+    let canvas = &app.session.canvas;
+    let Some(Element::Line(v)) = canvas.elements.last() else {
+        unreachable!()
+    };
+    assert!(
+        canvas.route(v).len() > 7,
+        "the vertical arrow did not detour"
+    );
+    app
+}
+
 fn mouse_at(kind: MouseEventKind, column: u16, row: u16) -> Event {
     Event::Mouse(MouseEvent {
         kind,
@@ -426,6 +462,51 @@ fn drag_step_fits_the_budget_with_overlapping_lines() {
         .map(|_| {
             let t0 = Instant::now();
             app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left)), now);
+            frame(&app, &mut term);
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median drag step {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn frame_fits_the_budget_with_crossing_lines() {
+    let t = tempfile::tempdir().unwrap();
+    let app = crossing_app(t.path());
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            frame(&app, &mut term);
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median frame {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn drag_step_fits_the_budget_with_crossing_lines() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = crossing_app(t.path());
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let now = Instant::now();
+    let row = (26 - CROSSING_PAN) as u16;
+    app.on_event(
+        mouse_at(MouseEventKind::Down(MouseButton::Left), 101, row),
+        now,
+    );
+    assert!(!app.session.selection.is_empty(), "press missed the shape");
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            app.on_event(
+                mouse_at(MouseEventKind::Drag(MouseButton::Left), 101, row),
+                now,
+            );
             frame(&app, &mut term);
             t0.elapsed()
         })

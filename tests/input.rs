@@ -319,6 +319,31 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
 }
 
 #[test]
+fn a_new_arrow_bends_around_an_arrow_it_would_cross() {
+    let mut s = session();
+    let wall = Line {
+        id: Id::from("wall0000"),
+        kind: LineKind::Arrow,
+        from: End::Free(31, 2),
+        to: End::Free(31, 6),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        bends: vec![],
+        color: None,
+    };
+    s.canvas.elements.push(Element::Line(wall.clone()));
+    pick(&mut s, Tool::Arrow);
+    drag(&mut s, (10, 5), (50, 5));
+    let Element::Line(new) = s.canvas.elements.last().unwrap().clone() else {
+        panic!("no line")
+    };
+    let theirs = s.canvas.route(&wall);
+    let cells = s.canvas.route(&new);
+    assert!(cells.len() > 41 && !cells.iter().any(|p| theirs.contains(p)));
+}
+
+#[test]
 fn releasing_an_arrow_on_a_border_cell_pins_that_side() {
     let end_on = |to: (u16, u16)| {
         let mut s = with_shape("aaaaaaaa", 15, 3);

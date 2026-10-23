@@ -1,5 +1,6 @@
 use super::geom::Axis;
-use super::{Canvas, Element, End, Find, Line, ShapeKind};
+use super::{Canvas, Element, End, Find, Id, Line, ShapeKind};
+use std::cell::RefCell;
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
@@ -35,12 +36,19 @@ struct Item {
 
 type Buckets = HashMap<Pt, Vec<u32>>;
 
+/// A routed line and the box outside which no change can alter it.
+struct Cached {
+    path: Vec<Pt>,
+    foot: Rect,
+}
+
 /// Spatial index of the elements a routed line avoids, built once per canvas state.
 #[derive(Default)]
 pub struct Router {
     items: Vec<Item>,
     solid: Buckets,
     lines: Buckets,
+    routes: RefCell<HashMap<Id, Cached>>,
 }
 
 fn buckets((x, y, w, h): Rect) -> impl Iterator<Item = Pt> {
@@ -57,14 +65,28 @@ fn has((x, y, w, h): Rect, p: Pt) -> bool {
     holds((x, y, w, h), (p.0, p.1, 1, 1))
 }
 
+fn meets(a: Rect, b: Rect) -> bool {
+    a.0 < b.0 + b.2 && a.0 + a.2 > b.0 && a.1 < b.1 + b.3 && a.1 + a.3 > b.1
+}
+
+pub(super) fn union(a: Rect, b: Rect) -> Rect {
+    let (x, y) = (a.0.min(b.0), a.1.min(b.1));
+    (
+        x,
+        y,
+        (a.0 + a.2).max(b.0 + b.2) - x,
+        (a.1 + a.3).max(b.1 + b.3) - y,
+    )
+}
+
+fn grow((x, y, w, h): Rect, by: i32) -> Rect {
+    (x - by, y - by, w + 2 * by, h + 2 * by)
+}
+
 impl Router {
     /// `bounds[i]` is the box of `canvas.elements[i]`.
     pub fn from_bounds(canvas: &Canvas, bounds: &[Rect]) -> Router {
-        let mut r = Router {
-            items: vec![],
-            solid: Buckets::new(),
-            lines: Buckets::new(),
-        };
+        let mut r = Router::default();
         for (at, (e, &rect)) in canvas.elements.iter().zip(bounds).enumerate() {
             let kind = match e {
                 Element::Shape(s) if s.kind == ShapeKind::Frame => continue,
@@ -82,6 +104,21 @@ impl Router {
             r.items.push(Item { at, rect });
         }
         r
+    }
+
+    pub fn cached(&self, id: &Id) -> Option<Vec<Pt>> {
+        self.routes.borrow().get(id).map(|c| c.path.clone())
+    }
+
+    pub fn store(&self, id: Id, path: Vec<Pt>, foot: Rect) {
+        self.routes.borrow_mut().insert(id, Cached { path, foot });
+    }
+
+    /// Takes the routes of `old` that no `dirty` rect touches.
+    pub fn carry(&mut self, old: &mut Router, dirty: &[Rect]) {
+        let mut routes = std::mem::take(old.routes.get_mut());
+        routes.retain(|_, c| !dirty.iter().any(|&d| meets(c.foot, d)));
+        *self.routes.get_mut() = routes;
     }
 
     fn near(&self, map: &Buckets, area: Rect) -> Vec<&Item> {
@@ -102,11 +139,13 @@ impl Router {
             .collect()
     }
 
-    fn shares_segment<'a>(
+    /// Whether `plain`, bar its end cells `a` and `b`, meets the plain route of an earlier line.
+    fn crosses_line<'a>(
         &self,
         canvas: &'a Canvas,
         find: &Find<'a>,
         own: &Line,
+        (a, b): (Pt, Pt),
         plain: &[Pt],
     ) -> bool {
         let xs = plain.iter().map(|p| p.0);
@@ -122,20 +161,16 @@ impl Router {
             .iter()
             .find(|i| line(i).is_some_and(|l| l.id == own.id))
             .map_or(usize::MAX, |i| i.at);
-        // Only the later line detours: if both did, each would dodge the other's plain route and still overlap.
+        // Only the later line detours: if both did, each would dodge the other's plain route and still cross.
         near.into_iter()
             .filter(|i| i.at < me)
-            .filter(|i| {
-                plain
-                    .windows(2)
-                    .any(|w| has(i.rect, w[0]) && has(i.rect, w[1]))
-            })
+            .filter(|i| plain.iter().any(|&p| has(i.rect, p)))
             .filter_map(|i| line(i).map(|l| canvas.plain_with(l, find)))
             .any(|theirs| {
                 let theirs: HashSet<Pt> = theirs.into_iter().collect();
                 plain
-                    .windows(2)
-                    .any(|w| theirs.contains(&w[0]) && theirs.contains(&w[1]))
+                    .iter()
+                    .any(|&p| p != a && p != b && theirs.contains(&p))
             })
     }
 
@@ -164,9 +199,10 @@ impl Router {
             .any(|e| if out.0 != 0 { e.0 == b.0 } else { e.1 == b.1 })
     }
 
-    /// `plain` when no cell of it lies in an obstacle and it shares no segment with an earlier
-    /// line, else the cheapest path in the box of the end cells plus `MARGIN`. Obstacles are the other shapes and texts, minus the two
-    /// end shapes (a bent line keeps them as obstacles). A frame is no obstacle.
+    /// `plain` when no cell of it lies in an obstacle and it crosses no earlier line, else the
+    /// cheapest path in the box of the end cells plus `MARGIN`. Obstacles are the other shapes and
+    /// texts, minus the two end shapes (a bent line keeps them as obstacles). A frame is no obstacle.
+    /// Also returns a box: a change outside it leaves the path as is.
     // shortcut: other lines count by their plain route, a long line or a wide obstacle is not avoided
     pub fn around<'a>(
         &self,
@@ -175,13 +211,25 @@ impl Router {
         own: &Line,
         ends: [(Pt, Option<Axis>); 2],
         plain: Vec<Pt>,
-    ) -> Vec<Pt> {
+    ) -> (Vec<Pt>, Rect) {
         let [(a, ax_a), (b, ax_b)] = ends;
         let end_rect = |e: &End, at: Pt| match e {
             End::Bound(id, _) => find(id).map_or((at.0, at.1, 1, 1), |s| (s.x, s.y, s.w, s.h)),
             End::Free(x, y) => (*x, *y, 1, 1),
         };
         let held = [end_rect(&own.from, a), end_rect(&own.to, b)];
+        // The end stub and the lines ending beside an end shape reach LANE cells past it.
+        let foot = |searched: Rect| {
+            let ends = held.map(|r| grow(r, LANE + 1));
+            union(union(searched, ends[0]), ends[1])
+        };
+        let plain_foot = || {
+            let xs = plain.iter().map(|p| p.0);
+            let ys = plain.iter().map(|p| p.1);
+            let (x0, y0) = (xs.clone().min().unwrap_or(0), ys.clone().min().unwrap_or(0));
+            let (x1, y1) = (xs.max().unwrap_or(0), ys.max().unwrap_or(0));
+            foot(grow((x0, y0, x1 - x0 + 1, y1 - y0 + 1), MARGIN))
+        };
         let is_end = |i: &Item| match &canvas.elements[i.at] {
             Element::Shape(s) => [&own.from, &own.to]
                 .iter()
@@ -221,12 +269,13 @@ impl Router {
         });
         if straight
             && !plain.iter().any(|&p| blocked(p))
-            && !self.shares_segment(canvas, find, own, &plain)
+            && !self.crosses_line(canvas, find, own, (a, b), &plain)
         {
-            return plain;
+            let area = plain_foot();
+            return (plain, area);
         }
         if a == b {
-            return vec![a];
+            return (vec![a], plain_foot());
         }
         let t = stub.as_ref().map_or(b, |s| s[s.len() - 1]);
         let base = (
@@ -254,7 +303,8 @@ impl Router {
         }
         let (w, h) = (x1 - x0 + 1, y1 - y0 + 1);
         if i64::from(w) * i64::from(h) > i64::from(MAX_AREA) {
-            return plain;
+            let area = plain_foot();
+            return (plain, area);
         }
         let area = (x0, y0, w, h);
         let cell = |p: Pt| ((p.1 - y0) * w + p.0 - x0) as usize;
@@ -348,7 +398,7 @@ impl Router {
                 if let Some(s) = &stub {
                     path.extend(s.iter().rev().skip(1).chain([&b]));
                 }
-                return path;
+                return (path, foot(area));
             }
             for nd in (0..4).filter(|&nd| nd != d ^ 1) {
                 let Some(n) = step(c, nd) else { continue };
@@ -364,6 +414,6 @@ impl Router {
                 }
             }
         }
-        plain
+        (plain, foot(area))
     }
 }

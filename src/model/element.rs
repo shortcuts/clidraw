@@ -131,7 +131,7 @@ impl Paint {
 
 /// Side of a shape a bound line end leaves from, and the cell along that side counted from its
 /// start. `Auto` picks the side facing the other end, at its midpoint.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Anchor {
     #[default]
@@ -142,7 +142,7 @@ pub enum Anchor {
     Left(i32),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(from = "Wire", into = "Wire")]
 pub enum End {
     Bound(Id, Anchor),

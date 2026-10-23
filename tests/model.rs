@@ -1053,7 +1053,7 @@ fn an_arrow_does_not_share_a_segment_with_another_arrow() {
 }
 
 #[test]
-fn a_crossing_keeps_the_plain_route() {
+fn an_unavoidable_crossing_keeps_the_plain_route() {
     let other = elbow("other000", End::Free(10, 0), End::Free(10, 12));
     let (c, l) = ab(vec![Element::Line(other)]);
     let plain = route(
@@ -1063,6 +1063,42 @@ fn a_crossing_keeps_the_plain_route() {
         Some(Axis::Horizontal),
     );
     assert_eq!(c.route(&l), plain);
+}
+
+#[test]
+fn an_arrow_detours_around_a_crossing_it_can_avoid() {
+    let other = elbow("other000", End::Free(10, 3), End::Free(10, 7));
+    let (c, l) = ab(vec![Element::Line(other.clone())]);
+    let cells = c.route(&l);
+    walks(&cells);
+    assert_eq!((cells[0], cells[cells.len() - 1]), ((3, 5), (19, 5)));
+    assert!(!cells.iter().any(|p| c.route(&other).contains(p)));
+}
+
+#[test]
+fn an_earlier_arrow_keeps_its_plain_route_when_a_later_one_crosses_it() {
+    let other = elbow("other000", End::Free(10, 3), End::Free(10, 7));
+    let (mut c, _) = ab(vec![]);
+    c.elements.insert(2, Element::Line(other.clone()));
+    assert_eq!(
+        c.route(&other),
+        (3..=7).map(|y| (10, y)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn arrows_leaving_one_cell_in_opposite_directions_keep_their_plain_routes() {
+    let up = elbow("up000000", End::Free(5, 5), End::Free(5, 0));
+    let down = elbow("down0000", End::Free(5, 5), End::Free(5, 10));
+    let c = Canvas {
+        elements: vec![Element::Line(up.clone()), Element::Line(down.clone())],
+        ..Canvas::default()
+    };
+    assert_eq!(
+        c.route(&up),
+        (0..=5).rev().map(|y| (5, y)).collect::<Vec<_>>()
+    );
+    assert_eq!(c.route(&down), (5..=10).map(|y| (5, y)).collect::<Vec<_>>());
 }
 
 #[test]
