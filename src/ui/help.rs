@@ -8,10 +8,7 @@ const CANVAS: [(&str, &str); 18] = [
     ("Esc", "Cancel, deselect"),
     ("Delete, Backspace", "Delete the selection"),
     ("Ctrl-a", "Select everything"),
-    (
-        "Arrows, h j k l",
-        "Move or pan; Shift adds linked shape",
-    ),
+    ("Arrows, h j k l", "Move or pan; Shift adds linked shape"),
     ("] [", "Raise, lower the selection"),
     ("} {", "Send to front, to back"),
     ("< | > ^ - _", "Align the selection"),
