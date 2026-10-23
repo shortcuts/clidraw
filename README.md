@@ -7,7 +7,16 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
 - `make run` opens the last canvas, or creates `untitled`.
 - `cargo run -- <name>` opens or creates the canvas `<name>`.
 - `cargo run -- config` prints the default `config.toml`. A canvas named `config` opens from the menu, not by argument.
-- `cargo run -- export <name> --svg|--mermaid <path>` writes a saved canvas to a file without opening the UI, for scripts and CI. A canvas named `export` opens from the menu, not by argument.
+- `cargo run -- list|new|show|edit|import|export` run without the UI, for scripts and agents. Each prints JSON on stdout, or the export text, and exits 1 with `Error: <msg>` on stderr. A canvas named like one of these commands opens from the menu, not by argument.
+  - `list` prints the canvas names as a JSON array. `new <name>` creates an empty canvas. `show <name>` prints the canvas file.
+  - `edit <name>` reads a JSON array of ops on stdin and applies them all or none. It prints `{"applied":N,"ids":[...]}` with the ids of the created elements. The canvas must exist.
+  - `import <name> <path|->` adds a Mermaid flowchart below the existing content and creates the canvas if missing.
+  - `export <name> --svg|--mermaid|--text <path|->` writes a saved canvas to a file, or to stdout for `-`.
+  - Ops: `add_shape` (`x`, `y`, optional `kind`, `w`, `h`, `label`, `color`, `fill`, `id`), `add_text` (`x`, `y`, `text`, optional `color`, `id`), `connect` (`from`, `to`, optional `kind`, `label`, `id`), `set` (`id`, optional `label`, `color`, `fill`), `move` (`id`, `dx`, `dy`), `delete` (`id`). Shape `kind` is `Rect`, `Diamond`, `Cylinder`, `Parallelogram`, `Hexagon` or `Frame`. Line `kind` is `Line`, `Arrow`, `ArrowStart` or `ArrowBoth`. Colors are `red`, `orange`, `yellow`, `green`, `blue`, `violet`, or `none` in `set`. A `connect` end is a shape id or an `[x, y]` cell.
+
+    ```sh
+    echo '[{"op":"add_shape","id":"a","x":0,"y":0,"label":"Hi"},{"op":"add_shape","id":"b","x":20,"y":0,"label":"Yo"},{"op":"connect","from":"a","to":"b"}]' | clidraw edit demo
+    ```
 - `cargo run -- probe` prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.
 - `cargo run --release -- bench` replays a scripted drag and pan on a generated 5000-element canvas in your terminal and prints the frame times.
 - `cargo test --test e2e` runs the real binary in a pty and asserts on the parsed screen. Use it to prove a Live box without a human.
@@ -162,3 +171,4 @@ Read [AGENTS.md](AGENTS.md) for the constraints and test rules. Run `make check`
 - Settings: `config.toml` in the canvas directory. The first run writes it with every key commented. Keys: `autosave_ms` (500), `double_click_ms` (400), `default_canvas` (`untitled`), `grid` (1 = no snapping; a larger number snaps drawn, moved and resized shapes to multiples of that many cells), `theme` (`auto`, `dark`, `light`; default `auto`; auto asks the terminal for its background and falls back to dark), `motion` (`true`; `false` makes Fit all and search jump snap instead of gliding over 120 ms). A bad or unknown key shows a status line and keeps the default.
 - Viewport and last canvas: `$XDG_STATE_HOME/clidraw/state.json`, else `~/.local/state/clidraw/state.json`.
 - Undo history: `history/<name>.json` beside `state.json`. It holds at most `history_limit` steps and is dropped when the canvas file changes outside clidraw. Redo does not persist.
+- Edits from the CLI while the UI has the same canvas open are lost: the UI autosaves its own state over them. A CLI edit also drops that canvas's undo history.
