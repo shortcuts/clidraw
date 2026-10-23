@@ -928,8 +928,6 @@ fn info_bar_hints_follow_the_state() {
     assert!(r.contains("2 sel"), "{r}");
     s.tool = Tool::Rect;
     assert!(bar(&s, 80, true).contains("drag draw"));
-    s.tool = Tool::Hand;
-    assert!(bar(&s, 80, true).contains("drag pan"));
     s.tool = Tool::Select;
     s.start_edit_new((5, 5));
     assert!(bar(&s, 80, true).contains("Enter commit"));
@@ -1107,12 +1105,12 @@ fn top_row(s: &Session, w: u16) -> (String, Buffer) {
 fn tool_bar_shows_each_key_dimmed_when_the_row_fits() {
     let s = Session::new(Canvas::default(), View::default(), (100, 24));
     let (line, b) = top_row(&s, 100);
-    assert!(line.starts_with(" Select v  Hand  Rect r "), "{line}");
+    assert!(line.starts_with(" Select v  Rect r "), "{line}");
     assert!(b[(8, 0)].modifier.contains(Modifier::DIM));
     assert_eq!(b[(8, 0)].symbol(), "v");
     assert!(!b[(1, 0)].modifier.contains(Modifier::DIM));
     let (line, _) = top_row(&s, 80);
-    assert!(line.starts_with(" Select  Hand  Rect "), "{line}");
+    assert!(line.starts_with(" Select  Rect "), "{line}");
 }
 
 #[test]

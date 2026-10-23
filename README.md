@@ -26,9 +26,9 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 
 ## Use
 
-- Pick a tool in the top bar: Select, Hand, Rect, Diamond, Cylinder, Slant, Hexagon, Frame (`f`), Arrow, Text.
+- Pick a tool in the top bar: Select, Rect, Diamond, Cylinder, Slant, Hexagon, Frame (`f`), Arrow, Text.
 - Draw a frame around shapes, then click its border to move them together.
-- Drag on empty canvas to draw. Drag a selected element to move it.
+- Drag on empty canvas to pan, or to draw with a shape tool. Drag a selected element to move it.
 - Moving shapes snaps to other shapes' edges and centers within 1 cell and shows dotted guides. Hold Shift to turn guides off. Guides override `grid`.
 - Drag a selected line to bend it. Drag a bend handle to move it. Right-click the line and choose Reset route to go back to the automatic route.
 - Drag a corner handle to resize. Drag a line end onto a shape to bind it: the shape turns bold and `◆` marks the cell where the end will attach.
@@ -84,7 +84,7 @@ clidraw takes its core model from [excalidraw](https://excalidraw.com) and [tldr
 - Shapes: rectangle, diamond, slant, hexagon, cylinder and frame.
 - Lines and arrows that bind to shapes. A bound end follows its shape when the shape moves.
 - Frames that move their content together.
-- Marquee select, multi-select drag, group and ungroup.
+- Marquee select (Shift+drag on empty canvas), multi-select drag, group and ungroup.
 - Align, distribute and z-order commands.
 - Snapping to shape edges and centers, and a grid.
 - Labels with line breaks, word wrap, bold and alignment.

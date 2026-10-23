@@ -25,7 +25,6 @@ use std::time::{Duration, Instant};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Tool {
     Select,
-    Hand,
     Rect,
     Diamond,
     Cylinder,
@@ -37,9 +36,8 @@ pub enum Tool {
 }
 
 impl Tool {
-    pub const ALL: [Tool; 10] = [
+    pub const ALL: [Tool; 9] = [
         Tool::Select,
-        Tool::Hand,
         Tool::Rect,
         Tool::Diamond,
         Tool::Cylinder,
@@ -53,7 +51,6 @@ impl Tool {
     pub fn label(self) -> &'static str {
         match self {
             Tool::Select => "Select",
-            Tool::Hand => "Hand",
             Tool::Rect => "Rect",
             Tool::Diamond => "Diamond",
             Tool::Cylinder => "Cylinder",
@@ -68,7 +65,6 @@ impl Tool {
     pub fn key(self) -> Option<char> {
         match self {
             Tool::Select => Some('v'),
-            Tool::Hand => None,
             Tool::Rect => Some('r'),
             Tool::Diamond => Some('d'),
             Tool::Cylinder => Some('c'),
@@ -188,7 +184,6 @@ impl Session {
             return "pointer";
         }
         match (self.tool, &self.hover) {
-            (Tool::Hand, _) => "grab",
             (Tool::Text, _) => "text",
             (Tool::Select, Hit::Handle(Handle::Corner(Corner::Nw | Corner::Se), _)) => {
                 "nwse-resize"

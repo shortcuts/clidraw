@@ -73,9 +73,6 @@ fn hints(s: &Session, overlay: &Overlay) -> Hints {
         ],
         Overlay::None if s.zoomed_out() => &[("Esc", "1x"), ("Ctrl+wheel", "zoom"), ("?", "help")],
         Overlay::None if s.dragging() => &[("Esc", "cancel")],
-        Overlay::None if s.tool == Tool::Hand => {
-            &[("drag", "pan"), ("Esc", "cancel"), ("v", "select")]
-        }
         Overlay::None if s.tool != Tool::Select => {
             &[("drag", "draw"), ("Esc", "cancel"), ("v", "select")]
         }

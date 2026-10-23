@@ -236,7 +236,8 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
             Action::BendDrag { id, at }
         }
         Target::Handle(Handle::Bend(at), id) => Action::BendDrag { id, at },
-        Target::Empty => Action::Band(w0),
+        Target::Empty if s.shift => Action::Band(w0),
+        Target::Empty => Action::Pan(origin),
         Target::Handle(Handle::End(side), id) => Action::EndDrag { id, side },
         Target::Handle(Handle::Corner(c), id) => {
             let (x, y, w, h) = s

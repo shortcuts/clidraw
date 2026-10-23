@@ -135,6 +135,15 @@ fn mouse_at(kind: MouseEventKind, column: u16, row: u16) -> Event {
     })
 }
 
+fn shift_mouse_at(kind: MouseEventKind, column: u16, row: u16) -> Event {
+    Event::Mouse(MouseEvent {
+        kind,
+        column,
+        row,
+        modifiers: KeyModifiers::SHIFT,
+    })
+}
+
 fn mouse(kind: MouseEventKind) -> Event {
     mouse_at(kind, 101, 26)
 }
@@ -420,9 +429,9 @@ fn band_step_fits_the_budget_on_5000_elements() {
     let mut app = busy_app(t.path());
     let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
     let now = Instant::now();
-    let drag = mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40);
+    let drag = shift_mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40);
     app.on_event(
-        mouse_at(MouseEventKind::Down(MouseButton::Left), 250, 0),
+        shift_mouse_at(MouseEventKind::Down(MouseButton::Left), 250, 0),
         now,
     );
     app.on_event(drag.clone(), now);
@@ -488,7 +497,7 @@ fn line_end_drag_step_fits_the_budget_on_5000_elements() {
         .pop()
         .unwrap();
     let grab = mouse_at(MouseEventKind::Down(MouseButton::Left), x as u16, y as u16);
-    let drag = mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40);
+    let drag = shift_mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40);
     app.on_event(grab, now);
     app.on_event(drag.clone(), now);
     assert!(
@@ -763,11 +772,11 @@ fn wheel_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duratio
 fn band_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
     let now = Instant::now();
     app.on_event(
-        mouse_at(MouseEventKind::Down(MouseButton::Left), 250, 0),
+        shift_mouse_at(MouseEventKind::Down(MouseButton::Left), 250, 0),
         now,
     );
     app.on_event(
-        mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
+        shift_mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
         now,
     );
     assert!(
@@ -777,7 +786,7 @@ fn band_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration
     repeat_event(
         app,
         term,
-        mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
+        shift_mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
     )
 }
 
@@ -820,7 +829,7 @@ fn line_end_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Dura
         now,
     );
     app.on_event(
-        mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
+        shift_mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
         now,
     );
     assert!(
@@ -836,7 +845,7 @@ fn line_end_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Dura
     repeat_event(
         app,
         term,
-        mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
+        shift_mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40),
     )
 }
 

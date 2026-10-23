@@ -321,7 +321,6 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     }
     let target = match (hit, s.tool) {
         (Hit::Handle(h, id), _) => Target::Handle(h, id),
-        (_, Tool::Hand) => Target::Pan,
         (_, Tool::Arrow) => Target::Draw(s.tool),
         (Hit::Element(id), _) => {
             let reshape = !s.shift

@@ -265,8 +265,7 @@ fn hjkl_without_a_selection_keep_the_tool() {
 }
 
 #[test]
-fn hand_has_no_key() {
-    assert_eq!(Tool::Hand.key(), None);
+fn tools_have_keys_and_no_line_tool() {
     assert!(Tool::ALL.iter().all(|t| t.label() != "Line"));
     assert_eq!(Tool::Rect.key(), Some('r'));
 }
@@ -368,15 +367,24 @@ fn dragging_a_line_end_onto_empty_canvas_frees_it() {
 }
 
 #[test]
-fn wheel_pans_and_hand_tool_drag_pans() {
+fn wheel_pans_and_empty_drag_pans() {
     let mut s = session();
     let t = Instant::now();
     mouse(&mut s, MouseEventKind::ScrollDown, 30, 10, t);
     mouse(&mut s, MouseEventKind::ScrollRight, 30, 10, t);
     assert_eq!((s.view.ox, s.view.oy), (4, 2));
-    pick(&mut s, Tool::Hand);
     drag(&mut s, (30, 10), (25, 12));
     assert_eq!((s.view.ox, s.view.oy), (9, 0));
+}
+
+#[test]
+fn plain_empty_drag_pans_and_shift_drag_draws_a_band() {
+    let mut s = session();
+    drag(&mut s, (30, 10), (25, 12));
+    assert_eq!((s.view.ox, s.view.oy), (5, -2));
+    assert!(s.band.is_none());
+    shift_drag(&mut s, (30, 10), (25, 12));
+    assert_eq!((s.view.ox, s.view.oy), (5, -2));
 }
 
 fn scroll_down(s: &mut Session, t: Instant) {
@@ -453,7 +461,7 @@ fn shift_wheel_pans_sideways_and_ctrl_wheel_zooms_in_place() {
 #[test]
 fn rubber_band_selects_what_it_touches() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    drag(&mut s, (15, 2), (23, 7));
+    shift_drag(&mut s, (15, 2), (23, 7));
     assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
     click(&mut s, (60, 20), Instant::now());
     assert!(s.selection.is_empty());
@@ -925,17 +933,26 @@ fn edge_pan_speed_follows_depth_and_direction() {
 #[test]
 fn holding_a_band_at_the_edge_extends_it() {
     let mut s = session();
-    hold(&mut s, (30, 5), (79, 10));
+    let m = KeyModifiers::SHIFT;
+    let t = Instant::now();
+    mouse_mod(&mut s, MouseEventKind::Down(MouseButton::Left), m, 30, 5, t);
+    mouse_mod(
+        &mut s,
+        MouseEventKind::Drag(MouseButton::Left),
+        m,
+        79,
+        10,
+        t,
+    );
     let before = s.band.unwrap();
     assert!(s.edge_pan(Instant::now()));
     assert_eq!(s.band.unwrap(), (before.0, (before.1 .0 + 3, before.1 .1)));
 }
 
 #[test]
-fn hand_tool_and_idle_never_edge_pan() {
+fn pan_and_idle_never_edge_pan() {
     let mut s = session();
     assert_eq!(s.edge_wait(Instant::now()), None);
-    pick(&mut s, Tool::Hand);
     hold(&mut s, (40, 10), (79, 10));
     assert_eq!(s.edge_wait(Instant::now()), None);
 }
@@ -960,7 +977,7 @@ fn hover_tracks_shape_handle_and_empty_space() {
 fn hover_is_empty_for_other_tools_mid_gesture_and_over_the_palette() {
     let t = Instant::now();
     let mut s = with_shape("aaaaaaaa", 20, 4);
-    s.tool = Tool::Hand;
+    s.tool = Tool::Rect;
     mouse(&mut s, MouseEventKind::Moved, 22, 5, t);
     assert_eq!(s.hover, Hit::Empty);
     let mut s = with_shape("aaaaaaaa", 20, 4);
@@ -991,7 +1008,7 @@ fn palette_hover_follows_the_pointer_and_clears_on_press_or_gesture() {
     assert_eq!(s.palette_hover, Some(PaletteHit::Tool(Tool::Rect)));
     mouse(&mut s, MouseEventKind::Moved, 60, 15, t);
     assert_eq!(s.palette_hover, None);
-    s.tool = Tool::Hand;
+    s.tool = Tool::Arrow;
     mouse(&mut s, MouseEventKind::Moved, c, r, t);
     assert_eq!(
         s.palette_hover,
@@ -1518,7 +1535,6 @@ fn move_drag_at_double_zoom_moves_by_whole_world_cells() {
 fn pan_drag_at_triple_zoom_carries_the_remainder() {
     let mut s = session();
     s.view.zoom = Zoom::Three;
-    s.tool = Tool::Hand;
     let t = Instant::now();
     mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 20, 5, t);
     mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 15, 5, t);
@@ -1721,7 +1737,7 @@ fn clicking_a_group_member_selects_the_group_and_shift_click_toggles_it() {
 #[test]
 fn a_band_over_one_member_selects_the_group() {
     let mut s = grouped_ab();
-    drag(&mut s, (36, 3), (50, 12));
+    shift_drag(&mut s, (36, 3), (50, 12));
     assert_eq!(
         s.selection,
         vec![Id::from("bbbbbbbb"), Id::from("aaaaaaaa")]
@@ -2013,9 +2029,9 @@ fn delete_removes_frame_and_contents_and_one_undo_restores_both() {
 #[test]
 fn band_inside_a_frame_skips_it_and_band_around_it_takes_it() {
     let mut s = framed();
-    drag(&mut s, (23, 6), (30, 12));
+    shift_drag(&mut s, (23, 6), (30, 12));
     assert_eq!(s.selection, vec![Id::from("inner000")]);
-    drag(&mut s, (18, 3), (45, 17));
+    shift_drag(&mut s, (18, 3), (45, 17));
     assert!(s.selection.contains(&Id::from("frame000")));
     assert!(s.selection.contains(&Id::from("inner000")));
 }
@@ -2068,10 +2084,9 @@ fn scrolling_cancels_a_glide() {
 }
 
 #[test]
-fn dragging_with_the_hand_cancels_a_glide() {
+fn panning_cancels_a_glide() {
     let mut s = session();
     let t0 = Instant::now();
-    pick(&mut s, Tool::Hand);
     s.fit(Some((100, 50, 10, 4)));
     s.glide_step(t0);
     drag(&mut s, (30, 10), (27, 10));
