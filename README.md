@@ -19,8 +19,6 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
     ```
 - `cargo run -- mcp` serves the six commands above as MCP tools (`list`, `new`, `show`, `edit`, `import`, `export`) over stdio, for agent clients. Config: `{"mcpServers":{"clidraw":{"command":"clidraw","args":["mcp"]}}}`. A tool failure comes back as a result with `isError` true. A running UI overwrites an edit made to the canvas it has open. A canvas named `mcp` opens from the canvas switcher (Ctrl-p, Canvases), not by argument.
 - `cargo run -- probe` prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.
-- `cargo run --release -- bench` replays a scripted drag and pan on a generated 5000-element canvas in your terminal and prints the frame times.
-- `cargo test --test e2e` runs the real binary in a pty and asserts on the parsed screen. Use it to prove a Live box without a human.
 
 The terminal needs true color, SGR mouse reporting and the alternate screen.
 
@@ -30,17 +28,17 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Draw a frame around shapes, then click its border to move them together.
 - Drag on empty canvas to pan, or to draw with a shape tool. Drag a selected element to move it.
 - Moving shapes snaps to other shapes' edges and centers within 1 cell and shows dotted guides. Hold Shift to turn guides off. Guides override `grid`.
-- Drag a selected line to bend it. Drag a bend handle to move it. Right-click the line and choose Reset route, or click `~ arrange` in the option strip, to go back to the automatic route.
-- Drag the `⤡` handle at the bottom-right corner to resize. Drag a line end onto a shape to bind it: the shape turns bold and `◆` marks the cell where the end will attach.
+- Drag a selected line to bend it. Drag a bend handle to move it. To return to the automatic route, right-click the line and choose Reset route, or click `~ arrange` in the option strip.
+- Drag the `⤡` handle at the bottom-right corner to resize. Drag a line end onto a shape to bind it. The shape turns bold, and `◆` marks the cell where the end attaches.
 - Double-click a shape or line to edit its label. Double-click empty canvas to place text.
-- In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap and the shape grows to fit.
+- In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap, and the shape grows to fit.
 - Select shapes and run `:layout` (top-down) or `:layout lr` to arrange them by their connecting lines.
-- Run `:import <path>` to add a Mermaid flowchart to the canvas. It reads nodes, edges and labels and arranges them with `:layout`.
-- Select shapes and run `:lib save <name>` to keep them in the library. `:lib insert <name>` adds them to any canvas.
+- Run `:import <path>` to add a Mermaid flowchart to the canvas. It reads nodes, edges and labels, and arranges them with `:layout`.
+- Select shapes and run `:lib save <name>` to keep them in the library. Run `:lib insert <name>` to add them to any canvas.
 - Group elements to select and move them as one.
 - Click a shape tool while a shape is selected to change its kind.
 - Select a line to show its options in the top bar. Pick a head: none, end, start or both.
-- Select elements to get align, group and ungroup cells in the top bar. Each shows its key.
+- Select elements to get align, group and ungroup cells in the top bar. Each cell shows its key.
 - Select a shape and click the align cell in the top bar to cycle its label: left, middle, right.
 - Wheel and horizontal scroll pan the canvas. A fast flick pans further. Shift+wheel pans sideways.
 - Dragging within 2 cells of the screen edge pans the view.
@@ -60,16 +58,16 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `y` / `x` / `p` | Copy / cut / paste the selection |
 | `u` / `Ctrl-r` | Undo / redo |
 | `z` | Fit all: the largest zoom up to 1x that shows the whole diagram |
-| Ctrl + wheel | Zoom 25%, 50%, 100%, 200%, 300% around the cursor; 25% and 50% are read-only, `Esc` returns to 100% |
-| Bottom bar buttons | `[-]` `[+]` zoom, `[Fit]`, `[Undo]`, `[Redo]`; shown at 60 columns or more |
-| Present (palette only) | Hides the top bar and status line; wheel scrolls; `Esc` returns |
-| `/` | Find a label: type the text, `Enter` selects and centers the match; repeat to cycle (`:/text` does the same) |
+| Ctrl + wheel | Zoom 25%, 50%, 100%, 200%, 300% around the cursor. 25% and 50% are read-only. `Esc` returns to 100% |
+| Bottom bar buttons | `[-]` `[+]` zoom, `[Fit]`, `[Undo]`, `[Redo]`. Shown at 60 columns or more |
+| Present (palette only) | Hides the top bar and status line. Wheel scrolls. `Esc` returns |
+| `/` | Find a label: type the text, `Enter` selects and centers the match. Repeat to cycle. `:/text` does the same |
 | `Ctrl-c` | Quit |
 | `Ctrl-p` | Open the command palette: type to filter every action, `Enter` runs it |
-| `?` | Show the shortcuts, one page per scope; type to filter all pages |
+| `?` | Show the shortcuts, one page per scope. Type to filter all pages |
 | `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo`, `layout [td|lr]`, `import <path>`, `lib save|insert <name>`, `perf` |
 
-The command palette (`Ctrl-p`) lists every action with its key, including Canvases, Fit all, the exports and Quit. Saving is automatic. The Minimap action shows the whole canvas; click a frame or shape to jump to it.
+The command palette (`Ctrl-p`) lists every action with its key, including Canvases, Fit all, the exports and Quit. Saving is automatic. The Minimap action shows the whole canvas. Click a frame or shape to jump to it.
 
 Export asks what to write: the whole canvas, a dragged area or the selection. Export Text (or `:export`) writes the canvas as plain text, as the screen draws it. Set `export_padding` in `config.toml` for the SVG margin in cells.
 
@@ -139,11 +137,7 @@ Budgets for a release build with 5000 elements on a 200x50 screen:
 | Peak resident memory, 5000 elements (measured once, perf test process) | 4.3 MB |
 | Peak resident memory, 50000 elements (measured once, perf test process) | 14.1 MB |
 
-The release binary (`make release`) is 2,615,488 bytes (2.6 MB) on macOS x86_64, measured 2026-10-23. It has no size budget yet.
-
 The loop wakes every 16 ms only while a Fit all or search glide runs.
-
-Contributors run `make perf` to check them. See [CONTRIBUTING.md](CONTRIBUTING.md#performance).
 
 ## Contributing
 
