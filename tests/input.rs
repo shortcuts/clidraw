@@ -2413,3 +2413,47 @@ fn hjkl_pan_with_empty_selection_and_move_with_one() {
     key(&mut s, KeyCode::Char('H'));
     assert_eq!((s.view.ox, s.view.oy), (ox + 1, oy));
 }
+
+#[test]
+fn a_dragged_head_over_a_shape_routes_to_its_edge() {
+    let mut s = with_shape("aaaaaaaa", 10, 10);
+    for (id, y) in [("bbbbbbbb", 10), ("cccccccc", 20)] {
+        let mut t = with_shape(id, 40, y);
+        s.canvas.elements.append(&mut t.canvas.elements);
+    }
+    let line = Id::from("line0000");
+    s.canvas.elements.push(Element::Line(Line {
+        id: line.clone(),
+        kind: LineKind::ArrowBoth,
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        bends: vec![],
+        color: None,
+    }));
+    s.selection = vec![line.clone()];
+    let Some(Element::Line(l)) = s.canvas.get(&line) else {
+        unreachable!()
+    };
+    let (_, head) = s.canvas.line_ends(l);
+    let t = Instant::now();
+    mouse(
+        &mut s,
+        MouseEventKind::Down(MouseButton::Left),
+        head.0 as u16,
+        head.1 as u16,
+        t,
+    );
+    mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 43, 21, t);
+    let Some(Element::Line(l)) = s.canvas.get(&line) else {
+        unreachable!()
+    };
+    let cells = s.canvas.route(l);
+    let tip = *cells.last().unwrap();
+    assert!(
+        !(40..48).contains(&tip.0) || !(20..24).contains(&tip.1),
+        "head inside C: {cells:?}"
+    );
+}

@@ -358,7 +358,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             run(s, inv, set_rect(&s.canvas, id, *origin, world))
         }
         Action::EndDrag { id, side } => {
-            let end = End::Free(world.0, world.1);
+            let end = bound_at(&s.canvas, world).unwrap_or(End::Free(world.0, world.1));
             let cmd = Command::SetEnd {
                 id: id.clone(),
                 side: *side,

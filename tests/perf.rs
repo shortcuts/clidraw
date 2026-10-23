@@ -511,6 +511,10 @@ fn line_end_drag_step_fits_the_budget_on_5000_elements() {
     let now = Instant::now();
     let line = Id::from("l0000040");
     app.session.selection = vec![line.clone()];
+    let Some(Element::Line(Line { to: before, .. })) = app.session.canvas.get(&line).cloned()
+    else {
+        unreachable!()
+    };
     let (_, _, (x, y)) = handles(&app.session.canvas, &app.session.selection)
         .pop()
         .unwrap();
@@ -521,10 +525,7 @@ fn line_end_drag_step_fits_the_budget_on_5000_elements() {
     assert!(
         matches!(
             app.session.canvas.get(&line),
-            Some(Element::Line(Line {
-                to: End::Free(150, 40),
-                ..
-            }))
+            Some(Element::Line(Line { to, .. })) if *to != before
         ),
         "press missed the line end"
     );
@@ -839,6 +840,10 @@ fn line_end_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Dura
     let now = Instant::now();
     let line = Id::from("l0000040");
     app.session.selection = vec![line.clone()];
+    let Some(Element::Line(Line { to: before, .. })) = app.session.canvas.get(&line).cloned()
+    else {
+        unreachable!()
+    };
     let (_, _, (x, y)) = handles(&app.session.canvas, &app.session.selection)
         .pop()
         .unwrap();
@@ -853,10 +858,7 @@ fn line_end_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Dura
     assert!(
         matches!(
             app.session.canvas.get(&line),
-            Some(Element::Line(Line {
-                to: End::Free(150, 40),
-                ..
-            }))
+            Some(Element::Line(Line { to, .. })) if *to != before
         ),
         "press missed the line end"
     );
