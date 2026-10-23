@@ -458,7 +458,9 @@ impl Session {
                 bends: vec![],
             })
             .collect();
-        self.exec(Command::Batch(cmds));
+        if !cmds.is_empty() {
+            self.exec(Command::Batch(cmds));
+        }
     }
 
     pub fn reorder(&mut self, z: Z) {

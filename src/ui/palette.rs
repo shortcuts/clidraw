@@ -20,6 +20,7 @@ pub enum Choice {
     Fill,
     Place(Align),
     Group,
+    Arrange,
     Ungroup,
 }
 
@@ -50,6 +51,7 @@ impl Choice {
             Choice::Place(Align::Bottom) => "_ align-b",
             Choice::Place(Align::DistributeH) => "= spread-h",
             Choice::Place(Align::DistributeV) => "# spread-v",
+            Choice::Arrange => "~ arrange",
             Choice::Group => "g group",
             Choice::Ungroup => "G ungroup",
         }
@@ -92,6 +94,7 @@ pub fn choices(els: &[&Element], groups: &[Vec<Id>]) -> Vec<Choice> {
             ]
             .map(Choice::Head),
         );
+        out.push(Choice::Arrange);
     }
     if has(|e| matches!(e, Element::Line(_) | Element::Shape(_))) {
         out.extend([Stroke::Solid, Stroke::Dashed, Stroke::Dotted].map(Choice::Stroke));
@@ -175,7 +178,7 @@ fn active(els: &[&Element], c: Choice) -> bool {
             .all(|k| k == b),
         Choice::Align(a) => a != TextAlign::Center,
         Choice::Ink | Choice::Fill => els.filter_map(|e| paint(e, c)).any(|p| p.is_some()),
-        Choice::Place(_) | Choice::Group | Choice::Ungroup => false,
+        Choice::Arrange | Choice::Place(_) | Choice::Group | Choice::Ungroup => false,
     }
 }
 

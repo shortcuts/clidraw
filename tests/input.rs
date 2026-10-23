@@ -692,10 +692,10 @@ fn palette_option_sets_the_stroke_of_a_selected_line_and_undoes() {
         Some(Element::Line(l)) => l.stroke,
         _ => panic!("no line"),
     };
-    // Four head options come first, then solid, dashed, dotted.
-    option(&mut s, 5);
-    assert_eq!(stroke(&s), Stroke::Dashed);
+    // Four head options and Arrange come first, then solid, dashed, dotted.
     option(&mut s, 6);
+    assert_eq!(stroke(&s), Stroke::Dashed);
+    option(&mut s, 7);
     assert_eq!(stroke(&s), Stroke::Dotted);
     s.undo();
     assert_eq!(stroke(&s), Stroke::Dashed);
@@ -2400,6 +2400,40 @@ fn reset_route_clears_the_bends_and_undo_restores_them() {
     assert!(!s.line_has_bends());
     key(&mut s, KeyCode::Char('u'));
     assert_eq!(bends_of(&s), vec![(15, 8)]);
+}
+
+#[test]
+fn arrange_clears_bends_and_matches_a_fresh_route() {
+    let mut s = with_shape("aaaaaaaa", 12, 3);
+    let Element::Line(fresh) = free_line("llllllll", vec![]) else {
+        unreachable!()
+    };
+    let expected = s.canvas.route(&fresh);
+    s.canvas.push(free_line("llllllll", vec![(15, 9)])).unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    click_choice(&mut s, Choice::Arrange);
+    assert_eq!(bends_of(&s), vec![]);
+    let Some(Element::Line(l)) = s.canvas.get(&Id::from("llllllll")) else {
+        unreachable!()
+    };
+    assert_eq!(s.canvas.route(l), expected);
+    key(&mut s, KeyCode::Char('u'));
+    assert_eq!(bends_of(&s), vec![(15, 9)]);
+}
+
+#[test]
+fn arrange_on_an_unbent_line_records_no_history() {
+    let mut s = with_shape("aaaaaaaa", 12, 3);
+    s.canvas.push(free_line("llllllll", vec![])).unwrap();
+    s.selection = vec![Id::from("aaaaaaaa")];
+    key(&mut s, KeyCode::Char('l'));
+    s.selection = vec![Id::from("llllllll")];
+    click_choice(&mut s, Choice::Arrange);
+    key(&mut s, KeyCode::Char('u'));
+    let Some(Element::Shape(sh)) = s.canvas.get(&Id::from("aaaaaaaa")) else {
+        unreachable!()
+    };
+    assert_eq!(sh.x, 12);
 }
 
 #[test]
