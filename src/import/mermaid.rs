@@ -1,6 +1,5 @@
 use crate::model::{
-    Anchor, Border, Canvas, Dir, Element, End, Id, Line, LineKind, Routing, Shape, ShapeKind,
-    Stroke,
+    Anchor, Border, Canvas, Dir, Element, End, Id, Line, LineKind, Shape, ShapeKind, Stroke,
 };
 use std::collections::HashMap;
 
@@ -222,7 +221,6 @@ pub fn mermaid(text: &str) -> Result<MermaidInput, String> {
             label,
             label_at: None,
             stroke,
-            routing: Routing::default(),
             bends: vec![],
             color: None,
         }));

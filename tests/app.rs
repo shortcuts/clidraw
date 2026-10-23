@@ -1046,38 +1046,6 @@ fn right_click_menu_raises_and_lowers_a_shape() {
 }
 
 #[test]
-fn right_click_menu_switches_a_line_routing() {
-    let t = tempfile::tempdir().unwrap();
-    let mut app = app_in(t.path());
-    let now = Instant::now();
-    app.session.exec(Command::Insert(
-        0,
-        Element::Line(Line {
-            id: Id::from("lllllll1"),
-            kind: LineKind::Arrow,
-            from: End::Free(20, 5),
-            to: End::Free(40, 5),
-            label: String::new(),
-            label_at: None,
-            stroke: Default::default(),
-            routing: Default::default(),
-            bends: vec![],
-            color: None,
-        }),
-    ));
-    right_click(&mut app, 30, 5, now);
-    let clidraw::ui::Overlay::Context(c) = &app.overlay else {
-        panic!("no menu")
-    };
-    assert_eq!(c.labels().last(), Some(&"Straight line"));
-    click(&mut app, 32, 5 + 1 + 7, now);
-    let Some(Element::Line(l)) = app.session.canvas.get(&Id::from("lllllll1")) else {
-        panic!("no line")
-    };
-    assert_eq!(l.routing, clidraw::model::Routing::Straight);
-}
-
-#[test]
 fn right_click_on_canvas_offers_paste_only_with_a_clipboard() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
@@ -1342,7 +1310,6 @@ fn layout_app(dir: &std::path::Path, edges: &[(&str, &str)]) -> App {
                 label: String::new(),
                 label_at: None,
                 stroke: Default::default(),
-                routing: Default::default(),
                 bends: vec![],
                 color: None,
             }),
@@ -1619,7 +1586,6 @@ fn right_click_menu_resets_the_route_of_a_bent_line() {
             label: String::new(),
             label_at: None,
             stroke: Default::default(),
-            routing: Default::default(),
             bends: vec![(30, 9)],
             color: None,
         }),
@@ -1629,7 +1595,7 @@ fn right_click_menu_resets_the_route_of_a_bent_line() {
         panic!("no menu")
     };
     assert_eq!(c.labels().last(), Some(&"Reset route"));
-    click(&mut app, 32, 9 + 1 + 8, now);
+    click(&mut app, 32, 9 + 1 + 7, now);
     let Some(Element::Line(l)) = app.session.canvas.get(&Id::from("lllllll1")) else {
         panic!("no line")
     };

@@ -98,22 +98,6 @@ pub fn route(a: Pt, ax_a: Option<Axis>, b: Pt, ax_b: Option<Axis>) -> Vec<Pt> {
     cells
 }
 
-/// Cells of the 8-connected diagonal from `a` to `b`, both included.
-pub fn straight(a: Pt, b: Pt) -> Vec<Pt> {
-    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
-    let n = dx.abs().max(dy.abs());
-    let at = |d: i32, i: i32| (2 * d * i + n * d.signum()) / (2 * n);
-    (0..=n)
-        .map(|i| {
-            if n == 0 {
-                a
-            } else {
-                (a.0 + at(dx, i), a.1 + at(dy, i))
-            }
-        })
-        .collect()
-}
-
 /// First cell, last cell and every cell where the route turns.
 pub fn corners(cells: &[Pt]) -> Vec<Pt> {
     let dir = |p: Pt, q: Pt| ((q.0 - p.0).signum(), (q.1 - p.1).signum());

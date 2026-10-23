@@ -1,5 +1,5 @@
-use super::geom::{center, route, side_mid, straight, Axis};
-use super::{Command, Element, End, Id, Line, Router, Routing, Shape, ShapeKind, Text, VERSION};
+use super::geom::{center, route, side_mid, Axis};
+use super::{Command, Element, End, Id, Line, Router, Shape, ShapeKind, Text, VERSION};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -119,16 +119,12 @@ impl Canvas {
         [anchor(&l.from, from, face_from), anchor(&l.to, to, face_to)]
     }
 
-    /// Cells of the line from start to end: two bends unless an elbow must go around an obstacle,
-    /// or a diagonal for `Routing::Straight`.
+    /// Cells of the line from start to end: two bends unless an elbow must go around an obstacle.
     pub fn route(&self, l: &Line) -> Vec<(i32, i32)> {
         self.route_with(l, &|id| self.shape(id), &self.router())
     }
 
     pub fn route_with<'a>(&'a self, l: &Line, find: &Find<'a>, router: &Router) -> Vec<(i32, i32)> {
-        if l.routing == Routing::Straight {
-            return self.plain_with(l, find);
-        }
         if l.bends.is_empty() {
             return router.around(
                 self,
@@ -145,10 +141,7 @@ impl Canvas {
 
     /// The route ignoring obstacles.
     pub(crate) fn plain_with<'a>(&'a self, l: &Line, find: &Find<'a>) -> Vec<(i32, i32)> {
-        self.chain(l, find, |((p, ax_p), (q, ax_q))| match l.routing {
-            Routing::Elbow => route(p, ax_p, q, ax_q),
-            Routing::Straight => straight(p, q),
-        })
+        self.chain(l, find, |((p, ax_p), (q, ax_q))| route(p, ax_p, q, ax_q))
     }
 
     /// Joins the cells `leg` returns for each pair of consecutive stops: ends and bends.
@@ -180,13 +173,8 @@ impl Canvas {
         let mut stops = vec![(a, ax_a)];
         stops.extend(l.bends.iter().map(|&q| (q, None)));
         stops.push((b, ax_b));
-        let holds = |w: &[((i32, i32), Option<Axis>)]| {
-            let leg = match l.routing {
-                Routing::Elbow => route(w[0].0, w[0].1, w[1].0, w[1].1),
-                Routing::Straight => straight(w[0].0, w[1].0),
-            };
-            leg.contains(&p)
-        };
+        let holds =
+            |w: &[((i32, i32), Option<Axis>)]| route(w[0].0, w[0].1, w[1].0, w[1].1).contains(&p);
         stops.windows(2).position(holds).unwrap_or(l.bends.len())
     }
 

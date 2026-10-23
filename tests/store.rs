@@ -39,7 +39,6 @@ fn sample() -> Canvas {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));

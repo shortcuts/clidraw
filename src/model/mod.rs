@@ -11,11 +11,11 @@ mod router;
 pub use canvas::{Canvas, Find};
 pub use command::{Align, Command, Side, Z};
 pub use element::{
-    Anchor, Border, Element, End, Line, LineKind, Paint, Routing, Shape, ShapeKind, Stroke, Text,
-    TextAlign, FILL_ALPHA, MIN_SIZE,
+    Anchor, Border, Element, End, Line, LineKind, Paint, Shape, ShapeKind, Stroke, Text, TextAlign,
+    FILL_ALPHA, MIN_SIZE,
 };
 pub use error::ModelError;
-pub use geom::{corners, edge_anchor, label_pos, route, side_mid, straight, wrap, Axis};
+pub use geom::{corners, edge_anchor, label_pos, route, side_mid, wrap, Axis};
 pub use history::{History, HISTORY_LIMIT};
 pub use ids::Id;
 pub use layout::Dir;

@@ -1,6 +1,6 @@
 use super::grid::{Grid, DIM, REVERSE, UNDERLINE};
 use crate::input::{Session, Tool};
-use crate::model::{Align, Border, Element, Id, LineKind, Paint, Routing, Stroke, TextAlign};
+use crate::model::{Align, Border, Element, Id, LineKind, Paint, Stroke, TextAlign};
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -14,7 +14,6 @@ pub enum PaletteHit {
 pub enum Choice {
     Head(LineKind),
     Stroke(Stroke),
-    Routing(Routing),
     Border(Border),
     Align(TextAlign),
     Ink,
@@ -39,8 +38,6 @@ impl Choice {
             Choice::Align(TextAlign::Right) => ">> right",
             Choice::Ink => "ink >",
             Choice::Fill => "fill >",
-            Choice::Routing(Routing::Elbow) => "|_ elbow",
-            Choice::Routing(Routing::Straight) => "/ direct",
             Choice::Head(LineKind::Line) => "-- none",
             Choice::Head(LineKind::Arrow) => "-> end",
             Choice::Head(LineKind::ArrowStart) => "<- start",
@@ -98,9 +95,6 @@ pub fn choices(els: &[&Element], groups: &[Vec<Id>]) -> Vec<Choice> {
     }
     if has(|e| matches!(e, Element::Line(_) | Element::Shape(_))) {
         out.extend([Stroke::Solid, Stroke::Dashed, Stroke::Dotted].map(Choice::Stroke));
-    }
-    if has(|e| matches!(e, Element::Line(_))) {
-        out.extend([Routing::Elbow, Routing::Straight].map(Choice::Routing));
     }
     if has(|e| matches!(e, Element::Shape(s) if s.has_border())) {
         out.extend(
@@ -180,12 +174,6 @@ fn active(els: &[&Element], c: Choice) -> bool {
             })
             .all(|k| k == b),
         Choice::Align(a) => a != TextAlign::Center,
-        Choice::Routing(r) => els
-            .filter_map(|e| match e {
-                Element::Line(l) => Some(l.routing),
-                _ => None,
-            })
-            .all(|k| k == r),
         Choice::Ink | Choice::Fill => els.filter_map(|e| paint(e, c)).any(|p| p.is_some()),
         Choice::Place(_) | Choice::Group | Choice::Ungroup => false,
     }

@@ -174,7 +174,6 @@ fn commands(ops: Vec<Op>, created: &mut Vec<Id>) -> Result<Vec<Command>> {
                         label: label.clone().unwrap_or_default(),
                         label_at: None,
                         stroke: Default::default(),
-                        routing: Default::default(),
                         bends: vec![],
                         color: None,
                     })

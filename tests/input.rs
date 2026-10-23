@@ -3,8 +3,8 @@ use clidraw::input::{
     Session, Tool,
 };
 use clidraw::model::{
-    Align, Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Routing, Shape,
-    ShapeKind, Stroke, TextAlign,
+    Align, Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
+    Stroke, TextAlign,
 };
 use clidraw::ui::palette::{self, Choice, PaletteHit};
 use clidraw::view::{View, Zoom};
@@ -638,7 +638,6 @@ fn palette_option_sets_the_head_of_a_selected_line() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     });
@@ -676,7 +675,6 @@ fn palette_option_sets_the_stroke_of_a_selected_line_and_undoes() {
             label: String::new(),
             label_at: None,
             stroke: Default::default(),
-            routing: Default::default(),
             bends: vec![],
             color: None,
         }))
@@ -782,35 +780,6 @@ fn palette_ink_cycles_through_the_colors_and_undoes_one_click_at_a_time() {
         s.canvas.get(&Id::from("tttttttt")),
         Some(Element::Text(t)) if t.color == Some(Paint::Red)
     ));
-}
-
-#[test]
-fn palette_option_sets_the_routing_of_a_selected_line_and_undoes() {
-    let mut s = session();
-    s.canvas
-        .push(Element::Line(Line {
-            id: Id::from("llllllll"),
-            kind: LineKind::Arrow,
-            from: End::Free(5, 5),
-            to: End::Free(25, 9),
-            label: String::new(),
-            label_at: None,
-            stroke: Default::default(),
-            routing: Default::default(),
-            bends: vec![],
-            color: None,
-        }))
-        .unwrap();
-    s.selection = vec![Id::from("llllllll")];
-    let routing = |s: &Session| match s.canvas.get(&Id::from("llllllll")) {
-        Some(Element::Line(l)) => l.routing,
-        _ => panic!("no line"),
-    };
-    // Four head options and three strokes come first, then elbow, direct.
-    option(&mut s, 8);
-    assert_eq!(routing(&s), Routing::Straight);
-    s.undo();
-    assert_eq!(routing(&s), Routing::Elbow);
 }
 
 fn two_shapes_and_arrow_tool() -> Session {
@@ -1128,7 +1097,6 @@ fn diagram() -> Session {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));
@@ -1655,7 +1623,6 @@ fn dragging_a_selected_lines_label_slides_it_along_the_line() {
             label: "ab".into(),
             label_at: None,
             stroke: Default::default(),
-            routing: Default::default(),
             bends: vec![],
             color: None,
         }))
@@ -1856,7 +1823,6 @@ fn bound_arrow_follows_an_aligned_shape() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));
@@ -2291,7 +2257,6 @@ fn hover_picks_a_detour_cell_for_the_line_and_the_crossed_shape_elsewhere() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));
@@ -2322,7 +2287,6 @@ fn free_line(id: &str, bends: Vec<(i32, i32)>) -> Element {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Routing::Straight,
         bends,
         color: None,
     })

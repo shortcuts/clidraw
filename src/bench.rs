@@ -63,7 +63,6 @@ fn generated_canvas(elements: usize, target: (i32, i32)) -> Vec<Element> {
             label: String::new(),
             label_at: None,
             stroke: Default::default(),
-            routing: Default::default(),
             bends: vec![],
             color: None,
         }));

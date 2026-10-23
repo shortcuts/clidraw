@@ -453,7 +453,6 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
         PaletteHit::Option(Choice::Place(a)) => s.align(a),
         PaletteHit::Option(Choice::Group) => s.group(true),
         PaletteHit::Option(Choice::Ungroup) => s.group(false),
-        PaletteHit::Option(Choice::Routing(routing)) => s.set_routing(routing),
         PaletteHit::Tool(t) => {
             let kind = match t {
                 Tool::Rect => Some(ShapeKind::Rect),

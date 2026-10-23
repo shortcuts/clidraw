@@ -35,20 +35,6 @@ impl Stroke {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Routing {
-    #[default]
-    Elbow,
-    Straight,
-}
-
-impl Routing {
-    fn is_elbow(&self) -> bool {
-        *self == Routing::Elbow
-    }
-}
-
 /// Border glyph set of a rect. `Single` keeps the kind's own corners.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -230,8 +216,6 @@ pub struct Line {
     pub label_at: Option<u16>,
     #[serde(default, skip_serializing_if = "Stroke::is_solid")]
     pub stroke: Stroke,
-    #[serde(default, skip_serializing_if = "Routing::is_elbow")]
-    pub routing: Routing,
     /// Cells the user bent the route through, from `from` to `to`. Empty means the automatic route.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub bends: Vec<(i32, i32)>,

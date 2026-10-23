@@ -1,6 +1,5 @@
 use super::grid::DIM;
 use super::{boxed, centered, Grid};
-use crate::model::Routing;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MenuItem {
@@ -62,7 +61,6 @@ pub enum ContextItem {
     Forward,
     Backward,
     Back,
-    Routing(Routing),
     ResetRoute,
     Paste,
     SelectAll,
@@ -78,13 +76,7 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn for_element(
-        at: (i32, i32),
-        screen: (u16, u16),
-        single: bool,
-        line: Option<Routing>,
-        bent: bool,
-    ) -> Context {
+    pub fn for_element(at: (i32, i32), screen: (u16, u16), single: bool, bent: bool) -> Context {
         let edit = single.then_some((ContextItem::EditLabel, "Edit label"));
         let items = edit.into_iter().chain([
             (ContextItem::Duplicate, "Duplicate"),
@@ -94,12 +86,8 @@ impl Context {
             (ContextItem::Backward, "Lower"),
             (ContextItem::Back, "Send to back"),
         ]);
-        let other = line.map(|r| match r {
-            Routing::Elbow => (ContextItem::Routing(Routing::Straight), "Straight line"),
-            Routing::Straight => (ContextItem::Routing(Routing::Elbow), "Elbow line"),
-        });
         let reset = bent.then_some((ContextItem::ResetRoute, "Reset route"));
-        let items = items.chain(other).chain(reset);
+        let items = items.chain(reset);
         Context::new(at, screen, "Element", items.collect())
     }
 

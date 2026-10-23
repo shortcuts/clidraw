@@ -1,7 +1,7 @@
 use clidraw::input::{Corner, Handle, Hit, Session, Tool};
 use clidraw::model::{
-    Anchor, Border, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Routing, Shape,
-    ShapeKind, Stroke, TextAlign,
+    Anchor, Border, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
+    Stroke, TextAlign,
 };
 use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::switcher::Switcher;
@@ -231,7 +231,6 @@ fn arrow_between_shapes_ends_in_a_head() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));
@@ -254,7 +253,6 @@ fn selected_arrow_keeps_its_head_visible() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));
@@ -296,7 +294,6 @@ fn arrow_start_has_its_head_at_the_first_cell() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));
@@ -319,7 +316,6 @@ fn arrow_both_has_a_head_at_each_end() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));
@@ -346,7 +342,6 @@ fn arrow_between_shapes_on_different_rows_bends_with_rounded_corners() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));
@@ -354,33 +349,6 @@ fn arrow_between_shapes_on_different_rows_bends_with_rounded_corners() {
     assert_eq!(cols(&b, 5, 19, 12), "│─────────╮ ");
     assert_eq!(cols(&b, 8, 29, 1), "│");
     assert_eq!(cols(&b, 11, 28, 14), " ╰─────────▶│ ");
-}
-
-#[test]
-fn straight_arrow_between_shapes_on_different_rows_draws_diagonal_cells() {
-    let mut c = Canvas::default();
-    c.elements.push(shape("aaaaaaaa", 12, ""));
-    let Element::Shape(mut b) = shape("bbbbbbbb", 40, "") else {
-        unreachable!()
-    };
-    b.y = 10;
-    c.elements.push(Element::Shape(b));
-    c.elements.push(Element::Line(Line {
-        id: Id::from("cccccccc"),
-        kind: LineKind::Arrow,
-        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
-        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
-        label: String::new(),
-        label_at: None,
-        stroke: Default::default(),
-        routing: Routing::Straight,
-        bends: vec![],
-        color: None,
-    }));
-    let b = draw(&Session::new(c, View::default(), (80, 24)), &Overlay::None);
-    let screen: String = (0..24).map(|y| row(&b, y)).collect();
-    assert!(screen.contains('╲'), "{screen}");
-    assert!(!screen.contains('╭'));
 }
 
 #[test]
@@ -585,7 +553,6 @@ fn line_crossing_the_view_draws_when_both_ends_are_off_screen() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));
@@ -762,7 +729,6 @@ fn edit_caret_shows_on_a_line_label() {
         label: "ab".into(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));
@@ -1098,7 +1064,7 @@ fn label_align_places_the_text_and_bold_sets_the_modifier() {
 #[test]
 fn context_menu_near_the_corner_stays_on_screen() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let menu = ui::menu::Context::for_element((79, 23), (80, 24), true, None, false);
+    let menu = ui::menu::Context::for_element((79, 23), (80, 24), true, false);
     let b = draw(&s, &Overlay::Context(menu));
     let all: String = (0..24).map(|y| row(&b, y)).collect();
     for e in ["Duplicate", "Send to back"] {
@@ -1218,7 +1184,6 @@ fn double_zoom_draws_the_arrow_head_at_the_scaled_end() {
         label: String::new(),
         label_at: None,
         stroke: Default::default(),
-        routing: Default::default(),
         bends: vec![],
         color: None,
     }));

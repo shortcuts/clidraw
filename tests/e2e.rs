@@ -70,25 +70,6 @@ fn right_click_menu_items() {
 }
 
 #[test]
-fn line_routing_click_and_undo() {
-    let tmp = tempfile::tempdir().unwrap();
-    let mut t = Term::spawn(tmp.path(), &["scratch"]);
-    t.draw_rect();
-    t.key("r");
-    t.drag((50, 18), (62, 23));
-    t.key("a");
-    t.drag((22, 10), (55, 20));
-    let before = t.canvas();
-    let (col, row) = t.find("/ direct");
-    t.click(col, row);
-    let routed = t.canvas();
-    assert_ne!(routed, before);
-    t.key("\x1a");
-    t.quiet();
-    assert_eq!(t.canvas(), before);
-}
-
-#[test]
 fn fit_all_glides_then_goes_idle() {
     let tmp = tempfile::tempdir().unwrap();
     let mut t = Term::spawn(tmp.path(), &["scratch"]);

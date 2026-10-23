@@ -1,7 +1,6 @@
 use super::canvas::{Index, BULK};
 use super::{
-    Border, Canvas, Element, End, Id, LineKind, ModelError, Paint, Routing, ShapeKind, Stroke,
-    TextAlign,
+    Border, Canvas, Element, End, Id, LineKind, ModelError, Paint, ShapeKind, Stroke, TextAlign,
 };
 use serde::{Deserialize, Serialize};
 
@@ -77,10 +76,6 @@ pub enum Command {
         id: Id,
         stroke: Stroke,
     },
-    SetRouting {
-        id: Id,
-        routing: Routing,
-    },
     SetBends {
         id: Id,
         bends: Vec<(i32, i32)>,
@@ -152,7 +147,6 @@ impl Command {
             Command::SetKind { .. }
             | Command::SetLineKind { .. }
             | Command::SetStroke { .. }
-            | Command::SetRouting { .. }
             | Command::SetBorder { .. }
             | Command::SetColor { .. }
             | Command::SetFill { .. }
@@ -526,14 +520,6 @@ impl Canvas {
                 };
                 let old = std::mem::replace(&mut s.link, link);
                 Ok(Command::SetLink { id, link: old })
-            }
-            Command::SetRouting { id, routing } => {
-                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
-                let Element::Line(l) = &mut self.elements[i] else {
-                    return Err(wrong(&id));
-                };
-                let old = std::mem::replace(&mut l.routing, routing);
-                Ok(Command::SetRouting { id, routing: old })
             }
             Command::SetBends { id, bends } => {
                 let i = self.position(&id, index).ok_or_else(|| missing(&id))?;

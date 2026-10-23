@@ -1,5 +1,5 @@
 use crate::model::{
-    corners, label_pos, wrap, Border, Canvas, Element, LineKind, Paint, Routing, ShapeKind, Stroke,
+    corners, label_pos, wrap, Border, Canvas, Element, LineKind, Paint, ShapeKind, Stroke,
     TextAlign, FILL_ALPHA,
 };
 use std::fmt::Write;
@@ -215,14 +215,7 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                     }
                     LineKind::Line => "",
                 };
-                let pts = match l.routing {
-                    Routing::Elbow => corners(&cells),
-                    Routing::Straight => [cells[0]]
-                        .into_iter()
-                        .chain(l.bends.iter().copied())
-                        .chain([cells[cells.len() - 1]])
-                        .collect(),
-                };
+                let pts = corners(&cells);
                 let d = pts
                     .into_iter()
                     .map(mid)

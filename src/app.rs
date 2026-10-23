@@ -344,7 +344,6 @@ impl App {
                 at,
                 screen,
                 self.session.selection.len() == 1,
-                self.session.line_routing(),
                 self.session.line_has_bends(),
             )),
             Some(false) => {
@@ -369,7 +368,6 @@ impl App {
             ContextItem::Forward => s.reorder(Z::Forward),
             ContextItem::Backward => s.reorder(Z::Backward),
             ContextItem::Back => s.reorder(Z::Back),
-            ContextItem::Routing(r) => s.set_routing(r),
             ContextItem::ResetRoute => s.reset_route(),
             ContextItem::Paste => s.paste(),
             ContextItem::SelectAll => s.select_all(),

@@ -10,8 +10,8 @@ pub use keys::{handle_key, handle_paste, KeyOutcome};
 pub use state::{handle_mouse, scroll_step};
 
 use crate::model::{
-    wrap, Align, Anchor, Canvas, Command, Dir, Element, End, History, Id, Line, LineKind, Routing,
-    Shape, Stroke, Text, Z,
+    wrap, Align, Anchor, Canvas, Command, Dir, Element, End, History, Id, Line, LineKind, Shape,
+    Stroke, Text, Z,
 };
 use crate::ui::minimap;
 use crate::ui::palette::{self, PaletteHit};
@@ -342,7 +342,6 @@ impl Session {
             label: String::new(),
             label_at: None,
             stroke: Stroke::Solid,
-            routing: Routing::default(),
             bends: vec![],
             color: None,
         };
@@ -441,29 +440,6 @@ impl Session {
         if let Some(cmd) = cmd {
             self.exec(cmd);
         }
-    }
-
-    pub fn set_routing(&mut self, routing: Routing) {
-        let cmds: Vec<Command> = self
-            .selection
-            .iter()
-            .filter(|id| matches!(self.canvas.get(id), Some(Element::Line(_))))
-            .map(|id| Command::SetRouting {
-                id: id.clone(),
-                routing,
-            })
-            .collect();
-        self.exec(Command::Batch(cmds));
-    }
-
-    /// Routing of the first selected line, if any.
-    pub fn line_routing(&self) -> Option<Routing> {
-        self.selection
-            .iter()
-            .find_map(|id| match self.canvas.get(id) {
-                Some(Element::Line(l)) => Some(l.routing),
-                _ => None,
-            })
     }
 
     pub fn line_has_bends(&self) -> bool {
