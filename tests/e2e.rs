@@ -8,9 +8,9 @@ fn wheel_pans_the_canvas() {
     let tmp = tempfile::tempdir().unwrap();
     let mut t = Term::spawn(tmp.path(), &["scratch"]);
     t.draw_rect();
-    let before = t.find("■");
+    let before = t.find("⤡");
     t.wheel_down(40, 20);
-    let after = t.find("■");
+    let after = t.find("⤡");
     assert_eq!((after.0, after.1 + 2), before, "{}", t.screen());
 }
 

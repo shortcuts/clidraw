@@ -2,16 +2,8 @@ use crate::model::{label_pos, Canvas, Element, Find, Id, Router, ShapeKind, Side
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Corner {
-    Nw,
-    Ne,
-    Sw,
-    Se,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Handle {
-    Corner(Corner),
+    Resize,
     End(Side),
     Bend(usize),
 }
@@ -39,15 +31,7 @@ pub fn handles(canvas: &Canvas, selection: &[Id]) -> Vec<(Handle, Id, (i32, i32)
     match canvas.get(id) {
         Some(Element::Shape(s)) => {
             let (r, b) = (s.x + s.w - 1, s.y + s.h - 1);
-            [
-                (Corner::Nw, (s.x, s.y)),
-                (Corner::Ne, (r, s.y)),
-                (Corner::Sw, (s.x, b)),
-                (Corner::Se, (r, b)),
-            ]
-            .into_iter()
-            .map(|(c, p)| (Handle::Corner(c), id.clone(), p))
-            .collect()
+            vec![(Handle::Resize, id.clone(), (r, b))]
         }
         Some(Element::Line(l)) => {
             let (a, b) = canvas.line_ends(l);

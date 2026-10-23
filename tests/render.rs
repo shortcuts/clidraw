@@ -1,4 +1,4 @@
-use clidraw::input::{Corner, Handle, Hit, Session, Tool};
+use clidraw::input::{Handle, Hit, Session, Tool};
 use clidraw::model::{
     Anchor, Border, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
     Stroke, TextAlign,
@@ -589,9 +589,9 @@ fn hovered_handle_draws_a_diamond() {
     c.elements.push(shape("aaaaaaaa", 20, ""));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.selection.push(Id::from("aaaaaaaa"));
-    assert_eq!(cols(&draw(&s, &Overlay::None), 4, 20, 1), "■");
-    s.hover = Hit::Handle(Handle::Corner(Corner::Nw), Id::from("aaaaaaaa"));
-    assert_eq!(cols(&draw(&s, &Overlay::None), 4, 20, 1), "◆");
+    assert_eq!(cols(&draw(&s, &Overlay::None), 6, 27, 1), "⤡");
+    s.hover = Hit::Handle(Handle::Resize, Id::from("aaaaaaaa"));
+    assert_eq!(cols(&draw(&s, &Overlay::None), 6, 27, 1), "◆");
 }
 
 fn reversed_blanks(b: &Buffer, y: u16) -> Vec<u16> {

@@ -1,6 +1,6 @@
 use clidraw::input::{
-    handle_key, handle_mouse, handle_paste, Corner, Edit, EditTarget, Handle, Hit, KeyOutcome,
-    Session, Tool,
+    handle_key, handle_mouse, handle_paste, Edit, EditTarget, Handle, Hit, KeyOutcome, Session,
+    Tool,
 };
 use clidraw::model::{
     Align, Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
@@ -985,10 +985,9 @@ fn hover_tracks_shape_handle_and_empty_space() {
     assert_eq!(s.hover, Hit::Empty);
     s.selection = vec![Id::from("aaaaaaaa")];
     mouse(&mut s, MouseEventKind::Moved, 20, 4, t);
-    assert_eq!(
-        s.hover,
-        Hit::Handle(Handle::Corner(Corner::Nw), Id::from("aaaaaaaa"))
-    );
+    assert_eq!(s.hover, Hit::Element(Id::from("aaaaaaaa")));
+    mouse(&mut s, MouseEventKind::Moved, 27, 7, t);
+    assert_eq!(s.hover, Hit::Handle(Handle::Resize, Id::from("aaaaaaaa")));
 }
 
 #[test]
@@ -2260,8 +2259,8 @@ fn ratio_handle_resize_snaps_and_keeps_the_fixed_corner() {
     }
     drag(&mut s, (27, 8), (33, 10));
     assert_eq!(rect_of(&s), (20, 5, 14, 7));
-    drag(&mut s, (20, 5), (10, 3));
-    assert_eq!(rect_of(&s), (12, 1, 22, 11));
+    drag(&mut s, (33, 11), (43, 15));
+    assert_eq!(rect_of(&s), (20, 5, 24, 12));
 }
 
 #[test]

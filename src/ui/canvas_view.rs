@@ -1,7 +1,7 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE, UNDERLINE};
 use super::layout::refresh;
 use super::theme;
-use crate::input::{handles, Corner, EditTarget, Handle, Hit, Session};
+use crate::input::{handles, EditTarget, Handle, Hit, Session};
 use crate::model::{
     label_pos, wrap, Border, Element, Find, Id, Line, LineKind, Router, Shape, ShapeKind, Stroke,
 };
@@ -73,18 +73,12 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     }
     edit_label(grid, s);
     for (h, id, (x, y)) in handles(&s.canvas, &s.selection) {
-        if !matches!(h, Handle::Corner(_)) {
+        if h != Handle::Resize {
             continue;
         }
-        let ((sx, sy), (ex, ey)) = (view.to_screen(x, y), view.cell_end(x, y));
-        let (sx, sy) = match h {
-            Handle::Corner(Corner::Ne) => (ex, sy),
-            Handle::Corner(Corner::Sw) => (sx, ey),
-            Handle::Corner(Corner::Se) => (ex, ey),
-            _ => (sx, sy),
-        };
+        let (sx, sy) = view.cell_end(x, y);
         let hovered = matches!(&s.hover, Hit::Handle(hh, hid) if *hh == h && *hid == id);
-        grid.set(sx, sy, if hovered { '◆' } else { '■' }, REVERSE);
+        grid.set(sx, sy, if hovered { '◆' } else { '⤡' }, REVERSE);
         if let Some(c) = accent {
             grid.tint(sx, sy, 1, 1, c);
         }

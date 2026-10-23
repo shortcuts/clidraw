@@ -5,7 +5,7 @@ mod keys;
 mod state;
 
 pub use edit::{Edit, EditBox, EditTarget};
-pub use hit::{handles, shape_at, Corner, Handle, Hit};
+pub use hit::{handles, shape_at, Handle, Hit};
 pub use keys::{handle_key, handle_paste, KeyOutcome};
 pub use state::{handle_mouse, scroll_step};
 
@@ -188,10 +188,7 @@ impl Session {
         }
         match (self.tool, &self.hover) {
             (Tool::Text, _) => "text",
-            (Tool::Select, Hit::Handle(Handle::Corner(Corner::Nw | Corner::Se), _)) => {
-                "nwse-resize"
-            }
-            (Tool::Select, Hit::Handle(Handle::Corner(_), _)) => "nesw-resize",
+            (Tool::Select, Hit::Handle(Handle::Resize, _)) => "nwse-resize",
             (Tool::Select, Hit::Handle(Handle::End(_) | Handle::Bend(_), _)) => "crosshair",
             (Tool::Select, _) if self.label_hover => "text",
             (Tool::Select, Hit::Element(_)) => "grab",

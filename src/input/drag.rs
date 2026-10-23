@@ -1,4 +1,4 @@
-use super::hit::{self, swept, Corner, Handle};
+use super::hit::{self, swept, Handle};
 use super::state::{click, Action, Gesture, Target, P};
 use super::{Session, Tool};
 use crate::model::{
@@ -239,17 +239,8 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
         Target::Empty if s.shift => Action::Band(w0),
         Target::Empty => Action::Pan(origin),
         Target::Handle(Handle::End(side), id) => Action::EndDrag { id, side },
-        Target::Handle(Handle::Corner(c), id) => {
-            let (x, y, w, h) = s
-                .canvas
-                .shape(&id)
-                .map_or((0, 0, 1, 1), |s| (s.x, s.y, s.w, s.h));
-            let fixed = match c {
-                Corner::Nw => (x + w - 1, y + h - 1),
-                Corner::Ne => (x, y + h - 1),
-                Corner::Sw => (x + w - 1, y),
-                Corner::Se => (x, y),
-            };
+        Target::Handle(Handle::Resize, id) => {
+            let fixed = s.canvas.shape(&id).map_or((0, 0), |s| (s.x, s.y));
             Action::Resize { id, fixed }
         }
         Target::Draw(tool) => {
