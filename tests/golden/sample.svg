@@ -31,6 +31,6 @@
   <path d="M292 88 L292 184" fill="none" stroke="black" stroke-dasharray="8 4" stroke-linejoin="round"/>
   <path d="M-44 136 L-44 232" fill="none" stroke="black" stroke-linejoin="round" marker-end="url(#arrow)"/>
   <path d="M100 40 L164 152 L236 232" fill="none" stroke="black" stroke-dasharray="2 4" stroke-linejoin="round" marker-start="url(#arrow)"/>
-  <path d="M292 184 L292 136 L100 136 L100 40" fill="none" stroke="black" stroke-linejoin="round" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <path d="M292 184 L292 136 L212 136 L212 40 L100 40" fill="none" stroke="black" stroke-linejoin="round" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
   <text x="-64" y="-40" text-anchor="start" dominant-baseline="central" fill="#64dc78">note &lt;1&gt;</text>
 </svg>

@@ -80,7 +80,7 @@ pub fn route(a: Pt, ax_a: Option<Axis>, b: Pt, ax_b: Option<Axis>) -> Vec<Pt> {
             let m = (a.1 + b.1) / 2;
             vec![a, (a.0, m), (b.0, m), b]
         }
-        (Some(Axis::Vertical), None) | (None, Some(Axis::Vertical)) => vec![a, (a.0, b.1), b],
+        (Some(Axis::Vertical), None) | (None, Some(Axis::Horizontal)) => vec![a, (a.0, b.1), b],
         _ => vec![a, (b.0, a.1), b],
     };
     let mut cells = vec![a];

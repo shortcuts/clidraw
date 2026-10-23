@@ -234,6 +234,30 @@ fn bound_route_is_a_z_through_the_middle_column() {
 }
 
 #[test]
+fn a_free_start_reaches_a_bound_end_along_that_end_axis() {
+    let v = route((3, 2), None, (9, 8), Some(Axis::Vertical));
+    assert_eq!(corners(&v), [(3, 2), (9, 2), (9, 8)]);
+    let h = route((3, 2), None, (9, 8), Some(Axis::Horizontal));
+    assert_eq!(corners(&h), [(3, 2), (3, 8), (9, 8)]);
+}
+
+#[test]
+fn a_bend_on_the_route_leaves_it_unchanged() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 0));
+    c.elements.push(shape("bbbbbbbb", 20));
+    let Element::Line(mut l) = arrow(
+        End::Bound(Id::from("aaaaaaaa"), Anchor::Bottom(2)),
+        End::Bound(Id::from("bbbbbbbb"), Anchor::Top(2)),
+    ) else {
+        unreachable!()
+    };
+    let before = c.route(&l);
+    l.bends = vec![before[before.len() / 2]];
+    assert_eq!(c.route(&l), before);
+}
+
+#[test]
 fn route_between_aligned_anchors_is_straight() {
     let cells = route(
         (2, 3),
