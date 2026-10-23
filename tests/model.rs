@@ -247,8 +247,8 @@ fn a_bend_on_the_route_leaves_it_unchanged() {
     c.elements.push(shape("aaaaaaaa", 0));
     c.elements.push(shape("bbbbbbbb", 20));
     let Element::Line(mut l) = arrow(
-        End::Bound(Id::from("aaaaaaaa"), Anchor::Bottom(2)),
-        End::Bound(Id::from("bbbbbbbb"), Anchor::Top(2)),
+        End::Bound(Id::from("aaaaaaaa"), Anchor::Right(1)),
+        End::Bound(Id::from("bbbbbbbb"), Anchor::Left(1)),
     ) else {
         unreachable!()
     };
@@ -1061,21 +1061,50 @@ fn the_route_follows_a_moved_obstacle_live() {
 }
 
 #[test]
-fn a_bent_line_keeps_the_users_path_through_an_obstacle() {
+fn a_bent_line_keeps_its_bends_and_goes_around_an_obstacle() {
     let wall = rect("wwwwwwww", ShapeKind::Rect, O);
-    let (mut c, line) = ab(vec![wall]);
-    let plain = c.route(&line);
-    let bend = (11, 5);
-    assert!(!plain.contains(&bend), "router detours around the wall");
+    let (mut c, _) = ab(vec![wall]);
+    let bend = (16, 9);
     let Some(Element::Line(l)) = c.elements.last_mut() else {
         unreachable!()
     };
     l.bends = vec![bend];
     let l = l.clone();
     let cells = c.route(&l);
+    walks(&cells);
     assert!(cells.contains(&bend));
-    assert_eq!(cells[0], (3, 5));
-    assert_eq!(*cells.last().unwrap(), (19, 5));
+    assert!(!cells.iter().any(|&p| inside(p, O)));
+}
+
+#[test]
+fn a_bent_arrow_avoids_its_own_start_shape_and_end_frame() {
+    let start = (52, 7, 24, 7);
+    let end = (75, 23, 14, 5);
+    let (a, f) = (Id::from("ot2efij1"), Id::from("a5iawbhl"));
+    let mut line = elbow(
+        "nl9llhzp",
+        End::Bound(a, Anchor::Top(12)),
+        End::Bound(f, Anchor::Left(2)),
+    );
+    line.bends = vec![(82, 6), (76, 11), (63, 17), (69, 21), (82, 23)];
+    let c = Canvas {
+        elements: vec![
+            rect("ot2efij1", ShapeKind::Rect, start),
+            rect("a5iawbhl", ShapeKind::Frame, end),
+            Element::Line(line.clone()),
+        ],
+        ..Canvas::default()
+    };
+    let cells = c.route(&line);
+    walks(&cells);
+    for b in &line.bends {
+        assert!(cells.contains(b));
+    }
+    let bad: Vec<_> = cells
+        .iter()
+        .filter(|&&p| !line.bends.contains(&p) && (inside(p, start) || inside(p, end)))
+        .collect();
+    assert!(bad.is_empty(), "{bad:?}");
 }
 
 #[test]

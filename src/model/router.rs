@@ -104,7 +104,7 @@ impl Router {
 
     /// `plain` when no cell of it lies in an obstacle, else the cheapest path in the box of the
     /// end cells plus `MARGIN`. Obstacles are the other shapes, texts and frames, minus the two
-    /// end shapes and the frames holding an end.
+    /// end shapes (a bent line keeps them as obstacles) and the frames holding an end.
     // shortcut: other lines count by their plain route, a long line or a wide obstacle is not avoided
     pub fn around<'a>(
         &self,
@@ -126,10 +126,17 @@ impl Router {
                 .any(|e| matches!(e, End::Bound(id, _) if *id == s.id)),
             _ => false,
         };
+        let bent = !own.bends.is_empty();
         let skip = |i: &Item| {
-            is_end(i) || (i.kind == Kind::Frame && held.iter().any(|&h| holds(i.rect, h)))
+            if is_end(i) {
+                return !bent;
+            }
+            i.kind == Kind::Frame && held.iter().any(|&h| holds(i.rect, h))
         };
         let blocked = |p: Pt| {
+            if p == a || p == b {
+                return false;
+            }
             let at = (p.0.div_euclid(BUCKET), p.1.div_euclid(BUCKET));
             let items = self.solid.get(&at).map_or(&[][..], |v| v);
             items.iter().any(|&i| {

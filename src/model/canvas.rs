@@ -3,6 +3,8 @@ use super::{Command, Element, End, Id, Line, Router, Routing, Shape, ShapeKind, 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+type Stop = ((i32, i32), Option<Axis>);
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Canvas {
     pub version: u32,
@@ -124,28 +126,49 @@ impl Canvas {
     }
 
     pub fn route_with<'a>(&'a self, l: &Line, find: &Find<'a>, router: &Router) -> Vec<(i32, i32)> {
-        let plain = self.plain_with(l, find);
-        match l.routing {
-            _ if !l.bends.is_empty() => plain,
-            Routing::Elbow => router.around(self, find, l, self.anchors(l, find), plain),
-            Routing::Straight => plain,
+        if l.routing == Routing::Straight {
+            return self.plain_with(l, find);
         }
+        if l.bends.is_empty() {
+            return router.around(
+                self,
+                find,
+                l,
+                self.anchors(l, find),
+                self.plain_with(l, find),
+            );
+        }
+        self.chain(l, find, |(p, q)| {
+            router.around(self, find, l, [p, q], route(p.0, p.1, q.0, q.1))
+        })
     }
 
     /// The route ignoring obstacles.
     pub(crate) fn plain_with<'a>(&'a self, l: &Line, find: &Find<'a>) -> Vec<(i32, i32)> {
-        let [(a, ax_a), (b, ax_b)] = self.anchors(l, find);
-        let mut stops = vec![(a, ax_a)];
+        self.chain(l, find, |((p, ax_p), (q, ax_q))| match l.routing {
+            Routing::Elbow => route(p, ax_p, q, ax_q),
+            Routing::Straight => straight(p, q),
+        })
+    }
+
+    /// Joins the cells `leg` returns for each pair of consecutive stops: ends and bends.
+    fn chain<'a>(
+        &'a self,
+        l: &Line,
+        find: &Find<'a>,
+        leg: impl Fn((Stop, Stop)) -> Vec<(i32, i32)>,
+    ) -> Vec<(i32, i32)> {
+        let [a, b] = self.anchors(l, find);
+        let mut stops = vec![a];
         stops.extend(l.bends.iter().map(|&p| (p, None)));
-        stops.push((b, ax_b));
+        stops.push(b);
         let mut cells: Vec<(i32, i32)> = vec![];
         for w in stops.windows(2) {
-            let ((p, ax_p), (q, ax_q)) = (w[0], w[1]);
-            let leg = match l.routing {
-                Routing::Elbow => route(p, ax_p, q, ax_q),
-                Routing::Straight => straight(p, q),
-            };
-            cells.extend(leg.into_iter().skip(usize::from(!cells.is_empty())));
+            cells.extend(
+                leg((w[0], w[1]))
+                    .into_iter()
+                    .skip(usize::from(!cells.is_empty())),
+            );
         }
         cells
     }
