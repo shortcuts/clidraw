@@ -976,9 +976,9 @@ fn info_bar_idle_shows_hints_left_and_tool_with_save_state_right() {
 }
 
 #[test]
-fn info_bar_idle_shows_the_repo_link_when_it_fits() {
+fn info_bar_idle_hides_the_repo_link() {
     let s = Session::new(Canvas::default(), View::default(), (120, 24));
-    assert!(bar(&s, 120, true).contains("repo github.com/shortcuts/clidraw"));
+    assert!(!bar(&s, 120, true).contains("repo github.com/shortcuts/clidraw"));
 }
 
 #[test]

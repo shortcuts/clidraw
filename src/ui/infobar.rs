@@ -5,14 +5,6 @@ use crate::input::{Session, Tool};
 type Hints = &'static [(&'static str, &'static str)];
 
 const GAP: i32 = 2;
-const IDLE: Hints = &[
-    ("?", "help"),
-    (":", "command"),
-    ("Ctrl-f", "find"),
-    ("Esc", "menu"),
-    ("z", "fit"),
-];
-const REPO: (&str, &str) = ("repo", "github.com/shortcuts/clidraw");
 
 fn hints(s: &Session, overlay: &Overlay) -> Hints {
     match overlay {
@@ -36,7 +28,13 @@ fn hints(s: &Session, overlay: &Overlay) -> Hints {
             ("Ctrl-d", "dup"),
             ("g", "group"),
         ],
-        Overlay::None => IDLE,
+        Overlay::None => &[
+            ("?", "help"),
+            (":", "command"),
+            ("Ctrl-f", "find"),
+            ("Esc", "menu"),
+            ("z", "fit"),
+        ],
         Overlay::Actions(_) => &[("Enter", "run"), ("Up/Down", "select"), ("Esc", "close")],
         _ => &[("Esc", "close")],
     }
@@ -103,10 +101,8 @@ pub(super) fn draw(grid: &mut Grid, s: &Session, overlay: &Overlay, saved: bool)
         room = grid.w;
     }
     draw_right(grid, y, &parts);
-    // Shown only when it fits: the right-side parts keep priority over it.
-    let link = (hs == IDLE && full + GAP + pair_width(REPO) <= room).then_some(&REPO);
     let mut x = 0;
-    for &(k, a) in hs.iter().chain(link) {
+    for &(k, a) in hs {
         if x > 0 && x + GAP + pair_width((k, a)) > room {
             break;
         }
