@@ -32,6 +32,7 @@ Run these commands from the repo root.
 
 - Export changes need a golden-file update in `tests/golden/`. Review the diff by eye.
 - A bug fix starts with a failing test.
+- A bug fix test fails before the fix: run it and see the failure first.
 - A change to rendering, hit testing, input handling or save passes `make perf`.
 - A perf fix starts with a perf test that fails against the budget.
 - The budgets are in the [Performance table](README.md#performance) of the README.
@@ -54,7 +55,7 @@ fn check(name: &str, actual: &str) {
 
 ## Performance
 
-`make perf` checks the frame and drag-step budgets, including frames at 25% and 300% zoom. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet. CI runs `make check` with `CLIDRAW_PERF_SLACK=4`, which divides each measured median by 4; local runs leave it unset.
+`make perf` checks the frame and drag-step budgets, including frames at 25% and 300% zoom. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet. CI runs `make check` with `CLIDRAW_PERF_SLACK=4`. That value divides each measured median by 4. Local runs leave `CLIDRAW_PERF_SLACK` unset.
 
 The budgets are in the [Performance table](README.md#performance).
 

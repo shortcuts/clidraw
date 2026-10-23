@@ -143,7 +143,7 @@ The release binary (`make release`) is 2,615,488 bytes (2.6 MB) on macOS x86_64,
 
 The loop wakes every 16 ms only while a Fit all or search glide runs.
 
-Contributors run `make perf` to check them: see [CONTRIBUTING.md](CONTRIBUTING.md#performance).
+Contributors run `make perf` to check them. See [CONTRIBUTING.md](CONTRIBUTING.md#performance).
 
 ## Contributing
 
