@@ -2034,6 +2034,16 @@ fn frame_interior_click_selects_the_content_under_it_or_starts_a_band() {
 }
 
 #[test]
+fn frame_border_wins_over_a_later_shape_but_its_interior_does_not() {
+    let mut s = framed();
+    put(&mut s, "later000", ShapeKind::Rect, (36, 8, 6, 3));
+    click(&mut s, (39, 8), Instant::now());
+    assert!(s.selection.contains(&Id::from("frame000")));
+    click(&mut s, (37, 8), Instant::now());
+    assert_eq!(s.selection, vec![Id::from("later000")]);
+}
+
+#[test]
 fn delete_removes_frame_and_contents_and_one_undo_restores_both() {
     let mut s = framed();
     click(&mut s, (30, 5), Instant::now());

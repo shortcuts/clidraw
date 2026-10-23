@@ -71,6 +71,15 @@ impl Canvas {
         self.elements.iter().position(|e| e.id() == id)
     }
 
+    /// Element indices in draw order: a frame groups visually, so it draws above everything else.
+    pub fn stacking(&self) -> impl DoubleEndedIterator<Item = usize> + '_ {
+        let frame = |&i: &usize| matches!(&self.elements[i], Element::Shape(s) if s.kind == ShapeKind::Frame);
+        let n = self.elements.len();
+        (0..n)
+            .filter(move |i| !frame(i))
+            .chain((0..n).filter(move |i| frame(i)))
+    }
+
     pub fn get(&self, id: &Id) -> Option<&Element> {
         self.index_of(id).map(|i| &self.elements[i])
     }

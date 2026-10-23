@@ -23,14 +23,12 @@ const DIRS: [Pt; 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];
 #[derive(Clone, Copy, PartialEq)]
 enum Kind {
     Solid,
-    Frame,
     Line,
 }
 
 struct Item {
     at: usize,
     rect: Rect,
-    kind: Kind,
 }
 
 type Buckets = HashMap<Pt, Vec<u32>>;
@@ -67,7 +65,7 @@ impl Router {
         };
         for (at, (e, &rect)) in canvas.elements.iter().zip(bounds).enumerate() {
             let kind = match e {
-                Element::Shape(s) if s.kind == ShapeKind::Frame => Kind::Frame,
+                Element::Shape(s) if s.kind == ShapeKind::Frame => continue,
                 Element::Shape(_) | Element::Text(_) => Kind::Solid,
                 Element::Line(_) => Kind::Line,
             };
@@ -79,7 +77,7 @@ impl Router {
             for b in buckets(rect) {
                 map.entry(b).or_default().push(r.items.len() as u32);
             }
-            r.items.push(Item { at, rect, kind });
+            r.items.push(Item { at, rect });
         }
         r
     }
@@ -140,8 +138,8 @@ impl Router {
     }
 
     /// `plain` when no cell of it lies in an obstacle and it shares no segment with an earlier
-    /// line, else the cheapest path in the box of the end cells plus `MARGIN`. Obstacles are the other shapes, texts and frames, minus the two
-    /// end shapes (a bent line keeps them as obstacles) and the frames holding an end.
+    /// line, else the cheapest path in the box of the end cells plus `MARGIN`. Obstacles are the other shapes and texts, minus the two
+    /// end shapes (a bent line keeps them as obstacles). A frame is no obstacle.
     // shortcut: other lines count by their plain route, a long line or a wide obstacle is not avoided
     pub fn around<'a>(
         &self,
@@ -164,12 +162,7 @@ impl Router {
             _ => false,
         };
         let bent = !own.bends.is_empty();
-        let skip = |i: &Item| {
-            if is_end(i) {
-                return !bent;
-            }
-            i.kind == Kind::Frame && held.iter().any(|&h| holds(i.rect, h))
-        };
+        let skip = |i: &Item| is_end(i) && !bent;
         let blocked = |p: Pt| {
             if p == a || p == b {
                 return false;

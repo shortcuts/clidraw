@@ -93,6 +93,19 @@ fn draws_palette_and_a_labelled_rect() {
 }
 
 #[test]
+fn a_frame_border_draws_over_a_later_shape() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("ffffffff", 20, ""));
+    c.elements.push(shape("bbbbbbbb", 24, ""));
+    if let Element::Shape(f) = &mut c.elements[0] {
+        f.kind = ShapeKind::Frame;
+    }
+    let s = Session::new(c, View::default(), (80, 24));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 4, 24, 1), "─");
+}
+
+#[test]
 fn dashed_and_dotted_strokes_swap_the_border_glyphs() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 20, ""));

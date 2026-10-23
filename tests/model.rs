@@ -972,9 +972,7 @@ fn a_clear_elbow_keeps_the_plain_route() {
 }
 
 #[test]
-fn text_and_foreign_frames_are_obstacles() {
-    let (c, l) = ab(vec![rect("ffffffff", ShapeKind::Frame, (10, 4, 5, 3))]);
-    assert!(!c.route(&l).iter().any(|&p| inside(p, (10, 4, 5, 3))));
+fn a_text_is_an_obstacle() {
     let (c, l) = ab(vec![Element::Text(Text {
         id: Id::from("tttttttt"),
         x: 10,
@@ -996,13 +994,26 @@ fn a_wall_costs_the_fewest_cells_inside_it() {
 }
 
 #[test]
-fn a_frame_around_both_ends_is_no_obstacle_but_a_shape_inside_it_is() {
+fn a_frame_between_the_ends_leaves_the_plain_route_unchanged() {
+    let (c, l) = ab(vec![rect("ffffffff", ShapeKind::Frame, (10, 4, 5, 3))]);
+    let (plain, _) = ab(vec![]);
+    assert_eq!(c.route(&l), plain.route(&l));
+}
+
+#[test]
+fn a_shape_inside_a_frame_around_both_ends_is_an_obstacle() {
     let (c, l) = ab(vec![
         rect("ffffffff", ShapeKind::Frame, (-2, 2, 27, 10)),
         rect("cccccccc", ShapeKind::Rect, O),
     ]);
     let cells = c.route(&l);
     assert!(!cells.iter().any(|&p| inside(p, O)));
+}
+
+#[test]
+fn stacking_puts_frames_last() {
+    let (c, _) = ab(vec![rect("ffffffff", ShapeKind::Frame, O)]);
+    assert_eq!(c.stacking().collect::<Vec<_>>(), vec![0, 1, 3, 2]);
 }
 
 #[test]
@@ -1084,7 +1095,7 @@ fn a_bent_line_keeps_its_bends_and_goes_around_an_obstacle() {
 }
 
 #[test]
-fn a_bent_arrow_avoids_its_own_start_shape_and_end_frame() {
+fn a_bent_arrow_avoids_its_own_start_shape() {
     let start = (52, 7, 24, 7);
     let end = (75, 23, 14, 5);
     let (a, f) = (Id::from("ot2efij1"), Id::from("a5iawbhl"));
@@ -1109,7 +1120,7 @@ fn a_bent_arrow_avoids_its_own_start_shape_and_end_frame() {
     }
     let bad: Vec<_> = cells
         .iter()
-        .filter(|&&p| !line.bends.contains(&p) && (inside(p, start) || inside(p, end)))
+        .filter(|&&p| !line.bends.contains(&p) && inside(p, start))
         .collect();
     assert!(bad.is_empty(), "{bad:?}");
 }

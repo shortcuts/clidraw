@@ -24,7 +24,8 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     let layout = refresh(&mut slot, &s.canvas, s.rev);
     let find = layout.find(&s.canvas);
     let selected: HashSet<&Id> = s.selection.iter().collect();
-    for (e, &(x, y, w, h)) in s.canvas.elements.iter().zip(&layout.bounds) {
+    for i in s.canvas.stacking() {
+        let (e, (x, y, w, h)) = (&s.canvas.elements[i], layout.bounds[i]);
         let (sx, sy, w, h) = view.rect(x, y, w, h);
         if sx >= grid.w || sy >= grid.h || sx + w <= 0 || sy + h <= 0 {
             continue;

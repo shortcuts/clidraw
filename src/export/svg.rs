@@ -93,7 +93,7 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
         let stroke = ink.map_or("black".to_string(), hex);
         format!("fill=\"{fill}\"{opacity} stroke=\"{stroke}\"{}", dash(s))
     };
-    for e in &canvas.elements {
+    for e in canvas.stacking().map(|i| &canvas.elements[i]) {
         let start = o.len();
         match e {
             Element::Shape(s) => {

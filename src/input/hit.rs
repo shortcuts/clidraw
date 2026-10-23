@@ -109,9 +109,9 @@ pub fn test(canvas: &Canvas, selection: &[Id], p: (i32, i32)) -> Hit {
     let find = canvas.shape_lookup();
     let router = canvas.router();
     canvas
-        .elements
-        .iter()
+        .stacking()
         .rev()
+        .map(|i| &canvas.elements[i])
         .find(|e| covers(canvas, &find, &router, e, p))
         .map_or(Hit::Empty, |e| Hit::Element(e.id().clone()))
 }
@@ -120,9 +120,9 @@ pub fn shape_at(canvas: &Canvas, p: (i32, i32)) -> Option<Id> {
     let find = canvas.shape_lookup();
     let router = canvas.router();
     canvas
-        .elements
-        .iter()
+        .stacking()
         .rev()
+        .map(|i| &canvas.elements[i])
         .find(|e| matches!(e, Element::Shape(_)) && covers(canvas, &find, &router, e, p))
         .map(|e| e.id().clone())
 }
