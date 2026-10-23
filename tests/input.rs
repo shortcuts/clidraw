@@ -2384,3 +2384,15 @@ fn reset_route_clears_the_bends_and_undo_restores_them() {
     key(&mut s, KeyCode::Char('u'));
     assert_eq!(bends_of(&s), vec![(15, 8)]);
 }
+
+#[test]
+fn hjkl_pan_with_empty_selection_and_move_with_one() {
+    let mut s = session();
+    let (ox, oy) = (s.view.ox, s.view.oy);
+    for c in ['l', 'l', 'j', 'h', 'k'] {
+        key(&mut s, KeyCode::Char(c));
+    }
+    assert_eq!((s.view.ox, s.view.oy), (ox + 1, oy));
+    key(&mut s, KeyCode::Char('H'));
+    assert_eq!((s.view.ox, s.view.oy), (ox + 1, oy));
+}

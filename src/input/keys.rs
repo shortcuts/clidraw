@@ -184,7 +184,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             });
         }
         KeyCode::Left | KeyCode::Right | KeyCode::Up | KeyCode::Down
-            if matches!(s.gesture, Gesture::Idle) && !s.selection.is_empty() =>
+            if matches!(s.gesture, Gesture::Idle) =>
         {
             let (dx, dy) = match k.code {
                 KeyCode::Left => (-1, 0),
@@ -192,6 +192,11 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
                 KeyCode::Up => (0, -1),
                 _ => (0, 1),
             };
+            if s.selection.is_empty() {
+                s.glide = None;
+                s.view.pan(s.view.world_step(dx), s.view.world_step(dy));
+                return KeyOutcome::None;
+            }
             let cmds = s
                 .selection
                 .iter()
