@@ -423,7 +423,7 @@ fn help_canvas_row_lists_every_command_line_verb() {
         "{}",
         row(&b, 20)
     );
-    assert_eq!(cols(&b, 20, 66, 1), "│");
+    assert_eq!(cols(&b, 20, 71, 1), "│");
 }
 
 #[test]
@@ -431,7 +431,24 @@ fn help_canvas_esc_row_stays_inside_the_border() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0));
     assert!(row(&b, 4).contains("│ Esc"), "{}", row(&b, 4));
-    assert_eq!(cols(&b, 4, 66, 1), "│", "{}", row(&b, 4));
+    assert_eq!(cols(&b, 4, 71, 1), "│", "{}", row(&b, 4));
+}
+
+#[test]
+fn help_rows_stay_inside_the_border_on_every_page() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    for page in 0..4 {
+        let b = draw(&s, &Overlay::Help(page));
+        let edge = row(&b, 2).trim_end().chars().count();
+        for i in 0..ui::help::rows(page).len() as u16 {
+            let r = row(&b, 4 + i);
+            let r = r.trim_end();
+            assert!(
+                r.ends_with('│') && r.chars().count() == edge,
+                "page {page} row {i}: {r}"
+            );
+        }
+    }
 }
 
 #[test]

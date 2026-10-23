@@ -38,7 +38,7 @@ const TEXT_EDIT: [(&str, &str); 10] = [
     ("Esc", "Discard the edit"),
 ];
 
-const WIDTH: i32 = 54;
+const WIDTH: i32 = 64;
 // Two borders, the tab row, a blank row and the longest page; fixed so the box does not jump.
 const HEIGHT: i32 = 21;
 const ACTION_COL: i32 = 20;
