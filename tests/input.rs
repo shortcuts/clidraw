@@ -565,7 +565,7 @@ fn text_tool_click_places_text_and_esc_cancels_edit() {
 }
 
 #[test]
-fn esc_cancels_a_drag_then_opens_the_menu() {
+fn esc_cancels_a_drag() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     let t = Instant::now();
     mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 22, 6, t);
@@ -573,16 +573,16 @@ fn esc_cancels_a_drag_then_opens_the_menu() {
     assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::None);
     assert_eq!(shapes(&s)[0].x, 20);
     key(&mut s, KeyCode::Esc);
-    assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::Menu);
+    assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::None);
 }
 
 #[test]
-fn esc_clears_the_selection_before_opening_the_menu() {
+fn esc_clears_the_selection() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     s.selection = vec![shapes(&s)[0].id.clone()];
     assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::None);
     assert!(s.selection.is_empty());
-    assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::Menu);
+    assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::None);
 }
 
 #[test]

@@ -3,7 +3,7 @@ use crate::model::Z;
 use crate::names;
 use crate::store::{State, Store, StoreError};
 use crate::ui::actions::Actions;
-use crate::ui::menu::{self, Context, ContextItem, MenuItem};
+use crate::ui::menu::{Context, ContextItem, MenuItem};
 use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
 use crate::ui::scope::{self, ExportFormat};
 use crate::ui::switcher::{self, Switcher, SwitcherHit};
@@ -256,7 +256,6 @@ impl App {
             }
             match handle_key(&mut self.session, k) {
                 KeyOutcome::Quit => self.quit = true,
-                KeyOutcome::Menu => self.overlay = Overlay::Menu,
                 KeyOutcome::Help => self.overlay = Overlay::Help(0, String::new()),
                 KeyOutcome::Actions => {
                     if self.pick.is_none() {
@@ -288,11 +287,6 @@ impl App {
         }
         match (k.code, &mut self.overlay) {
             (KeyCode::Esc, _) => self.overlay = Overlay::None,
-            (KeyCode::Char(c), Overlay::Menu) => {
-                if let Some(item) = menu::by_key(c) {
-                    self.menu_item(item);
-                }
-            }
             (KeyCode::Char(c), Overlay::Prompt(p)) => p.buf.push(c),
             (KeyCode::Backspace, Overlay::Prompt(p)) => {
                 p.buf.pop();
@@ -305,11 +299,6 @@ impl App {
     fn overlay_click(&mut self, col: i32, row: i32) {
         let screen = self.session.screen;
         match &self.overlay {
-            Overlay::Menu => match menu::entry_at(screen, col, row) {
-                Some(item) => self.menu_item(item),
-                None if !menu::inside(screen, col, row) => self.overlay = Overlay::None,
-                None => {}
-            },
             Overlay::Context(c) => match c.entry_at(col, row) {
                 Some(item) => self.context_item(item),
                 None if !c.inside(col, row) => self.overlay = Overlay::None,

@@ -6,8 +6,8 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
 
 - `make run` opens the last canvas, or creates `untitled`.
 - `cargo run -- <name>` opens or creates the canvas `<name>`.
-- `cargo run -- config` prints the default `config.toml`. A canvas named `config` opens from the menu, not by argument.
-- `cargo run -- list|new|show|edit|import|export` run without the UI, for scripts and agents. Each prints JSON on stdout, or the export text, and exits 1 with `Error: <msg>` on stderr. A canvas named like one of these commands opens from the menu, not by argument.
+- `cargo run -- config` prints the default `config.toml`. A canvas named `config` opens from the canvas switcher (Ctrl-p, Canvases), not by argument.
+- `cargo run -- list|new|show|edit|import|export` run without the UI, for scripts and agents. Each prints JSON on stdout, or the export text, and exits 1 with `Error: <msg>` on stderr. A canvas named like one of these commands opens from the canvas switcher (Ctrl-p, Canvases), not by argument.
   - `list` prints the canvas names as a JSON array. `new <name>` creates an empty canvas. `show <name>` prints the canvas file.
   - `edit <name>` reads a JSON array of ops on stdin and applies them all or none. It prints `{"applied":N,"ids":[...]}` with the ids of the created elements. The canvas must exist.
   - `import <name> <path|->` adds a Mermaid flowchart below the existing content and creates the canvas if missing.
@@ -17,7 +17,7 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
     ```sh
     echo '[{"op":"add_shape","id":"a","x":0,"y":0,"label":"Hi"},{"op":"add_shape","id":"b","x":20,"y":0,"label":"Yo"},{"op":"connect","from":"a","to":"b"}]' | clidraw edit demo
     ```
-- `cargo run -- mcp` serves the six commands above as MCP tools (`list`, `new`, `show`, `edit`, `import`, `export`) over stdio, for agent clients. Config: `{"mcpServers":{"clidraw":{"command":"clidraw","args":["mcp"]}}}`. A tool failure comes back as a result with `isError` true. A running UI overwrites an edit made to the canvas it has open. A canvas named `mcp` opens from the menu, not by argument.
+- `cargo run -- mcp` serves the six commands above as MCP tools (`list`, `new`, `show`, `edit`, `import`, `export`) over stdio, for agent clients. Config: `{"mcpServers":{"clidraw":{"command":"clidraw","args":["mcp"]}}}`. A tool failure comes back as a result with `isError` true. A running UI overwrites an edit made to the canvas it has open. A canvas named `mcp` opens from the canvas switcher (Ctrl-p, Canvases), not by argument.
 - `cargo run -- probe` prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.
 - `cargo run --release -- bench` replays a scripted drag and pan on a generated 5000-element canvas in your terminal and prints the frame times.
 - `cargo test --test e2e` runs the real binary in a pty and asserts on the parsed screen. Use it to prove a Live box without a human.
@@ -49,7 +49,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 
 | Key | Action |
 |---|---|
-| `Esc` | Cancel the gesture, else open or close the menu |
+| `Esc` | Cancel the gesture, else clear the selection |
 | `Delete` / `Backspace` | Delete the selection |
 | `<` `|` `>` `^` `-` `_` | Align the selection left, center, right, top, middle, bottom |
 | `=` / `#` | Distribute the selection evenly, horizontally / vertically |
@@ -68,7 +68,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `?` | Show the shortcuts, one page per scope; type to filter all pages |
 | `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo`, `layout [td|lr]`, `import <path>`, `lib save|insert <name>`, `perf` |
 
-The menu has Canvases, Fit all, Export SVG, Export Mermaid, Export Text and Quit. The command palette lists every action with its key. Saving is automatic.
+The command palette (`Ctrl-p`) lists every action with its key, including Canvases, Fit all, the exports and Quit. Saving is automatic.
 
 Export asks what to write: the whole canvas, a dragged area or the selection. Export Text (or `:export`) writes the canvas as plain text, as the screen draws it. Set `export_padding` in `config.toml` for the SVG margin in cells.
 
@@ -107,7 +107,7 @@ clidraw takes its core model from [excalidraw](https://excalidraw.com) and [tldr
 
 The built-in SVG export draws plain shapes. For a Mermaid render, export Mermaid and render it with [pele](https://pele.run). pele needs Node.
 
-1. Choose Export Mermaid in the menu and enter a file path, such as `diagram.mmd`.
+1. Choose Export Mermaid in the command palette and enter a file path, such as `diagram.mmd`.
 2. Install pele in a folder of your choice: `npm install pele`
 3. Save this script as `render.mjs` in the same folder:
 

@@ -4,6 +4,7 @@ use clidraw::model::{
     Stroke, TextAlign,
 };
 use clidraw::ui::prompt::{Prompt, PromptKind};
+use clidraw::ui::scope::ExportFormat;
 use clidraw::ui::switcher::Switcher;
 use clidraw::ui::theme::Theme;
 use clidraw::ui::{self, Overlay, Perf};
@@ -263,25 +264,6 @@ fn selected_arrow_keeps_its_head_visible() {
 }
 
 #[test]
-fn menu_lists_its_entries() {
-    let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let b = draw(&s, &Overlay::Menu);
-    let all: String = (0..24).map(|y| row(&b, y)).collect();
-    for e in [
-        "Canvases",
-        "Fit all",
-        "Export SVG",
-        "Export Mermaid",
-        "Quit",
-    ] {
-        assert!(all.contains(e), "{e}");
-    }
-    for k in ["c", "f", "s", "m", "q"] {
-        assert!(all.contains(&format!("{k} │")), "{k}");
-    }
-}
-
-#[test]
 fn arrow_start_has_its_head_at_the_first_cell() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 12, ""));
@@ -359,11 +341,10 @@ fn help_pages_list_their_scope() {
             0,
             vec!["Shortcuts", "Canvas", "Delete, Backspace", "Ctrl-z, Ctrl-y"],
         ),
-        (1, vec!["Fit all", "Export Mermaid"]),
-        (2, vec!["Commit the label"]),
-        (3, vec!["Tools", "Diamond", "Hexagon"]),
+        (1, vec!["Commit the label"]),
+        (2, vec!["Tools", "Diamond", "Hexagon"]),
         (
-            4,
+            3,
             vec![
                 "github.com/shortcuts/clidraw",
                 "github.com/shortcuts/clidraw#contributing",
@@ -386,17 +367,9 @@ fn overlay_dims_the_canvas_behind_it() {
     assert!(!draw(&s, &Overlay::None)[(20, 4)]
         .modifier
         .contains(Modifier::DIM));
-    assert!(draw(&s, &Overlay::Menu)[(20, 4)]
+    assert!(draw(&s, &Overlay::Scope(ExportFormat::Svg))[(20, 4)]
         .modifier
         .contains(Modifier::DIM));
-}
-
-#[test]
-fn menu_hotkeys_are_dim_and_labels_are_not() {
-    let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let b = draw(&s, &Overlay::Menu);
-    assert!(b[(48, 9)].modifier.contains(Modifier::DIM), "hotkey c");
-    assert!(!b[(31, 9)].modifier.contains(Modifier::DIM), "label C");
 }
 
 #[test]
@@ -443,7 +416,7 @@ fn help_canvas_esc_row_stays_inside_the_border() {
 #[test]
 fn help_rows_stay_inside_the_border_on_every_page() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    for page in 0..5 {
+    for page in 0..4 {
         let b = draw(&s, &Overlay::Help(page, String::new()));
         let edge = row(&b, 2).trim_end().chars().count();
         for i in 0..ui::help::rows(page).len() as u16 {

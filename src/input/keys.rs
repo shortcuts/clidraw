@@ -8,7 +8,6 @@ use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 pub enum KeyOutcome {
     None,
     Quit,
-    Menu,
     Help,
     Command,
     Find,
@@ -139,7 +138,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
     match k.code {
         KeyCode::Esc if s.cancel_gesture() => {}
         KeyCode::Esc if !s.selection.is_empty() => s.selection.clear(),
-        KeyCode::Esc => return KeyOutcome::Menu,
+        KeyCode::Esc => {}
         KeyCode::Char('?') => return KeyOutcome::Help,
         KeyCode::Char(':') => return KeyOutcome::Command,
         KeyCode::Char(c @ (']' | '[' | '}' | '{'))

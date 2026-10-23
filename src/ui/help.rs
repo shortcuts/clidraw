@@ -1,12 +1,11 @@
 use super::grid::{DIM, REVERSE};
-use super::menu::ITEMS;
 use super::{boxed, centered, Grid};
 use crate::input::Tool;
 
-pub const SCOPES: [&str; 5] = ["Canvas", "Menu", "Text edit", "Tools", "Project"];
+pub const SCOPES: [&str; 4] = ["Canvas", "Text edit", "Tools", "Project"];
 
 const CANVAS: [(&str, &str); 18] = [
-    ("Esc", "Cancel, deselect, menu"),
+    ("Esc", "Cancel, deselect"),
     ("Delete, Backspace", "Delete the selection"),
     ("Ctrl-a", "Select everything"),
     ("Arrows, h j k l", "Move one cell; Shift adds linked shape"),
@@ -73,12 +72,8 @@ pub fn rows(page: usize) -> Vec<(String, String)> {
     };
     match page {
         0 => own(&CANVAS),
-        1 => ITEMS
-            .iter()
-            .map(|(_, label, key)| (key.to_string(), label.to_string()))
-            .collect(),
-        2 => own(&TEXT_EDIT),
-        4 => own(&PROJECT),
+        1 => own(&TEXT_EDIT),
+        3 => own(&PROJECT),
         _ => Tool::ALL
             .iter()
             .filter_map(|t| Some((t.key()?.to_string(), t.label().to_string())))

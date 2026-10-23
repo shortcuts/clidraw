@@ -128,7 +128,7 @@ fn click(app: &mut App, col: u16, row: u16, t: Instant) {
     app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), col, row), t);
 }
 
-/// Two shapes near the origin and one far away; opens Esc menu, Export SVG, Area.
+/// Two shapes near the origin and one far away; opens the palette's Export SVG, Area.
 fn area_app(dir: &std::path::Path) -> (App, Instant) {
     let store = Store::at(dir.join("c"), dir.join("state"));
     let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
@@ -158,8 +158,7 @@ fn area_app(dir: &std::path::Path) -> (App, Instant) {
         ));
     }
     let t = Instant::now();
-    app.on_event(key(KeyCode::Esc), t);
-    click(&mut app, 31, 11, t);
+    open_export(&mut app, t);
     click(&mut app, 31, 11, t);
     (app, t)
 }
@@ -195,9 +194,8 @@ fn exports_only_the_selection() {
     let t = tempfile::tempdir().unwrap();
     let (mut app, now) = area_app(t.path());
     app.on_event(key(KeyCode::Esc), now);
-    app.on_event(key(KeyCode::Esc), now);
     app.session.selection = vec![Id::from("bbbbbbbb")];
-    click(&mut app, 31, 11, now);
+    open_export(&mut app, now);
     click(&mut app, 31, 12, now);
     let out = t.path().join("sel.svg");
     type_path(&mut app, out.to_str().unwrap(), now);
@@ -211,8 +209,7 @@ fn an_empty_selection_opens_no_prompt() {
     let t = tempfile::tempdir().unwrap();
     let (mut app, now) = area_app(t.path());
     app.on_event(key(KeyCode::Esc), now);
-    app.on_event(key(KeyCode::Esc), now);
-    click(&mut app, 31, 11, now);
+    open_export(&mut app, now);
     click(&mut app, 31, 12, now);
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
     assert_eq!(
@@ -241,8 +238,7 @@ fn export_padding_comes_from_the_config() {
         }),
     ));
     let now = Instant::now();
-    app.on_event(key(KeyCode::Esc), now);
-    click(&mut app, 31, 11, now);
+    open_export(&mut app, now);
     click(&mut app, 31, 10, now);
     let out = t.path().join("pad.svg");
     type_path(&mut app, out.to_str().unwrap(), now);
@@ -303,23 +299,11 @@ fn an_empty_area_opens_no_prompt() {
 }
 
 #[test]
-fn menu_hotkeys_pick_entries() {
+fn esc_on_an_idle_canvas_opens_nothing() {
     let t = tempfile::tempdir().unwrap();
-    let store = Store::at(t.path().join("c"), t.path().join("state"));
-    let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
-    let now = Instant::now();
-    app.on_event(key(KeyCode::Esc), now);
-    app.on_event(key(KeyCode::Char('m')), now);
-    assert!(matches!(
-        app.overlay,
-        clidraw::ui::Overlay::Scope(clidraw::ui::scope::ExportFormat::Mermaid)
-    ));
-    app.on_event(key(KeyCode::Esc), now);
-    app.on_event(key(KeyCode::Esc), now);
-    app.on_event(key(KeyCode::Char('z')), now);
-    assert!(matches!(app.overlay, clidraw::ui::Overlay::Menu));
-    app.on_event(key(KeyCode::Char('q')), now);
-    assert!(app.quit);
+    let mut app = app_in(t.path());
+    app.on_event(key(KeyCode::Esc), Instant::now());
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
 }
 
 fn app_in(dir: &std::path::Path) -> App {
@@ -391,8 +375,7 @@ fn question_mark_types_into_a_label_and_a_prompt() {
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
     assert_eq!(app.session.edit.as_ref().unwrap().buf, "?");
     app.on_event(key(KeyCode::Esc), now);
-    app.on_event(key(KeyCode::Esc), now);
-    app.on_event(key(KeyCode::Char('c')), now);
+    open_canvases(&mut app, now);
     click(&mut app, 22, 11, now);
     for _ in 0..40 {
         app.on_event(key(KeyCode::Backspace), now);
@@ -409,8 +392,7 @@ fn new_canvas_prompt_is_prefilled_with_a_generated_name() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     let now = Instant::now();
-    app.on_event(key(KeyCode::Esc), now);
-    app.on_event(key(KeyCode::Char('c')), now);
+    open_canvases(&mut app, now);
     click(&mut app, 25, 11, now);
     let clidraw::ui::Overlay::Prompt(p) = &app.overlay else {
         panic!("no prompt");
@@ -1125,6 +1107,18 @@ fn type_str(app: &mut App, s: &str, t: Instant) {
     }
 }
 
+fn open_canvases(app: &mut App, t: Instant) {
+    ctrl_key(app, 'p', t);
+    type_str(app, "canvases", t);
+    app.on_event(key(KeyCode::Enter), t);
+}
+
+fn open_export(app: &mut App, t: Instant) {
+    ctrl_key(app, 'p', t);
+    type_str(app, "export svg", t);
+    app.on_event(key(KeyCode::Enter), t);
+}
+
 fn palette_labels(app: &App) -> Vec<String> {
     match &app.overlay {
         clidraw::ui::Overlay::Actions(a) => a.labels().iter().map(|l| l.to_string()).collect(),
@@ -1567,7 +1561,7 @@ fn pointer_shape_follows_tool_hover_and_drag() {
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 34, 10), t0);
     assert_eq!(app.take_pointer(), Some("grabbing"));
     app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 34, 10), t0);
-    app.on_event(key(KeyCode::Esc), t0);
+    ctrl_key(&mut app, 'p', t0);
     assert_eq!(app.take_pointer(), Some("default"));
 }
 

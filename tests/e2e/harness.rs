@@ -82,11 +82,6 @@ impl Term {
         self.send(s.as_bytes());
     }
 
-    pub fn esc(&mut self) {
-        self.send(b"\x1b");
-        self.quiet();
-    }
-
     fn mouse_bytes(btn: u8, col: u16, row: u16, press: bool) -> Vec<u8> {
         let end = if press { 'M' } else { 'm' };
         format!("\x1b[<{btn};{};{}{end}", col + 1, row + 1).into_bytes()

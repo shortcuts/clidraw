@@ -15,14 +15,13 @@ fn wheel_pans_the_canvas() {
 }
 
 #[test]
-fn export_svg_from_the_menu() {
+fn export_svg_from_the_palette() {
     let tmp = tempfile::tempdir().unwrap();
     let mut t = Term::spawn(tmp.path(), &["scratch"]);
     t.draw_rect();
-    t.esc();
-    t.esc();
-    t.wait_for("Export SVG");
-    t.key("s");
+    t.key("\x10");
+    t.key("export svg");
+    t.key("\r");
     t.wait_for("Whole canvas");
     let (col, row) = t.find("Whole canvas");
     t.click(col, row);
@@ -77,10 +76,8 @@ fn fit_all_glides_then_goes_idle() {
     for _ in 0..10 {
         t.wheel_down(40, 20);
     }
-    t.esc();
-    t.esc();
     let panned = t.canvas();
-    t.key("f");
+    t.key("z");
     t.quiet();
     assert_ne!(t.canvas(), panned);
     assert_eq!(t.bytes_in(std::time::Duration::from_millis(500)), 0);
