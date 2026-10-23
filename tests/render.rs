@@ -934,11 +934,11 @@ fn info_bar_idle_shows_hints_left_and_tool_with_save_state_right() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let r = bar(&s, 80, true);
     assert!(
-        r.starts_with("? help  : command  Ctrl-f find  Esc menu  z fit"),
+        r.contains("[Export]  ? help  : command  Ctrl-f find"),
         "{r}"
     );
-    assert!(r.ends_with("Select  saved"), "{r}");
-    assert!(bar(&s, 80, false).ends_with("Select  unsaved"));
+    assert!(r.ends_with("saved"), "{r}");
+    assert!(bar(&s, 120, false).ends_with("Select  unsaved"));
 }
 
 #[test]
@@ -950,16 +950,16 @@ fn info_bar_idle_hides_the_repo_link() {
 #[test]
 fn info_bar_hints_follow_the_state() {
     let mut s = two_shapes();
-    let r = bar(&s, 80, true);
-    assert!(r.starts_with("Del delete"), "{r}");
+    let r = bar(&s, 120, true);
+    assert!(r.contains("Del delete"), "{r}");
     assert!(r.contains("2 sel"), "{r}");
     s.tool = Tool::Rect;
-    assert!(bar(&s, 80, true).starts_with("drag draw"));
+    assert!(bar(&s, 80, true).contains("drag draw"));
     s.tool = Tool::Hand;
-    assert!(bar(&s, 80, true).starts_with("drag pan"));
+    assert!(bar(&s, 80, true).contains("drag pan"));
     s.tool = Tool::Select;
     s.start_edit_new((5, 5));
-    assert!(bar(&s, 80, true).starts_with("Enter commit"));
+    assert!(bar(&s, 80, true).contains("Enter commit"));
 }
 
 #[test]
@@ -980,7 +980,7 @@ fn tool_bar_sits_on_row_0_and_options_on_row_1() {
     let b = draw(&s, &Overlay::None);
     assert!(row(&b, 0).contains("Select"), "{}", row(&b, 0));
     assert!(row(&b, 1).contains("solid"), "{}", row(&b, 1));
-    assert!(row(&b, 23).starts_with("Del delete"));
+    assert!(row(&b, 23).contains("Del delete"));
 }
 
 fn screen_text(b: &Buffer) -> String {
@@ -1200,9 +1200,9 @@ fn info_bar_shows_the_zoom_percent_and_zoomed_out_hints() {
     let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
     assert!(!bar(&s, 80, true).contains('%'));
     s.view.zoom = Zoom::Half;
-    let r = bar(&s, 80, true);
-    assert!(r.starts_with("Esc 1x  Ctrl+wheel zoom  ? help"), "{r}");
+    let r = bar(&s, 120, true);
+    assert!(r.contains("Esc 1x  Ctrl+wheel zoom  ? help"), "{r}");
     assert!(r.contains("50%"), "{r}");
     s.view.zoom = Zoom::Three;
-    assert!(bar(&s, 80, true).contains("300%"));
+    assert!(bar(&s, 120, true).contains("300%"));
 }

@@ -252,6 +252,10 @@ impl Session {
         self.edit.is_none() && matches!(self.gesture, Gesture::Idle)
     }
 
+    pub fn can_edit(&self) -> bool {
+        self.idle() && !self.zoomed_out()
+    }
+
     /// At 25% and 50% the canvas is a read-only block map that only pans and zooms.
     pub fn zoomed_out(&self) -> bool {
         self.view.zoom < Zoom::One

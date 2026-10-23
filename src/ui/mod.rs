@@ -17,6 +17,7 @@ use crate::input::Session;
 use crate::model::Canvas;
 use crate::view::View;
 use grid::Grid;
+pub use infobar::{hit as button_at, Button};
 pub use layout::Layout;
 pub use perf::Perf;
 use ratatui::buffer::Buffer;

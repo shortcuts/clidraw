@@ -204,6 +204,16 @@ impl App {
                 {
                     return self.open_context(i32::from(m.column), i32::from(m.row));
                 }
+                if m.kind == MouseEventKind::Down(MouseButton::Left)
+                    && matches!(self.overlay, Overlay::None)
+                    && !self.session.present
+                {
+                    let (w, h) = self.session.screen;
+                    let (col, row) = (i32::from(m.column), i32::from(m.row));
+                    if let Some(b) = ui::button_at(i32::from(w), col, row, i32::from(h)) {
+                        return self.button(b);
+                    }
+                }
                 match self.overlay {
                     Overlay::None => {
                         let before = (self.session.hover.clone(), self.session.palette_hover);
@@ -222,6 +232,20 @@ impl App {
             }
             _ => {}
         }
+    }
+
+    fn button(&mut self, b: ui::Button) {
+        use crate::ui::actions::Action;
+        let action = match b {
+            ui::Button::ZoomOut => Action::ZoomOut,
+            ui::Button::ZoomIn => Action::ZoomIn,
+            ui::Button::Fit => Action::Menu(MenuItem::FitAll),
+            ui::Button::Undo | ui::Button::Redo if !self.session.can_edit() => return,
+            ui::Button::Undo => Action::Ex("u"),
+            ui::Button::Redo => Action::Ex("redo"),
+            ui::Button::Export => Action::Menu(MenuItem::ExportSvg),
+        };
+        self.run_action(action);
     }
 
     fn on_key(&mut self, k: crossterm::event::KeyEvent) {

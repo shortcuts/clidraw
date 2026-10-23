@@ -254,7 +254,7 @@ fn status_row_reversed(app: &App) -> bool {
     let area = Rect::new(0, 0, 80, 24);
     let mut buf = Buffer::empty(area);
     app.render(&mut buf, area);
-    buf[(0, 23)].modifier.contains(Modifier::REVERSED)
+    buf[(38, 23)].modifier.contains(Modifier::REVERSED)
 }
 
 #[test]
@@ -1672,4 +1672,118 @@ fn help_synonym_targets_appear_in_some_row() {
             "no row for {target}"
         );
     }
+}
+
+fn shape_count(app: &App) -> usize {
+    app.session.canvas.elements.len()
+}
+
+fn insert_box(app: &mut App) {
+    app.session.exec(Command::Insert(
+        0,
+        Element::Shape(Shape {
+            id: Id::from("aaaaaaaa"),
+            kind: ShapeKind::Rect,
+            x: 30,
+            y: 8,
+            w: 8,
+            h: 3,
+            label: "A".into(),
+            stroke: Default::default(),
+            border: Default::default(),
+            color: None,
+            fill: None,
+            align: Default::default(),
+            bold: false,
+            link: None,
+        }),
+    ));
+}
+
+#[test]
+fn info_bar_starts_with_buttons_on_wide_screens_only() {
+    let t = tempfile::tempdir().unwrap();
+    let app = app_in(t.path());
+    assert!(
+        last_row(&app).starts_with("[-] [+] [Fit] [Undo] [Redo] [Export]"),
+        "{}",
+        last_row(&app)
+    );
+    let area = Rect::new(0, 0, 40, 24);
+    let mut buf = Buffer::empty(area);
+    app.render(&mut buf, area);
+    let row: String = (0..40).map(|x| buf[(x, 23)].symbol().to_string()).collect();
+    assert!(!row.contains("[Fit]"), "{row}");
+}
+
+#[test]
+fn zoom_buttons_step_the_zoom() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    click(&mut app, 5, 23, now);
+    assert_eq!(app.session.view.zoom, clidraw::view::Zoom::Two);
+    click(&mut app, 1, 23, now);
+    assert_eq!(app.session.view.zoom, clidraw::view::Zoom::One);
+    click(&mut app, 1, 23, now);
+    assert_eq!(app.session.view.zoom, clidraw::view::Zoom::Half);
+}
+
+#[test]
+fn undo_and_redo_buttons_run_the_history() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    insert_box(&mut app);
+    click(&mut app, 16, 23, now);
+    assert_eq!(shape_count(&app), 0);
+    assert!(app.status.as_ref().unwrap().text.starts_with("Undid"));
+    click(&mut app, 23, 23, now);
+    assert_eq!(shape_count(&app), 1);
+}
+
+#[test]
+fn undo_button_is_inactive_while_zoomed_out() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    insert_box(&mut app);
+    click(&mut app, 1, 23, now);
+    click(&mut app, 16, 23, now);
+    assert_eq!(shape_count(&app), 1);
+}
+
+#[test]
+fn export_button_opens_the_svg_scope_menu() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    click(&mut app, 30, 23, Instant::now());
+    assert!(matches!(
+        app.overlay,
+        clidraw::ui::Overlay::Scope(clidraw::ui::scope::ExportFormat::Svg)
+    ));
+}
+
+#[test]
+fn fit_button_moves_the_view_to_the_content() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    insert_box(&mut app);
+    app.session.view.ox = 500;
+    click(&mut app, 10, 23, now);
+    app.tick(now);
+    app.tick(now + Duration::from_secs(3));
+    assert_ne!(app.session.view.ox, 500);
+}
+
+#[test]
+fn clicking_the_bar_creates_nothing() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Char('r')), now);
+    click(&mut app, 10, 23, now);
+    click(&mut app, 70, 23, now);
+    assert_eq!(shape_count(&app), 0);
 }

@@ -6,6 +6,63 @@ type Hints = &'static [(&'static str, &'static str)];
 
 const GAP: i32 = 2;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Button {
+    ZoomOut,
+    ZoomIn,
+    Fit,
+    Undo,
+    Redo,
+    Export,
+}
+
+const BUTTONS: [(Button, &str); 6] = [
+    (Button::ZoomOut, "[-]"),
+    (Button::ZoomIn, "[+]"),
+    (Button::Fit, "[Fit]"),
+    (Button::Undo, "[Undo]"),
+    (Button::Redo, "[Redo]"),
+    (Button::Export, "[Export]"),
+];
+
+/// Below this width the hints and the right side get the whole bar.
+const BUTTONS_MIN_W: i32 = 60;
+
+/// Columns the buttons and the gap after them take, or 0 on a narrow screen.
+fn offset(w: i32) -> i32 {
+    if w < BUTTONS_MIN_W {
+        return 0;
+    }
+    BUTTONS.iter().map(|&(_, l)| width(l) + 1).sum::<i32>() + GAP - 1
+}
+
+/// The button under a cell of the bottom row.
+pub fn hit(w: i32, col: i32, row: i32, h: i32) -> Option<Button> {
+    if row != h - 1 || col >= offset(w) {
+        return None;
+    }
+    let mut x = 0;
+    for &(b, l) in &BUTTONS {
+        if (x..x + width(l)).contains(&col) {
+            return Some(b);
+        }
+        x += width(l) + 1;
+    }
+    None
+}
+
+fn draw_buttons(grid: &mut Grid, y: i32, s: &Session) {
+    if offset(grid.w) == 0 {
+        return;
+    }
+    let mut x = 0;
+    for &(b, l) in &BUTTONS {
+        let off = matches!(b, Button::Undo | Button::Redo) && !s.can_edit();
+        grid.text(x, y, l, if off { DIM } else { BOLD });
+        x += width(l) + 1;
+    }
+}
+
 fn hints(s: &Session, overlay: &Overlay) -> Hints {
     match overlay {
         Overlay::Prompt(_) => &[("Enter", "confirm"), ("Esc", "cancel")],
@@ -94,19 +151,21 @@ pub(super) fn draw(grid: &mut Grid, s: &Session, overlay: &Overlay, saved: bool)
     let y = grid.h - 1;
     let hs = hints(s, overlay);
     let full = hs.iter().map(|&p| pair_width(p)).sum::<i32>() + GAP * (hs.len() as i32 - 1);
-    let mut parts = right(s, saved, grid.w, full);
+    let off = offset(grid.w);
+    let mut parts = right(s, saved, grid.w, off + full);
     let mut room = grid.w - right_width(&parts) - GAP;
-    if room < pair_width(hs[0]) {
+    if room < off + pair_width(hs[0]) {
         parts.clear();
         room = grid.w;
     }
     draw_right(grid, y, &parts);
-    let mut x = 0;
+    draw_buttons(grid, y, s);
+    let mut x = off;
     for &(k, a) in hs {
-        if x > 0 && x + GAP + pair_width((k, a)) > room {
+        if x > off && x + GAP + pair_width((k, a)) > room {
             break;
         }
-        if x > 0 {
+        if x > off {
             x += GAP;
         }
         let key: String = k.chars().take((room - x).max(0) as usize).collect();
@@ -125,13 +184,15 @@ pub(super) fn draw(grid: &mut Grid, s: &Session, overlay: &Overlay, saved: bool)
 pub(super) fn status(grid: &mut Grid, s: &Session, st: &Status, saved: bool) {
     let y = grid.h - 1;
     grid.fill(0, y, grid.w, 1);
-    let parts = right(s, saved, grid.w, width(&st.text));
-    let room = (grid.w - right_width(&parts) - GAP).max(0);
+    let off = offset(grid.w);
+    let parts = right(s, saved, grid.w, off + width(&st.text));
+    let room = (grid.w - right_width(&parts) - GAP - off).max(0);
     draw_right(grid, y, &parts);
+    draw_buttons(grid, y, s);
     let flags = match st.severity {
         Severity::Notice => 0,
         Severity::Error => REVERSE,
     };
     let text: String = st.text.chars().take(room as usize).collect();
-    grid.text(0, y, &text, flags);
+    grid.text(off, y, &text, flags);
 }
