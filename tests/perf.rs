@@ -106,6 +106,24 @@ fn blocked_app(dir: &std::path::Path) -> App {
     app
 }
 
+/// `busy_app` with every 16th line aimed about 12 columns right and one row down, so its search box is above the old area cap.
+fn wide_blocked_app(dir: &std::path::Path) -> App {
+    let mut app = busy_app(dir);
+    let shapes = 2500;
+    for e in &mut app.session.canvas.elements {
+        if let Element::Line(l) = e {
+            if let End::Bound(id, a) = &l.to {
+                let i: usize = id.0[1..].parse().unwrap();
+                if i.is_multiple_of(16) {
+                    let to = Id::from(format!("s{:07}", (i + 62).min(shapes - 1)).as_str());
+                    l.to = End::Bound(to, *a);
+                }
+            }
+        }
+    }
+    app
+}
+
 /// `busy_app` with every 8th line aimed at the shape of the line before it, so their plain routes share segments.
 fn overlapped_app(dir: &std::path::Path) -> App {
     let mut app = busy_app(dir);
@@ -324,6 +342,44 @@ fn frame_fits_the_budget_with_blocked_lines() {
 fn drag_step_fits_the_budget_with_blocked_lines() {
     let t = tempfile::tempdir().unwrap();
     let mut app = blocked_app(t.path());
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let now = Instant::now();
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left)), now);
+    assert!(!app.session.selection.is_empty(), "press missed the shape");
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left)), now);
+            frame(&app, &mut term);
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median drag step {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn frame_fits_the_budget_with_wide_blocked_lines() {
+    let t = tempfile::tempdir().unwrap();
+    let app = wide_blocked_app(t.path());
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            frame(&app, &mut term);
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median frame {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn drag_step_fits_the_budget_with_wide_blocked_lines() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = wide_blocked_app(t.path());
     let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
     let now = Instant::now();
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left)), now);

@@ -8,7 +8,7 @@ type Rect = (i32, i32, i32, i32);
 
 /// Cells the search may leave beyond the box of the two end cells.
 pub const MARGIN: i32 = 3;
-const MAX_AREA: i32 = 600;
+const MAX_AREA: i32 = 1000;
 const BUCKET: i32 = 16;
 
 // Packed cost, compared as (obstacle cells, line cells, length, bends): a path has at most
@@ -242,6 +242,14 @@ impl Router {
         let mut dist = vec![u64::MAX; grid.len() * 4];
         let mut from = vec![u32::MAX; grid.len() * 4];
         let mut heap = BinaryHeap::new();
+        // Every step costs at least STEP, so the Manhattan distance never overestimates.
+        let est = |c: usize| {
+            let (dx, dy) = (
+                (c as i32 % w - b.0 + x0).abs(),
+                (c as i32 / w - b.1 + y0).abs(),
+            );
+            STEP * (dx + dy) as u64
+        };
         let step = |c: usize, d: usize| {
             let (x, y) = (c as i32 % w + DIRS[d].0, c as i32 / w + DIRS[d].1);
             ((0..w).contains(&x) && (0..h).contains(&y)).then(|| (y * w + x) as usize)
@@ -251,13 +259,14 @@ impl Router {
             if let Some(n) = step(start, d) {
                 if grid[n] & 4 == 0 || n == goal {
                     dist[n * 4 + d] = enter(n, false);
-                    heap.push(Reverse((dist[n * 4 + d], (n * 4 + d) as u32)));
+                    heap.push(Reverse((dist[n * 4 + d] + est(n), (n * 4 + d) as u32)));
                 }
             }
         }
-        while let Some(Reverse((cost, s))) = heap.pop() {
+        while let Some(Reverse((f, s))) = heap.pop() {
             let (c, d) = (s as usize / 4, s as usize % 4);
-            if cost > dist[s as usize] {
+            let cost = dist[s as usize];
+            if f > cost + est(c) {
                 continue;
             }
             if c == goal && last(d) {
@@ -282,7 +291,7 @@ impl Router {
                 if next < dist[t] {
                     dist[t] = next;
                     from[t] = s;
-                    heap.push(Reverse((next, t as u32)));
+                    heap.push(Reverse((next + est(n), t as u32)));
                 }
             }
         }

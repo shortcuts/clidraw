@@ -902,6 +902,32 @@ fn an_elbow_goes_around_a_shape_in_its_way() {
 }
 
 #[test]
+fn a_far_target_detours_through_a_gap_between_shapes() {
+    let (left, right) = ((50, 24, 14, 7), (66, 24, 14, 7));
+    let line = elbow(
+        "wdkmx63a",
+        End::Bound(Id::from("98acfohp"), Anchor::Right(2)),
+        End::Bound(Id::from("2295v0fq"), Anchor::Bottom(4)),
+    );
+    let c = Canvas {
+        elements: vec![
+            rect("98acfohp", ShapeKind::Rect, (17, 18, 19, 5)),
+            rect("kamkkbpr", ShapeKind::Parallelogram, left),
+            rect("2295v0fq", ShapeKind::Parallelogram, right),
+            rect("yhvz4tlz", ShapeKind::Rect, (-15, 23, 33, 12)),
+            rect("m22txh0p", ShapeKind::Parallelogram, (35, 32, 22, 11)),
+            Element::Line(line.clone()),
+        ],
+        ..Canvas::default()
+    };
+    let cells = c.route(&line);
+    walks(&cells);
+    assert_eq!(cells[cells.len() - 1], (70, 31));
+    assert!(!inside(cells[0], (17, 18, 19, 5)));
+    assert!(!cells.iter().any(|&p| inside(p, left) || inside(p, right)));
+}
+
+#[test]
 fn a_clear_elbow_keeps_the_plain_route() {
     let (c, l) = ab(vec![]);
     let plain = route(
