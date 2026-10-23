@@ -120,6 +120,21 @@ impl Term {
         self.quiet();
     }
 
+    pub fn press(&mut self, col: u16, row: u16) {
+        self.send(&Self::mouse_bytes(0, col, row, true));
+        self.quiet();
+    }
+
+    pub fn move_to(&mut self, col: u16, row: u16) {
+        self.send(&Self::mouse_bytes(32, col, row, true));
+        self.quiet();
+    }
+
+    pub fn release(&mut self, col: u16, row: u16) {
+        self.send(&Self::mouse_bytes(0, col, row, false));
+        self.quiet();
+    }
+
     pub fn wheel_down(&mut self, col: u16, row: u16) {
         self.send(&Self::mouse_bytes(65, col, row, true));
         self.quiet();
@@ -184,6 +199,11 @@ impl Term {
     pub fn draw_rect(&mut self) {
         self.key("r");
         self.drag((10, 8), (22, 13));
+    }
+
+    pub fn draw_rect_at(&mut self, from: (u16, u16), to: (u16, u16)) {
+        self.key("r");
+        self.drag(from, to);
     }
 }
 

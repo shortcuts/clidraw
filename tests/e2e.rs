@@ -3,6 +3,43 @@ mod harness;
 
 use harness::Term;
 
+fn draw_scene(t: &mut Term) {
+    t.draw_rect_at((10, 8), (22, 13));
+    t.draw_rect_at((34, 5), (46, 16));
+    t.draw_rect_at((60, 8), (72, 13));
+}
+
+fn cell(t: &Term, col: u16, row: u16) -> char {
+    t.screen()
+        .lines()
+        .nth(row as usize)
+        .and_then(|line| line.chars().nth(col as usize))
+        .unwrap_or(' ')
+}
+
+fn assert_detours_and_points_at_b(t: &Term) {
+    assert_eq!(
+        cell(t, 34, 5),
+        '┌',
+        "obstacle O is not drawn\n{}",
+        t.screen()
+    );
+    for row in 6..=15 {
+        for col in 35..=45 {
+            assert_eq!(
+                cell(t, col, row),
+                ' ',
+                "arrow crosses obstacle O at ({col}, {row})\n{}",
+                t.screen()
+            );
+        }
+    }
+    assert_eq!(t.screen().matches('▶').count(), 1, "{}", t.screen());
+    assert_eq!(cell(t, 59, 10), '▶', "{}", t.screen());
+    assert_eq!(cell(t, 58, 10), '─', "{}", t.screen());
+    assert_eq!(cell(t, 57, 10), '─', "{}", t.screen());
+}
+
 #[test]
 fn wheel_pans_the_canvas() {
     let tmp = tempfile::tempdir().unwrap();
@@ -102,4 +139,51 @@ fn drag_a_line_to_bend_it_and_reset_the_route() {
     t.click(c, r);
     t.quiet();
     assert_eq!(t.canvas().trim_end(), straight.trim_end());
+}
+
+#[test]
+fn arrow_drag_between_shapes_detours_mid_drag_and_on_release() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut t = Term::spawn(tmp.path(), &["scratch"]);
+    draw_scene(&mut t);
+    t.key("a");
+    t.press(22, 10);
+    t.move_to(59, 10);
+    assert_detours_and_points_at_b(&t);
+    let held = t.canvas();
+    t.release(59, 10);
+    assert_detours_and_points_at_b(&t);
+    assert_eq!(t.canvas(), held);
+}
+
+#[test]
+fn released_arrow_keeps_its_detour_after_a_click_elsewhere() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut t = Term::spawn(tmp.path(), &["scratch"]);
+    draw_scene(&mut t);
+    t.key("a");
+    t.drag((22, 10), (59, 10));
+    t.click(90, 28);
+    assert_detours_and_points_at_b(&t);
+}
+
+#[test]
+fn dragging_a_placed_head_to_another_shape_moves_the_arrow() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut t = Term::spawn(tmp.path(), &["scratch"]);
+    draw_scene(&mut t);
+    t.draw_rect_at((60, 20), (72, 25));
+    t.key("a");
+    t.drag((22, 10), (59, 10));
+    t.click(28, 10);
+    t.press(59, 10);
+    t.move_to(59, 22);
+    t.release(59, 22);
+    assert_eq!(t.screen().matches('▶').count(), 1, "{}", t.screen());
+    assert_eq!(cell(&t, 59, 22), '▶', "{}", t.screen());
+    assert!(
+        (0..59).all(|col| cell(&t, col, 10) != '▶'),
+        "{}",
+        t.screen()
+    );
 }
