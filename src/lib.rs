@@ -5,6 +5,7 @@ pub mod export;
 pub mod frame_writer;
 pub mod import;
 pub mod input;
+pub mod mcp;
 pub mod model;
 pub mod names;
 pub mod store;

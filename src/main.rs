@@ -103,6 +103,10 @@ fn main() -> Result<()> {
     if args.first().map(String::as_str) == Some("bench") {
         return bench::run();
     }
+    if args.first().map(String::as_str) == Some("mcp") {
+        let store = Store::from_env()?;
+        return clidraw::mcp::serve(&store, std::io::stdin().lock(), &mut stdout().lock());
+    }
     if args
         .first()
         .is_some_and(|a| clidraw::cli::COMMANDS.contains(&a.as_str()))

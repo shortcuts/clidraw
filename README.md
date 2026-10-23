@@ -17,6 +17,7 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
     ```sh
     echo '[{"op":"add_shape","id":"a","x":0,"y":0,"label":"Hi"},{"op":"add_shape","id":"b","x":20,"y":0,"label":"Yo"},{"op":"connect","from":"a","to":"b"}]' | clidraw edit demo
     ```
+- `cargo run -- mcp` serves the six commands above as MCP tools (`list`, `new`, `show`, `edit`, `import`, `export`) over stdio, for agent clients. Config: `{"mcpServers":{"clidraw":{"command":"clidraw","args":["mcp"]}}}`. A tool failure comes back as a result with `isError` true. A running UI overwrites an edit made to the canvas it has open. A canvas named `mcp` opens from the menu, not by argument.
 - `cargo run -- probe` prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.
 - `cargo run --release -- bench` replays a scripted drag and pan on a generated 5000-element canvas in your terminal and prints the frame times.
 - `cargo test --test e2e` runs the real binary in a pty and asserts on the parsed screen. Use it to prove a Live box without a human.
@@ -136,7 +137,7 @@ Budgets for a release build with 5000 elements on a 200x50 screen:
 | Peak resident memory, 5000 elements (measured once, perf test process) | 4.3 MB |
 | Peak resident memory, 50000 elements (measured once, perf test process) | 14.1 MB |
 
-The release binary (`make release`) is 2,166,760 bytes (2.1 MB) on macOS x86_64, measured 2026-10-23. It has no size budget yet.
+The release binary (`make release`) is 2,615,488 bytes (2.6 MB) on macOS x86_64, measured 2026-10-23. It has no size budget yet.
 
 The loop wakes every 16 ms only while a Fit all or search glide runs.
 
