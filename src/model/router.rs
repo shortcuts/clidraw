@@ -191,8 +191,29 @@ impl Router {
             return vec![a];
         }
         let t = stub.map_or(b, |[_, s2]| s2);
-        let (x0, y0) = (a.0.min(t.0) - MARGIN, a.1.min(t.1) - MARGIN);
-        let (x1, y1) = (a.0.max(t.0) + MARGIN, a.1.max(t.1) + MARGIN);
+        let base = (
+            a.0.min(t.0) - MARGIN,
+            a.1.min(t.1) - MARGIN,
+            a.0.max(t.0) + MARGIN,
+            a.1.max(t.1) + MARGIN,
+        );
+        let (mut x0, mut y0, mut x1, mut y1) = base;
+        // An obstacle that spans the whole box blocks every way round inside it, so widen the box past it.
+        for i in self.near(&self.solid, (x0, y0, x1 - x0 + 1, y1 - y0 + 1)) {
+            let r = i.rect;
+            if is_end(i) {
+                continue;
+            }
+            if r.1 <= base.1 && r.1 + r.3 > base.3 {
+                (y0, y1) = (y0.min(r.1 - MARGIN), y1.max(r.1 + r.3 - 1 + MARGIN));
+            }
+            if r.0 <= base.0 && r.0 + r.2 > base.2 {
+                (x0, x1) = (x0.min(r.0 - MARGIN), x1.max(r.0 + r.2 - 1 + MARGIN));
+            }
+        }
+        if i64::from(x1 - x0 + 1) * i64::from(y1 - y0 + 1) > i64::from(MAX_AREA) {
+            (x0, y0, x1, y1) = base;
+        }
         let (w, h) = (x1 - x0 + 1, y1 - y0 + 1);
         if i64::from(w) * i64::from(h) > i64::from(MAX_AREA) {
             return plain;

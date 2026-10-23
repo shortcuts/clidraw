@@ -984,6 +984,15 @@ fn a_text_is_an_obstacle() {
 }
 
 #[test]
+fn an_obstacle_taller_than_the_margin_is_still_dodged() {
+    let tall = (10, -2, 3, 14);
+    let (c, l) = ab(vec![rect("tttttttt", ShapeKind::Rect, tall)]);
+    let cells = c.route(&l);
+    walks(&cells);
+    assert!(!cells.iter().any(|&p| inside(p, tall)));
+}
+
+#[test]
 fn a_wall_costs_the_fewest_cells_inside_it() {
     let wall = (10, -40, 3, 100);
     let (c, l) = ab(vec![rect("wwwwwwww", ShapeKind::Rect, wall)]);
