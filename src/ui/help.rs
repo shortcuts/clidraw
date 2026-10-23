@@ -10,7 +10,7 @@ const CANVAS: [(&str, &str); 18] = [
     ("Ctrl-a", "Select everything"),
     (
         "Arrows, h j k l",
-        "Move one cell, or pan with no selection; Shift adds linked shape",
+        "Move or pan one cell; Shift adds linked shape",
     ),
     ("] [", "Raise, lower the selection"),
     ("} {", "Send to front, to back"),
