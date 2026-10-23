@@ -3,7 +3,7 @@ use super::menu::ITEMS;
 use super::{boxed, centered, Grid};
 use crate::input::Tool;
 
-pub const SCOPES: [&str; 4] = ["Canvas", "Menu", "Text edit", "Tools"];
+pub const SCOPES: [&str; 5] = ["Canvas", "Menu", "Text edit", "Tools", "Project"];
 
 const CANVAS: [(&str, &str); 17] = [
     ("Esc", "Cancel, deselect, menu"),
@@ -38,6 +38,11 @@ const TEXT_EDIT: [(&str, &str); 10] = [
     ("Esc", "Discard the edit"),
 ];
 
+const PROJECT: [(&str, &str); 2] = [
+    ("Repository", "github.com/shortcuts/clidraw"),
+    ("Contributing", "github.com/shortcuts/clidraw#contributing"),
+];
+
 const WIDTH: i32 = 64;
 // Two borders, the tab row, a blank row and the longest page; fixed so the box does not jump.
 const HEIGHT: i32 = 21;
@@ -57,6 +62,7 @@ pub fn rows(page: usize) -> Vec<(String, String)> {
             .map(|(_, label, key)| (key.to_string(), label.to_string()))
             .collect(),
         2 => own(&TEXT_EDIT),
+        4 => own(&PROJECT),
         _ => Tool::ALL
             .iter()
             .filter_map(|t| Some((t.key()?.to_string(), t.label().to_string())))

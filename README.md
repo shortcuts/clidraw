@@ -152,6 +152,10 @@ Run `make profile`. It builds the perf test with debug symbols in release, then 
 
 The samply step is not verified yet: the cargo build runs, but `make profile` was not run to completion.
 
+## Contributing
+
+Read [AGENTS.md](AGENTS.md) for the constraints and test rules. Run `make check` before you open a pull request.
+
 ## Files
 
 - Canvases: `$CLIDRAW_HOME`, else `$XDG_CONFIG_HOME/clidraw`, else `~/.config/clidraw`. One `<name>.clidraw.json` per canvas. Output is stable, so the files diff cleanly in git.

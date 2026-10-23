@@ -363,6 +363,13 @@ fn help_pages_list_their_scope() {
         (1, vec!["Fit all", "Export Mermaid"]),
         (2, vec!["Commit the label"]),
         (3, vec!["Tools", "Diamond", "Hexagon"]),
+        (
+            4,
+            vec![
+                "github.com/shortcuts/clidraw",
+                "github.com/shortcuts/clidraw#contributing",
+            ],
+        ),
     ] {
         let b = draw(&s, &Overlay::Help(page));
         let all: String = (0..24).map(|y| row(&b, y)).collect();
@@ -437,7 +444,7 @@ fn help_canvas_esc_row_stays_inside_the_border() {
 #[test]
 fn help_rows_stay_inside_the_border_on_every_page() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    for page in 0..4 {
+    for page in 0..5 {
         let b = draw(&s, &Overlay::Help(page));
         let edge = row(&b, 2).trim_end().chars().count();
         for i in 0..ui::help::rows(page).len() as u16 {
@@ -925,6 +932,12 @@ fn info_bar_idle_shows_hints_left_and_tool_with_save_state_right() {
     );
     assert!(r.ends_with("Select  saved"), "{r}");
     assert!(bar(&s, 80, false).ends_with("Select  unsaved"));
+}
+
+#[test]
+fn info_bar_idle_shows_the_repo_link_when_it_fits() {
+    let s = Session::new(Canvas::default(), View::default(), (120, 24));
+    assert!(bar(&s, 120, true).contains("repo github.com/shortcuts/clidraw"));
 }
 
 #[test]
