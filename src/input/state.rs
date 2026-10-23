@@ -81,7 +81,10 @@ impl Session {
         };
         let k = (n * (1 + prior / 2).min(SCROLL_MAX)) as i32;
         self.glide = None;
-        self.view.pan(step.0 * k, step.1 * k);
+        self.view.pan(
+            self.view.world_step(step.0 * k),
+            self.view.world_step(step.1 * k),
+        );
         self.hover = Hit::Empty;
         self.burst = Some((now, prior + n));
     }
@@ -90,7 +93,12 @@ impl Session {
     pub fn fit(&mut self, bounds: Option<(i32, i32, i32, i32)>) {
         let mut target = self.view;
         target.fit_all(bounds, self.screen);
-        self.go_to((target.ox, target.oy));
+        if target.zoom == self.view.zoom {
+            self.go_to((target.ox, target.oy));
+        } else {
+            self.commit_edit();
+            self.set_view(target);
+        }
     }
 
     // shortcut: the target is not recomputed on resize, fine for a 120 ms glide
@@ -104,7 +112,11 @@ impl Session {
             });
         } else {
             self.glide = None;
-            self.view = View { ox: to.0, oy: to.1 };
+            self.view = View {
+                ox: to.0,
+                oy: to.1,
+                ..self.view
+            };
         }
     }
 
@@ -155,6 +167,7 @@ impl Session {
         self.view = View {
             ox: next.0,
             oy: next.1,
+            ..self.view
         };
         moved
     }
@@ -199,7 +212,8 @@ impl Session {
         }
         let (dx, dy) = self.edge_velocity();
         self.glide = None;
-        self.view.pan(dx, dy);
+        self.view
+            .pan(self.view.world_step(dx), self.view.world_step(dy));
         self.last_pan = Some(now);
         pan_step(self);
         true
@@ -207,10 +221,14 @@ impl Session {
 }
 
 pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
-    if s.overview {
-        return;
-    }
     let (col, row) = (i32::from(ev.column), i32::from(ev.row));
+    if ev.modifiers.contains(KeyModifiers::CONTROL) {
+        match ev.kind {
+            MouseEventKind::ScrollUp => return s.zoom(1, (col, row)),
+            MouseEventKind::ScrollDown => return s.zoom(-1, (col, row)),
+            _ => {}
+        }
+    }
     if let Some(step) = scroll_step(&ev) {
         return s.scroll(step, 1, now);
     }
@@ -218,6 +236,19 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
         return;
     }
     let world = s.view.to_world(col, row);
+    if s.zoomed_out() {
+        return match ev.kind {
+            MouseEventKind::Down(MouseButton::Left | MouseButton::Middle) => {
+                middle_down(s, (col, row), world)
+            }
+            MouseEventKind::Drag(_) => {
+                s.cursor = (col, row);
+                drag(s, (col, row), world)
+            }
+            MouseEventKind::Up(_) => up(s, world),
+            _ => {}
+        };
+    }
     s.shift = ev.modifiers.contains(KeyModifiers::SHIFT);
     match ev.kind {
         MouseEventKind::Down(MouseButton::Left) => down(s, (col, row), world, now),
@@ -252,7 +283,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     s.hover = Hit::Empty;
     s.label_hover = false;
     s.palette_hover = None;
-    if s.place_caret(world) {
+    if s.place_caret(screen) {
         return;
     }
     s.commit_edit();
@@ -266,7 +297,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     }
     if let Some(m) = minimap::hit(s, screen.0, screen.1) {
         let (wx, wy) = m.world(screen.0, screen.1);
-        let (sw, sh) = (i32::from(s.screen.0), i32::from(s.screen.1));
+        let (sw, sh) = s.view.span(s.screen);
         return s.go_to((wx - sw / 2, wy - sh / 2));
     }
     let hit = hit::test(&s.canvas, &s.selection, world);

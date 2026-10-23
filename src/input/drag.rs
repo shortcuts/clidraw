@@ -313,8 +313,8 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
     match action {
         Action::Pan(last) => {
             s.glide = None;
-            s.view.pan(last.0 - screen.0, last.1 - screen.1);
-            *last = screen;
+            let used = s.view.pan_screen(last.0 - screen.0, last.1 - screen.1);
+            *last = (last.0 - used.0, last.1 - used.1);
         }
         Action::Move { start, last } => {
             s.guides.clear();

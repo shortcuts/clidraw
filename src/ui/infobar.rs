@@ -10,7 +10,7 @@ const IDLE: Hints = &[
     (":", "command"),
     ("Ctrl-f", "find"),
     ("Esc", "menu"),
-    ("z", "overview"),
+    ("z", "fit"),
 ];
 const REPO: (&str, &str) = ("repo", "github.com/shortcuts/clidraw");
 
@@ -22,7 +22,7 @@ fn hints(s: &Session, overlay: &Overlay) -> Hints {
             ("Esc", "discard"),
             ("Alt-Enter", "new line"),
         ],
-        Overlay::None if s.overview => &[("z, Esc", "back"), ("?", "help")],
+        Overlay::None if s.zoomed_out() => &[("Esc", "1x"), ("Ctrl+wheel", "zoom"), ("?", "help")],
         Overlay::None if s.dragging() => &[("Esc", "cancel")],
         Overlay::None if s.tool == Tool::Hand => {
             &[("drag", "pan"), ("Esc", "cancel"), ("v", "select")]
@@ -61,7 +61,7 @@ fn right(s: &Session, saved: bool, w: i32, left_w: i32) -> Vec<(String, u8)> {
         s.readout().map(|r| (r, BOLD)),
         Some((s.tool.label().to_string(), 0)),
         (!s.selection.is_empty()).then(|| (format!("{} sel", s.selection.len()), 0)),
-        s.overview.then(|| ("Overview".to_string(), 0)),
+        s.view.zoom.label().map(|l| (l.to_string(), 0)),
         Some((marker.0.to_string(), marker.1)),
     ];
     let total = |p: &[Option<(String, u8)>]| -> i32 {

@@ -6,6 +6,7 @@ use clidraw::input::handles;
 use clidraw::model::{Anchor, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::store::Store;
 use clidraw::ui::Status;
+use clidraw::view::Zoom;
 use crossterm::event::{
     Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
@@ -160,6 +161,42 @@ fn frame_fits_the_budget_on_5000_elements() {
 
 #[test]
 #[ignore = "needs a release build: run `make perf`"]
+fn frame_fits_the_budget_at_quarter_zoom_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = busy_app(t.path());
+    app.session.view.zoom = Zoom::Quarter;
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            frame(&app, &mut term);
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median frame {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn frame_fits_the_budget_at_triple_zoom_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = busy_app(t.path());
+    app.session.view.zoom = Zoom::Three;
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            frame(&app, &mut term);
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median frame {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
 fn frame_fits_the_budget_on_2500_labelled_shapes() {
     let t = tempfile::tempdir().unwrap();
     let mut app = busy_app_of(t.path(), 2);
@@ -271,6 +308,26 @@ fn drag_selection_step_fits_the_budget_on_5000_elements() {
 fn wheel_step_fits_the_budget_on_5000_elements() {
     let t = tempfile::tempdir().unwrap();
     let mut app = busy_app(t.path());
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let now = Instant::now();
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            app.on_event(mouse(MouseEventKind::ScrollDown), now);
+            frame(&app, &mut term);
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median wheel step {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn wheel_step_at_half_zoom_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = busy_app(t.path());
+    app.session.view.zoom = Zoom::Half;
     let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
     let now = Instant::now();
     let times = (0..FRAMES)

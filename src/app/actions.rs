@@ -38,7 +38,10 @@ impl App {
             Action::Bold => s.toggle_bold(),
             Action::Copy => s.copy(),
             Action::Cut => s.cut(),
-            Action::Overview => s.overview = true,
+            Action::ZoomIn | Action::ZoomOut => {
+                let at = (i32::from(s.screen.0) / 2, i32::from(s.screen.1) / 2);
+                s.zoom(if action == Action::ZoomIn { 1 } else { -1 }, at);
+            }
             Action::Present => {
                 s.selection.clear();
                 s.present = true;

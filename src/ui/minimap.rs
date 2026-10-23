@@ -42,7 +42,7 @@ impl Map {
 /// Some while the canvas has content outside the viewport and the screen has room for the box.
 pub fn map(s: &Session) -> Option<Map> {
     let (sw, sh) = (i32::from(s.screen.0), i32::from(s.screen.1));
-    if s.overview || sw < 3 * W || sh < 3 * H {
+    if s.zoomed_out() || sw < 3 * W || sh < 3 * H {
         return None;
     }
     let mut slot = s.layout.borrow_mut();
@@ -53,11 +53,12 @@ pub fn map(s: &Session) -> Option<Map> {
         .map(|&(x, y, w, h)| (x, y, x + w, y + h))
         .reduce(|a, b| (a.0.min(b.0), a.1.min(b.1), a.2.max(b.2), a.3.max(b.3)))?;
     let (vx, vy) = (s.view.ox, s.view.oy);
-    if x0 >= vx && y0 >= vy && x1 <= vx + sw && y1 <= vy + sh {
+    let (vw, vh) = s.view.span(s.screen);
+    if x0 >= vx && y0 >= vy && x1 <= vx + vw && y1 <= vy + vh {
         return None;
     }
     let (ax, ay) = (x0.min(vx), y0.min(vy));
-    let area = (ax, ay, x1.max(vx + sw) - ax, y1.max(vy + sh) - ay);
+    let area = (ax, ay, x1.max(vx + vw) - ax, y1.max(vy + vh) - ay);
     Some(Map {
         rect: (sw - W, sh - 1 - H, W, H),
         area,
@@ -86,12 +87,10 @@ pub fn draw(grid: &mut Grid, s: &Session) {
             }
         }
     }
+    let (vw, vh) = s.view.span(s.screen);
     let ((x0, y0), (x1, y1)) = (
         m.cell(s.view.ox, s.view.oy),
-        m.cell(
-            s.view.ox + i32::from(s.screen.0) - 1,
-            s.view.oy + i32::from(s.screen.1) - 1,
-        ),
+        m.cell(s.view.ox + vw - 1, s.view.oy + vh - 1),
     );
     for cy in y0..=y1 {
         for cx in x0..=x1 {

@@ -5,7 +5,7 @@ use crate::input::Tool;
 
 pub const SCOPES: [&str; 5] = ["Canvas", "Menu", "Text edit", "Tools", "Project"];
 
-const CANVAS: [(&str, &str); 17] = [
+const CANVAS: [(&str, &str); 18] = [
     ("Esc", "Cancel, deselect, menu"),
     ("Delete, Backspace", "Delete the selection"),
     ("Ctrl-a", "Select everything"),
@@ -19,7 +19,8 @@ const CANVAS: [(&str, &str); 17] = [
     ("Ctrl-v", "Paste, offset from the last"),
     ("Ctrl-d, Ctrl-b", "Duplicate, bold labels"),
     ("Ctrl-z, Ctrl-y", "Undo, redo"),
-    ("z, F5", "Overview, present (Esc returns)"),
+    ("z, F5", "Fit all, present (Esc returns)"),
+    ("Ctrl+wheel", "Zoom, 25% to 300%"),
     ("Ctrl-c", "Quit"),
     ("?, Ctrl-p", "Help, command palette"),
     (":", "Commands q w wq e u redo layout"),
@@ -57,10 +58,10 @@ pub const SYNONYMS: [(&str, &str); 10] = [
     ("text", "label"),
 ];
 
-const MAX_ROWS: usize = 17;
+const MAX_ROWS: usize = 18;
 const WIDTH: i32 = 64;
 // Two borders, the tab row, a blank row and the longest page; fixed so the box does not jump.
-const HEIGHT: i32 = 21;
+const HEIGHT: i32 = 22;
 const ACTION_COL: i32 = 20;
 
 /// Keys and action for each row of a page.

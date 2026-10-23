@@ -156,12 +156,13 @@ impl Edit {
 }
 
 impl Session {
-    /// The one source of label geometry: the renderer draws from it and clicks hit-test against it.
+    /// The one source of label geometry, in screen cells: the renderer draws from it and clicks hit-test against it.
     pub fn edit_boxes(&self) -> Vec<EditBox> {
         let Some(edit) = self.edit.as_ref() else {
             return vec![];
         };
-        let whole = |x, y| {
+        let view = self.view;
+        let whole = |(x, y)| {
             vec![EditBox {
                 x,
                 y,
@@ -171,23 +172,26 @@ impl Session {
         };
         let id = match &edit.target {
             EditTarget::Existing(id) => id,
-            EditTarget::New(x, y) => return whole(*x, *y),
+            EditTarget::New(x, y) => return whole(view.to_screen(*x, *y)),
         };
         match self.canvas.get(id) {
-            Some(Element::Text(t)) => whole(t.x, t.y),
+            Some(Element::Text(t)) => whole(view.to_screen(t.x, t.y)),
             Some(Element::Line(l)) => {
-                let (lx, ly) = label_pos(&self.canvas.route(l), l.label_at);
-                whole(lx - edit.buf.width() as i32 / 2, ly)
+                let path = view.path(&self.canvas.route(l));
+                let (lx, ly) = label_pos(&path, l.label_at);
+                whole((lx - edit.buf.width() as i32 / 2, ly))
             }
             Some(Element::Shape(sh)) if sh.kind == ShapeKind::Frame => {
                 // shortcut: a label longer than the frame overflows while editing, clip it if users hit it
-                whole(sh.x + 2, sh.y)
+                let (sx, sy) = view.to_screen(sh.x, sh.y);
+                whole((sx + 2, sy))
             }
             Some(Element::Shape(sh)) => {
                 // Keep in step with the label placement in `shape` in ui/canvas_view.rs.
-                let room = (sh.w - 2).max(1) as usize;
+                let (sx, sy, sw, shh) = view.rect(sh.x, sh.y, sh.w, sh.h);
+                let room = (sw - 2).max(1) as usize;
                 let lines = wrap(&edit.buf, room);
-                let top = sh.y + sh.h / 2 - (lines.len() as i32 - 1) / 2;
+                let top = sy + shh / 2 - (lines.len() as i32 - 1) / 2;
                 lines
                     .into_iter()
                     .zip(top..)
@@ -195,7 +199,7 @@ impl Session {
                         let end = r.start + edit.buf[r.clone()].trim_end_matches([' ', '\n']).len();
                         let used = edit.buf[r.start..end].width();
                         EditBox {
-                            x: sh.x + 1 + sh.align.offset(room, used),
+                            x: sx + 1 + sh.align.offset(room, used),
                             y,
                             start: r.start,
                             end,
@@ -208,15 +212,15 @@ impl Session {
     }
 
     /// Moves the caret to a click on the label; false when the click is elsewhere.
-    pub(super) fn place_caret(&mut self, (wx, wy): (i32, i32)) -> bool {
-        let Some(b) = self.edit_boxes().into_iter().find(|b| b.y == wy) else {
+    pub(super) fn place_caret(&mut self, (sx, sy): (i32, i32)) -> bool {
+        let Some(b) = self.edit_boxes().into_iter().find(|b| b.y == sy) else {
             return false;
         };
         let Some(edit) = &mut self.edit else {
             return false;
         };
         let shown = &edit.buf[b.start..b.end];
-        let col = wx - b.x;
+        let col = sx - b.x;
         if col < 0 || col > shown.width() as i32 {
             return false;
         }

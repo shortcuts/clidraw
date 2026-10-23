@@ -1,18 +1,19 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE, UNDERLINE};
 use super::layout::refresh;
 use super::theme;
-use crate::input::{handles, EditTarget, Hit, Session};
+use crate::input::{handles, Corner, EditTarget, Handle, Hit, Session};
 use crate::model::{
     label_pos, wrap, Border, Element, Find, Id, Line, LineKind, Router, Shape, ShapeKind, Stroke,
 };
+use crate::view::Zoom;
 use ratatui::style::Color;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
-    if s.overview {
-        return overview(grid, s);
+    if s.zoomed_out() {
+        return blocks(grid, s);
     }
     let view = s.view;
     let editing = s.edit.as_ref().and_then(|e| match &e.target {
@@ -24,7 +25,7 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     let find = layout.find(&s.canvas);
     let selected: HashSet<&Id> = s.selection.iter().collect();
     for (e, &(x, y, w, h)) in s.canvas.elements.iter().zip(&layout.bounds) {
-        let (sx, sy) = view.to_screen(x, y);
+        let (sx, sy, w, h) = view.rect(x, y, w, h);
         if sx >= grid.w || sy >= grid.h || sx + w <= 0 || sy + h <= 0 {
             continue;
         }
@@ -45,6 +46,11 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
         let hide = editing == Some(e.id());
         let label = |own| if hide { "" } else { own };
         match e {
+            Element::Shape(sh) if view.zoom > Zoom::One => {
+                let (sx, sy, w, h) = view.rect(sh.x, sh.y, sh.w, sh.h);
+                let big = Shape { w, h, ..sh.clone() };
+                shape(grid, &big, sx, sy, label(&sh.label), flags)
+            }
             Element::Shape(sh) => shape(grid, sh, sx, sy, label(&sh.label), flags),
             Element::Line(l) => line(grid, s, &find, &layout.router, l, label(&l.label), flags),
             Element::Text(t) => grid.text(sx, sy, label(&t.text), flags),
@@ -67,7 +73,13 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     }
     edit_label(grid, s);
     for (h, id, (x, y)) in handles(&s.canvas, &s.selection) {
-        let (sx, sy) = view.to_screen(x, y);
+        let ((sx, sy), (ex, ey)) = (view.to_screen(x, y), view.cell_end(x, y));
+        let (sx, sy) = match h {
+            Handle::Corner(Corner::Ne) => (ex, sy),
+            Handle::Corner(Corner::Sw) => (sx, ey),
+            Handle::Corner(Corner::Se) => (ex, ey),
+            _ => (sx, sy),
+        };
         let hovered = matches!(&s.hover, Hit::Handle(hh, hid) if *hh == h && *hid == id);
         grid.set(sx, sy, if hovered { '◆' } else { '■' }, REVERSE);
         if let Some(c) = accent {
@@ -98,33 +110,29 @@ fn welcome(grid: &mut Grid) {
     }
 }
 
-fn overview(grid: &mut Grid, s: &Session) {
-    let Some((bx, by, bw, bh)) = s.canvas.all_bounds() else {
-        return;
-    };
-    // The last row belongs to the status line.
-    let (sw, sh) = (grid.w.max(1), (grid.h - 1).max(1));
-    let d = ((bw + sw - 1) / sw).max((bh + sh - 1) / sh).max(1);
-    let (ox, oy) = (bx + bw / 2 - sw * d / 2, by + bh / 2 - sh * d / 2);
-    let cell = |x: i32, y: i32| ((x - ox).div_euclid(d), (y - oy).div_euclid(d));
+fn blocks(grid: &mut Grid, s: &Session) {
     let mut slot = s.layout.borrow_mut();
     let layout = refresh(&mut slot, &s.canvas, s.rev);
     let find = layout.find(&s.canvas);
     for (e, &(x, y, w, h)) in s.canvas.elements.iter().zip(&layout.bounds) {
-        if let Element::Line(l) = e {
-            for c in s.canvas.route_with(l, &find, &layout.router) {
-                let (sx, sy) = cell(c.0, c.1);
-                grid.set(sx, sy, '·', 0);
+        let (sx, sy, sw, sh) = s.view.rect(x, y, w, h);
+        if sx >= grid.w || sy >= grid.h || sx + sw <= 0 || sy + sh <= 0 {
+            continue;
+        }
+        match e {
+            Element::Line(l) => {
+                for c in s.canvas.route_with(l, &find, &layout.router) {
+                    let (sx, sy) = s.view.to_screen(c.0, c.1);
+                    grid.set(sx, sy, '·', 0);
+                }
             }
-            continue;
-        }
-        if matches!(e, Element::Shape(sh) if sh.kind == ShapeKind::Frame) {
-            continue;
-        }
-        let ((x0, y0), (x1, y1)) = (cell(x, y), cell(x + w - 1, y + h - 1));
-        for sy in y0..=y1 {
-            for sx in x0..=x1 {
-                grid.set(sx, sy, '▒', 0);
+            Element::Shape(sh) if sh.kind == ShapeKind::Frame => {}
+            _ => {
+                for sy in sy.max(0)..(sy + sh).min(grid.h) {
+                    for sx in sx.max(0)..(sx + sw).min(grid.w) {
+                        grid.set(sx, sy, '▒', 0);
+                    }
+                }
             }
         }
     }
@@ -137,7 +145,7 @@ fn edit_label(grid: &mut Grid, s: &Session) {
     let boxes = s.edit_boxes();
     let sel = edit.selection();
     for b in &boxes {
-        let (mut x, y) = s.view.to_screen(b.x, b.y);
+        let (mut x, y) = (b.x, b.y);
         for (i, ch) in edit.buf[b.start..b.end].char_indices() {
             let i = b.start + i;
             let hit = match sel {
@@ -159,14 +167,18 @@ fn edit_label(grid: &mut Grid, s: &Session) {
     };
     if sel.is_none() && edit.caret >= b.end {
         // shortcut: a caret at the end of a full line draws on the border, reserve a cell if it looks wrong
-        let (x, y) = s.view.to_screen(b.x, b.y);
-        grid.set(x + edit.buf[b.start..b.end].width() as i32, y, ' ', REVERSE);
+        grid.set(
+            b.x + edit.buf[b.start..b.end].width() as i32,
+            b.y,
+            ' ',
+            REVERSE,
+        );
     }
 }
 
 fn band(grid: &mut Grid, s: &Session, a: (i32, i32), b: (i32, i32)) {
     let (x0, y0) = s.view.to_screen(a.0.min(b.0), a.1.min(b.1));
-    let (x1, y1) = s.view.to_screen(a.0.max(b.0), a.1.max(b.1));
+    let (x1, y1) = s.view.cell_end(a.0.max(b.0), a.1.max(b.1));
     for x in x0..=x1 {
         grid.set(x, y0, '┄', DIM);
         grid.set(x, y1, '┄', DIM);
@@ -359,7 +371,7 @@ fn line<'a>(
     label: &str,
     flags: u8,
 ) {
-    let cells = s.canvas.route_with(l, find, router);
+    let cells = s.view.path(&s.canvas.route_with(l, find, router));
     let dirs = |p: (i32, i32), q: (i32, i32)| (q.0 < p.0, q.0 > p.0, q.1 < p.1, q.1 > p.1);
     for (i, &c) in cells.iter().enumerate() {
         let (mut left, mut right, mut up, mut down) = (false, false, false, false);
@@ -387,8 +399,7 @@ fn line<'a>(
             (false, true, true, false) => '╰',
             _ => '·',
         });
-        let (sx, sy) = s.view.to_screen(c.0, c.1);
-        grid.set(sx, sy, dashed(l.stroke, glyph), flags);
+        grid.set(c.0, c.1, dashed(l.stroke, glyph), flags);
     }
     let last = cells.len().saturating_sub(1);
     let end = (last, last.saturating_sub(1));
@@ -408,12 +419,10 @@ fn line<'a>(
             (_, 1..) => '▼',
             _ => '▲',
         };
-        let (sx, sy) = s.view.to_screen(cells[tip].0, cells[tip].1);
-        grid.set(sx, sy, glyph, flags);
+        grid.set(c.0, c.1, glyph, flags);
     }
     if !label.is_empty() {
         let (lx, ly) = label_pos(&cells, l.label_at);
-        let (sx, sy) = s.view.to_screen(lx - label.width() as i32 / 2, ly);
-        grid.text(sx, sy, label, flags);
+        grid.text(lx - label.width() as i32 / 2, ly, label, flags);
     }
 }

@@ -7,7 +7,7 @@ use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::switcher::Switcher;
 use clidraw::ui::theme::Theme;
 use clidraw::ui::{self, Overlay, Perf};
-use clidraw::view::View;
+use clidraw::view::{View, Zoom};
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
 use ratatui::style::{Color, Modifier};
@@ -206,7 +206,15 @@ fn wide_char_that_overflows_the_border_is_dropped() {
 fn panned_view_shifts_the_drawing_and_handles_negative_coordinates() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", -10, ""));
-    let s = Session::new(c, View { ox: -30, oy: 0 }, (80, 24));
+    let s = Session::new(
+        c,
+        View {
+            ox: -30,
+            oy: 0,
+            ..View::default()
+        },
+        (80, 24),
+    );
     assert_eq!(cols(&draw(&s, &Overlay::None), 4, 20, 2), "┌─");
 }
 
@@ -426,9 +434,9 @@ fn help_canvas_row_lists_every_command_line_verb() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0, String::new()));
     assert!(
-        row(&b, 20).contains("Commands q w wq e u redo layout"),
+        row(&b, 21).contains("Commands q w wq e u redo layout"),
         "{}",
-        row(&b, 20)
+        row(&b, 21)
     );
     assert_eq!(cols(&b, 20, 71, 1), "│");
 }
@@ -523,7 +531,11 @@ fn cached_layout_follows_a_pan() {
     c.elements.push(shape("aaaaaaaa", 20, ""));
     let mut s = Session::new(c, View::default(), (80, 24));
     assert_eq!(cols(&draw(&s, &Overlay::None), 4, 20, 2), "┌─");
-    s.view = View { ox: -10, oy: 0 };
+    s.view = View {
+        ox: -10,
+        oy: 0,
+        ..View::default()
+    };
     let b = draw(&s, &Overlay::None);
     assert_eq!(cols(&b, 4, 20, 2), "  ");
     assert_eq!(cols(&b, 4, 30, 2), "┌─");
@@ -739,7 +751,7 @@ fn edit_caret_shows_on_a_line_label() {
     assert_eq!(cols(&b, 5, at[0] - 2, 2), "ab");
 }
 
-fn overview_session(x: i32, y: i32) -> Session {
+fn half_session(x: i32, y: i32) -> Session {
     let mut c = Canvas::default();
     c.elements.push(Element::Shape(Shape {
         id: Id::from("aaaaaaaa"),
@@ -757,9 +769,15 @@ fn overview_session(x: i32, y: i32) -> Session {
         bold: false,
         link: None,
     }));
-    let mut s = Session::new(c, View::default(), (80, 24));
-    s.overview = true;
-    s
+    Session::new(
+        c,
+        View {
+            zoom: Zoom::Half,
+            ox: x - 80,
+            oy: y - 24,
+        },
+        (80, 24),
+    )
 }
 
 fn count(b: &Buffer, glyph: &str) -> usize {
@@ -767,8 +785,8 @@ fn count(b: &Buffer, glyph: &str) -> usize {
 }
 
 #[test]
-fn overview_draws_blocks_without_border_label_or_palette() {
-    let b = draw(&overview_session(100, 40), &Overlay::None);
+fn half_zoom_draws_blocks_without_border_label_or_palette() {
+    let b = draw(&half_session(100, 40), &Overlay::None);
     assert!(count(&b, "▒") > 0);
     assert_eq!(count(&b, "┌"), 0);
     assert_eq!(count(&b, "box"), 0);
@@ -777,8 +795,8 @@ fn overview_draws_blocks_without_border_label_or_palette() {
 
 #[test]
 fn present_hides_palette_and_status_line() {
-    let mut s = overview_session(100, 40);
-    s.overview = false;
+    let mut s = half_session(100, 40);
+    s.view = View::default();
     let normal = draw(&s, &Overlay::None);
     assert!(row(&normal, 23).contains("saved"));
     s.present = true;
@@ -788,14 +806,14 @@ fn present_hides_palette_and_status_line() {
 }
 
 #[test]
-fn overview_shows_a_negative_coordinate_shape() {
-    let b = draw(&overview_session(-300, -90), &Overlay::None);
+fn half_zoom_shows_a_negative_coordinate_shape() {
+    let b = draw(&half_session(-300, -90), &Overlay::None);
     assert!(count(&b, "▒") > 0);
 }
 
 #[test]
-fn overview_of_an_empty_canvas_draws_nothing() {
-    let mut s = overview_session(0, 0);
+fn half_zoom_of_an_empty_canvas_draws_nothing() {
+    let mut s = half_session(0, 0);
     s.canvas.elements.clear();
     assert_eq!(count(&draw(&s, &Overlay::None), "▒"), 0);
 }
@@ -927,7 +945,7 @@ fn info_bar_idle_shows_hints_left_and_tool_with_save_state_right() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let r = bar(&s, 80, true);
     assert!(
-        r.starts_with("? help  : command  Ctrl-f find  Esc menu  z overview"),
+        r.starts_with("? help  : command  Ctrl-f find  Esc menu  z fit"),
         "{r}"
     );
     assert!(r.ends_with("Select  saved"), "{r}");
@@ -1147,4 +1165,56 @@ fn help_search_line_shows_hint_then_query_and_keeps_the_box_aligned() {
     assert_eq!(cols(&b, 20, 71, 1), "│");
     let b = draw(&s, &Overlay::Help(0, "zzzz".into()));
     assert!(row(&b, 4).contains("No match"), "{}", row(&b, 4));
+}
+
+#[test]
+fn double_zoom_stretches_the_border_and_keeps_the_label_one_cell_per_char() {
+    let mut s = half_session(10, 5);
+    s.view = View {
+        zoom: Zoom::Two,
+        ..View::default()
+    };
+    // The 8x3 "box" rect at 10,5 covers 16x6 cells from 20,10.
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(b[(20, 10)].symbol(), "┌");
+    assert_eq!(b[(35, 10)].symbol(), "┐");
+    assert_eq!(b[(20, 15)].symbol(), "└");
+    assert_eq!(b[(35, 15)].symbol(), "┘");
+    assert_eq!(b[(35, 13)].symbol(), "│");
+    assert_eq!(cols(&b, 13, 26, 3), "box");
+}
+
+#[test]
+fn double_zoom_draws_the_arrow_head_at_the_scaled_end() {
+    let mut c = Canvas::default();
+    c.elements.push(Element::Line(Line {
+        id: Id::from("llllllll"),
+        from: End::Free(10, 10),
+        to: End::Free(15, 10),
+        kind: LineKind::Arrow,
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        routing: Default::default(),
+        bends: vec![],
+        color: None,
+    }));
+    let view = View {
+        zoom: Zoom::Two,
+        ..View::default()
+    };
+    let b = draw(&Session::new(c, view, (80, 24)), &Overlay::None);
+    assert_eq!(cols(&b, 20, 20, 11), "──────────▶");
+}
+
+#[test]
+fn info_bar_shows_the_zoom_percent_and_zoomed_out_hints() {
+    let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
+    assert!(!bar(&s, 80, true).contains('%'));
+    s.view.zoom = Zoom::Half;
+    let r = bar(&s, 80, true);
+    assert!(r.starts_with("Esc 1x  Ctrl+wheel zoom  ? help"), "{r}");
+    assert!(r.contains("50%"), "{r}");
+    s.view.zoom = Zoom::Three;
+    assert!(bar(&s, 80, true).contains("300%"));
 }

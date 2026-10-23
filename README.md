@@ -58,7 +58,8 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `}` / `{` | Send the selection to the front / back |
 | `Ctrl-b` | Toggle bold on the labels of the selected shapes |
 | `Ctrl-z` / `Ctrl-y` | Undo / redo |
-| `z` | Overview of the whole diagram, read-only; `z` or `Esc` returns |
+| `z` | Fit all: the largest zoom up to 1x that shows the whole diagram |
+| Ctrl + wheel | Zoom 25%, 50%, 100%, 200%, 300% around the cursor; 25% and 50% are read-only, `Esc` returns to 100% |
 | `F5` | Present: hides the top bar, minimap and status line; wheel scrolls; `F5` or `Esc` returns |
 | `Ctrl-f` | Find a label: type the text, `Enter` selects and centers the match; repeat to cycle (`:/text` does the same) |
 | `Ctrl-c` | Quit |
@@ -94,7 +95,6 @@ clidraw takes its core model from [excalidraw](https://excalidraw.com) and [tldr
 
 ### Not covered
 
-- Zoom. The view pans only.
 - Images, freehand drawing, sticky notes, video and embeds.
 
 ### Left out on purpose
@@ -141,7 +141,7 @@ The release binary (`make release`) is 2,615,488 bytes (2.6 MB) on macOS x86_64,
 
 The loop wakes every 16 ms only while a Fit all or search glide runs.
 
-`make perf` checks the frame and drag-step budgets. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet. CI runs `make check` with `CLIDRAW_PERF_SLACK=4`, which divides each measured median by 4; local runs leave it unset.
+`make perf` checks the frame and drag-step budgets, including frames at 25% and 300% zoom. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet. CI runs `make check` with `CLIDRAW_PERF_SLACK=4`, which divides each measured median by 4; local runs leave it unset.
 
 ### Terminal frame times
 

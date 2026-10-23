@@ -17,7 +17,7 @@ use crate::ui::minimap;
 use crate::ui::palette::{self, PaletteHit};
 use crate::ui::theme::Theme;
 use crate::ui::Layout;
-use crate::view::View;
+use crate::view::{View, Zoom};
 use state::{Action, Gesture, Glide};
 use std::cell::RefCell;
 use std::time::{Duration, Instant};
@@ -99,8 +99,6 @@ pub struct Session {
     pub search: String,
     pub screen: (u16, u16),
     pub edit: Option<Edit>,
-    /// Compact read-only view of the whole diagram; `view` stays untouched.
-    pub overview: bool,
     /// Full-screen read-only canvas for talks; only scrolling and exit work.
     pub present: bool,
     pub band: Option<((i32, i32), (i32, i32))>,
@@ -148,7 +146,6 @@ impl Session {
             search: String::new(),
             screen,
             edit: None,
-            overview: false,
             present: false,
             band: None,
             guides: vec![],
@@ -253,6 +250,37 @@ impl Session {
 
     fn idle(&self) -> bool {
         self.edit.is_none() && matches!(self.gesture, Gesture::Idle)
+    }
+
+    /// At 25% and 50% the canvas is a read-only block map that only pans and zooms.
+    pub fn zoomed_out(&self) -> bool {
+        self.view.zoom < Zoom::One
+    }
+
+    /// Moves `n` steps along the zoom scale around screen cell `at`; ignored while editing or dragging.
+    pub fn zoom(&mut self, n: i32, at: (i32, i32)) {
+        self.zoom_to(self.view.zoom.step(n), at);
+    }
+
+    pub fn zoom_to(&mut self, zoom: Zoom, at: (i32, i32)) {
+        if !self.idle() || zoom == self.view.zoom {
+            return;
+        }
+        let mut view = self.view;
+        view.zoom_at(zoom, at.0, at.1);
+        self.set_view(view);
+    }
+
+    /// Swaps the view at once; a zoomed-out view clears everything that needs the mouse.
+    pub(super) fn set_view(&mut self, view: View) {
+        self.glide = None;
+        self.view = view;
+        self.hover = Hit::Empty;
+        if self.zoomed_out() {
+            self.selection.clear();
+            self.label_hover = false;
+            self.palette_hover = None;
+        }
     }
 
     pub fn copy(&mut self) {
@@ -468,7 +496,7 @@ impl Session {
 
     /// Selects what a right click lands on. None when no menu may open; Some(true) on an element.
     pub fn right_down(&mut self, col: i32, row: i32) -> Option<bool> {
-        if self.overview
+        if self.zoomed_out()
             || self.present
             || !self.idle()
             || palette::hit(self, col, row).is_some()

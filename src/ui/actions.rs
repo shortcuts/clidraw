@@ -17,7 +17,8 @@ pub enum Action {
     Bold,
     Copy,
     Cut,
-    Overview,
+    ZoomIn,
+    ZoomOut,
     Present,
     Help,
     Find,
@@ -42,7 +43,7 @@ impl Action {
     }
 }
 
-const TABLE: [(Action, &str, &str); 38] = [
+const TABLE: [(Action, &str, &str); 39] = [
     (Action::Ex("u"), "Undo", "Ctrl-z"),
     (Action::Ex("redo"), "Redo", "Ctrl-y"),
     (Action::Copy, "Copy", "c"),
@@ -84,7 +85,8 @@ const TABLE: [(Action, &str, &str); 38] = [
     (Action::Order(Z::Forward), "Raise", "]"),
     (Action::Order(Z::Backward), "Lower", "["),
     (Action::Menu(MenuItem::FitAll), "Fit all", "Esc f"),
-    (Action::Overview, "Overview", "z"),
+    (Action::ZoomIn, "Zoom in", "Ctrl+wheel"),
+    (Action::ZoomOut, "Zoom out", "Ctrl+wheel"),
     (Action::Present, "Present", "F5"),
     (Action::Find, "Find", "Ctrl-f"),
     (Action::Menu(MenuItem::Canvases), "Canvases", "Esc c"),

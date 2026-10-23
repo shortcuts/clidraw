@@ -1157,6 +1157,21 @@ fn palette_lists_only_actions_that_can_act() {
 }
 
 #[test]
+fn palette_zoom_actions_step_the_zoom_around_the_screen_center() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "zoom in", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(app.session.view.zoom, clidraw::view::Zoom::Two);
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "zoom out", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(app.session.view.zoom, clidraw::view::Zoom::One);
+}
+
+#[test]
 fn palette_filters_fuzzily_and_backspace_widens() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
@@ -1638,7 +1653,7 @@ fn help_search_matches_substring_fuzzy_and_synonyms() {
     assert!(keys("dlt").contains(&"Delete, Backspace".to_string()));
     assert!(keys("remove").contains(&"Delete, Backspace".to_string()));
     assert!(keys("zzzz").is_empty());
-    assert!(clidraw::ui::help::search("e").len() <= 17);
+    assert!(clidraw::ui::help::search("e").len() <= 18);
 }
 
 #[test]

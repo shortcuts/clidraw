@@ -7,7 +7,7 @@ use clidraw::model::{
     ShapeKind, Stroke, TextAlign, Z,
 };
 use clidraw::ui::palette::{self, Choice, PaletteHit};
-use clidraw::view::View;
+use clidraw::view::{View, Zoom};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, Instant};
 
@@ -415,7 +415,7 @@ fn a_pause_resets_the_burst() {
 }
 
 #[test]
-fn shift_wheel_pans_sideways_and_ctrl_wheel_does_nothing() {
+fn shift_wheel_pans_sideways_and_ctrl_wheel_zooms_in_place() {
     let mut s = session();
     let t = Instant::now();
     mouse_mod(
@@ -446,7 +446,8 @@ fn shift_wheel_pans_sideways_and_ctrl_wheel_does_nothing() {
         10,
         t,
     );
-    assert_eq!((s.view.ox, s.view.oy), (0, 0));
+    assert_eq!(s.view.zoom, Zoom::Half);
+    assert_eq!(s.view.to_world(30, 10), (30, 10));
 }
 
 #[test]
@@ -1343,39 +1344,185 @@ fn click_on_a_label_places_the_caret_and_elsewhere_commits() {
 }
 
 #[test]
-fn overview_blocks_edits_and_returns_to_the_same_view() {
-    let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (22, 6), Instant::now());
-    let before = s.view;
-    key(&mut s, KeyCode::Char('z'));
-    assert!(s.overview);
-    key(&mut s, KeyCode::Delete);
-    assert_eq!(s.canvas.elements.len(), 1);
-    key(&mut s, KeyCode::Char('z'));
-    assert!(!s.overview);
-    assert_eq!(s.view, before);
-    key(&mut s, KeyCode::Char('z'));
-    key(&mut s, KeyCode::Esc);
-    assert!(!s.overview);
-}
-
-#[test]
-fn z_types_into_a_label_edit_instead_of_entering_overview() {
+fn z_types_into_a_label_edit_instead_of_fitting() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     let t = Instant::now();
     click(&mut s, (22, 6), t);
     click(&mut s, (22, 6), t + Duration::from_millis(100));
+    let before = s.view;
     key(&mut s, KeyCode::Char('z'));
-    assert!(!s.overview);
+    assert_eq!(s.view, before);
     assert_eq!(s.edit.as_ref().unwrap().buf, "z");
 }
 
+fn wheel(s: &mut Session, up: bool, at: (u16, u16)) {
+    let kind = if up {
+        MouseEventKind::ScrollUp
+    } else {
+        MouseEventKind::ScrollDown
+    };
+    mouse_mod(s, kind, KeyModifiers::CONTROL, at.0, at.1, Instant::now());
+}
+
 #[test]
-fn mouse_does_nothing_in_overview() {
+fn caret_click_at_double_zoom_lands_on_the_stretched_label() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    key(&mut s, KeyCode::Char('z'));
+    s.view.zoom = Zoom::Two;
+    s.start_edit_existing(Id::from("aaaaaaaa"));
+    let b = &s.edit_boxes()[0];
+    // The 8x4 rect covers 16x8 cells from 40,10; the empty label sits at its center.
+    assert_eq!((b.x, b.y), (40 + 1 + 7, 10 + 4));
+    key(&mut s, KeyCode::Char('a'));
+    key(&mut s, KeyCode::Char('b'));
+    key(&mut s, KeyCode::Char('c'));
+    let b = &s.edit_boxes()[0];
+    click(&mut s, (b.x as u16 + 1, b.y as u16), Instant::now());
+    assert_eq!(caret(&s), 1);
+}
+
+#[test]
+fn ctrl_wheel_zooms_around_the_cursor() {
+    let mut s = session();
+    s.view = View {
+        ox: 7,
+        oy: 3,
+        ..View::default()
+    };
+    wheel(&mut s, true, (10, 5));
+    assert_eq!(s.view.zoom, Zoom::Two);
+    assert_eq!(s.view.to_world(10, 5), (17, 8));
+    wheel(&mut s, false, (10, 5));
+    wheel(&mut s, false, (10, 5));
+    assert_eq!(s.view.zoom, Zoom::Half);
+    assert_eq!(s.view.to_world(10, 5), (17, 8));
+}
+
+#[test]
+fn zoom_clamps_at_both_ends() {
+    let mut s = session();
+    for _ in 0..5 {
+        wheel(&mut s, true, (0, 0));
+    }
+    assert_eq!(s.view.zoom, Zoom::Three);
+    for _ in 0..9 {
+        wheel(&mut s, false, (0, 0));
+    }
+    assert_eq!(s.view.zoom, Zoom::Quarter);
+}
+
+#[test]
+fn zoom_waits_for_an_edit_or_a_gesture_to_end() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.start_edit_existing(Id::from("aaaaaaaa"));
+    wheel(&mut s, true, (0, 0));
+    assert_eq!(s.view.zoom, Zoom::One);
+    key(&mut s, KeyCode::Esc);
+    mouse(
+        &mut s,
+        MouseEventKind::Down(MouseButton::Left),
+        22,
+        6,
+        Instant::now(),
+    );
+    mouse(
+        &mut s,
+        MouseEventKind::Drag(MouseButton::Left),
+        25,
+        8,
+        Instant::now(),
+    );
+    wheel(&mut s, true, (0, 0));
+    assert_eq!(s.view.zoom, Zoom::One);
+}
+
+#[test]
+fn half_zoom_is_read_only_and_esc_returns_to_one() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
     click(&mut s, (22, 6), Instant::now());
+    wheel(&mut s, false, (40, 12));
+    assert_eq!(s.view.zoom, Zoom::Half);
     assert!(s.selection.is_empty());
+    key(&mut s, KeyCode::Delete);
+    key(&mut s, KeyCode::Char('r'));
+    assert_eq!(s.tool, Tool::Select);
+    assert_eq!(s.canvas.elements.len(), 1);
+    let at = s.view.to_screen(21, 6);
+    click(&mut s, (at.0 as u16, at.1 as u16), Instant::now());
+    assert!(s.selection.is_empty());
+    key(&mut s, KeyCode::Esc);
+    assert_eq!(s.view.zoom, Zoom::One);
+    assert_eq!(s.view.to_world(40, 12), (40, 12));
+}
+
+#[test]
+fn half_zoom_drag_pans_whole_blocks() {
+    let mut s = session();
+    wheel(&mut s, false, (0, 0));
+    drag(&mut s, (10, 5), (7, 4));
+    assert_eq!((s.view.ox, s.view.oy), (6, 2));
+}
+
+#[test]
+fn z_fits_the_diagram_on_the_zoom_scale() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("bbbbbbbb"),
+        x: 300,
+        ..shape_at_origin()
+    }));
+    s.motion = false;
+    key(&mut s, KeyCode::Char('z'));
+    assert_eq!(s.view.zoom, Zoom::Quarter);
+    key(&mut s, KeyCode::Char('z'));
+    assert_eq!(s.view.zoom, Zoom::Quarter);
+    assert!(s.view.to_screen(20, 5).0 >= 0 && s.view.to_screen(308, 5).0 < 80);
+}
+
+fn shape_at_origin() -> Shape {
+    let Some(Element::Shape(sh)) = with_shape("aaaaaaaa", 0, 0).canvas.elements.pop() else {
+        unreachable!()
+    };
+    sh
+}
+
+#[test]
+fn click_at_triple_zoom_selects_the_shape_under_the_stretched_cell() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.view = View {
+        ox: 20,
+        oy: 5,
+        zoom: Zoom::Three,
+    };
+    click(&mut s, (5, 5), Instant::now());
+    assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
+    s.selection.clear();
+    click(&mut s, (60, 14), Instant::now());
+    assert!(s.selection.is_empty());
+}
+
+#[test]
+fn move_drag_at_double_zoom_moves_by_whole_world_cells() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.view = View {
+        zoom: Zoom::Two,
+        ..View::default()
+    };
+    drag(&mut s, (42, 12), (47, 14));
+    let sh = s.canvas.shape(&Id::from("aaaaaaaa")).unwrap();
+    assert_eq!((sh.x, sh.y), (22, 6));
+}
+
+#[test]
+fn pan_drag_at_triple_zoom_carries_the_remainder() {
+    let mut s = session();
+    s.view.zoom = Zoom::Three;
+    s.tool = Tool::Hand;
+    let t = Instant::now();
+    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 20, 5, t);
+    mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 15, 5, t);
+    assert_eq!(s.view.ox, 1);
+    mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 13, 5, t);
+    assert_eq!(s.view.ox, 2);
 }
 
 #[test]
@@ -1793,7 +1940,7 @@ fn right_down_selects_unselected_keeps_selected_and_ignores_empty() {
     s.selection = vec![Id::from("zzzzzzzz"), Id::from("aaaaaaaa")];
     assert_eq!(s.right_down(22, 6), Some(true));
     assert_eq!(s.selection.len(), 2);
-    s.overview = true;
+    s.view.zoom = Zoom::Half;
     assert_eq!(s.right_down(22, 6), None);
 }
 
@@ -1802,9 +1949,9 @@ fn ctrl_p_opens_the_palette_only_when_idle() {
     let ctrl_p = || KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL);
     let mut s = session();
     assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::Actions);
-    s.overview = true;
-    assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::None);
-    s.overview = false;
+    s.view.zoom = Zoom::Half;
+    assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::Actions);
+    s.view.zoom = Zoom::One;
     let mut s = with_shape("aaaaaaaa", 20, 5);
     s.start_edit_existing(Id::from("aaaaaaaa"));
     assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::None);

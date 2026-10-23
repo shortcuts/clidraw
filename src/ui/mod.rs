@@ -78,7 +78,7 @@ pub fn render(
     let colors = theme::colors(no_color, colorterm.as_deref());
     let accent = theme::accent(s.theme, no_color, colorterm.as_deref());
     canvas_view::draw(&mut grid, s, accent, colors);
-    if !s.overview && !s.present {
+    if !s.zoomed_out() && !s.present {
         palette::draw(&mut grid, s);
         minimap::draw(&mut grid, s);
     }
@@ -114,7 +114,15 @@ pub fn text(canvas: &Canvas) -> String {
     };
     let clamp = |n: i32| u16::try_from(n).unwrap_or(u16::MAX);
     let screen = (clamp(w), clamp(h));
-    let s = Session::new(canvas.clone(), View { ox: x, oy: y }, screen);
+    let s = Session::new(
+        canvas.clone(),
+        View {
+            ox: x,
+            oy: y,
+            ..View::default()
+        },
+        screen,
+    );
     let mut grid = Grid::new(screen.0, screen.1);
     canvas_view::draw(&mut grid, &s, None, false);
     grid.to_text()

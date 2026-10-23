@@ -1,6 +1,7 @@
 use super::state::Gesture;
 use super::{Edit, Session, Tool};
 use crate::model::{Align, Command, Z};
+use crate::view::Zoom;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -72,11 +73,17 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             _ => KeyOutcome::None,
         };
     }
-    if s.overview {
+    if s.zoomed_out() {
         return match k.code {
             KeyCode::Char('c') if ctrl => KeyOutcome::Quit,
-            KeyCode::Char('z') | KeyCode::Esc if !ctrl => {
-                s.overview = false;
+            KeyCode::Char('p') if ctrl && s.idle() => KeyOutcome::Actions,
+            KeyCode::Char('z') if !ctrl => {
+                s.fit(s.canvas.all_bounds());
+                KeyOutcome::None
+            }
+            KeyCode::Esc => {
+                let (w, h) = s.screen;
+                s.zoom_to(Zoom::One, (i32::from(w) / 2, i32::from(h) / 2));
                 KeyOutcome::None
             }
             KeyCode::Char('?') => KeyOutcome::Help,
@@ -167,7 +174,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             s.group(c == 'g');
         }
         KeyCode::Char('c') => s.copy(),
-        KeyCode::Char('z') if matches!(s.gesture, Gesture::Idle) => s.overview = true,
+        KeyCode::Char('z') if matches!(s.gesture, Gesture::Idle) => s.fit(s.canvas.all_bounds()),
         KeyCode::Char(c) if matches!(s.gesture, Gesture::Idle) => {
             if let Some(t) = Tool::ALL.into_iter().find(|t| t.key() == Some(c)) {
                 s.tool = t;
