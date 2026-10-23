@@ -8,6 +8,8 @@ type Rect = (i32, i32, i32, i32);
 
 /// Cells the search may leave beyond the box of the two end cells.
 pub const MARGIN: i32 = 3;
+const STUB: i32 = 2;
+const LANE: i32 = 4;
 const MAX_AREA: i32 = 1000;
 const BUCKET: i32 = 16;
 
@@ -137,6 +139,31 @@ impl Router {
             })
     }
 
+    /// Whether another line ends on the same side of the same shape as `own` does at `b`.
+    fn lane_sibling<'a>(
+        &self,
+        canvas: &'a Canvas,
+        find: &Find<'a>,
+        own: &Line,
+        shape: Rect,
+        b: Pt,
+        out: Pt,
+    ) -> bool {
+        let End::Bound(id, _) = &own.to else {
+            return false;
+        };
+        let (x, y, w, h) = shape;
+        self.near(&self.lines, (x - 1, y - 1, w + 2, h + 2))
+            .into_iter()
+            .filter_map(|i| match &canvas.elements[i.at] {
+                Element::Line(l) if l.id != own.id => Some(l),
+                _ => None,
+            })
+            .filter(|l| matches!(&l.to, End::Bound(other, _) if other == id))
+            .map(|l| canvas.line_ends_with(l, find).1)
+            .any(|e| if out.0 != 0 { e.0 == b.0 } else { e.1 == b.1 })
+    }
+
     /// `plain` when no cell of it lies in an obstacle and it shares no segment with an earlier
     /// line, else the cheapest path in the box of the end cells plus `MARGIN`. Obstacles are the other shapes and texts, minus the two
     /// end shapes (a bent line keeps them as obstacles). A frame is no obstacle.
@@ -174,13 +201,24 @@ impl Router {
                 has(i.rect, p) && !skip(i)
             })
         };
-        // The two cells before the end cell run straight away from the shape, so the head points at it.
-        let stub = ax_b.and_then(|_| {
+        // The cells before the end cell run straight away from the shape, so the head points at it.
+        // Arrows sharing a side get a longer run, so they look merged while keeping their own end cells.
+        let stub: Option<Vec<Pt>> = ax_b.and_then(|_| {
             let out = DIRS.iter().find(|d| has(held[1], (b.0 + d.0, b.1 + d.1)))?;
-            let cells = [1, 2].map(|k| (b.0 - out.0 * k, b.1 - out.1 * k));
+            let len = if self.lane_sibling(canvas, find, own, held[1], b, *out) {
+                LANE
+            } else {
+                STUB
+            };
+            let cells: Vec<Pt> = (1..=len)
+                .map(|k| (b.0 - out.0 * k, b.1 - out.1 * k))
+                .collect();
             (!cells.iter().any(|&p| blocked(p) || p == a) && a != b).then_some(cells)
         });
-        let straight = stub.is_none_or(|[s1, s2]| plain.ends_with(&[s2, s1, b]));
+        let straight = stub.as_ref().is_none_or(|s| {
+            let tail: Vec<Pt> = s.iter().rev().copied().chain([b]).collect();
+            plain.ends_with(&tail)
+        });
         if straight
             && !plain.iter().any(|&p| blocked(p))
             && !self.shares_segment(canvas, find, own, &plain)
@@ -190,7 +228,7 @@ impl Router {
         if a == b {
             return vec![a];
         }
-        let t = stub.map_or(b, |[_, s2]| s2);
+        let t = stub.as_ref().map_or(b, |s| s[s.len() - 1]);
         let base = (
             a.0.min(t.0) - MARGIN,
             a.1.min(t.1) - MARGIN,
@@ -307,8 +345,8 @@ impl Router {
                 }
                 path.push(a);
                 path.reverse();
-                if let Some([s1, _]) = stub {
-                    path.extend([s1, b]);
+                if let Some(s) = &stub {
+                    path.extend(s.iter().rev().skip(1).chain([&b]));
                 }
                 return path;
             }

@@ -1173,3 +1173,36 @@ fn set_bends_returns_the_old_list_and_cloned_lines_shift_their_bends() {
     };
     assert_eq!(copy.bends, vec![(7, 7)]);
 }
+
+#[test]
+fn arrows_into_the_same_side_run_the_same_direction_for_four_cells() {
+    let into = |id: &str, from: &str, off: i32| {
+        elbow(
+            id,
+            bound(from),
+            End::Bound(Id::from("bbbbbbbb"), Anchor::Left(off)),
+        )
+    };
+    let (top, bottom) = (
+        into("arrow001", "aaaaaaaa", 0),
+        into("arrow002", "cccccccc", 2),
+    );
+    let mut c = Canvas {
+        elements: vec![
+            rect("aaaaaaaa", ShapeKind::Rect, (10, 0, 3, 3)),
+            rect("cccccccc", ShapeKind::Rect, (10, 10, 3, 3)),
+            rect("bbbbbbbb", ShapeKind::Rect, (20, 4, 3, 3)),
+        ],
+        ..Canvas::default()
+    };
+    c.elements
+        .extend([top.clone(), bottom.clone()].map(Element::Line));
+    for (l, y) in [(top, 4), (bottom, 6)] {
+        let cells = c.route(&l);
+        walks(&cells);
+        assert_eq!(
+            cells[cells.len() - 5..],
+            [15, 16, 17, 18, 19].map(|x| (x, y))
+        );
+    }
+}

@@ -202,7 +202,11 @@ impl Canvas {
         self.line_ends_with(l, &|id| self.shape(id))
     }
 
-    fn line_ends_with<'a>(&'a self, l: &Line, find: &Find<'a>) -> ((i32, i32), (i32, i32)) {
+    pub(crate) fn line_ends_with<'a>(
+        &'a self,
+        l: &Line,
+        find: &Find<'a>,
+    ) -> ((i32, i32), (i32, i32)) {
         let [(a, _), (b, _)] = self.anchors(l, find);
         (a, b)
     }
