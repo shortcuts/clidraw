@@ -31,6 +31,7 @@ pub enum Overlay {
     Prompt(prompt::Prompt),
     Help(usize, String),
     Actions(actions::Actions),
+    Map,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -80,7 +81,6 @@ pub fn render(
     canvas_view::draw(&mut grid, s, accent, colors);
     if !s.zoomed_out() && !s.present {
         palette::draw(&mut grid, s);
-        minimap::draw(&mut grid, s);
     }
     if !s.present {
         infobar::draw(&mut grid, s, overlay, saved);
@@ -96,6 +96,7 @@ pub fn render(
         Overlay::Prompt(p) => prompt::draw(&mut grid, p),
         Overlay::Help(p, q) => help::draw(&mut grid, *p, q),
         Overlay::Actions(a) => a.draw(&mut grid),
+        Overlay::Map => minimap::draw(&mut grid, s),
     }
     if let Some(st) = status.filter(|_| !s.present) {
         infobar::status(&mut grid, s, st, saved);

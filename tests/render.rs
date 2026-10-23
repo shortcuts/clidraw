@@ -1062,16 +1062,31 @@ fn actions_palette_draws_query_rows_and_selection() {
 }
 
 #[test]
-fn minimap_shows_only_while_content_is_off_screen() {
+fn minimap_overlay_labels_frames_and_shapes() {
     let mut c = Canvas::default();
-    c.elements.push(shape("aaaaaaaa", 0, ""));
-    let mut s = Session::new(c, View::default(), (80, 24));
-    assert_eq!(cols(&draw(&s, &Overlay::None), 15, 56, 1), " ");
-    s.canvas.elements.push(shape("bbbbbbbb", 1000, ""));
-    s.rev += 1;
-    let b = draw(&s, &Overlay::None);
-    assert_eq!(cols(&b, 15, 56, 1), "┌");
-    assert!((57..79).any(|x| b[(x, 17)].symbol() == "▒" || b[(x, 18)].symbol() == "▒"));
+    let mut frame = shape("ffffffff", 0, "Zone");
+    if let Element::Shape(f) = &mut frame {
+        (f.kind, f.y, f.w, f.h) = (ShapeKind::Frame, 0, 40, 12);
+    }
+    c.elements.push(frame);
+    c.elements.push(shape("aaaaaaaa", 2, "box"));
+    c.elements.push(shape("bbbbbbbb", 100, ""));
+    let s = Session::new(c, View::default(), (80, 24));
+    let b = draw(&s, &Overlay::Map);
+    let rows: Vec<String> = (0..24).map(|y| row(&b, y)).collect();
+    assert!(rows.iter().any(|r| r.contains("┌Zone")), "{rows:#?}");
+    assert!(rows.iter().any(|r| r.contains("box")));
+    assert!(
+        (0..23).any(|y| b[(78, y)].symbol() == "▒"),
+        "the unlabelled far shape is a plain box"
+    );
+    assert!(rows.iter().all(|r| !r.contains("bbbbbbbb")));
+    let off = draw(&s, &Overlay::None);
+    assert_eq!(
+        cols(&off, 15, 56, 1),
+        " ",
+        "no corner box without the overlay"
+    );
 }
 
 #[test]

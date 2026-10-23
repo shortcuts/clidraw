@@ -22,6 +22,7 @@ pub enum Action {
     Present,
     Help,
     Find,
+    Map,
     Ex(&'static str),
 }
 
@@ -43,7 +44,7 @@ impl Action {
     }
 }
 
-const TABLE: [(Action, &str, &str); 39] = [
+const TABLE: [(Action, &str, &str); 40] = [
     (Action::Ex("u"), "Undo", "u"),
     (Action::Ex("redo"), "Redo", "Ctrl-r"),
     (Action::Copy, "Copy", "y"),
@@ -81,6 +82,7 @@ const TABLE: [(Action, &str, &str); 39] = [
     (Action::Order(Z::Forward), "Raise", "]"),
     (Action::Order(Z::Backward), "Lower", "["),
     (Action::Menu(MenuItem::FitAll), "Fit all", ""),
+    (Action::Map, "Minimap", ""),
     (Action::ZoomIn, "Zoom in", "Ctrl+wheel"),
     (Action::ZoomOut, "Zoom out", "Ctrl+wheel"),
     (Action::Present, "Present", ""),

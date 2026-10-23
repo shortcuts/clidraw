@@ -2124,18 +2124,6 @@ fn panning_cancels_a_glide() {
 }
 
 #[test]
-fn clicking_the_minimap_centers_the_view_there() {
-    let mut s = with_shape("aaaaaaaa", 0, 4);
-    let far = with_shape("bbbbbbbb", 1000, 4).canvas.elements.remove(0);
-    s.canvas.elements.push(far);
-    s.motion = false;
-    click(&mut s, (78, 20), Instant::now());
-    assert!(s.view.ox > 900, "view stayed at {}", s.view.ox);
-    assert!(s.selection.is_empty());
-    assert_eq!(s.canvas.elements.len(), 2);
-}
-
-#[test]
 fn set_link_sets_clears_undoes_and_rejects_unsafe_urls() {
     let mut s = session();
     s.canvas.elements.push(Element::Shape(Shape {

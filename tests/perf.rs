@@ -193,6 +193,24 @@ fn frame_fits_the_budget_on_5000_elements() {
 
 #[test]
 #[ignore = "needs a release build: run `make perf`"]
+fn minimap_frame_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = busy_app(t.path());
+    app.overlay = clidraw::ui::Overlay::Map;
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            frame(&app, &mut term);
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median frame {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
 fn frame_fits_the_budget_at_quarter_zoom_on_5000_elements() {
     let t = tempfile::tempdir().unwrap();
     let mut app = busy_app(t.path());

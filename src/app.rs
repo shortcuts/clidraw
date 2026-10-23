@@ -4,6 +4,7 @@ use crate::names;
 use crate::store::{State, Store, StoreError};
 use crate::ui::actions::Actions;
 use crate::ui::menu::{Context, ContextItem, MenuItem};
+use crate::ui::minimap;
 use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
 use crate::ui::scope::{self, ExportFormat};
 use crate::ui::switcher::{self, Switcher, SwitcherHit};
@@ -323,6 +324,10 @@ impl App {
                 None if !a.inside(screen, col, row) => self.overlay = Overlay::None,
                 None => {}
             },
+            Overlay::Map => {
+                minimap::click(&mut self.session, col, row);
+                self.overlay = Overlay::None;
+            }
             Overlay::None => {}
         }
     }

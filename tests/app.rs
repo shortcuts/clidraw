@@ -364,6 +364,61 @@ fn clicking_a_help_tab_selects_its_page() {
     assert_eq!(help_page(&app), 0, "a click off the tabs keeps the modal");
 }
 
+fn map_app(dir: &std::path::Path) -> (App, Instant) {
+    let mut app = app_in(dir);
+    for (id, x) in [("aaaaaaaa", 2), ("bbbbbbbb", 1000)] {
+        app.session.exec(Command::Insert(
+            app.session.canvas.elements.len(),
+            Element::Shape(Shape {
+                id: Id::from(id),
+                kind: ShapeKind::Rect,
+                x,
+                y: 4,
+                w: 8,
+                h: 3,
+                label: String::new(),
+                stroke: Default::default(),
+                border: Default::default(),
+                color: None,
+                fill: None,
+                align: Default::default(),
+                bold: false,
+                link: None,
+            }),
+        ));
+    }
+    app.session.motion = false;
+    let t = Instant::now();
+    ctrl_key(&mut app, 'p', t);
+    type_str(&mut app, "mini", t);
+    app.on_event(key(KeyCode::Enter), t);
+    (app, t)
+}
+
+#[test]
+fn minimap_action_opens_and_a_click_jumps() {
+    let t = tempfile::tempdir().unwrap();
+    let (mut app, now) = map_app(t.path());
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Map));
+    click(&mut app, 78, 5, now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+    assert!(
+        app.session.view.ox > 900,
+        "view stayed at {}",
+        app.session.view.ox
+    );
+    assert!(app.session.selection.is_empty());
+}
+
+#[test]
+fn escape_closes_the_minimap_without_moving_the_view() {
+    let t = tempfile::tempdir().unwrap();
+    let (mut app, now) = map_app(t.path());
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+    assert_eq!(app.session.view.ox, 0);
+}
+
 #[test]
 fn question_mark_types_into_a_label_and_a_prompt() {
     let t = tempfile::tempdir().unwrap();

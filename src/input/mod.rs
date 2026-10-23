@@ -13,7 +13,6 @@ use crate::model::{
     wrap, Align, Anchor, Canvas, Command, Dir, Element, End, History, Id, Line, LineKind, Shape,
     Stroke, Text, Z,
 };
-use crate::ui::minimap;
 use crate::ui::palette::{self, PaletteHit};
 use crate::ui::theme::Theme;
 use crate::ui::Layout;
@@ -475,7 +474,6 @@ impl Session {
             || self.present
             || !self.idle()
             || palette::hit(self, col, row).is_some()
-            || minimap::hit(self, col, row).is_some()
         {
             return None;
         }

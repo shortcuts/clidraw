@@ -49,6 +49,7 @@ impl App {
                 s.present = true;
             }
             Action::Help => self.overlay = Overlay::Help(0, String::new()),
+            Action::Map => self.overlay = Overlay::Map,
             Action::Find => {
                 self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, "/".into()))
             }

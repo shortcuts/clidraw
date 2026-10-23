@@ -62,14 +62,14 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `z` | Fit all: the largest zoom up to 1x that shows the whole diagram |
 | Ctrl + wheel | Zoom 25%, 50%, 100%, 200%, 300% around the cursor; 25% and 50% are read-only, `Esc` returns to 100% |
 | Bottom bar buttons | `[-]` `[+]` zoom, `[Fit]`, `[Undo]`, `[Redo]`; shown at 60 columns or more |
-| Present (palette only) | Hides the top bar, minimap and status line; wheel scrolls; `Esc` returns |
+| Present (palette only) | Hides the top bar and status line; wheel scrolls; `Esc` returns |
 | `/` | Find a label: type the text, `Enter` selects and centers the match; repeat to cycle (`:/text` does the same) |
 | `Ctrl-c` | Quit |
 | `Ctrl-p` | Open the command palette: type to filter every action, `Enter` runs it |
 | `?` | Show the shortcuts, one page per scope; type to filter all pages |
 | `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo`, `layout [td|lr]`, `import <path>`, `lib save|insert <name>`, `perf` |
 
-The command palette (`Ctrl-p`) lists every action with its key, including Canvases, Fit all, the exports and Quit. Saving is automatic.
+The command palette (`Ctrl-p`) lists every action with its key, including Canvases, Fit all, the exports and Quit. Saving is automatic. The Minimap action shows the whole canvas; click a frame or shape to jump to it.
 
 Export asks what to write: the whole canvas, a dragged area or the selection. Export Text (or `:export`) writes the canvas as plain text, as the screen draws it. Set `export_padding` in `config.toml` for the SVG margin in cells.
 
@@ -89,7 +89,7 @@ clidraw takes its core model from [excalidraw](https://excalidraw.com) and [tldr
 - Snapping to shape edges and centers, and a grid.
 - Labels with line breaks, word wrap, bold and alignment.
 - Undo and redo, kept across sessions.
-- Find by label, a command palette and a corner minimap.
+- Find by label, a command palette and a full-screen minimap.
 - Auto layout, and Mermaid flowchart import.
 - A library of reusable snippets.
 - Shape links, exported to SVG and Mermaid.
