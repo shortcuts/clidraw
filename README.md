@@ -127,6 +127,8 @@ Budgets for a release build with 5000 elements on a 200x50 screen:
 | Peak resident memory, 5000 elements (measured once, perf test process) | 4.3 MB |
 | Peak resident memory, 50000 elements (measured once, perf test process) | 14.1 MB |
 
+The release binary (`make release`) is 2,166,760 bytes (2.1 MB) on macOS x86_64, measured 2026-10-23. It has no size budget yet.
+
 The loop wakes every 16 ms only while a Fit all or search glide runs.
 
 `make perf` checks the frame and drag-step budgets. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet. CI runs `make check` with `CLIDRAW_PERF_SLACK=4`, which divides each measured median by 4; local runs leave it unset.
