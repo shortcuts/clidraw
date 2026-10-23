@@ -32,6 +32,9 @@ pub const DEFAULT_TOML: &str = "\
 # Glide the view for Fit all and search jumps. false snaps instantly.
 # motion = true
 
+# Percent of the default distance that wheel and trackpad scrolling pans. 50 halves it.
+# scroll_speed = 100
+
 # Color palette: auto asks the terminal for its background, or force dark or light.
 # theme = \"auto\"
 ";
@@ -45,6 +48,7 @@ pub struct Config {
     pub history_limit: usize,
     pub export_padding: i32,
     pub motion: bool,
+    pub scroll_speed: i32,
     pub theme: ThemeSetting,
 }
 
@@ -58,6 +62,7 @@ impl Default for Config {
             history_limit: HISTORY_LIMIT,
             export_padding: 2,
             motion: true,
+            scroll_speed: 100,
             theme: ThemeSetting::Auto,
         }
     }
@@ -101,6 +106,7 @@ impl Config {
                 "history_limit" => count(value).map(|n| self.history_limit = n),
                 "export_padding" => padding(value).map(|n| self.export_padding = n),
                 "motion" => flag(value).map(|b| self.motion = b),
+                "scroll_speed" => speed(value).map(|n| self.scroll_speed = n),
                 "theme" => theme(value).map(|t| self.theme = t),
                 _ => {
                     warns.push(format!("{FILE}: unknown key {key}"));
@@ -157,6 +163,13 @@ fn padding(v: &toml::Value) -> Result<i32, String> {
     match v.as_integer() {
         Some(n @ 0..=100) => Ok(n as i32),
         _ => Err("expected an integer from 0 to 100".into()),
+    }
+}
+
+fn speed(v: &toml::Value) -> Result<i32, String> {
+    match v.as_integer() {
+        Some(n @ 1..=1000) => Ok(n as i32),
+        _ => Err("expected an integer from 1 to 1000".into()),
     }
 }
 

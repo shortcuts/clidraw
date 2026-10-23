@@ -91,6 +91,8 @@ pub struct Session {
     pub grid: i32,
     /// Whether Fit all and search jumps glide instead of snapping.
     pub motion: bool,
+    /// Percent of the default distance a wheel notch pans.
+    pub scroll_speed: i32,
     /// Last search term; an empty search repeats it.
     pub search: String,
     pub screen: (u16, u16),
@@ -139,6 +141,7 @@ impl Session {
             double_click: Duration::from_millis(400),
             grid: 1,
             motion: true,
+            scroll_speed: 100,
             search: String::new(),
             screen,
             edit: None,
@@ -527,6 +530,7 @@ impl Session {
             double_click: self.double_click,
             grid: self.grid,
             motion: self.motion,
+            scroll_speed: self.scroll_speed,
             theme: self.theme,
             history: History::with_limit(self.history.limit),
             ..Session::new(canvas, view, self.screen)

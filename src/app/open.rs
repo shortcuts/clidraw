@@ -28,6 +28,7 @@ impl App {
         session.double_click = config.double_click;
         session.grid = config.grid;
         session.motion = config.motion;
+        session.scroll_speed = config.scroll_speed;
         session.history.limit = config.history_limit;
         let mut app = App {
             session,

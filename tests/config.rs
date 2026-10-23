@@ -168,6 +168,20 @@ fn motion_defaults_on_and_rejects_non_booleans() {
 }
 
 #[test]
+fn scroll_speed_defaults_to_100_and_rejects_out_of_range() {
+    assert_eq!(Config::default().scroll_speed, 100);
+    let (c, w, _t) = load_text("scroll_speed = 50\n");
+    assert!(w.is_empty(), "{w:?}");
+    assert_eq!(c.scroll_speed, 50);
+    let (c, w, _t) = load_text("scroll_speed = 0\n");
+    assert_eq!(c.scroll_speed, 100);
+    assert_eq!(
+        w,
+        vec!["config.toml: key scroll_speed: expected an integer from 1 to 1000"]
+    );
+}
+
+#[test]
 fn theme_defaults_to_auto_and_rejects_unknown_names() {
     assert_eq!(Config::default().theme, ThemeSetting::Auto);
     let (c, w, _t) = load_text("theme = \"light\"\n");

@@ -80,10 +80,14 @@ impl Session {
             _ => 0,
         };
         let k = (n * (1 + prior / 2).min(SCROLL_MAX)) as i32;
+        let scaled = |d: i32| match d * k * self.scroll_speed / 100 {
+            0 => d.signum(),
+            v => v,
+        };
         self.glide = None;
         self.view.pan(
-            self.view.world_step(step.0 * k),
-            self.view.world_step(step.1 * k),
+            self.view.world_step(scaled(step.0)),
+            self.view.world_step(scaled(step.1)),
         );
         self.hover = Hit::Empty;
         self.burst = Some((now, prior + n));

@@ -2090,6 +2090,18 @@ fn fit_snaps_when_motion_is_off() {
 }
 
 #[test]
+fn scroll_speed_scales_the_pan_and_never_rounds_to_zero() {
+    let mut s = session();
+    s.scroll_speed = 150;
+    scroll_down(&mut s, Instant::now());
+    assert_eq!(s.view.oy, 3);
+    let mut s = session();
+    s.scroll_speed = 1;
+    scroll_down(&mut s, Instant::now());
+    assert_eq!(s.view.oy, 1);
+}
+
+#[test]
 fn scrolling_cancels_a_glide() {
     let mut s = session();
     let t0 = Instant::now();
