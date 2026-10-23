@@ -29,7 +29,7 @@ pub enum Overlay {
     Scope(scope::ExportFormat),
     Switcher(switcher::Switcher),
     Prompt(prompt::Prompt),
-    Help(usize),
+    Help(usize, String),
     Actions(actions::Actions),
 }
 
@@ -95,7 +95,7 @@ pub fn render(
         Overlay::Scope(_) => scope::draw(&mut grid),
         Overlay::Switcher(sw) => switcher::draw(&mut grid, sw),
         Overlay::Prompt(p) => prompt::draw(&mut grid, p),
-        Overlay::Help(p) => help::draw(&mut grid, *p),
+        Overlay::Help(p, q) => help::draw(&mut grid, *p, q),
         Overlay::Actions(a) => a.draw(&mut grid),
     }
     if let Some(st) = status.filter(|_| !s.present) {

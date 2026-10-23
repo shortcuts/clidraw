@@ -233,7 +233,7 @@ impl App {
             match handle_key(&mut self.session, k) {
                 KeyOutcome::Quit => self.quit = true,
                 KeyOutcome::Menu => self.overlay = Overlay::Menu,
-                KeyOutcome::Help => self.overlay = Overlay::Help(0),
+                KeyOutcome::Help => self.overlay = Overlay::Help(0, String::new()),
                 KeyOutcome::Actions => {
                     if self.pick.is_none() {
                         self.overlay = Overlay::Actions(Actions::new(&self.session));
@@ -254,8 +254,8 @@ impl App {
             self.quit = true;
             return;
         }
-        if matches!(self.overlay, Overlay::Help(_)) {
-            self.help_key(k.code);
+        if matches!(self.overlay, Overlay::Help(..)) {
+            self.help_key(k);
             return;
         }
         if matches!(self.overlay, Overlay::Actions(_)) {
@@ -305,7 +305,7 @@ impl App {
                 Some(PromptHit::Cancel) => self.overlay = Overlay::None,
                 None => {}
             },
-            Overlay::Help(_) => self.help_click(col, row),
+            Overlay::Help(..) => self.help_click(col, row),
             Overlay::Actions(a) => match a.row_at(screen, col, row) {
                 Some(action) => self.run_action(action),
                 None if !a.inside(screen, col, row) => self.overlay = Overlay::None,

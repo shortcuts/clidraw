@@ -53,7 +53,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `Ctrl-f` | Find a label: type the text, `Enter` selects and centers the match; repeat to cycle (`:/text` does the same) |
 | `Ctrl-c` | Quit |
 | `Ctrl-p` | Open the command palette: type to filter every action, `Enter` runs it |
-| `?` | Show the shortcuts, one page per scope |
+| `?` | Show the shortcuts, one page per scope; type to filter all pages |
 | `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo`, `layout [td|lr]`, `import <path>`, `lib save|insert <name>`, `perf` |
 
 The menu has Canvases, Fit all, Export SVG, Export Mermaid, Export Text and Quit. The command palette lists every action with its key. Saving is automatic.

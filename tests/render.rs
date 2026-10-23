@@ -371,7 +371,7 @@ fn help_pages_list_their_scope() {
             ],
         ),
     ] {
-        let b = draw(&s, &Overlay::Help(page));
+        let b = draw(&s, &Overlay::Help(page, String::new()));
         let all: String = (0..24).map(|y| row(&b, y)).collect();
         for w in wants {
             assert!(all.contains(w), "page {page}: {w}");
@@ -424,7 +424,7 @@ fn prompt_shows_a_dim_hint_for_keyboard_dismissal() {
 #[test]
 fn help_canvas_row_lists_every_command_line_verb() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let b = draw(&s, &Overlay::Help(0));
+    let b = draw(&s, &Overlay::Help(0, String::new()));
     assert!(
         row(&b, 20).contains("Commands q w wq e u redo layout"),
         "{}",
@@ -436,7 +436,7 @@ fn help_canvas_row_lists_every_command_line_verb() {
 #[test]
 fn help_canvas_esc_row_stays_inside_the_border() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let b = draw(&s, &Overlay::Help(0));
+    let b = draw(&s, &Overlay::Help(0, String::new()));
     assert!(row(&b, 4).contains("│ Esc"), "{}", row(&b, 4));
     assert_eq!(cols(&b, 4, 71, 1), "│", "{}", row(&b, 4));
 }
@@ -445,7 +445,7 @@ fn help_canvas_esc_row_stays_inside_the_border() {
 fn help_rows_stay_inside_the_border_on_every_page() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     for page in 0..5 {
-        let b = draw(&s, &Overlay::Help(page));
+        let b = draw(&s, &Overlay::Help(page, String::new()));
         let edge = row(&b, 2).trim_end().chars().count();
         for i in 0..ui::help::rows(page).len() as u16 {
             let r = row(&b, 4 + i);
@@ -468,7 +468,7 @@ fn help_draws_on_a_tiny_screen() {
             f.buffer_mut(),
             area,
             &s,
-            &Overlay::Help(0),
+            &Overlay::Help(0, String::new()),
             None,
             None,
             true,
@@ -1133,4 +1133,18 @@ fn tool_bar_shows_each_key_dimmed_when_the_row_fits() {
     assert!(!b[(1, 0)].modifier.contains(Modifier::DIM));
     let (line, _) = top_row(&s, 80);
     assert!(line.starts_with(" Select  Hand  Rect "), "{line}");
+}
+
+#[test]
+fn help_search_line_shows_hint_then_query_and_keeps_the_box_aligned() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let b = draw(&s, &Overlay::Help(0, String::new()));
+    assert!(row(&b, 3).contains("Type to filter"), "{}", row(&b, 3));
+    let b = draw(&s, &Overlay::Help(0, "remove".into()));
+    assert!(row(&b, 3).contains("> remove"), "{}", row(&b, 3));
+    assert!(row(&b, 4).contains("Delete, Backspace"), "{}", row(&b, 4));
+    assert_eq!(cols(&b, 4, 71, 1), "│");
+    assert_eq!(cols(&b, 20, 71, 1), "│");
+    let b = draw(&s, &Overlay::Help(0, "zzzz".into()));
+    assert!(row(&b, 4).contains("No match"), "{}", row(&b, 4));
 }

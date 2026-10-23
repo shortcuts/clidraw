@@ -329,7 +329,7 @@ fn app_in(dir: &std::path::Path) -> App {
 
 fn help_page(app: &App) -> usize {
     match app.overlay {
-        clidraw::ui::Overlay::Help(p) => p,
+        clidraw::ui::Overlay::Help(p, _) => p,
         _ => panic!("help is not open"),
     }
 }
@@ -1579,4 +1579,76 @@ fn right_click_menu_resets_the_route_of_a_bent_line() {
         panic!("no line")
     };
     assert_eq!(l.bends, vec![]);
+}
+
+fn help_query(app: &App) -> String {
+    match &app.overlay {
+        clidraw::ui::Overlay::Help(_, q) => q.clone(),
+        _ => panic!("help is not open"),
+    }
+}
+
+#[test]
+fn help_typing_builds_the_query_and_backspace_pops() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Char('?')), now);
+    type_str(&mut app, "d?l", now);
+    assert_eq!(help_query(&app), "d?l");
+    app.on_event(key(KeyCode::Backspace), now);
+    assert_eq!(help_query(&app), "d?");
+    app.on_event(key(KeyCode::Right), now);
+    assert_eq!(help_page(&app), 0);
+}
+
+#[test]
+fn help_esc_clears_the_query_then_closes() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Char('?')), now);
+    type_str(&mut app, "del", now);
+    app.on_event(key(KeyCode::Esc), now);
+    assert_eq!(help_query(&app), "");
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+}
+
+#[test]
+fn help_tab_click_clears_the_query() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Char('?')), now);
+    type_str(&mut app, "del", now);
+    click(&mut app, 33, 2, now);
+    assert_eq!(help_query(&app), "");
+}
+
+#[test]
+fn help_search_matches_substring_fuzzy_and_synonyms() {
+    let keys = |q: &str| -> Vec<String> {
+        clidraw::ui::help::search(q)
+            .into_iter()
+            .map(|r| r.0)
+            .collect()
+    };
+    assert_eq!(keys("delete a char"), ["Backspace, Delete"]);
+    assert!(keys("dlt").contains(&"Delete, Backspace".to_string()));
+    assert!(keys("remove").contains(&"Delete, Backspace".to_string()));
+    assert!(keys("zzzz").is_empty());
+    assert!(clidraw::ui::help::search("e").len() <= 17);
+}
+
+#[test]
+fn help_synonym_targets_appear_in_some_row() {
+    for (_, target) in clidraw::ui::help::SYNONYMS {
+        assert!(
+            (0..clidraw::ui::help::SCOPES.len())
+                .flat_map(clidraw::ui::help::rows)
+                .any(|(k, a)| format!("{k} {a}").to_lowercase().contains(target)),
+            "no row for {target}"
+        );
+    }
 }

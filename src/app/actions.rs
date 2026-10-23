@@ -43,7 +43,7 @@ impl App {
                 s.selection.clear();
                 s.present = true;
             }
-            Action::Help => self.overlay = Overlay::Help(0),
+            Action::Help => self.overlay = Overlay::Help(0, String::new()),
             Action::Find => {
                 self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, "/".into()))
             }

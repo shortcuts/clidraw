@@ -1,4 +1,4 @@
-use super::grid::REVERSE;
+use super::grid::{DIM, REVERSE};
 use super::menu::ITEMS;
 use super::{boxed, centered, Grid};
 use crate::input::Tool;
@@ -43,6 +43,21 @@ const PROJECT: [(&str, &str); 2] = [
     ("Contributing", "github.com/shortcuts/clidraw#contributing"),
 ];
 
+/// Query word and the word the help text uses instead; matched both ways.
+pub const SYNONYMS: [(&str, &str); 10] = [
+    ("remove", "delete"),
+    ("erase", "delete"),
+    ("exit", "quit"),
+    ("close", "quit"),
+    ("clone", "duplicate"),
+    ("front", "raise"),
+    ("back", "lower"),
+    ("redo", "undo"),
+    ("box", "rect"),
+    ("text", "label"),
+];
+
+const MAX_ROWS: usize = 17;
 const WIDTH: i32 = 64;
 // Two borders, the tab row, a blank row and the longest page; fixed so the box does not jump.
 const HEIGHT: i32 = 21;
@@ -68,6 +83,34 @@ pub fn rows(page: usize) -> Vec<(String, String)> {
             .filter_map(|t| Some((t.key()?.to_string(), t.label().to_string())))
             .collect(),
     }
+}
+
+fn fuzzy(needle: &str, hay: &str) -> bool {
+    let mut hay = hay.chars();
+    needle.chars().all(|n| hay.any(|h| h == n))
+}
+
+/// Rows of every page matching the query: substring hits first, then subsequence hits.
+pub fn search(query: &str) -> Vec<(String, String)> {
+    let query = query.to_lowercase();
+    let mut wanted = vec![query.clone()];
+    for (a, b) in SYNONYMS {
+        if query == a || query == b {
+            wanted.push(if query == a { b } else { a }.to_string());
+        }
+    }
+    let (mut exact, mut loose) = (Vec::new(), Vec::new());
+    for row in (0..SCOPES.len()).flat_map(rows) {
+        let hay = format!("{} {}", row.0, row.1).to_lowercase();
+        if wanted.iter().any(|w| hay.contains(w.as_str())) {
+            exact.push(row);
+        } else if wanted.iter().any(|w| fuzzy(w, &hay)) {
+            loose.push(row);
+        }
+    }
+    exact.extend(loose);
+    exact.truncate(MAX_ROWS);
+    exact
 }
 
 fn rect(screen: (u16, u16)) -> (i32, i32, i32, i32) {
@@ -99,20 +142,29 @@ pub fn inside(screen: (u16, u16), col: i32, row: i32) -> bool {
     col >= x && col < x + w && row >= y && row < y + h
 }
 
-pub fn draw(grid: &mut Grid, page: usize) {
+pub fn draw(grid: &mut Grid, page: usize, query: &str) {
     let screen = (grid.w as u16, grid.h as u16);
     let r = rect(screen);
     boxed(grid, r, "Shortcuts");
     for (i, start, _) in tabs() {
         let label = format!(" {} ", SCOPES[i]);
-        grid.text(
-            r.0 + start,
-            r.1 + 1,
-            &label,
-            if i == page { REVERSE } else { 0 },
-        );
+        let on = i == page && query.is_empty();
+        grid.text(r.0 + start, r.1 + 1, &label, if on { REVERSE } else { 0 });
     }
-    for (i, (keys, action)) in rows(page).iter().enumerate() {
+    if query.is_empty() {
+        grid.text(r.0 + 2, r.1 + 2, "Type to filter", DIM);
+    } else {
+        grid.text(r.0 + 2, r.1 + 2, &format!("> {query}"), 0);
+    }
+    let shown = if query.is_empty() {
+        rows(page)
+    } else {
+        search(query)
+    };
+    if shown.is_empty() {
+        grid.text(r.0 + 2, r.1 + 3, "No match", DIM);
+    }
+    for (i, (keys, action)) in shown.iter().enumerate() {
         let y = r.1 + 3 + i as i32;
         grid.text(r.0 + 2, y, keys, 0);
         grid.text(r.0 + ACTION_COL, y, action, 0);
