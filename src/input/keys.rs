@@ -65,7 +65,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
     if s.present {
         return match k.code {
             KeyCode::Char('c') if ctrl => KeyOutcome::Quit,
-            KeyCode::F(5) | KeyCode::Esc => {
+            KeyCode::Esc => {
                 s.present = false;
                 KeyOutcome::None
             }
@@ -89,22 +89,13 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             _ => KeyOutcome::None,
         };
     }
-    if k.code == KeyCode::F(5) && s.idle() {
-        s.selection.clear();
-        s.present = true;
-        return KeyOutcome::None;
-    }
     if ctrl {
         match k.code {
             KeyCode::Char('c') => return KeyOutcome::Quit,
-            KeyCode::Char('z') => return notice(s.undo()),
-            KeyCode::Char('y') => return notice(s.redo()),
+            KeyCode::Char('r') => return notice(s.redo()),
             KeyCode::Char('a') => s.select_all(),
             KeyCode::Char('f') => return KeyOutcome::Find,
             KeyCode::Char('p') if s.idle() => return KeyOutcome::Actions,
-            KeyCode::Char('x') => s.cut(),
-            KeyCode::Char('v') => s.paste(),
-            KeyCode::Char('d') => s.duplicate(),
             KeyCode::Char('b') => s.toggle_bold(),
             _ => {}
         }
@@ -172,7 +163,10 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         {
             s.group(c == 'g');
         }
-        KeyCode::Char('c') => s.copy(),
+        KeyCode::Char('y') => s.copy(),
+        KeyCode::Char('x') => s.cut(),
+        KeyCode::Char('p') => s.paste(),
+        KeyCode::Char('u') => return notice(s.undo()),
         KeyCode::Char('z') if matches!(s.gesture, Gesture::Idle) => s.fit(s.canvas.all_bounds()),
         KeyCode::Char(c) if matches!(s.gesture, Gesture::Idle) => {
             if let Some(t) = Tool::ALL.into_iter().find(|t| t.key() == Some(c)) {

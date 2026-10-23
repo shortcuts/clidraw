@@ -123,6 +123,10 @@ fn ctrl(c: char) -> Event {
     Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::CONTROL))
 }
 
+fn plain(c: char) -> Event {
+    Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE))
+}
+
 fn median(mut v: Vec<Duration>) -> Duration {
     v.sort();
     let slack = std::env::var("CLIDRAW_PERF_SLACK")
@@ -494,11 +498,11 @@ fn undo_of_a_large_drag_fits_the_budget_on_5000_elements() {
     let times = (0..FRAMES)
         .map(|_| {
             let t0 = Instant::now();
-            app.on_event(ctrl('z'), now);
+            app.on_event(plain('u'), now);
             frame(&app, &mut term);
             let elapsed = t0.elapsed();
             assert_eq!(app.session.canvas.shape(&target).map(|s| s.x), Some(100));
-            app.on_event(ctrl('y'), now);
+            app.on_event(ctrl('r'), now);
             elapsed
         })
         .collect();
@@ -517,9 +521,9 @@ fn redo_of_a_large_drag_fits_the_budget_on_5000_elements() {
     let target = Id::from("target");
     let times = (0..FRAMES)
         .map(|_| {
-            app.on_event(ctrl('z'), now);
+            app.on_event(plain('u'), now);
             let t0 = Instant::now();
-            app.on_event(ctrl('y'), now);
+            app.on_event(ctrl('r'), now);
             frame(&app, &mut term);
             t0.elapsed()
         })
@@ -798,10 +802,10 @@ fn undo_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration
     (0..FRAMES)
         .map(|_| {
             let t0 = Instant::now();
-            app.on_event(ctrl('z'), now);
+            app.on_event(plain('u'), now);
             frame(app, term);
             let elapsed = t0.elapsed();
-            app.on_event(ctrl('y'), now);
+            app.on_event(ctrl('r'), now);
             elapsed
         })
         .collect()
@@ -812,9 +816,9 @@ fn redo_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration
     move_target_in_100_steps(app, now);
     (0..FRAMES)
         .map(|_| {
-            app.on_event(ctrl('z'), now);
+            app.on_event(plain('u'), now);
             let t0 = Instant::now();
-            app.on_event(ctrl('y'), now);
+            app.on_event(ctrl('r'), now);
             frame(app, term);
             t0.elapsed()
         })

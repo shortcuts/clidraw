@@ -525,13 +525,13 @@ fn undo_and_redo_name_the_action_in_the_status_line() {
     let now = Instant::now();
     let ctrl = |c| Event::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::CONTROL));
     let status = |app: &App| app.status.as_ref().map(|s| s.text.clone());
-    app.on_event(ctrl('z'), now);
+    app.on_event(key(KeyCode::Char('u')), now);
     assert_eq!(status(&app).as_deref(), Some("Undid: add 1 element"));
-    app.on_event(ctrl('y'), now);
+    app.on_event(ctrl('r'), now);
     assert_eq!(status(&app).as_deref(), Some("Redid: add 1 element"));
     run(&mut app, "u");
     assert_eq!(status(&app).as_deref(), Some("Undid: add 1 element"));
-    app.on_event(ctrl('z'), now);
+    app.on_event(key(KeyCode::Char('u')), now);
     assert_eq!(status(&app), None, "nothing to undo");
 }
 
@@ -983,10 +983,7 @@ fn right_click_menu_runs_element_entries() {
     click(&mut app, 24, 8, now);
     assert!(!context_open(&app));
     assert_eq!(app.session.canvas.elements.len(), 2);
-    app.on_event(
-        Event::Key(KeyEvent::new(KeyCode::Char('z'), KeyModifiers::CONTROL)),
-        now,
-    );
+    app.on_event(key(KeyCode::Char('u')), now);
     assert_eq!(app.session.canvas.elements.len(), 1);
 
     right_click(&mut app, 22, 6, now);
@@ -1214,7 +1211,7 @@ fn palette_enter_runs_the_entry() {
     type_str(&mut app, "delete", now);
     app.on_event(key(KeyCode::Enter), now);
     assert!(app.session.canvas.elements.is_empty());
-    ctrl_key(&mut app, 'z', now);
+    app.on_event(key(KeyCode::Char('u')), now);
     assert_eq!(app.session.canvas.elements.len(), 1);
 
     ctrl_key(&mut app, 'p', now);
@@ -1402,10 +1399,7 @@ fn import_adds_selected_shapes_as_one_undo_step() {
         .unwrap()
         .text
         .starts_with("imported 3 shapes, 2 lines"));
-    app.on_event(
-        Event::Key(KeyEvent::new(KeyCode::Char('z'), KeyModifiers::CONTROL)),
-        Instant::now(),
-    );
+    app.on_event(key(KeyCode::Char('u')), Instant::now());
     assert!(app.session.canvas.elements.is_empty());
 }
 

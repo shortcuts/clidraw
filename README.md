@@ -57,11 +57,12 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `]` / `[` | Raise / lower the selection one step |
 | `}` / `{` | Send the selection to the front / back |
 | `Ctrl-b` | Toggle bold on the labels of the selected shapes |
-| `Ctrl-z` / `Ctrl-y` | Undo / redo |
+| `y` / `x` / `p` | Copy / cut / paste the selection |
+| `u` / `Ctrl-r` | Undo / redo |
 | `z` | Fit all: the largest zoom up to 1x that shows the whole diagram |
 | Ctrl + wheel | Zoom 25%, 50%, 100%, 200%, 300% around the cursor; 25% and 50% are read-only, `Esc` returns to 100% |
 | Bottom bar buttons | `[-]` `[+]` zoom, `[Fit]`, `[Undo]`, `[Redo]`, `[Export]` (SVG); shown at 60 columns or more |
-| `F5` | Present: hides the top bar, minimap and status line; wheel scrolls; `F5` or `Esc` returns |
+| Present (palette only) | Hides the top bar, minimap and status line; wheel scrolls; `Esc` returns |
 | `Ctrl-f` | Find a label: type the text, `Enter` selects and centers the match; repeat to cycle (`:/text` does the same) |
 | `Ctrl-c` | Quit |
 | `Ctrl-p` | Open the command palette: type to filter every action, `Enter` runs it |

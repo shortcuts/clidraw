@@ -135,9 +135,9 @@ fn rect_tool_draws_one_undo_step_and_returns_to_select() {
     let sh = shapes(&s);
     assert_eq!((sh[0].x, sh[0].y, sh[0].w, sh[0].h), (20, 5, 11, 6));
     assert_eq!(s.tool, Tool::Select);
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert!(s.canvas.elements.is_empty());
-    ctrl(&mut s, 'y');
+    ctrl(&mut s, 'r');
     assert_eq!(shapes(&s).len(), 1);
 }
 
@@ -146,7 +146,7 @@ fn dragging_a_shape_moves_it_and_undo_restores() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     drag(&mut s, (22, 6), (27, 9));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (25, 8));
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
 }
 
@@ -166,9 +166,9 @@ fn a_long_shape_drag_undoes_and_redoes_in_one_step() {
     }
     mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 222, 6, t);
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (220, 5));
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
-    ctrl(&mut s, 'y');
+    ctrl(&mut s, 'r');
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (220, 5));
 }
 
@@ -187,7 +187,7 @@ fn delete_key_removes_the_selection() {
     click(&mut s, (22, 6), Instant::now());
     key(&mut s, KeyCode::Delete);
     assert!(s.canvas.elements.is_empty());
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(s.canvas.elements.len(), 1);
 }
 
@@ -227,7 +227,7 @@ fn arrow_keys_nudge_the_selection_one_undo_step_per_press() {
     key(&mut s, KeyCode::Left);
     key(&mut s, KeyCode::Up);
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 6));
 }
 
@@ -241,7 +241,7 @@ fn hjkl_nudge_the_selection_like_the_arrows() {
     key(&mut s, KeyCode::Char('h'));
     key(&mut s, KeyCode::Char('k'));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 6));
 }
 
@@ -312,7 +312,7 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
         panic!("no line")
     };
     assert_eq!(l.to, End::Free(44, 12));
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
@@ -898,7 +898,7 @@ fn holding_a_shape_at_the_edge_pans_each_tick_and_undoes_in_one_step() {
     assert_eq!((s.view.ox, shapes(&s)[0].x), (6, x0 + 6));
     mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 79, 6, t0);
     assert_eq!(s.edge_wait(t0), None);
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
 }
 
@@ -1057,7 +1057,7 @@ fn bracket_keys_reorder_the_selection_one_undo_step_per_press() {
     key(&mut s, KeyCode::Char('}'));
     assert_eq!(ids(&s), ["bbbbbbbb", "aaaaaaaa"]);
     key(&mut s, KeyCode::Char('}'));
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(ids(&s), ["aaaaaaaa", "bbbbbbbb"]);
 }
 
@@ -1107,8 +1107,8 @@ fn diagram() -> Session {
 fn copy_paste_adds_offset_copies_in_one_undo_step() {
     let mut s = diagram();
     ctrl(&mut s, 'a');
-    key(&mut s, KeyCode::Char('c'));
-    ctrl(&mut s, 'v');
+    key(&mut s, KeyCode::Char('y'));
+    key(&mut s, KeyCode::Char('p'));
     assert_eq!(s.canvas.elements.len(), 6);
     assert_eq!(s.selection.len(), 3);
     assert_eq!(shapes(&s)[2].x, 7);
@@ -1116,11 +1116,11 @@ fn copy_paste_adds_offset_copies_in_one_undo_step() {
         panic!()
     };
     assert_eq!(l.from, End::Bound(shapes(&s)[2].id.clone(), Anchor::Auto));
-    ctrl(&mut s, 'v');
+    key(&mut s, KeyCode::Char('p'));
     assert_eq!(shapes(&s)[4].x, 9);
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(s.canvas.elements.len(), 6);
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(s.canvas.elements.len(), 3);
 }
 
@@ -1128,12 +1128,12 @@ fn copy_paste_adds_offset_copies_in_one_undo_step() {
 fn cut_removes_and_paste_restores() {
     let mut s = diagram();
     ctrl(&mut s, 'a');
-    ctrl(&mut s, 'x');
+    key(&mut s, KeyCode::Char('x'));
     assert!(s.canvas.elements.is_empty());
-    ctrl(&mut s, 'v');
+    key(&mut s, KeyCode::Char('p'));
     assert_eq!(s.canvas.elements.len(), 3);
-    ctrl(&mut s, 'z');
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(s.canvas.elements.len(), 3);
 }
 
@@ -1141,7 +1141,7 @@ fn cut_removes_and_paste_restores() {
 fn duplicate_leaves_the_buffer_alone() {
     let mut s = with_shape("aaaaaaaa", 5, 5);
     ctrl(&mut s, 'a');
-    ctrl(&mut s, 'd');
+    s.duplicate();
     assert_eq!(shapes(&s).len(), 2);
     assert_eq!(shapes(&s)[1].x, 7);
     assert!(s.clipboard.elements.is_empty());
@@ -1150,16 +1150,50 @@ fn duplicate_leaves_the_buffer_alone() {
 #[test]
 fn clipboard_keys_do_nothing_without_input_or_while_editing() {
     let mut s = with_shape("aaaaaaaa", 5, 5);
-    key(&mut s, KeyCode::Char('c'));
-    ctrl(&mut s, 'v');
-    ctrl(&mut s, 'd');
+    key(&mut s, KeyCode::Char('y'));
+    key(&mut s, KeyCode::Char('p'));
     assert_eq!(s.canvas.elements.len(), 1);
     ctrl(&mut s, 'a');
-    key(&mut s, KeyCode::Char('c'));
+    key(&mut s, KeyCode::Char('y'));
     s.start_edit_new((0, 0));
-    ctrl(&mut s, 'v');
-    ctrl(&mut s, 'd');
+    key(&mut s, KeyCode::Char('p'));
     assert_eq!(s.canvas.elements.len(), 1);
+}
+
+#[test]
+fn removed_keys_do_nothing() {
+    let mut s = with_shape("aaaaaaaa", 5, 5);
+    click(&mut s, (7, 6), Instant::now());
+    for c in ['x', 'v', 'd'] {
+        ctrl(&mut s, c);
+    }
+    key(&mut s, KeyCode::F(5));
+    assert_eq!(s.canvas.elements.len(), 1);
+    assert!(!s.present);
+    key(&mut s, KeyCode::Char('y'));
+    key(&mut s, KeyCode::Char('x'));
+    assert!(s.canvas.elements.is_empty());
+    ctrl(&mut s, 'z');
+    assert!(s.canvas.elements.is_empty());
+    key(&mut s, KeyCode::Char('u'));
+    assert_eq!(s.canvas.elements.len(), 1);
+    ctrl(&mut s, 'y');
+    assert_eq!(s.canvas.elements.len(), 1);
+    ctrl(&mut s, 'r');
+    assert!(s.canvas.elements.is_empty());
+}
+
+#[test]
+fn c_s_e_pick_cylinder_slant_hexagon() {
+    let mut s = session();
+    for (c, t) in [
+        ('c', Tool::Cylinder),
+        ('s', Tool::Parallelogram),
+        ('e', Tool::Hexagon),
+    ] {
+        key(&mut s, KeyCode::Char(c));
+        assert_eq!(s.tool, t);
+    }
 }
 
 #[test]
@@ -1494,27 +1528,21 @@ fn pan_drag_at_triple_zoom_carries_the_remainder() {
 }
 
 #[test]
-fn f5_presents_blocks_edits_and_esc_returns() {
+fn present_blocks_edits_and_esc_returns() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (22, 6), Instant::now());
-    key(&mut s, KeyCode::F(5));
-    assert!(s.present);
-    assert!(s.selection.is_empty());
+    s.present = true;
     key(&mut s, KeyCode::Char('r'));
     click(&mut s, (22, 6), Instant::now());
     assert!(s.selection.is_empty());
     assert_eq!(s.tool, Tool::Select);
     key(&mut s, KeyCode::Esc);
     assert!(!s.present);
-    key(&mut s, KeyCode::F(5));
-    key(&mut s, KeyCode::F(5));
-    assert!(!s.present);
 }
 
 #[test]
 fn wheel_still_scrolls_while_presenting() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    key(&mut s, KeyCode::F(5));
+    s.present = true;
     let before = s.view;
     mouse(&mut s, MouseEventKind::ScrollDown, 5, 5, Instant::now());
     assert_ne!(s.view, before);
@@ -1634,7 +1662,7 @@ fn dragging_a_selected_lines_label_slides_it_along_the_line() {
     };
     drag(&mut s, (14, 5), (20, 5));
     assert_eq!(at(&s), Some(750));
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(at(&s), None);
     s.selection = vec![id.clone()];
     drag(&mut s, (15, 5), (21, 5));
@@ -1719,7 +1747,7 @@ fn capital_g_ungroups_and_one_undo_regroups() {
     click(&mut s, (70, 20), Instant::now());
     click(&mut s, (22, 6), Instant::now());
     assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     click(&mut s, (22, 6), Instant::now() + Duration::from_secs(1));
     assert_eq!(s.selection, ab());
 }
@@ -1728,8 +1756,8 @@ fn capital_g_ungroups_and_one_undo_regroups() {
 fn copy_paste_makes_a_second_group_and_one_undo_removes_it() {
     let mut s = grouped_ab();
     click(&mut s, (22, 6), Instant::now());
-    key(&mut s, KeyCode::Char('c'));
-    ctrl(&mut s, 'v');
+    key(&mut s, KeyCode::Char('y'));
+    key(&mut s, KeyCode::Char('p'));
     assert_eq!(s.canvas.groups.len(), 2);
     assert_eq!(s.canvas.groups[0], ab());
     assert_eq!(s.selection, s.canvas.groups[1]);
@@ -1801,7 +1829,7 @@ fn align_keys_line_up_the_selection() {
 fn distribute_keys_even_the_gaps_and_undo_in_one_step() {
     let mut s = aligned("=", 3);
     assert_eq!(boxes(&s), [(2, 3), (20, 10), (10, 30)]);
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(boxes(&s), [(2, 3), (20, 10), (12, 30)]);
     assert_eq!(boxes(&aligned("#", 3)), [(2, 3), (20, 14), (12, 30)]);
 }
@@ -1855,7 +1883,7 @@ fn shift_arrow_adds_a_linked_shape_in_one_undo_step_and_edits_its_label() {
     assert!(
         matches!(&s.edit, Some(e) if matches!(&e.target, EditTarget::Existing(i) if *i == sh[1].id))
     );
-    ctrl(&mut s, 'z');
+    s.undo();
     assert_eq!(s.canvas.elements.len(), 1);
 }
 
@@ -1959,7 +1987,7 @@ fn frame_border_click_selects_contents_and_drag_moves_all_with_one_undo() {
     drag(&mut s, (30, 5), (33, 5));
     assert_eq!(s.selection.len(), 2);
     assert_eq!(xs(&s), vec![25, 23]);
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(xs(&s), vec![22, 20]);
 }
 
@@ -1978,7 +2006,7 @@ fn delete_removes_frame_and_contents_and_one_undo_restores_both() {
     click(&mut s, (30, 5), Instant::now());
     key(&mut s, KeyCode::Delete);
     assert!(s.canvas.elements.is_empty());
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(s.canvas.elements.len(), 2);
 }
 
@@ -2306,7 +2334,7 @@ fn dragging_a_selected_line_adds_a_bend_and_one_undo_removes_it() {
     s.selection = vec![Id::from("llllllll")];
     drag(&mut s, (15, 5), (15, 8));
     assert_eq!(bends_of(&s), vec![(15, 8)]);
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(bends_of(&s), vec![]);
 }
 
@@ -2325,7 +2353,7 @@ fn dragging_a_bend_handle_moves_that_bend_and_undo_restores_it() {
     s.selection = vec![Id::from("llllllll")];
     drag(&mut s, (15, 8), (18, 10));
     assert_eq!(bends_of(&s), vec![(18, 10)]);
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(bends_of(&s), vec![(15, 8)]);
 }
 
@@ -2338,6 +2366,6 @@ fn reset_route_clears_the_bends_and_undo_restores_them() {
     s.reset_route();
     assert_eq!(bends_of(&s), vec![]);
     assert!(!s.line_has_bends());
-    ctrl(&mut s, 'z');
+    key(&mut s, KeyCode::Char('u'));
     assert_eq!(bends_of(&s), vec![(15, 8)]);
 }

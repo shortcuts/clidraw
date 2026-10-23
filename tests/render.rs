@@ -339,7 +339,7 @@ fn help_pages_list_their_scope() {
     for (page, wants) in [
         (
             0,
-            vec!["Shortcuts", "Canvas", "Delete, Backspace", "Ctrl-z, Ctrl-y"],
+            vec!["Shortcuts", "Canvas", "Delete, Backspace", "u, Ctrl-r"],
         ),
         (1, vec!["Commit the label"]),
         (2, vec!["Tools", "Diamond", "Hexagon"]),
@@ -1056,7 +1056,7 @@ fn actions_palette_draws_query_rows_and_selection() {
     let rows: Vec<String> = (0..24).map(|y| row(&b, y)).collect();
     assert!(rows.iter().any(|r| r.contains("> _")));
     let undo = rows.iter().position(|r| r.contains("Undo")).unwrap();
-    assert!(rows[undo].contains("Ctrl-z │"));
+    assert!(rows[undo].contains("u │"));
     assert!(b[(30, undo as u16)].modifier.contains(Modifier::REVERSED));
     let mut a = clidraw::ui::actions::Actions::new(&s);
     a.push('q');

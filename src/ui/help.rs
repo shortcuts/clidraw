@@ -14,11 +14,11 @@ const CANVAS: [(&str, &str); 18] = [
     ("< | > ^ - _", "Align the selection"),
     ("= #", "Distribute evenly, H or V"),
     ("g, G", "Group, ungroup the selection"),
-    ("c, Ctrl-x", "Copy, cut the selection"),
-    ("Ctrl-v", "Paste, offset from the last"),
-    ("Ctrl-d, Ctrl-b", "Duplicate, bold labels"),
-    ("Ctrl-z, Ctrl-y", "Undo, redo"),
-    ("z, F5", "Fit all, present (Esc returns)"),
+    ("y, x", "Copy, cut the selection"),
+    ("p", "Paste, offset from the last"),
+    ("Ctrl-b", "Bold labels"),
+    ("u, Ctrl-r", "Undo, redo"),
+    ("z", "Fit all"),
     ("Ctrl+wheel", "Zoom, 25% to 300%"),
     ("Ctrl-c", "Quit"),
     ("?, Ctrl-p", "Help, command palette"),
@@ -44,12 +44,11 @@ const PROJECT: [(&str, &str); 2] = [
 ];
 
 /// Query word and the word the help text uses instead; matched both ways.
-pub const SYNONYMS: [(&str, &str); 10] = [
+pub const SYNONYMS: [(&str, &str); 9] = [
     ("remove", "delete"),
     ("erase", "delete"),
     ("exit", "quit"),
     ("close", "quit"),
-    ("clone", "duplicate"),
     ("front", "raise"),
     ("back", "lower"),
     ("redo", "undo"),

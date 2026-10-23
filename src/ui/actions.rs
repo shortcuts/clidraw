@@ -44,16 +44,12 @@ impl Action {
 }
 
 const TABLE: [(Action, &str, &str); 39] = [
-    (Action::Ex("u"), "Undo", "Ctrl-z"),
-    (Action::Ex("redo"), "Redo", "Ctrl-y"),
-    (Action::Copy, "Copy", "c"),
-    (Action::Cut, "Cut", "Ctrl-x"),
-    (Action::Context(ContextItem::Paste), "Paste", "Ctrl-v"),
-    (
-        Action::Context(ContextItem::Duplicate),
-        "Duplicate",
-        "Ctrl-d",
-    ),
+    (Action::Ex("u"), "Undo", "u"),
+    (Action::Ex("redo"), "Redo", "Ctrl-r"),
+    (Action::Copy, "Copy", "y"),
+    (Action::Cut, "Cut", "x"),
+    (Action::Context(ContextItem::Paste), "Paste", "p"),
+    (Action::Context(ContextItem::Duplicate), "Duplicate", ""),
     (Action::Context(ContextItem::Delete), "Delete", "Del"),
     (Action::Context(ContextItem::EditLabel), "Edit label", ""),
     (
@@ -87,7 +83,7 @@ const TABLE: [(Action, &str, &str); 39] = [
     (Action::Menu(MenuItem::FitAll), "Fit all", ""),
     (Action::ZoomIn, "Zoom in", "Ctrl+wheel"),
     (Action::ZoomOut, "Zoom out", "Ctrl+wheel"),
-    (Action::Present, "Present", "F5"),
+    (Action::Present, "Present", ""),
     (Action::Find, "Find", "Ctrl-f"),
     (Action::Menu(MenuItem::Canvases), "Canvases", ""),
     (Action::Menu(MenuItem::ExportSvg), "Export SVG", ""),

@@ -82,7 +82,7 @@ fn hints(s: &Session, overlay: &Overlay) -> Hints {
         Overlay::None if !s.selection.is_empty() => &[
             ("Del", "delete"),
             ("Shift+arrows", "connect"),
-            ("Ctrl-d", "dup"),
+            ("y", "copy"),
             ("g", "group"),
         ],
         Overlay::None => &[
