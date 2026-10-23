@@ -82,12 +82,7 @@ fn hints(s: &Session, overlay: &Overlay) -> Hints {
             ("y", "copy"),
             ("g", "group"),
         ],
-        Overlay::None => &[
-            ("?", "help"),
-            (":", "command"),
-            ("Ctrl-f", "find"),
-            ("z", "fit"),
-        ],
+        Overlay::None => &[("?", "help"), (":", "command"), ("/", "find"), ("z", "fit")],
         Overlay::Actions(_) => &[("Enter", "run"), ("Up/Down", "select"), ("Esc", "close")],
         _ => &[("Esc", "close")],
     }

@@ -84,7 +84,7 @@ const TABLE: [(Action, &str, &str); 39] = [
     (Action::ZoomIn, "Zoom in", "Ctrl+wheel"),
     (Action::ZoomOut, "Zoom out", "Ctrl+wheel"),
     (Action::Present, "Present", ""),
-    (Action::Find, "Find", "Ctrl-f"),
+    (Action::Find, "Find", "/"),
     (Action::Menu(MenuItem::Canvases), "Canvases", ""),
     (Action::Menu(MenuItem::ExportSvg), "Export SVG", ""),
     (Action::Menu(MenuItem::ExportMermaid), "Export Mermaid", ""),

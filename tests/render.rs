@@ -906,10 +906,7 @@ fn two_shapes() -> Session {
 fn info_bar_idle_shows_hints_left_and_tool_with_save_state_right() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let r = bar(&s, 80, true);
-    assert!(
-        r.contains("[Export]  ? help  : command  Ctrl-f find"),
-        "{r}"
-    );
+    assert!(r.contains("[Export]  ? help  : command  / find"), "{r}");
     assert!(r.ends_with("saved"), "{r}");
     assert!(bar(&s, 120, false).ends_with("Select  unsaved"));
 }

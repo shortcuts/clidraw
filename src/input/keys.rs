@@ -94,7 +94,6 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             KeyCode::Char('c') => return KeyOutcome::Quit,
             KeyCode::Char('r') => return notice(s.redo()),
             KeyCode::Char('a') => s.select_all(),
-            KeyCode::Char('f') => return KeyOutcome::Find,
             KeyCode::Char('p') if s.idle() => return KeyOutcome::Actions,
             KeyCode::Char('b') => s.toggle_bold(),
             _ => {}
@@ -132,6 +131,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         KeyCode::Esc => {}
         KeyCode::Char('?') => return KeyOutcome::Help,
         KeyCode::Char(':') => return KeyOutcome::Command,
+        KeyCode::Char('/') => return KeyOutcome::Find,
         KeyCode::Char(c @ (']' | '[' | '}' | '{'))
             if matches!(s.gesture, Gesture::Idle) && !s.selection.is_empty() =>
         {

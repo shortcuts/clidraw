@@ -876,6 +876,24 @@ fn colon_opens_the_command_line_but_types_into_a_label_edit() {
     assert_eq!(s.edit.as_ref().unwrap().buf, ":");
 }
 
+#[test]
+fn slash_opens_find_but_types_into_a_label_edit_and_ctrl_f_is_unbound() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    assert_eq!(
+        handle_key(
+            &mut s,
+            KeyEvent::new(KeyCode::Char('f'), KeyModifiers::CONTROL)
+        ),
+        KeyOutcome::None
+    );
+    assert_eq!(key(&mut s, KeyCode::Char('/')), KeyOutcome::Find);
+    let t = Instant::now();
+    click(&mut s, (22, 6), t);
+    click(&mut s, (22, 6), t + Duration::from_millis(100));
+    assert_eq!(key(&mut s, KeyCode::Char('/')), KeyOutcome::None);
+    assert_eq!(s.edit.as_ref().unwrap().buf, "/");
+}
+
 fn hold(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
     let t = Instant::now();
     mouse(
