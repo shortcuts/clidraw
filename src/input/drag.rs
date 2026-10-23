@@ -399,7 +399,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             run(s, inv, cmd);
         }
         Action::CreateLine(id) => {
-            let end = End::Free(world.0, world.1);
+            let end = bound_at(&s.canvas, world).unwrap_or(End::Free(world.0, world.1));
             let cmd = Command::SetEnd {
                 id: id.clone(),
                 side: Side::To,
@@ -704,6 +704,21 @@ mod tests {
             panic!("unexpected inverse: {:?}", inv(&s));
         };
         assert_eq!(*end, End::Free(100, 30));
+    }
+
+    #[test]
+    fn line_draw_binds_the_end_over_a_shape_while_dragging() {
+        let mut s = with_shape();
+        s.tool = Tool::Arrow;
+        press_and_drag(&mut s, (100, 30), |_| (32, 16));
+        let Some(Element::Line(l)) = s.canvas.elements.last() else {
+            panic!("no line");
+        };
+        assert!(
+            matches!(&l.to, End::Bound(id, _) if *id == Id::from("aaaaaaaa")),
+            "{:?}",
+            l.to
+        );
     }
 
     fn with_neighbour() -> Session {

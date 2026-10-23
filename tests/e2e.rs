@@ -34,10 +34,10 @@ fn assert_detours_and_points_at_b(t: &Term) {
             );
         }
     }
-    assert_eq!(t.screen().matches('▶').count(), 1, "{}", t.screen());
-    assert_eq!(cell(t, 59, 10), '▶', "{}", t.screen());
-    assert_eq!(cell(t, 58, 10), '─', "{}", t.screen());
-    assert_eq!(cell(t, 57, 10), '─', "{}", t.screen());
+    assert_eq!(t.screen().matches(['▶', '◆']).count(), 1, "{}", t.screen());
+    assert!(matches!(cell(t, 59, 11), '▶' | '◆'), "{}", t.screen());
+    assert_eq!(cell(t, 58, 11), '─', "{}", t.screen());
+    assert_eq!(cell(t, 57, 11), '─', "{}", t.screen());
 }
 
 #[test]
@@ -148,10 +148,10 @@ fn arrow_drag_between_shapes_detours_mid_drag_and_on_release() {
     draw_scene(&mut t);
     t.key("a");
     t.press(22, 10);
-    t.move_to(59, 10);
+    t.move_to(60, 10);
     assert_detours_and_points_at_b(&t);
-    let held = t.canvas();
-    t.release(59, 10);
+    let held = t.canvas().replace('◆', "▶");
+    t.release(60, 10);
     assert_detours_and_points_at_b(&t);
     assert_eq!(t.canvas(), held);
 }
@@ -162,7 +162,7 @@ fn released_arrow_keeps_its_detour_after_a_click_elsewhere() {
     let mut t = Term::spawn(tmp.path(), &["scratch"]);
     draw_scene(&mut t);
     t.key("a");
-    t.drag((22, 10), (59, 10));
+    t.drag((22, 10), (60, 10));
     t.click(90, 28);
     assert_detours_and_points_at_b(&t);
 }
