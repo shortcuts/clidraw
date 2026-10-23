@@ -6,9 +6,15 @@ clidraw is a Rust terminal diagram editor which allows exporting to SVG or Merma
 
 The tool must be minimal, fast, effective and work on any OS.
 
-clidraw is in alpha. Do not keep backward compatibility with older saved files. Do not record a save-format break in the backlog, and do not add migrations. Making the app work comes first.
+## Breaking changes
 
-Non-rectangular shapes keep their size on load and import, even when it breaks their aspect ratio. The ratio applies only on create, resize, label growth and kind change.
+clidraw is in alpha. Do not consider backward compatibility, deadcode, record a save-format break in the backlog, and do not add migrations. Making the app work comes first.
+
+## Documentation
+
+The code is the source of truth, the markdown files serves a specific purpose:
+- README.md: for the users of the tool, must be straight to the point and reviewed with the `documentation` and `unslop` skill
+- CONTRIBUTING.md: for contributors and agents, must contain every implementation constraints with concrete example of good and bad implementations
 
 ## Tests
 
