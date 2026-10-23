@@ -243,7 +243,6 @@ impl App {
             ui::Button::Undo | ui::Button::Redo if !self.session.can_edit() => return,
             ui::Button::Undo => Action::Ex("u"),
             ui::Button::Redo => Action::Ex("redo"),
-            ui::Button::Export => Action::Menu(MenuItem::ExportSvg),
         };
         self.run_action(action);
     }

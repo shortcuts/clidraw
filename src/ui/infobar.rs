@@ -13,16 +13,14 @@ pub enum Button {
     Fit,
     Undo,
     Redo,
-    Export,
 }
 
-const BUTTONS: [(Button, &str); 6] = [
+const BUTTONS: [(Button, &str); 5] = [
     (Button::ZoomOut, "[-]"),
     (Button::ZoomIn, "[+]"),
     (Button::Fit, "[Fit]"),
     (Button::Undo, "[Undo]"),
     (Button::Redo, "[Redo]"),
-    (Button::Export, "[Export]"),
 ];
 
 /// Below this width the hints and the right side get the whole bar.

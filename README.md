@@ -61,7 +61,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `u` / `Ctrl-r` | Undo / redo |
 | `z` | Fit all: the largest zoom up to 1x that shows the whole diagram |
 | Ctrl + wheel | Zoom 25%, 50%, 100%, 200%, 300% around the cursor; 25% and 50% are read-only, `Esc` returns to 100% |
-| Bottom bar buttons | `[-]` `[+]` zoom, `[Fit]`, `[Undo]`, `[Redo]`, `[Export]` (SVG); shown at 60 columns or more |
+| Bottom bar buttons | `[-]` `[+]` zoom, `[Fit]`, `[Undo]`, `[Redo]`; shown at 60 columns or more |
 | Present (palette only) | Hides the top bar, minimap and status line; wheel scrolls; `Esc` returns |
 | `/` | Find a label: type the text, `Enter` selects and centers the match; repeat to cycle (`:/text` does the same) |
 | `Ctrl-c` | Quit |

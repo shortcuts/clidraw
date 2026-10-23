@@ -1693,7 +1693,7 @@ fn info_bar_starts_with_buttons_on_wide_screens_only() {
     let t = tempfile::tempdir().unwrap();
     let app = app_in(t.path());
     assert!(
-        last_row(&app).starts_with("[-] [+] [Fit] [Undo] [Redo] [Export]"),
+        last_row(&app).starts_with("[-] [+] [Fit] [Undo] [Redo]"),
         "{}",
         last_row(&app)
     );
@@ -1739,17 +1739,6 @@ fn undo_button_is_inactive_while_zoomed_out() {
     click(&mut app, 1, 23, now);
     click(&mut app, 16, 23, now);
     assert_eq!(shape_count(&app), 1);
-}
-
-#[test]
-fn export_button_opens_the_svg_scope_menu() {
-    let t = tempfile::tempdir().unwrap();
-    let mut app = app_in(t.path());
-    click(&mut app, 30, 23, Instant::now());
-    assert!(matches!(
-        app.overlay,
-        clidraw::ui::Overlay::Scope(clidraw::ui::scope::ExportFormat::Svg)
-    ));
 }
 
 #[test]
