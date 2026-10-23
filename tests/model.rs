@@ -962,6 +962,32 @@ fn other_lines_only_break_ties_between_clean_paths() {
 }
 
 #[test]
+fn an_arrow_does_not_share_a_segment_with_another_arrow() {
+    let other = elbow("other000", End::Free(8, 5), End::Free(14, 5));
+    let (c, l) = ab(vec![Element::Line(other.clone())]);
+    let cells = c.route(&l);
+    let theirs = c.route(&other);
+    assert_eq!((cells[0], cells[cells.len() - 1]), ((3, 5), (19, 5)));
+    walks(&cells);
+    assert!(!cells
+        .windows(2)
+        .any(|w| theirs.contains(&w[0]) && theirs.contains(&w[1])));
+}
+
+#[test]
+fn a_crossing_keeps_the_plain_route() {
+    let other = elbow("other000", End::Free(10, 0), End::Free(10, 12));
+    let (c, l) = ab(vec![Element::Line(other)]);
+    let plain = route(
+        (3, 5),
+        Some(Axis::Horizontal),
+        (19, 5),
+        Some(Axis::Horizontal),
+    );
+    assert_eq!(c.route(&l), plain);
+}
+
+#[test]
 fn the_route_follows_a_moved_obstacle_live() {
     let (mut c, l) = ab(vec![rect("oooooooo", ShapeKind::Rect, O)]);
     let plain = route(

@@ -1,7 +1,7 @@
 use super::geom::Axis;
 use super::{Canvas, Element, End, Find, Line, ShapeKind};
 use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 type Pt = (i32, i32);
 type Rect = (i32, i32, i32, i32);
@@ -102,8 +102,45 @@ impl Router {
             .collect()
     }
 
-    /// `plain` when no cell of it lies in an obstacle, else the cheapest path in the box of the
-    /// end cells plus `MARGIN`. Obstacles are the other shapes, texts and frames, minus the two
+    fn shares_segment<'a>(
+        &self,
+        canvas: &'a Canvas,
+        find: &Find<'a>,
+        own: &Line,
+        plain: &[Pt],
+    ) -> bool {
+        let xs = plain.iter().map(|p| p.0);
+        let ys = plain.iter().map(|p| p.1);
+        let (x0, y0) = (xs.clone().min().unwrap_or(0), ys.clone().min().unwrap_or(0));
+        let (x1, y1) = (xs.max().unwrap_or(0), ys.max().unwrap_or(0));
+        let near = self.near(&self.lines, (x0, y0, x1 - x0 + 1, y1 - y0 + 1));
+        let line = |i: &Item| match &canvas.elements[i.at] {
+            Element::Line(l) => Some(l),
+            _ => None,
+        };
+        let me = near
+            .iter()
+            .find(|i| line(i).is_some_and(|l| l.id == own.id))
+            .map_or(usize::MAX, |i| i.at);
+        // Only the later line detours: if both did, each would dodge the other's plain route and still overlap.
+        near.into_iter()
+            .filter(|i| i.at < me)
+            .filter(|i| {
+                plain
+                    .windows(2)
+                    .any(|w| has(i.rect, w[0]) && has(i.rect, w[1]))
+            })
+            .filter_map(|i| line(i).map(|l| canvas.plain_with(l, find)))
+            .any(|theirs| {
+                let theirs: HashSet<Pt> = theirs.into_iter().collect();
+                plain
+                    .windows(2)
+                    .any(|w| theirs.contains(&w[0]) && theirs.contains(&w[1]))
+            })
+    }
+
+    /// `plain` when no cell of it lies in an obstacle and it shares no segment with an earlier
+    /// line, else the cheapest path in the box of the end cells plus `MARGIN`. Obstacles are the other shapes, texts and frames, minus the two
     /// end shapes (a bent line keeps them as obstacles) and the frames holding an end.
     // shortcut: other lines count by their plain route, a long line or a wide obstacle is not avoided
     pub fn around<'a>(
@@ -144,7 +181,7 @@ impl Router {
                 has(i.rect, p) && !skip(i)
             })
         };
-        if !plain.iter().any(|&p| blocked(p)) {
+        if !plain.iter().any(|&p| blocked(p)) && !self.shares_segment(canvas, find, own, &plain) {
             return plain;
         }
         if a == b {
