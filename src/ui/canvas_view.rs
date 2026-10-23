@@ -73,6 +73,9 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     }
     edit_label(grid, s);
     for (h, id, (x, y)) in handles(&s.canvas, &s.selection) {
+        if !matches!(h, Handle::Corner(_)) {
+            continue;
+        }
         let ((sx, sy), (ex, ey)) = (view.to_screen(x, y), view.cell_end(x, y));
         let (sx, sy) = match h {
             Handle::Corner(Corner::Ne) => (ex, sy),

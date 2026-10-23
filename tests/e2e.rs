@@ -114,15 +114,14 @@ fn drag_a_line_to_bend_it_and_reset_the_route() {
     t.drag((50, 18), (62, 23));
     t.key("a");
     t.drag((22, 10), (55, 20));
-    let handles = |t: &Term| t.screen().matches('■').count();
-    assert_eq!(handles(&t), 2, "{}", t.screen());
+    let straight = t.canvas();
     let (col, row) = t.find("╮");
     t.drag((col, row + 2), (col + 8, row + 2));
-    assert_eq!(handles(&t), 3, "{}", t.screen());
+    assert_ne!(t.canvas(), straight);
     t.right_click(col + 8, row + 2);
     t.wait_for("Reset route");
     let (c, r) = t.find("Reset route");
     t.click(c, r);
     t.quiet();
-    assert_eq!(handles(&t), 2, "{}", t.screen());
+    assert_eq!(t.canvas().trim_end(), straight.trim_end());
 }

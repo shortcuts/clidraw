@@ -242,6 +242,29 @@ fn arrow_between_shapes_ends_in_a_head() {
 }
 
 #[test]
+fn selected_arrow_keeps_its_head_visible() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 12, ""));
+    c.elements.push(shape("bbbbbbbb", 40, ""));
+    c.elements.push(Element::Line(Line {
+        id: Id::from("cccccccc"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        routing: Default::default(),
+        bends: vec![],
+        color: None,
+    }));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.selection.push(Id::from("cccccccc"));
+    let line = row(&draw(&s, &Overlay::None), 5);
+    assert!(line.contains('▶') && !line.contains('■'), "{line}");
+}
+
+#[test]
 fn menu_lists_its_entries() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Menu);
