@@ -57,7 +57,7 @@ fn right_click_menu_items() {
     let one = bars(&t);
     t.right_click(16, 10);
     t.wait_for("Duplicate");
-    for item in ["Delete", "Bring to front", "Send to back"] {
+    for item in ["Delete", "Bring to front", "Raise", "Lower", "Send to back"] {
         assert!(t.screen().contains(item), "{item}\n{}", t.screen());
     }
     let (col, row) = t.find("Duplicate");

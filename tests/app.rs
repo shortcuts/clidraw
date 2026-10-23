@@ -906,17 +906,19 @@ fn palette_tooltip_names_the_tool_and_key_after_a_rest() {
 }
 
 #[test]
-fn palette_tooltip_names_an_order_cell_and_its_key_after_a_rest() {
+fn palette_tooltip_names_a_keyed_cell_and_its_key_after_a_rest() {
+    use clidraw::model::Align;
     use clidraw::ui::palette::{hit, Choice, PaletteHit};
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
+    app.session.exec(shape_at("bbbbbbbb", 40, 8));
     app.session.exec(shape_at("aaaaaaaa", 20, 8));
-    app.session.selection = vec![Id::from("aaaaaaaa")];
+    app.session.selection = vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")];
     let (c, r) = (0..80u16)
         .flat_map(|c| (0..24u16).map(move |r| (c, r)))
         .find(|&(c, r)| {
             hit(&app.session, c.into(), r.into())
-                == Some(PaletteHit::Option(Choice::Order(clidraw::model::Z::Front)))
+                == Some(PaletteHit::Option(Choice::Place(Align::Left)))
         })
         .unwrap();
     let area = Rect::new(0, 0, 80, 24);
@@ -926,7 +928,25 @@ fn palette_tooltip_names_an_order_cell_and_its_key_after_a_rest() {
     let mut buf = Buffer::empty(area);
     app.render(&mut buf, area);
     let row: String = (0..80u16).map(|x| buf[(x, r + 1)].symbol()).collect();
-    assert!(row.contains(" front  } "), "{row}");
+    assert!(row.contains(" align-l  < "), "{row}");
+}
+
+#[test]
+fn top_bar_has_no_stacking_order_cells() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    app.session.exec(shape_at("aaaaaaaa", 20, 8));
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    let area = Rect::new(0, 0, 80, 24);
+    let mut buf = Buffer::empty(area);
+    app.render(&mut buf, area);
+    let text: String = (0..24u16)
+        .flat_map(|r| (0..80u16).map(move |c| (c, r)))
+        .map(|p| buf[p].symbol())
+        .collect();
+    for word in ["raise", "lower", "front", "back"] {
+        assert!(!text.contains(word), "{word}\n{text}");
+    }
 }
 
 fn shape_at(id: &str, x: i32, y: i32) -> Command {
@@ -1006,6 +1026,26 @@ fn right_click_menu_brings_a_shape_to_front() {
 }
 
 #[test]
+fn right_click_menu_raises_and_lowers_a_shape() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("bbbbbbbb", 40, 5));
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    assert_eq!(shape_ids(&app), ["aaaaaaaa", "bbbbbbbb"]);
+    right_click(&mut app, 22, 6, now);
+    let clidraw::ui::Overlay::Context(menu) = &app.overlay else {
+        panic!("no context menu");
+    };
+    assert!(menu.labels().contains(&"Raise") && menu.labels().contains(&"Lower"));
+    click(&mut app, 24, 11, now);
+    assert_eq!(shape_ids(&app), ["bbbbbbbb", "aaaaaaaa"]);
+    right_click(&mut app, 22, 6, now);
+    click(&mut app, 24, 12, now);
+    assert_eq!(shape_ids(&app), ["aaaaaaaa", "bbbbbbbb"]);
+}
+
+#[test]
 fn right_click_menu_switches_a_line_routing() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
@@ -1030,7 +1070,7 @@ fn right_click_menu_switches_a_line_routing() {
         panic!("no menu")
     };
     assert_eq!(c.labels().last(), Some(&"Straight line"));
-    click(&mut app, 32, 5 + 1 + 5, now);
+    click(&mut app, 32, 5 + 1 + 7, now);
     let Some(Element::Line(l)) = app.session.canvas.get(&Id::from("lllllll1")) else {
         panic!("no line")
     };
@@ -1589,7 +1629,7 @@ fn right_click_menu_resets_the_route_of_a_bent_line() {
         panic!("no menu")
     };
     assert_eq!(c.labels().last(), Some(&"Reset route"));
-    click(&mut app, 32, 9 + 1 + 6, now);
+    click(&mut app, 32, 9 + 1 + 8, now);
     let Some(Element::Line(l)) = app.session.canvas.get(&Id::from("lllllll1")) else {
         panic!("no line")
     };

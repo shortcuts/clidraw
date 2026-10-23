@@ -40,12 +40,12 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Group elements to select and move them as one.
 - Click a shape tool while a shape is selected to change its kind.
 - Select a line to show its options in the top bar. Pick a head: none, end, start or both.
-- Select elements to get order, align, group and ungroup cells in the top bar. Each shows its key.
+- Select elements to get align, group and ungroup cells in the top bar. Each shows its key.
 - Select a shape and click the align cell in the top bar to cycle its label: left, middle, right.
 - Wheel and horizontal scroll pan the canvas. A fast flick pans further. Shift+wheel pans sideways.
 - Dragging within 2 cells of the screen edge pans the view.
 - A map shows in a corner while content lies off screen. The outlined rectangle marks the view. Click the map to center the view there.
-- Right-click an element or empty canvas for a menu: edit label, duplicate, delete, bring to front and send to back, or paste, select all and fit all.
+- Right-click an element or empty canvas for a menu: edit label, duplicate, delete, bring to front, raise, lower and send to back, or paste, select all and fit all.
 
 | Key | Action |
 |---|---|

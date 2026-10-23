@@ -59,6 +59,8 @@ pub enum ContextItem {
     Duplicate,
     Delete,
     Front,
+    Forward,
+    Backward,
     Back,
     Routing(Routing),
     ResetRoute,
@@ -88,6 +90,8 @@ impl Context {
             (ContextItem::Duplicate, "Duplicate"),
             (ContextItem::Delete, "Delete"),
             (ContextItem::Front, "Bring to front"),
+            (ContextItem::Forward, "Raise"),
+            (ContextItem::Backward, "Lower"),
             (ContextItem::Back, "Send to back"),
         ]);
         let other = line.map(|r| match r {

@@ -4,7 +4,7 @@ use clidraw::input::{
 };
 use clidraw::model::{
     Align, Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Routing, Shape,
-    ShapeKind, Stroke, TextAlign, Z,
+    ShapeKind, Stroke, TextAlign,
 };
 use clidraw::ui::palette::{self, Choice, PaletteHit};
 use clidraw::view::{View, Zoom};
@@ -2139,24 +2139,6 @@ fn two_selected() -> Session {
     s
 }
 
-fn order(s: &Session) -> Vec<String> {
-    s.canvas
-        .elements
-        .iter()
-        .map(|e| e.id().to_string())
-        .collect()
-}
-
-#[test]
-fn bar_raise_cell_reorders_and_undo_restores() {
-    let mut s = two_selected();
-    s.selection = vec![Id::from("aaaaaaaa")];
-    click_choice(&mut s, Choice::Order(Z::Forward));
-    assert_eq!(order(&s), ["bbbbbbbb", "aaaaaaaa"]);
-    s.undo();
-    assert_eq!(order(&s), ["aaaaaaaa", "bbbbbbbb"]);
-}
-
 #[test]
 fn bar_group_cell_groups_then_ungroup_cell_appears_and_clears_it() {
     let mut s = two_selected();
@@ -2182,7 +2164,6 @@ fn bar_hides_place_and_group_with_one_selected_and_all_with_none() {
     let mut s = two_selected();
     s.selection = vec![Id::from("aaaaaaaa")];
     let has = |s: &Session, c| option_cells(s).iter().any(|k| k.0 == PaletteHit::Option(c));
-    assert!(has(&s, Choice::Order(Z::Front)));
     assert!(!has(&s, Choice::Group));
     assert!(!has(&s, Choice::Place(Align::Left)));
     s.selection.clear();

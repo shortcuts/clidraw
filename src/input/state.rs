@@ -450,7 +450,6 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
                 .collect();
             s.exec(Command::Batch(cmds));
         }
-        PaletteHit::Option(Choice::Order(z)) => s.reorder(z),
         PaletteHit::Option(Choice::Place(a)) => s.align(a),
         PaletteHit::Option(Choice::Group) => s.group(true),
         PaletteHit::Option(Choice::Ungroup) => s.group(false),

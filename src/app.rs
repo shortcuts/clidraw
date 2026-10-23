@@ -366,6 +366,8 @@ impl App {
             ContextItem::Duplicate => s.duplicate(),
             ContextItem::Delete => s.delete_selection(),
             ContextItem::Front => s.reorder(Z::Front),
+            ContextItem::Forward => s.reorder(Z::Forward),
+            ContextItem::Backward => s.reorder(Z::Backward),
             ContextItem::Back => s.reorder(Z::Back),
             ContextItem::Routing(r) => s.set_routing(r),
             ContextItem::ResetRoute => s.reset_route(),

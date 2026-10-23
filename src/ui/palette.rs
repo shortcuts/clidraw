@@ -1,6 +1,6 @@
 use super::grid::{Grid, DIM, REVERSE, UNDERLINE};
 use crate::input::{Session, Tool};
-use crate::model::{Align, Border, Element, Id, LineKind, Paint, Routing, Stroke, TextAlign, Z};
+use crate::model::{Align, Border, Element, Id, LineKind, Paint, Routing, Stroke, TextAlign};
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -19,7 +19,6 @@ pub enum Choice {
     Align(TextAlign),
     Ink,
     Fill,
-    Order(Z),
     Place(Align),
     Group,
     Ungroup,
@@ -46,10 +45,6 @@ impl Choice {
             Choice::Head(LineKind::Arrow) => "-> end",
             Choice::Head(LineKind::ArrowStart) => "<- start",
             Choice::Head(LineKind::ArrowBoth) => "<-> both",
-            Choice::Order(Z::Back) => "{ back",
-            Choice::Order(Z::Backward) => "[ lower",
-            Choice::Order(Z::Forward) => "] raise",
-            Choice::Order(Z::Front) => "} front",
             Choice::Place(Align::Left) => "< align-l",
             Choice::Place(Align::Center) => "| align-c",
             Choice::Place(Align::Right) => "> align-r",
@@ -66,7 +61,7 @@ impl Choice {
     /// Word and key of a one-shot action; the other choices have no key.
     fn hint(self) -> Option<(&'static str, &'static str)> {
         match self {
-            Choice::Order(_) | Choice::Place(_) | Choice::Group | Choice::Ungroup => {
+            Choice::Place(_) | Choice::Group | Choice::Ungroup => {
                 self.label().split_once(' ').map(|(key, word)| (word, key))
             }
             _ => None,
@@ -125,7 +120,6 @@ pub fn choices(els: &[&Element], groups: &[Vec<Id>]) -> Vec<Choice> {
     if has(|e| matches!(e, Element::Shape(_))) {
         out.push(Choice::Fill);
     }
-    out.extend([Z::Back, Z::Backward, Z::Forward, Z::Front].map(Choice::Order));
     if els.len() > 1 {
         out.extend(
             [
@@ -193,7 +187,7 @@ fn active(els: &[&Element], c: Choice) -> bool {
             })
             .all(|k| k == r),
         Choice::Ink | Choice::Fill => els.filter_map(|e| paint(e, c)).any(|p| p.is_some()),
-        Choice::Order(_) | Choice::Place(_) | Choice::Group | Choice::Ungroup => false,
+        Choice::Place(_) | Choice::Group | Choice::Ungroup => false,
     }
 }
 
