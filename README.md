@@ -143,30 +143,11 @@ The release binary (`make release`) is 2,615,488 bytes (2.6 MB) on macOS x86_64,
 
 The loop wakes every 16 ms only while a Fit all or search glide runs.
 
-`make perf` checks the frame and drag-step budgets, including frames at 25% and 300% zoom. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet. CI runs `make check` with `CLIDRAW_PERF_SLACK=4`, which divides each measured median by 4; local runs leave it unset.
-
-### Terminal frame times
-
-`bench` times each event from input to the flushed frame, in your real terminal. It measures the write into the terminal, not the terminal's own rendering. It uses the current terminal size, at least 40x16, and does not touch your canvases. Times are in ms.
-
-| Terminal | drag median | drag p99 | drag worst | pan median | pan p99 | pan worst | B/frame |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| kitty | not run yet | | | | | | |
-| Alacritty | not run yet | | | | | | |
-| Ghostty | not run yet | | | | | | |
-| Rex | not run yet | | | | | | |
-
-### Profile
-
-Install the profiler once. It is a dev tool, not a project dependency: `cargo install samply`.
-
-Run `make profile`. It builds the perf test with debug symbols in release, then records the drag scenario (`busy_app`, 5000 elements) with samply. samply opens the Firefox Profiler view in a browser. Use that view as the flamegraph.
-
-The samply step is not verified yet: the cargo build runs, but `make profile` was not run to completion.
+Contributors run `make perf` to check them: see [CONTRIBUTING.md](CONTRIBUTING.md#performance).
 
 ## Contributing
 
-Read [AGENTS.md](AGENTS.md) for the constraints and test rules. Run `make check` before you open a pull request.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request.
 
 ## Files
 
