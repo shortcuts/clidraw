@@ -468,6 +468,7 @@ pub(super) fn up(s: &mut Session, world: P) {
                     s.tool = Tool::Select;
                 }
                 Action::Create { .. } => s.tool = Tool::Select,
+                Action::BendDrag { id, .. } => drop_spikes(s, &mut inv, id),
                 _ => {}
             }
             if !inv.is_empty() {
@@ -476,6 +477,26 @@ pub(super) fn up(s: &mut Session, world: P) {
             }
         }
         Gesture::Idle => {}
+    }
+}
+
+/// A bend whose route cell sits between two equal cells makes the line double back on itself.
+fn drop_spikes(s: &mut Session, inv: &mut Vec<Command>, id: &Id) {
+    let Some(Element::Line(l)) = s.canvas.get(id) else {
+        return;
+    };
+    let cells = s.canvas.route(l);
+    let spike = |b: &P| cells.windows(3).any(|w| w[1] == *b && w[0] == w[2]);
+    let bends: Vec<_> = l.bends.iter().copied().filter(|b| !spike(b)).collect();
+    if bends.len() != l.bends.len() {
+        run(
+            s,
+            inv,
+            Command::SetBends {
+                id: id.clone(),
+                bends,
+            },
+        );
     }
 }
 

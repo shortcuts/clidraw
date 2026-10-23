@@ -2389,6 +2389,17 @@ fn the_first_drag_on_an_unselected_line_does_not_bend_it() {
 }
 
 #[test]
+fn releasing_a_bend_past_the_end_drops_the_spike() {
+    let mut s = session();
+    s.canvas.push(free_line("llllllll", vec![(15, 8)])).unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    drag(&mut s, (15, 8), (30, 5));
+    assert_eq!(bends_of(&s), vec![]);
+    key(&mut s, KeyCode::Char('u'));
+    assert_eq!(bends_of(&s), vec![(15, 8)]);
+}
+
+#[test]
 fn dragging_a_bend_handle_moves_that_bend_and_undo_restores_it() {
     let mut s = session();
     s.canvas.push(free_line("llllllll", vec![(15, 8)])).unwrap();
