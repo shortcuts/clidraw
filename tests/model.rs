@@ -901,6 +901,38 @@ fn an_elbow_goes_around_a_shape_in_its_way() {
     assert!(!cells.iter().any(|&p| inside(p, O)));
 }
 
+fn diagonal(extra: Vec<Element>) -> (Canvas, Line) {
+    let line = elbow("arrow000", bound("aaaaaaaa"), bound("bbbbbbbb"));
+    let mut c = Canvas {
+        elements: vec![
+            rect("aaaaaaaa", ShapeKind::Rect, (0, 4, 3, 3)),
+            rect("bbbbbbbb", ShapeKind::Rect, (6, 9, 3, 3)),
+        ],
+        ..Canvas::default()
+    };
+    c.elements.extend(extra);
+    c.elements.push(Element::Line(line.clone()));
+    (c, line)
+}
+
+#[test]
+fn an_arrow_ends_with_a_straight_stub() {
+    let (c, l) = diagonal(vec![]);
+    let cells = c.route(&l);
+    walks(&cells);
+    assert_eq!(cells[cells.len() - 3..], [(7, 6), (7, 7), (7, 8)]);
+}
+
+#[test]
+fn an_arrow_keeps_its_stub_when_it_detours() {
+    let o = (3, 7, 3, 1);
+    let (c, l) = diagonal(vec![rect("oooooooo", ShapeKind::Rect, o)]);
+    let cells = c.route(&l);
+    walks(&cells);
+    assert!(!cells.iter().any(|&p| inside(p, o)));
+    assert_eq!(cells[cells.len() - 3..], [(7, 6), (7, 7), (7, 8)]);
+}
+
 #[test]
 fn a_far_target_detours_through_a_gap_between_shapes() {
     let (left, right) = ((50, 24, 14, 7), (66, 24, 14, 7));

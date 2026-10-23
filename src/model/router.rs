@@ -181,14 +181,25 @@ impl Router {
                 has(i.rect, p) && !skip(i)
             })
         };
-        if !plain.iter().any(|&p| blocked(p)) && !self.shares_segment(canvas, find, own, &plain) {
+        // The two cells before the end cell run straight away from the shape, so the head points at it.
+        let stub = ax_b.and_then(|_| {
+            let out = DIRS.iter().find(|d| has(held[1], (b.0 + d.0, b.1 + d.1)))?;
+            let cells = [1, 2].map(|k| (b.0 - out.0 * k, b.1 - out.1 * k));
+            (!cells.iter().any(|&p| blocked(p) || p == a) && a != b).then_some(cells)
+        });
+        let straight = stub.is_none_or(|[s1, s2]| plain.ends_with(&[s2, s1, b]));
+        if straight
+            && !plain.iter().any(|&p| blocked(p))
+            && !self.shares_segment(canvas, find, own, &plain)
+        {
             return plain;
         }
         if a == b {
             return vec![a];
         }
-        let (x0, y0) = (a.0.min(b.0) - MARGIN, a.1.min(b.1) - MARGIN);
-        let (x1, y1) = (a.0.max(b.0) + MARGIN, a.1.max(b.1) + MARGIN);
+        let t = stub.map_or(b, |[_, s2]| s2);
+        let (x0, y0) = (a.0.min(t.0) - MARGIN, a.1.min(t.1) - MARGIN);
+        let (x1, y1) = (a.0.max(t.0) + MARGIN, a.1.max(t.1) + MARGIN);
         let (w, h) = (x1 - x0 + 1, y1 - y0 + 1);
         if i64::from(w) * i64::from(h) > i64::from(MAX_AREA) {
             return plain;
@@ -222,7 +233,10 @@ impl Router {
                 }
             }
         }
-        let goal = cell(b);
+        for p in stub.iter().flatten().chain([&b]) {
+            grid[cell(*p)] |= 4;
+        }
+        let goal = cell(t);
         let first: &[usize] = match ax_a {
             Some(Axis::Horizontal) => &[0, 1],
             Some(Axis::Vertical) => &[2, 3],
@@ -245,8 +259,8 @@ impl Router {
         // Every step costs at least STEP, so the Manhattan distance never overestimates.
         let est = |c: usize| {
             let (dx, dy) = (
-                (c as i32 % w - b.0 + x0).abs(),
-                (c as i32 / w - b.1 + y0).abs(),
+                (c as i32 % w - t.0 + x0).abs(),
+                (c as i32 / w - t.1 + y0).abs(),
             );
             STEP * (dx + dy) as u64
         };
@@ -279,6 +293,9 @@ impl Router {
                 }
                 path.push(a);
                 path.reverse();
+                if let Some([s1, _]) = stub {
+                    path.extend([s1, b]);
+                }
                 return path;
             }
             for nd in (0..4).filter(|&nd| nd != d ^ 1) {

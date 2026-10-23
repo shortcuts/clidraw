@@ -226,6 +226,6 @@ fn svg_follows_the_free_anchor_cell() {
         ],
         ..Canvas::default()
     };
-    assert!(svg(&with(Anchor::Top(1))).contains("d=\"M12 72 L12 88 "));
-    assert!(svg(&with(Anchor::Top(4))).contains("d=\"M36 72 L36 88 "));
+    assert!(svg(&with(Anchor::Top(1))).contains("d=\"M12 72 L12 56 "));
+    assert!(svg(&with(Anchor::Top(4))).contains("d=\"M36 72 L36 56 "));
 }

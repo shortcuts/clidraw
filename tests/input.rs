@@ -851,7 +851,7 @@ fn clicking_the_middle_run_of_a_bent_route_selects_the_line() {
     };
     click(&mut s, (70, 20), Instant::now());
     assert!(s.selection.is_empty());
-    click(&mut s, (31, 7), Instant::now());
+    click(&mut s, (31, 8), Instant::now());
     assert_eq!(s.selection, vec![l.id]);
 }
 
