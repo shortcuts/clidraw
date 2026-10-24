@@ -17,6 +17,7 @@ use crate::ui::palette::{self, PaletteHit};
 use crate::ui::theme::Theme;
 use crate::ui::Layout;
 use crate::view::{View, Zoom};
+use ratatui::style::Color;
 use state::{Action, Gesture, Glide};
 use std::cell::RefCell;
 use std::time::{Duration, Instant};
@@ -73,6 +74,7 @@ pub struct Session {
     pub view: View,
     pub tool: Tool,
     pub theme: Theme,
+    pub chrome_accent: Option<Color>,
     pub selection: Vec<Id>,
     pub clipboard: Canvas,
     pub double_click: Duration,
@@ -128,6 +130,7 @@ impl Session {
             view,
             tool: Tool::Select,
             theme: Theme::Dark,
+            chrome_accent: None,
             selection: vec![],
             clipboard: Canvas::default(),
             double_click: Duration::from_millis(400),

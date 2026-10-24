@@ -1,6 +1,7 @@
 use crate::model::HISTORY_LIMIT;
 use crate::store::validate_name;
 use crate::ui::theme::ThemeSetting;
+use ratatui::style::Color;
 use std::io::{self, Write};
 use std::path::Path;
 use std::time::Duration;
@@ -35,6 +36,9 @@ pub const DEFAULT_TOML: &str = "\
 # Percent of the default distance that wheel and trackpad scrolling pans. 50 halves it.
 # scroll_speed = 100
 
+# Color of the active tool, selected row and mode badge, as \"#rrggbb\". Unset uses the theme accent.
+# chrome_accent = \"#5fd7ff\"
+
 # Color palette: auto asks the terminal for its background, or force dark or light.
 # theme = \"auto\"
 ";
@@ -50,6 +54,7 @@ pub struct Config {
     pub motion: bool,
     pub scroll_speed: i32,
     pub theme: ThemeSetting,
+    pub chrome_accent: Option<Color>,
 }
 
 impl Default for Config {
@@ -64,6 +69,7 @@ impl Default for Config {
             motion: true,
             scroll_speed: 100,
             theme: ThemeSetting::Auto,
+            chrome_accent: None,
         }
     }
 }
@@ -107,6 +113,7 @@ impl Config {
                 "export_padding" => padding(value).map(|n| self.export_padding = n),
                 "motion" => flag(value).map(|b| self.motion = b),
                 "scroll_speed" => speed(value).map(|n| self.scroll_speed = n),
+                "chrome_accent" => hex(value).map(|c| self.chrome_accent = Some(c)),
                 "theme" => theme(value).map(|t| self.theme = t),
                 _ => {
                     warns.push(format!("{FILE}: unknown key {key}"));
@@ -180,6 +187,19 @@ fn theme(v: &toml::Value) -> Result<ThemeSetting, String> {
         Some("light") => Ok(ThemeSetting::Light),
         _ => Err("expected \"auto\", \"dark\" or \"light\"".into()),
     }
+}
+
+fn hex(v: &toml::Value) -> Result<Color, String> {
+    let bad = || "expected a \"#rrggbb\" string".to_string();
+    let digits = v
+        .as_str()
+        .and_then(|s| s.strip_prefix('#'))
+        .ok_or_else(bad)?;
+    if digits.len() != 6 || !digits.is_ascii() {
+        return Err(bad());
+    }
+    let n = u32::from_str_radix(digits, 16).map_err(|_| bad())?;
+    Ok(Color::Rgb((n >> 16) as u8, (n >> 8) as u8, n as u8))
 }
 
 fn name(v: &toml::Value) -> Result<String, String> {

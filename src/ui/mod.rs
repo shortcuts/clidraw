@@ -89,6 +89,7 @@ pub fn render(
     );
     let colors = theme::colors(no_color, colorterm.as_deref());
     let accent = theme::accent(s.theme, no_color, colorterm.as_deref());
+    grid.accent = colors.then(|| s.chrome_accent.unwrap_or_else(|| s.theme.accent()));
     canvas_view::draw(&mut grid, s, accent, colors);
     if !s.present {
         let (w, h) = (i32::from(area.width), i32::from(area.height));

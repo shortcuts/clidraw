@@ -27,6 +27,7 @@ impl App {
         let mut session = Session::new(Canvas::default(), View::default(), screen);
         session.double_click = config.double_click;
         session.grid = config.grid;
+        session.chrome_accent = config.chrome_accent;
         session.motion = config.motion;
         session.scroll_speed = config.scroll_speed;
         session.history.limit = config.history_limit;

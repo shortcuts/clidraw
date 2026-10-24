@@ -1542,3 +1542,26 @@ fn zoomed_out_keeps_the_tool_row_and_one_top_row() {
     let b = render_at(&s, 80, 24);
     assert!(line_at(&b, 0).starts_with(" Select"));
 }
+
+#[test]
+fn active_chrome_uses_the_accent_with_truecolor_and_plain_reverse_without() {
+    let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let reversed = |b: &Buffer| -> Vec<Color> {
+        (0..24)
+            .flat_map(|y| (0..80).map(move |x| (x, y)))
+            .filter(|&p| b[p].modifier.contains(ratatui::style::Modifier::REVERSED))
+            .map(|p| b[p].fg)
+            .collect()
+    };
+    let on = reversed(&draw_env(&s, false, Some("truecolor")));
+    assert!(!on.is_empty());
+    assert!(on.iter().all(|&c| c == Color::Rgb(95, 215, 255)));
+    s.chrome_accent = Some(Color::Rgb(255, 136, 0));
+    let custom = reversed(&draw_env(&s, false, Some("truecolor")));
+    assert!(custom.iter().all(|&c| c == Color::Rgb(255, 136, 0)));
+    for (no_color, term) in [(true, Some("truecolor")), (false, Some("256color"))] {
+        let off = reversed(&draw_env(&s, no_color, term));
+        assert!(!off.is_empty());
+        assert!(off.iter().all(|&c| c == Color::Reset));
+    }
+}

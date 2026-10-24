@@ -41,6 +41,8 @@ fn overrides_apply() {
 fn default_text_matches_defaults() {
     let live: String = DEFAULT_TOML
         .lines()
+        // Unset means the theme accent, which no single "#rrggbb" line can state.
+        .filter(|l| !l.contains("chrome_accent ="))
         .map(|l| match l.strip_prefix("# ") {
             Some(rest) if rest.contains(" = ") => format!("{rest}\n"),
             _ => format!("{l}\n"),
@@ -195,4 +197,23 @@ fn theme_defaults_to_auto_and_rejects_unknown_names() {
         w,
         vec!["config.toml: key theme: expected \"auto\", \"dark\" or \"light\""]
     );
+}
+
+#[test]
+fn chrome_accent_reads_a_hex_color_and_rejects_the_rest() {
+    assert_eq!(Config::default().chrome_accent, None);
+    let (c, w, _t) = load_text("chrome_accent = \"#ff8800\"\n");
+    assert!(w.is_empty());
+    assert_eq!(
+        c.chrome_accent,
+        Some(ratatui::style::Color::Rgb(255, 136, 0))
+    );
+    for bad in ["\"orange\"", "\"#ff88\"", "\"#gggggg\"", "5"] {
+        let (c, w, _t) = load_text(&format!("chrome_accent = {bad}\n"));
+        assert_eq!(c.chrome_accent, None);
+        assert_eq!(
+            w,
+            vec!["config.toml: key chrome_accent: expected a \"#rrggbb\" string"]
+        );
+    }
 }

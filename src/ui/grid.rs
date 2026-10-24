@@ -7,6 +7,7 @@ pub const REVERSE: u8 = 1;
 pub const BOLD: u8 = 2;
 pub const DIM: u8 = 4;
 pub const UNDERLINE: u8 = 8;
+pub const ACCENT: u8 = 16;
 
 #[derive(Clone, Copy)]
 pub struct Cell {
@@ -20,6 +21,7 @@ pub struct Cell {
 pub struct Grid {
     pub w: i32,
     pub h: i32,
+    pub accent: Option<Color>,
     cells: Vec<Cell>,
 }
 
@@ -34,6 +36,7 @@ impl Grid {
         Grid {
             w: i32::from(w),
             h: i32::from(h),
+            accent: None,
             cells: vec![blank; usize::from(w) * usize::from(h)],
         }
     }
@@ -139,6 +142,12 @@ impl Grid {
                 ] {
                     if c.flags & flag != 0 {
                         style = style.add_modifier(m);
+                    }
+                }
+                if c.flags & ACCENT != 0 {
+                    style = style.add_modifier(Modifier::REVERSED);
+                    if let Some(a) = self.accent {
+                        style = style.fg(a);
                     }
                 }
                 if let Some(fg) = c.fg {
