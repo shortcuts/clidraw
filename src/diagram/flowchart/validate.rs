@@ -1,5 +1,5 @@
 use super::import::{header, parse_line, Rejected, MAX_SHAPES};
-use crate::diagram::{Diagnostic, Severity};
+use crate::diagram::{statements, Diagnostic, Severity};
 use std::collections::HashSet;
 use std::ops::Range;
 
@@ -13,13 +13,7 @@ fn diagnostic(severity: Severity, message: String, range: Range<usize>) -> Diagn
 }
 
 pub(super) fn validate(text: &str) -> Vec<Diagnostic> {
-    let mut offset = 0;
-    let mut lines = text.split_inclusive('\n').filter_map(|raw| {
-        let start = offset + raw.len() - raw.trim_start().len();
-        offset += raw.len();
-        let line = raw.trim();
-        (!line.is_empty() && !line.starts_with("%%")).then(|| (line, start..start + line.len()))
-    });
+    let mut lines = statements(text);
     let Some((head, head_range)) = lines.next() else {
         return vec![];
     };

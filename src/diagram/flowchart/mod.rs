@@ -8,6 +8,10 @@ use crate::model::Canvas;
 pub struct Flowchart;
 
 impl DiagramKind for Flowchart {
+    fn keywords(&self) -> &'static [&'static str] {
+        &["flowchart", "graph"]
+    }
+
     fn import(&self, text: &str) -> Result<Imported, String> {
         import::import(text)
     }

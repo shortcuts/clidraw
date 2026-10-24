@@ -90,3 +90,27 @@ fn skipped_count_matches_statement_diagnostics() {
         assert_eq!(Flowchart.validate(text).len(), skipped, "{text:?}");
     }
 }
+
+#[test]
+fn unregistered_header_gets_one_hint() {
+    let text = "sequenceDiagram\nA->>B: hi\nsubgraph x";
+    let found = clidraw::diagram::validate(text);
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].severity, Severity::Error);
+    assert_eq!(
+        found[0].message,
+        "`sequenceDiagram` diagrams are not supported"
+    );
+    assert_eq!(&text[found[0].range.clone()], "sequenceDiagram");
+}
+
+#[test]
+fn registered_header_dispatches_to_its_kind() {
+    let text = "graph LR;\nA --> B\nsubgraph x";
+    assert_eq!(
+        clidraw::diagram::validate(text).len(),
+        Flowchart.validate(text).len()
+    );
+    assert_eq!(clidraw::diagram::validate(text).len(), 1);
+    assert!(clidraw::diagram::validate(" \n").is_empty());
+}

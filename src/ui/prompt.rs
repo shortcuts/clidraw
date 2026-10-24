@@ -3,7 +3,7 @@ use super::list::{Anchor, List, Row};
 use super::registry::{self, Binding};
 use super::style::{ACTIVE, ERROR, MUTED};
 use super::{boxed, centered, Grid};
-use crate::diagram::{DiagramKind, Flowchart, Severity};
+use crate::diagram::{self, Severity};
 use crate::input::{Edit, EditTarget};
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
@@ -73,8 +73,7 @@ impl Prompt {
         if self.buf().trim().is_empty() {
             return None;
         }
-        let d = Flowchart
-            .validate(&format!("{header}\n{}", self.buf()))
+        let d = diagram::validate(&format!("{header}\n{}", self.buf()))
             .into_iter()
             .next()?;
         Some((d.severity, d.message))
