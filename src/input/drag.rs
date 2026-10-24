@@ -338,6 +338,11 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
                 run(s, inv, Command::Batch(cmds));
                 *last = (last.0 + dx, last.1 + dy);
             }
+            s.snap = None;
+            s.snap_at = None;
+            if let Some((id, side, at)) = dropped_ends(s).into_iter().next() {
+                snap_to_shape(s, &id, side, at);
+            }
         }
         Action::Resize { id, fixed } => {
             let world = snap_p(s.grid, world);
@@ -463,6 +468,11 @@ pub(super) fn up(s: &mut Session, world: P) {
         Gesture::Dragging { action, mut inv } => {
             match &action {
                 Action::EndDrag { id, side } => bind(s, &mut inv, id, *side, world),
+                Action::Move { .. } => {
+                    for (id, side, at) in dropped_ends(s) {
+                        bind(s, &mut inv, &id, side, at);
+                    }
+                }
                 Action::CreateLine(id) => {
                     bind(s, &mut inv, id, Side::To, world);
                     s.tool = Tool::Select;
@@ -512,6 +522,24 @@ fn bind(s: &mut Session, inv: &mut Vec<Command>, id: &Id, side: Side, world: P) 
             },
         );
     }
+}
+
+/// Free ends of lines outside the selection that sit under a selected shape.
+fn dropped_ends(s: &Session) -> Vec<(Id, Side, P)> {
+    let mut found = vec![];
+    for e in &s.canvas.elements {
+        let Element::Line(l) = e else { continue };
+        if s.selection.contains(&l.id) {
+            continue;
+        }
+        for (side, end) in [(Side::From, &l.from), (Side::To, &l.to)] {
+            let End::Free(x, y) = end else { continue };
+            if hit::shape_at(&s.canvas, (*x, *y)).is_some_and(|sid| s.selection.contains(&sid)) {
+                found.push((l.id.clone(), side, (*x, *y)));
+            }
+        }
+    }
+    found
 }
 
 fn bound_at(canvas: &Canvas, p: P) -> Option<End> {
@@ -719,6 +747,36 @@ mod tests {
             "{:?}",
             l.to
         );
+    }
+
+    #[test]
+    fn moving_a_shape_onto_a_free_line_end_binds_it() {
+        let mut s = with_shape();
+        s.canvas.elements.push(Element::Line(Line {
+            id: Id::from("cccccccc"),
+            kind: LineKind::Arrow,
+            from: End::Free(10, 16),
+            to: End::Free(60, 16),
+            label: String::new(),
+            label_at: None,
+            stroke: Default::default(),
+            bends: vec![],
+            color: None,
+        }));
+        mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 32, 16);
+        mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 62, 16);
+        assert_eq!(s.snap, Some(Id::from("aaaaaaaa")));
+        assert!(s.snap_at.is_some());
+        mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 62, 16);
+        let Some(Element::Line(l)) = s.canvas.get(&Id::from("cccccccc")) else {
+            panic!("no line");
+        };
+        assert!(
+            matches!(&l.to, End::Bound(id, _) if *id == Id::from("aaaaaaaa")),
+            "{:?}",
+            l.to
+        );
+        assert_eq!(l.from, End::Free(10, 16));
     }
 
     fn with_neighbour() -> Session {
