@@ -155,7 +155,7 @@ Chrome code uses the named styles in the UI style module, never raw `BOLD`, `DIM
 
 The tokens live in `src/ui/style.rs`.
 
-- Good: `src/ui/list.rs:195` passes the `MUTED` token for the key column:
+- Good: `src/ui/list.rs:199` passes the `MUTED` token for the key column:
 
   ```rust
   if on { ACTIVE } else { MUTED },
