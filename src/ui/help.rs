@@ -1,4 +1,4 @@
-use super::grid::{DIM, REVERSE};
+use super::style::{ACTIVE, MUTED};
 use super::{boxed, centered, Grid};
 use crate::input::Tool;
 
@@ -144,10 +144,10 @@ pub fn draw(grid: &mut Grid, page: usize, query: &str) {
     for (i, start, _) in tabs() {
         let label = format!(" {} ", SCOPES[i]);
         let on = i == page && query.is_empty();
-        grid.text(r.0 + start, r.1 + 1, &label, if on { REVERSE } else { 0 });
+        grid.text(r.0 + start, r.1 + 1, &label, if on { ACTIVE } else { 0 });
     }
     if query.is_empty() {
-        grid.text(r.0 + 2, r.1 + 2, "Type to filter", DIM);
+        grid.text(r.0 + 2, r.1 + 2, "Type to filter", MUTED);
     } else {
         grid.text(r.0 + 2, r.1 + 2, &format!("> {query}"), 0);
     }
@@ -157,7 +157,7 @@ pub fn draw(grid: &mut Grid, page: usize, query: &str) {
         search(query)
     };
     if shown.is_empty() {
-        grid.text(r.0 + 2, r.1 + 3, "No match", DIM);
+        grid.text(r.0 + 2, r.1 + 3, "No match", MUTED);
     }
     for (i, (keys, action)) in shown.iter().enumerate() {
         let y = r.1 + 3 + i as i32;

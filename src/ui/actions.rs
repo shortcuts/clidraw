@@ -1,5 +1,5 @@
-use super::grid::{DIM, REVERSE};
 use super::menu::{ContextItem, MenuItem};
+use super::style::{ACTIVE, MUTED};
 use super::{boxed, centered, Grid};
 use crate::input::{Session, Tool};
 use crate::model::{Align, Z};
@@ -233,7 +233,7 @@ impl Actions {
         grid.text(r.0 + 2, r.1 + 1, &format!("> {}_", self.query), 0);
         let m = self.matches();
         if m.is_empty() {
-            grid.text(r.0 + 2, r.1 + 2, "No match", DIM);
+            grid.text(r.0 + 2, r.1 + 2, "No match", MUTED);
         }
         let first = self.first_visible();
         for (i, e) in m.iter().skip(first).take(MAX_ROWS).enumerate() {
@@ -246,14 +246,14 @@ impl Actions {
             let room = (r.2 - 4 - keys_len - 1).max(0) as usize;
             let label: String = e.label.chars().take(room).collect();
             if on {
-                grid.text(r.0 + 1, y, &" ".repeat((r.2 - 2) as usize), REVERSE);
+                grid.text(r.0 + 1, y, &" ".repeat((r.2 - 2) as usize), ACTIVE);
             }
-            grid.text(r.0 + 2, y, &label, if on { REVERSE } else { 0 });
+            grid.text(r.0 + 2, y, &label, if on { ACTIVE } else { 0 });
             grid.text(
                 r.0 + r.2 - 2 - keys_len,
                 y,
                 &e.keys,
-                if on { REVERSE } else { DIM },
+                if on { ACTIVE } else { MUTED },
             );
         }
     }

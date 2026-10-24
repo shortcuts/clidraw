@@ -1,4 +1,4 @@
-use super::grid::{DIM, REVERSE};
+use super::style::{ACTIVE, MUTED};
 use super::{boxed, centered, Grid};
 
 pub struct Switcher {
@@ -46,7 +46,7 @@ pub fn draw(grid: &mut Grid, sw: &Switcher) {
     let screen = (grid.w as u16, grid.h as u16);
     let r = rect(screen, sw.names.len());
     boxed(grid, r, "Canvases");
-    grid.text(r.0 + 2, r.1 + 1, "+ New", REVERSE);
+    grid.text(r.0 + 2, r.1 + 1, "+ New", ACTIVE);
     let name_room = (r.2 - 4 - ACTIONS.len() as i32 - 1).max(0) as usize;
     for (i, name) in sw.names.iter().enumerate() {
         let y = r.1 + 2 + i as i32;
@@ -55,8 +55,8 @@ pub fn draw(grid: &mut Grid, sw: &Switcher) {
             r.0 + 2,
             y,
             &shown,
-            if *name == sw.current { REVERSE } else { 0 },
+            if *name == sw.current { ACTIVE } else { 0 },
         );
-        grid.text(r.0 + r.2 - 1 - ACTIONS.len() as i32, y, ACTIONS, DIM);
+        grid.text(r.0 + r.2 - 1 - ACTIONS.len() as i32, y, ACTIONS, MUTED);
     }
 }

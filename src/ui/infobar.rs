@@ -1,4 +1,4 @@
-use super::grid::{BOLD, DIM, REVERSE};
+use super::style::{DISABLED, ERROR, KEY, MUTED};
 use super::{Grid, Overlay, Severity, Status};
 use crate::input::{Session, Tool};
 
@@ -56,7 +56,7 @@ fn draw_buttons(grid: &mut Grid, y: i32, s: &Session) {
     let mut x = 0;
     for &(b, l) in &BUTTONS {
         let off = matches!(b, Button::Undo | Button::Redo) && !s.can_edit();
-        grid.text(x, y, l, if off { DIM } else { BOLD });
+        grid.text(x, y, l, if off { DISABLED } else { KEY });
         x += width(l) + 1;
     }
 }
@@ -98,12 +98,12 @@ fn pair_width((k, a): (&str, &str)) -> i32 {
 /// Right-side parts that fit beside `left_w` columns; the save marker always stays.
 fn right(s: &Session, saved: bool, w: i32, left_w: i32) -> Vec<(String, u8)> {
     let marker = if saved {
-        ("saved", DIM)
+        ("saved", MUTED)
     } else {
-        ("unsaved", BOLD)
+        ("unsaved", KEY)
     };
     let mut parts = [
-        s.readout().map(|r| (r, BOLD)),
+        s.readout().map(|r| (r, KEY)),
         Some((s.tool.label().to_string(), 0)),
         (!s.selection.is_empty()).then(|| (format!("{} sel", s.selection.len()), 0)),
         s.view.zoom.label().map(|l| (l.to_string(), 0)),
@@ -159,13 +159,13 @@ pub(super) fn draw(grid: &mut Grid, s: &Session, overlay: &Overlay, saved: bool)
             x += GAP;
         }
         let key: String = k.chars().take((room - x).max(0) as usize).collect();
-        grid.text(x, y, &key, BOLD);
+        grid.text(x, y, &key, KEY);
         let rest = (room - x - width(k) - 1).max(0) as usize;
         grid.text(
             x + width(k) + 1,
             y,
             &a.chars().take(rest).collect::<String>(),
-            DIM,
+            MUTED,
         );
         x += pair_width((k, a));
     }
@@ -181,7 +181,7 @@ pub(super) fn status(grid: &mut Grid, s: &Session, st: &Status, saved: bool) {
     draw_buttons(grid, y, s);
     let flags = match st.severity {
         Severity::Notice => 0,
-        Severity::Error => REVERSE,
+        Severity::Error => ERROR,
     };
     let text: String = st.text.chars().take(room as usize).collect();
     grid.text(off, y, &text, flags);

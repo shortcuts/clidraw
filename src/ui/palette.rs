@@ -1,4 +1,5 @@
-use super::grid::{Grid, DIM, REVERSE, UNDERLINE};
+use super::grid::Grid;
+use super::style::{ACTIVE, HOVER, MUTED};
 use crate::input::{Session, Tool};
 use crate::model::{Align, Border, Element, Id, LineKind, Paint, Stroke, TextAlign};
 use std::collections::HashMap;
@@ -225,18 +226,13 @@ pub fn draw(grid: &mut Grid, s: &Session) {
     let cells = cells(&choices(&els, &s.canvas.groups), grid.w);
     for &(h, x, y, w) in &cells {
         let (text, flags) = match h {
-            PaletteHit::Tool(t) => (t.label().to_string(), if t == s.tool { REVERSE } else { 0 }),
+            PaletteHit::Tool(t) => (t.label().to_string(), if t == s.tool { ACTIVE } else { 0 }),
             PaletteHit::Option(c) => (
                 c.label().to_string(),
-                if active(&els, c) { REVERSE } else { 0 },
+                if active(&els, c) { ACTIVE } else { 0 },
             ),
         };
-        let flags = flags
-            | if s.palette_hover == Some(h) {
-                UNDERLINE
-            } else {
-                0
-            };
+        let flags = flags | if s.palette_hover == Some(h) { HOVER } else { 0 };
         let key = match h {
             PaletteHit::Tool(t) if w as usize > text.width() + 2 => t.key(),
             _ => None,
@@ -244,7 +240,7 @@ pub fn draw(grid: &mut Grid, s: &Session) {
         let pad = " ".repeat((w as usize).saturating_sub(text.width() + 1));
         grid.text(x, y, &format!(" {text}{pad}"), flags);
         if let Some(k) = key {
-            grid.text(x + w - 2, y, &k.to_string(), flags | DIM);
+            grid.text(x + w - 2, y, &k.to_string(), flags | MUTED);
         }
     }
     if let (true, Some(h)) = (s.tip, s.palette_hover) {
@@ -267,5 +263,5 @@ fn tooltip(grid: &mut Grid, h: PaletteHit, cells: &[(PaletteHit, i32, i32, i32)]
             None => return,
         },
     };
-    grid.text(x, y + 1, &text, REVERSE);
+    grid.text(x, y + 1, &text, ACTIVE);
 }

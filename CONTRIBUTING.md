@@ -153,20 +153,15 @@ Chrome code uses the named styles in the UI style module, never raw `BOLD`, `DIM
 - The `chrome_accent` setting in `config.toml` sets the accent color.
 - Meaning never depends on color alone. Every state also has a glyph, a label or reverse video.
 
-The UI style module does not exist yet. Its tokens come with the backlog task `chrome-style-tokens-module`.
+The tokens live in `src/ui/style.rs`.
 
-- Good (target): `grid.text(x, y, label, MUTED);`
-- Bad: `src/ui/minimap.rs:140` passes the raw `REVERSE` flag:
-
-  ```rust
-  grid.text(x0, (y0 + y1) / 2, &cut(&it.label, x1 - x0 + 1), REVERSE);
-  ```
-
-- Bad: `src/ui/switcher.rs:60` passes the raw `DIM` flag. It migrates in the `ui-chrome` backlog epic:
+- Good: `src/ui/switcher.rs:60` passes the `MUTED` token:
 
   ```rust
-  grid.text(r.0 + r.2 - 1 - ACTIONS.len() as i32, y, ACTIONS, DIM);
+  grid.text(r.0 + r.2 - 1 - ACTIONS.len() as i32, y, ACTIONS, MUTED);
   ```
+
+- Bad: `grid.text(x, y, label, DIM);` passes a raw flag.
 
 ### Spacing
 

@@ -1,4 +1,5 @@
-use super::grid::{Grid, REVERSE};
+use super::grid::Grid;
+use super::style::ACTIVE;
 use std::collections::VecDeque;
 use std::time::Duration;
 
@@ -40,6 +41,6 @@ impl Perf {
             elements
         );
         let x = (grid.w - text.chars().count() as i32).max(0);
-        grid.text(x, 0, &text, REVERSE);
+        grid.text(x, 0, &text, ACTIVE);
     }
 }

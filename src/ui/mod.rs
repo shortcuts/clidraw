@@ -10,6 +10,7 @@ pub mod palette;
 mod perf;
 pub mod prompt;
 pub mod scope;
+mod style;
 pub mod switcher;
 pub mod theme;
 

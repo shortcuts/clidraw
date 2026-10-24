@@ -1,5 +1,6 @@
-use super::grid::{Grid, REVERSE};
+use super::grid::Grid;
 use super::layout::refresh;
+use super::style::ACTIVE;
 use crate::input::Session;
 use crate::model::{Element, ShapeKind};
 
@@ -137,7 +138,7 @@ pub fn draw(grid: &mut Grid, s: &Session) {
     for it in items.iter().filter(|i| !i.frame) {
         let (x0, y0, x1, y1) = it.cells;
         if x1 - x0 >= 2 {
-            grid.text(x0, (y0 + y1) / 2, &cut(&it.label, x1 - x0 + 1), REVERSE);
+            grid.text(x0, (y0 + y1) / 2, &cut(&it.label, x1 - x0 + 1), ACTIVE);
         }
     }
     let (vw, vh) = s.view.span(s.screen);
@@ -149,7 +150,7 @@ pub fn draw(grid: &mut Grid, s: &Session) {
         for cx in x0..=x1 {
             if cx == x0 || cx == x1 || cy == y0 || cy == y1 {
                 let ch = grid.get(cx, cy).map_or(' ', |c| c.ch);
-                grid.set(cx, cy, ch, REVERSE);
+                grid.set(cx, cy, ch, ACTIVE);
             }
         }
     }
