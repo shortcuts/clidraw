@@ -1,6 +1,6 @@
 use super::list::{List, Row};
 use super::menu::{ContextItem, MenuItem};
-use super::registry::{self, Scope};
+use super::registry;
 use crate::input::{Session, Tool};
 use crate::model::{Align, Z};
 
@@ -23,6 +23,10 @@ pub enum Action {
     Find,
     Map,
     Ex(&'static str),
+    Prefill(&'static str),
+    NewCanvas,
+    RenameCanvas,
+    DeleteCanvas,
 }
 
 impl Action {
@@ -38,7 +42,29 @@ impl Action {
             | Action::Bold
             | Action::Copy
             | Action::Cut => !s.selection.is_empty(),
+            Action::Prefill("link ") => !s.selection.is_empty(),
             _ => true,
+        }
+    }
+
+    pub fn category(self) -> &'static str {
+        match self {
+            Action::Tool(_) => "Tool",
+            Action::Align(_) | Action::Order(_) | Action::Ex("layout" | "layout lr") => "Arrange",
+            Action::Menu(MenuItem::FitAll)
+            | Action::Map
+            | Action::ZoomIn
+            | Action::ZoomOut
+            | Action::Present
+            | Action::Help
+            | Action::Find
+            | Action::Ex("perf") => "View",
+            Action::Menu(MenuItem::Canvases)
+            | Action::NewCanvas
+            | Action::RenameCanvas
+            | Action::DeleteCanvas => "Canvas",
+            Action::Menu(_) | Action::Ex("w") | Action::Prefill("import ") => "File",
+            _ => "Edit",
         }
     }
 }
@@ -50,10 +76,7 @@ pub fn list(s: &Session) -> List<Action> {
         .filter(|(_, action)| action.applies(s))
         .map(|(b, value)| Row {
             value,
-            label: match b.scope {
-                Scope::Tool => format!("Tool: {}", b.name()),
-                _ => b.label.to_string(),
-            },
+            label: format!("{}: {}", value.category(), b.name()),
             key: b.keys_label(),
         })
         .collect();

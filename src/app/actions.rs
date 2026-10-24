@@ -1,4 +1,5 @@
 use super::App;
+use crate::names;
 use crate::ui::actions::Action;
 use crate::ui::prompt::{Prompt, PromptKind};
 use crate::ui::Overlay;
@@ -34,6 +35,21 @@ impl App {
                 self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, "/".into()))
             }
             Action::Ex(line) => self.run_command(line),
+            Action::Prefill(text) => {
+                self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, text.into()))
+            }
+            Action::NewCanvas => {
+                let fresh = names::generate(|n| self.store.exists(n));
+                self.overlay = Overlay::Prompt(Prompt::new(PromptKind::NewCanvas, fresh))
+            }
+            Action::RenameCanvas => {
+                let name = self.name.clone();
+                self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Rename(name.clone()), name))
+            }
+            Action::DeleteCanvas => {
+                let kind = PromptKind::ConfirmDelete(self.name.clone());
+                self.overlay = Overlay::Prompt(Prompt::new(kind, String::new()))
+            }
         }
     }
 }

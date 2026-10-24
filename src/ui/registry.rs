@@ -168,12 +168,8 @@ const fn ex(
     id: &'static str,
     shown: &'static str,
     label: &'static str,
-    run: Option<&'static str>,
+    action: Option<Action>,
 ) -> Binding {
-    let action = match run {
-        Some(line) => Some(Action::Ex(line)),
-        None => None,
-    };
     Binding::new(id, &[], label, Scope::Command, action).shown(shown)
 }
 
@@ -318,7 +314,13 @@ pub const BINDINGS: &[Binding] = &[
         Some(Action::Menu(MenuItem::FitAll)),
     )
     .hint("fit"),
-    Binding::new("minimap", &[], "Minimap", Scope::Palette, Some(Action::Map)),
+    Binding::new(
+        "minimap",
+        &[],
+        "Show minimap",
+        Scope::Palette,
+        Some(Action::Map),
+    ),
     Binding::new(
         "zoom_in",
         &[],
@@ -346,9 +348,30 @@ pub const BINDINGS: &[Binding] = &[
     Binding::new(
         "canvases",
         &[],
-        "Canvases",
+        "Switch canvas",
         Scope::Palette,
         Some(Action::Menu(MenuItem::Canvases)),
+    ),
+    Binding::new(
+        "new_canvas",
+        &[],
+        "Create canvas",
+        Scope::Palette,
+        Some(Action::NewCanvas),
+    ),
+    Binding::new(
+        "rename_canvas",
+        &[],
+        "Rename canvas",
+        Scope::Palette,
+        Some(Action::RenameCanvas),
+    ),
+    Binding::new(
+        "delete_canvas",
+        &[],
+        "Delete canvas",
+        Scope::Palette,
+        Some(Action::DeleteCanvas),
     ),
     Binding::new(
         "export_svg",
@@ -367,23 +390,33 @@ pub const BINDINGS: &[Binding] = &[
     Binding::new(
         "export_text",
         &[],
-        "Export Text",
+        "Export text",
         Scope::Palette,
         Some(Action::Menu(MenuItem::ExportText)),
     ),
-    ex("save", ":w", "Save", Some("w")),
-    ex("layout_td", ":layout", "Layout top-down", Some("layout")),
+    ex("save", ":w", "Save", Some(Action::Ex("w"))),
+    ex(
+        "layout_td",
+        ":layout",
+        "Layout top-down",
+        Some(Action::Ex("layout")),
+    ),
     ex(
         "layout_lr",
         ":layout lr",
         "Layout left-right",
-        Some("layout lr"),
+        Some(Action::Ex("layout lr")),
     ),
-    ex("perf", ":perf", "Toggle perf overlay", Some("perf")),
+    ex(
+        "perf",
+        ":perf",
+        "Toggle perf overlay",
+        Some(Action::Ex("perf")),
+    ),
     Binding::new(
         "help",
         &[c('?')],
-        "Shortcuts",
+        "Show shortcuts",
         Scope::Canvas,
         Some(Action::Help),
     )
@@ -571,10 +604,20 @@ pub const BINDINGS: &[Binding] = &[
     ex("quit_cmd", ":q", "Quit", None),
     ex("save_quit", ":wq", "Save and quit", None),
     ex("open", ":e <name>", "Open or create a canvas", None),
-    ex("import", ":import <path>", "Import a file", None),
+    ex(
+        "import",
+        ":import <path>",
+        "Import file",
+        Some(Action::Prefill("import ")),
+    ),
     ex("export", ":export", "Export the canvas", None),
-    ex("link", ":link <url>", "Link the selection to a URL", None),
-    ex("lib", ":lib", "Use a library", None),
+    ex(
+        "link",
+        ":link <url>",
+        "Link selection to URL",
+        Some(Action::Prefill("link ")),
+    ),
+    ex("lib", ":lib", "Use library", Some(Action::Prefill("lib "))),
 ];
 
 pub fn by_id(id: &str) -> &'static Binding {

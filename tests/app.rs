@@ -1170,7 +1170,7 @@ fn type_str(app: &mut App, s: &str, t: Instant) {
 
 fn open_canvases(app: &mut App, t: Instant) {
     ctrl_key(app, 'p', t);
-    type_str(app, "canvases", t);
+    type_str(app, "switch canvas", t);
     app.on_event(key(KeyCode::Enter), t);
 }
 
@@ -1198,9 +1198,14 @@ fn palette_lists_only_actions_that_can_act() {
     let now = Instant::now();
     ctrl_key(&mut app, 'p', now);
     let l = palette_labels(&app);
-    assert_eq!(l[0], "Undo");
+    assert_eq!(l[0], "Edit: Undo");
     assert!(l.contains(&"Tool: Rect".to_string()));
-    for gone in ["Duplicate", "Align left", "Paste", "Edit label"] {
+    for gone in [
+        "Edit: Duplicate",
+        "Arrange: Align left",
+        "Edit: Paste",
+        "Edit: Edit label",
+    ] {
         assert!(!l.contains(&gone.to_string()), "{gone}");
     }
     app.on_event(key(KeyCode::Esc), now);
@@ -1209,14 +1214,14 @@ fn palette_lists_only_actions_that_can_act() {
     app.session.selection = vec![Id::from("aaaaaaaa")];
     ctrl_key(&mut app, 'p', now);
     let l = palette_labels(&app);
-    for here in ["Duplicate", "Align left", "Edit label"] {
+    for here in ["Edit: Duplicate", "Arrange: Align left", "Edit: Edit label"] {
         assert!(l.contains(&here.to_string()), "{here}");
     }
-    assert!(!l.contains(&"Paste".to_string()));
+    assert!(!l.contains(&"Edit: Paste".to_string()));
     app.on_event(key(KeyCode::Esc), now);
     app.session.copy();
     ctrl_key(&mut app, 'p', now);
-    assert!(palette_labels(&app).contains(&"Paste".to_string()));
+    assert!(palette_labels(&app).contains(&"Edit: Paste".to_string()));
 }
 
 #[test]
@@ -1242,12 +1247,12 @@ fn palette_filters_fuzzily_and_backspace_widens() {
     app.session.exec(shape_at("aaaaaaaa", 20, 5));
     app.session.selection = vec![Id::from("aaaaaaaa")];
     ctrl_key(&mut app, 'p', now);
-    type_str(&mut app, "dup", now);
-    assert_eq!(palette_labels(&app)[0], "Duplicate");
+    type_str(&mut app, "duplicate", now);
+    assert_eq!(palette_labels(&app)[0], "Edit: Duplicate");
     app.on_event(key(KeyCode::Esc), now);
     ctrl_key(&mut app, 'p', now);
     type_str(&mut app, "exsvg", now);
-    assert_eq!(palette_labels(&app)[0], "Export SVG");
+    assert_eq!(palette_labels(&app)[0], "File: Export SVG");
     type_str(&mut app, "zzz", now);
     assert!(palette_labels(&app).is_empty());
     app.on_event(key(KeyCode::Enter), now);
@@ -1255,7 +1260,7 @@ fn palette_filters_fuzzily_and_backspace_widens() {
     for _ in 0..3 {
         app.on_event(key(KeyCode::Backspace), now);
     }
-    assert_eq!(palette_labels(&app)[0], "Export SVG");
+    assert_eq!(palette_labels(&app)[0], "File: Export SVG");
 }
 
 #[test]
@@ -1272,7 +1277,7 @@ fn palette_enter_runs_the_entry() {
     app.session.exec(shape_at("aaaaaaaa", 20, 5));
     app.session.selection = vec![Id::from("aaaaaaaa")];
     ctrl_key(&mut app, 'p', now);
-    type_str(&mut app, "delete", now);
+    type_str(&mut app, "edit: delete", now);
     app.on_event(key(KeyCode::Enter), now);
     assert!(app.session.canvas.elements.is_empty());
     app.on_event(key(KeyCode::Char('u')), now);
@@ -1303,7 +1308,7 @@ fn palette_clicks_run_rows_and_outside_closes() {
     let now = Instant::now();
     ctrl_key(&mut app, 'p', now);
     let third = palette_labels(&app)[2].clone();
-    assert_eq!(third, "Select all");
+    assert_eq!(third, "Edit: Select all");
     // 80x24 box is 13 rows high at y=5; rows start at y+2.
     click(&mut app, 40, 5 + 2 + 2, now);
     assert!(!palette_open(&app));
@@ -1899,7 +1904,7 @@ fn press(app: &mut App, k: &clidraw::ui::registry::Key) {
 
 #[test]
 fn registry_runnable_entries_dispatch_their_action() {
-    use clidraw::ui::registry::{Scope, BINDINGS};
+    use clidraw::ui::registry::BINDINGS;
     let t = tempfile::tempdir().unwrap();
     let now = Instant::now();
     let runnable = BINDINGS
@@ -1912,10 +1917,7 @@ fn registry_runnable_entries_dispatch_their_action() {
             let start = world(&by_key);
             press(&mut by_key, k);
             ctrl_key(&mut by_palette, 'p', now);
-            let label = match b.scope {
-                Scope::Tool => format!("Tool: {}", b.name()),
-                _ => b.label.to_string(),
-            };
+            let label = format!("{}: {}", b.action.unwrap().category(), b.name());
             type_str(&mut by_palette, &label, now);
             by_palette.on_event(key(KeyCode::Enter), now);
             assert_eq!(world(&by_key), world(&by_palette), "{} {}", b.id, k.label());
@@ -2136,4 +2138,34 @@ fn palette_types_j_k_into_the_query_and_esc_clears_it_before_closing() {
     assert_eq!(palette_labels(&app).len(), all);
     app.on_event(key(KeyCode::Esc), now);
     assert!(!palette_open(&app));
+}
+
+#[test]
+fn palette_reaches_canvas_and_file_commands() {
+    use clidraw::ui::prompt::PromptKind;
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    for (query, kind) in [
+        ("create canvas", "new"),
+        ("rename canvas", "rename"),
+        ("delete canvas", "delete"),
+        ("import file", "import"),
+        ("use library", "lib"),
+    ] {
+        ctrl_key(&mut app, 'p', now);
+        type_str(&mut app, query, now);
+        app.on_event(key(KeyCode::Enter), now);
+        let got = match prompt_kind(&app) {
+            Some(PromptKind::NewCanvas) => "new",
+            Some(PromptKind::Rename(n)) if n == app.name => "rename",
+            Some(PromptKind::ConfirmDelete(n)) if n == app.name => "delete",
+            Some(PromptKind::Command) => kind,
+            _ => "none",
+        };
+        assert_eq!(got, kind, "{query}");
+        app.on_event(key(KeyCode::Esc), now);
+    }
+    ctrl_key(&mut app, 'p', now);
+    assert!(!palette_labels(&app).contains(&"Edit: Link selection to URL".to_string()));
 }
