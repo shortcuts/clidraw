@@ -130,6 +130,7 @@ fn hints(s: &Session, doc: &Doc, overlay: &Overlay) -> Vec<(String, &'static str
         Overlay::None if !s.selection.is_empty() => &["delete", "connect", "copy", "group"],
         Overlay::None => &["help", "command", "find", "fit"],
         Overlay::Context(_)
+        | Overlay::Formats(_)
         | Overlay::Scope(..)
         | Overlay::Colors(..)
         | Overlay::Switcher(_)

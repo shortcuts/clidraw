@@ -2283,3 +2283,42 @@ fn palette_ink_opens_a_color_list_that_enter_applies_and_esc_leaves() {
     app.on_event(key(KeyCode::Enter), now);
     assert_eq!(rect(&app).fill, Some(Paint::Red));
 }
+
+#[test]
+fn export_command_takes_a_format_or_lists_them() {
+    use clidraw::ui::prompt::PromptKind;
+    use clidraw::ui::scope::ExportFormat;
+    use clidraw::ui::Overlay;
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    run(&mut app, "export");
+    assert!(matches!(app.overlay, Overlay::Formats(_)));
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(
+        app.overlay,
+        Overlay::Scope(ExportFormat::Mermaid, _)
+    ));
+    app.on_event(key(KeyCode::Esc), now);
+    for (arg, format) in [
+        ("svg", ExportFormat::Svg),
+        ("mmd", ExportFormat::Mermaid),
+        ("txt", ExportFormat::Text),
+    ] {
+        run(&mut app, &format!("export {arg}"));
+        assert!(matches!(app.overlay, Overlay::Scope(f, _) if f == format));
+        app.on_event(key(KeyCode::Esc), now);
+    }
+    run(&mut app, "export svg");
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(
+        matches!(&app.overlay, Overlay::Prompt(p) if matches!(p.kind, PromptKind::ExportSvg(_)))
+    );
+    app.on_event(key(KeyCode::Esc), now);
+    run(&mut app, "export png");
+    assert_eq!(
+        app.status.as_ref().map(|s| s.text.as_str()),
+        Some("Usage: :export [svg|mmd|txt]")
+    );
+}

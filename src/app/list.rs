@@ -12,6 +12,11 @@ impl App {
                 Outcome::Close => self.overlay = Overlay::None,
                 _ => {}
             },
+            Overlay::Formats(l) => match l.key(k) {
+                Outcome::Run(format) => self.pick_scope(format),
+                Outcome::Close => self.overlay = Overlay::None,
+                _ => {}
+            },
             Overlay::Scope(format, l) => match l.key(k) {
                 Outcome::Run(item) => {
                     let format = *format;
@@ -54,6 +59,11 @@ impl App {
         match &self.overlay {
             Overlay::Context(l) => match l.click(screen, col, row) {
                 Click::Row(item, _) => self.context_item(item),
+                Click::Inside => {}
+                Click::Outside => self.overlay = Overlay::None,
+            },
+            Overlay::Formats(l) => match l.click(screen, col, row) {
+                Click::Row(format, _) => self.pick_scope(format),
                 Click::Inside => {}
                 Click::Outside => self.overlay = Overlay::None,
             },

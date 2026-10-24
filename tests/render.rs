@@ -390,11 +390,12 @@ fn overlay_dims_the_canvas_behind_it() {
     assert!(!draw(&s, &Overlay::None)[(20, 4)]
         .modifier
         .contains(Modifier::DIM));
-    assert!(
-        draw(&s, &Overlay::Scope(ExportFormat::Svg, ui::scope::list()))[(20, 4)]
-            .modifier
-            .contains(Modifier::DIM)
-    );
+    assert!(draw(
+        &s,
+        &Overlay::Scope(ExportFormat::Svg, ui::scope::list(ExportFormat::Svg))
+    )[(20, 4)]
+        .modifier
+        .contains(Modifier::DIM));
 }
 
 #[test]
@@ -1567,4 +1568,14 @@ fn active_chrome_uses_the_accent_with_truecolor_and_plain_reverse_without() {
         assert!(!off.is_empty());
         assert!(off.iter().all(|&c| c == Color::Reset));
     }
+}
+
+#[test]
+fn export_scope_box_title_names_its_format() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let text = screen_text(&draw(
+        &s,
+        &Overlay::Scope(ExportFormat::Svg, ui::scope::list(ExportFormat::Svg)),
+    ));
+    assert!(text.contains("Export SVG"));
 }

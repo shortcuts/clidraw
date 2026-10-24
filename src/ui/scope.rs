@@ -14,14 +14,32 @@ pub enum ScopeItem {
     Selection,
 }
 
-pub fn list() -> List<ScopeItem> {
-    let row = |value, label: &str| Row {
+fn row<T>(value: T, label: &str) -> Row<T> {
+    Row {
         value,
         label: label.to_string(),
         key: String::new(),
-    };
+    }
+}
+
+pub fn formats() -> List<ExportFormat> {
     List::new(
         "Export",
+        vec![
+            row(ExportFormat::Svg, "SVG"),
+            row(ExportFormat::Mermaid, "Mermaid"),
+            row(ExportFormat::Text, "Text"),
+        ],
+    )
+}
+
+pub fn list(format: ExportFormat) -> List<ScopeItem> {
+    List::new(
+        match format {
+            ExportFormat::Svg => "Export SVG",
+            ExportFormat::Mermaid => "Export Mermaid",
+            ExportFormat::Text => "Export Text",
+        },
         vec![
             row(ScopeItem::Whole, "Whole canvas"),
             row(ScopeItem::Area, "Area"),

@@ -28,7 +28,13 @@ impl App {
                 self.status = Some(Status::error("Usage: :import <path>"))
             }
             "import" => self.import(arg.trim()),
-            "export" => self.overlay = Overlay::Scope(ExportFormat::Text, scope::list()),
+            "export" => match arg.trim() {
+                "" => self.overlay = Overlay::Formats(scope::formats()),
+                "svg" => self.pick_scope(ExportFormat::Svg),
+                "mmd" => self.pick_scope(ExportFormat::Mermaid),
+                "txt" => self.pick_scope(ExportFormat::Text),
+                _ => self.status = Some(Status::error("Usage: :export [svg|mmd|txt]")),
+            },
             "link" if !self.session.set_link(arg.trim()) => {
                 self.status = Some(Status::error("Usage: :link <http(s) or mailto url>"))
             }

@@ -1,7 +1,7 @@
 use super::App;
 use crate::export;
 use crate::ui::prompt::{Extent, Prompt, PromptKind};
-use crate::ui::scope::{ExportFormat, ScopeItem};
+use crate::ui::scope::{self, ExportFormat, ScopeItem};
 use crate::ui::{Overlay, Status};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
@@ -12,6 +12,10 @@ pub struct Pick {
 }
 
 impl App {
+    pub(super) fn pick_scope(&mut self, format: ExportFormat) {
+        self.overlay = Overlay::Scope(format, scope::list(format));
+    }
+
     pub(super) fn scope_item(&mut self, item: ScopeItem, format: ExportFormat) {
         self.overlay = Overlay::None;
         match item {

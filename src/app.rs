@@ -5,7 +5,7 @@ use crate::store::{State, Store, StoreError};
 use crate::ui::menu::{self, ContextItem, MenuItem};
 use crate::ui::minimap;
 use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
-use crate::ui::scope::{self, ExportFormat};
+use crate::ui::scope::ExportFormat;
 use crate::ui::switcher::{Switcher, SwitcherHit};
 use crate::ui::{self, Overlay};
 use crossterm::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
@@ -291,6 +291,7 @@ impl App {
         if matches!(
             self.overlay,
             Overlay::Context(_)
+                | Overlay::Formats(_)
                 | Overlay::Scope(..)
                 | Overlay::Colors(..)
                 | Overlay::Switcher(_)
@@ -314,6 +315,7 @@ impl App {
         let screen = self.session.screen;
         match &self.overlay {
             Overlay::Context(_)
+            | Overlay::Formats(_)
             | Overlay::Scope(..)
             | Overlay::Colors(..)
             | Overlay::Switcher(_)
@@ -337,13 +339,9 @@ impl App {
         match item {
             MenuItem::Canvases => self.open_switcher(),
             MenuItem::FitAll => self.fit_all(),
-            MenuItem::ExportSvg => self.overlay = Overlay::Scope(ExportFormat::Svg, scope::list()),
-            MenuItem::ExportMermaid => {
-                self.overlay = Overlay::Scope(ExportFormat::Mermaid, scope::list())
-            }
-            MenuItem::ExportText => {
-                self.overlay = Overlay::Scope(ExportFormat::Text, scope::list())
-            }
+            MenuItem::ExportSvg => self.pick_scope(ExportFormat::Svg),
+            MenuItem::ExportMermaid => self.pick_scope(ExportFormat::Mermaid),
+            MenuItem::ExportText => self.pick_scope(ExportFormat::Text),
             MenuItem::Quit => self.quit = true,
         }
     }

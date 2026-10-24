@@ -30,6 +30,7 @@ use ratatui::layout::Rect;
 pub enum Overlay {
     None,
     Context(list::List<menu::ContextItem>),
+    Formats(list::List<scope::ExportFormat>),
     Scope(scope::ExportFormat, list::List<scope::ScopeItem>),
     Colors(palette::Choice, list::List<Option<crate::model::Paint>>),
     Switcher(switcher::Switcher),
@@ -104,6 +105,7 @@ pub fn render(
     match overlay {
         Overlay::None => {}
         Overlay::Context(c) => c.draw(&mut grid),
+        Overlay::Formats(l) => l.draw(&mut grid),
         Overlay::Scope(_, l) => l.draw(&mut grid),
         Overlay::Colors(_, l) => l.draw(&mut grid),
         Overlay::Switcher(sw) => sw.draw(&mut grid),

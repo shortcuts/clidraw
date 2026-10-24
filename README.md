@@ -69,7 +69,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 
 The command palette (`Ctrl-p`) lists every action with its key, including Canvases, Fit all, the exports and Quit. Saving is automatic. The Minimap action shows the whole canvas. Click a frame or shape to jump to it.
 
-Export asks what to write: the whole canvas, a dragged area or the selection. Export Text (or `:export`) writes the canvas as plain text, as the screen draws it. Set `export_padding` in `config.toml` for the SVG margin in cells.
+Export asks what to write: the whole canvas, a dragged area or the selection. `:export` lists the formats; `:export svg`, `:export mmd` and `:export txt` skip the list. Text writes the canvas as plain text, as the screen draws it. Set `export_padding` in `config.toml` for the SVG margin in cells.
 
 Mouse capture disables the terminal's own text selection. Hold Shift (Option on macOS) to select text.
 
