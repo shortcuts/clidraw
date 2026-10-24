@@ -754,6 +754,16 @@ fn long_shape_label_wraps_inside_the_shape() {
 }
 
 #[test]
+fn an_upper_shape_keeps_the_outline_of_the_shape_it_overlaps() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    c.elements.push(shape("bbbbbbbb", 24, ""));
+    let s = Session::new(c, View::default(), (80, 24));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 5, 20, 12), "│   │  │   │");
+}
+
+#[test]
 fn a_shape_too_short_for_its_label_draws_only_inside_its_rows() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 20, "a\nb\nc\nd"));

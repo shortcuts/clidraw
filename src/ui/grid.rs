@@ -81,6 +81,20 @@ impl Grid {
         }
     }
 
+    /// Blanks the area but keeps box-drawing glyphs, so an overlapped shape keeps its outline.
+    pub fn clear_inside(&mut self, x: i32, y: i32, w: i32, h: i32) {
+        for yy in y..y + h {
+            for xx in x..x + w {
+                let outline = self
+                    .get(xx, yy)
+                    .is_some_and(|c| ('\u{2500}'..='\u{257F}').contains(&c.ch));
+                if !outline {
+                    self.set(xx, yy, ' ', 0);
+                }
+            }
+        }
+    }
+
     /// Skips blanks: reverse video would paint them as colored blocks.
     pub fn tint(&mut self, x: i32, y: i32, w: i32, h: i32, fg: Color) {
         for yy in y.max(0)..(y + h).min(self.h) {

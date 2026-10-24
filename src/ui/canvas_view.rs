@@ -218,7 +218,7 @@ fn dashed(stroke: Stroke, glyph: char) -> char {
 fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     let (w, h) = (s.w, s.h);
     if s.kind != ShapeKind::Frame {
-        grid.fill(x, y, w, h);
+        grid.clear_inside(x, y, w, h);
     }
     if s.link.is_some() {
         grid.set(x + w, y, '↗', flags);
