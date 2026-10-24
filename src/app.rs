@@ -2,12 +2,11 @@ use crate::input::{handle_key, handle_mouse, handle_paste, scroll_step, KeyOutco
 use crate::model::Z;
 use crate::names;
 use crate::store::{State, Store, StoreError};
-use crate::ui::actions::Actions;
-use crate::ui::menu::{Context, ContextItem, MenuItem};
+use crate::ui::menu::{self, ContextItem, MenuItem};
 use crate::ui::minimap;
 use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
 use crate::ui::scope::{self, ExportFormat};
-use crate::ui::switcher::{self, Switcher, SwitcherHit};
+use crate::ui::switcher::{Switcher, SwitcherHit};
 use crate::ui::{self, Overlay};
 use crossterm::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
 use ratatui::buffer::Buffer;
@@ -20,6 +19,7 @@ mod export;
 mod help;
 mod import;
 mod library;
+mod list;
 mod open;
 
 pub struct App {
@@ -266,7 +266,7 @@ impl App {
                 KeyOutcome::Help => self.overlay = Overlay::Help(0, String::new()),
                 KeyOutcome::Actions => {
                     if self.pick.is_none() {
-                        self.overlay = Overlay::Actions(Actions::new(&self.session));
+                        self.overlay = Overlay::Actions(ui::actions::list(&self.session));
                     }
                 }
                 KeyOutcome::Command => {
@@ -288,8 +288,11 @@ impl App {
             self.help_key(k);
             return;
         }
-        if matches!(self.overlay, Overlay::Actions(_)) {
-            self.actions_key(k);
+        if matches!(
+            self.overlay,
+            Overlay::Context(_) | Overlay::Scope(..) | Overlay::Switcher(_) | Overlay::Actions(_)
+        ) {
+            self.list_key(k);
             return;
         }
         match (k.code, &mut self.overlay) {
@@ -306,31 +309,16 @@ impl App {
     fn overlay_click(&mut self, col: i32, row: i32) {
         let screen = self.session.screen;
         match &self.overlay {
-            Overlay::Context(c) => match c.entry_at(col, row) {
-                Some(item) => self.context_item(item),
-                None if !c.inside(col, row) => self.overlay = Overlay::None,
-                None => {}
-            },
-            Overlay::Scope(format) => match scope::entry_at(screen, col, row) {
-                Some(item) => self.scope_item(item, *format),
-                None if !scope::inside(screen, col, row) => self.overlay = Overlay::None,
-                None => {}
-            },
-            Overlay::Switcher(sw) => match switcher::hit(sw, screen, col, row) {
-                Some(h) => self.switcher_hit(h),
-                None => self.overlay = Overlay::None,
-            },
+            Overlay::Context(_)
+            | Overlay::Scope(..)
+            | Overlay::Switcher(_)
+            | Overlay::Actions(_) => self.list_click(col, row),
             Overlay::Prompt(_) => match prompt::hit(screen, col, row) {
                 Some(PromptHit::Ok) => self.confirm(),
                 Some(PromptHit::Cancel) => self.overlay = Overlay::None,
                 None => {}
             },
             Overlay::Help(..) => self.help_click(col, row),
-            Overlay::Actions(a) => match a.row_at(screen, col, row) {
-                Some(action) => self.run_action(action),
-                None if !a.inside(screen, col, row) => self.overlay = Overlay::None,
-                None => {}
-            },
             Overlay::Map => {
                 minimap::click(&mut self.session, col, row);
                 self.overlay = Overlay::None;
@@ -344,9 +332,13 @@ impl App {
         match item {
             MenuItem::Canvases => self.open_switcher(),
             MenuItem::FitAll => self.fit_all(),
-            MenuItem::ExportSvg => self.overlay = Overlay::Scope(ExportFormat::Svg),
-            MenuItem::ExportMermaid => self.overlay = Overlay::Scope(ExportFormat::Mermaid),
-            MenuItem::ExportText => self.overlay = Overlay::Scope(ExportFormat::Text),
+            MenuItem::ExportSvg => self.overlay = Overlay::Scope(ExportFormat::Svg, scope::list()),
+            MenuItem::ExportMermaid => {
+                self.overlay = Overlay::Scope(ExportFormat::Mermaid, scope::list())
+            }
+            MenuItem::ExportText => {
+                self.overlay = Overlay::Scope(ExportFormat::Text, scope::list())
+            }
             MenuItem::Quit => self.quit = true,
         }
     }
@@ -361,18 +353,17 @@ impl App {
         if self.pick.is_some() {
             return;
         }
-        let (at, screen) = ((col, row), self.session.screen);
+        let at = (col, row);
         self.overlay = match self.session.right_down(col, row) {
             None => return,
-            Some(true) => Overlay::Context(Context::for_element(
+            Some(true) => Overlay::Context(menu::element(
                 at,
-                screen,
                 self.session.selection.len() == 1,
                 self.session.line_has_bends(),
             )),
             Some(false) => {
                 let can_paste = !self.session.clipboard.elements.is_empty();
-                Overlay::Context(Context::for_canvas(at, screen, can_paste))
+                Overlay::Context(menu::canvas(at, can_paste))
             }
         };
     }
@@ -402,10 +393,7 @@ impl App {
     fn open_switcher(&mut self) {
         self.save();
         let names = self.store.list().unwrap_or_default();
-        self.overlay = Overlay::Switcher(Switcher {
-            names,
-            current: self.name.clone(),
-        });
+        self.overlay = Overlay::Switcher(Switcher::new(names, &self.name));
     }
 
     fn switcher_hit(&mut self, h: SwitcherHit) {

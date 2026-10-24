@@ -2,30 +2,8 @@ use super::App;
 use crate::ui::actions::Action;
 use crate::ui::prompt::{Prompt, PromptKind};
 use crate::ui::Overlay;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 impl App {
-    pub(super) fn actions_key(&mut self, k: KeyEvent) {
-        let Overlay::Actions(a) = &mut self.overlay else {
-            return;
-        };
-        match k.code {
-            KeyCode::Esc => self.overlay = Overlay::None,
-            KeyCode::Enter => {
-                if let Some(action) = a.selected_action() {
-                    self.run_action(action);
-                }
-            }
-            KeyCode::Up => a.up(),
-            KeyCode::Down => a.down(),
-            KeyCode::Char('p') if k.modifiers.contains(KeyModifiers::CONTROL) => a.up(),
-            KeyCode::Char('n') if k.modifiers.contains(KeyModifiers::CONTROL) => a.down(),
-            KeyCode::Backspace => a.pop(),
-            KeyCode::Char(c) if !k.modifiers.contains(KeyModifiers::CONTROL) => a.push(c),
-            _ => {}
-        }
-    }
-
     pub(super) fn run_action(&mut self, action: Action) {
         self.overlay = Overlay::None;
         let s = &mut self.session;

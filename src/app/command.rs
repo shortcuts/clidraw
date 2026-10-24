@@ -1,6 +1,6 @@
 use super::App;
 use crate::model::Dir;
-use crate::ui::scope::ExportFormat;
+use crate::ui::scope::{self, ExportFormat};
 use crate::ui::{Overlay, Perf, Status};
 
 impl App {
@@ -27,7 +27,7 @@ impl App {
                 self.status = Some(Status::error("Usage: :import <path>"))
             }
             "import" => self.import(arg.trim()),
-            "export" => self.overlay = Overlay::Scope(ExportFormat::Text),
+            "export" => self.overlay = Overlay::Scope(ExportFormat::Text, scope::list()),
             "link" if !self.session.set_link(arg.trim()) => {
                 self.status = Some(Status::error("Usage: :link <http(s) or mailto url>"))
             }

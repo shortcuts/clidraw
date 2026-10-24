@@ -1,9 +1,10 @@
-use super::style::{ACTIVE, MUTED};
-use super::{boxed, centered, Grid};
+use super::list::{List, Row};
+use super::Grid;
+use std::ops::Range;
 
 pub struct Switcher {
     pub names: Vec<String>,
-    pub current: String,
+    pub list: List<SwitcherHit>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -14,49 +15,35 @@ pub enum SwitcherHit {
     Delete(usize),
 }
 
-const WIDTH: i32 = 44;
-const ACTIONS: &str = "[r] [x]";
+const KEYS: &str = "r rename  x delete";
+pub const RENAME: Range<i32> = 0..8;
+pub const DELETE: Range<i32> = 10..18;
 
-fn rect(screen: (u16, u16), rows: usize) -> (i32, i32, i32, i32) {
-    centered(screen, WIDTH, rows as i32 + 3)
-}
+impl Switcher {
+    pub fn new(names: Vec<String>, current: &str) -> Switcher {
+        let new = Row {
+            value: SwitcherHit::New,
+            label: "+ New".to_string(),
+            key: String::new(),
+        };
+        let opens = names.iter().enumerate().map(|(i, n)| Row {
+            value: SwitcherHit::Open(i),
+            label: if n == current {
+                format!("{n} (current)")
+            } else {
+                n.clone()
+            },
+            key: KEYS.to_string(),
+        });
+        let rows: Vec<_> = std::iter::once(new).chain(opens).collect();
+        let at = names.iter().position(|n| n == current).map_or(0, |i| i + 1);
+        Switcher {
+            names,
+            list: List::new("Canvases", rows).min_width(44).select(at),
+        }
+    }
 
-pub fn hit(sw: &Switcher, screen: (u16, u16), col: i32, row: i32) -> Option<SwitcherHit> {
-    let (x, y, w, h) = rect(screen, sw.names.len());
-    if col <= x || col >= x + w - 1 || row <= y || row >= y + h - 1 {
-        return None;
-    }
-    let r = (row - y - 1) as usize;
-    if r == 0 {
-        return Some(SwitcherHit::New);
-    }
-    let i = r - 1;
-    if i >= sw.names.len() {
-        return None;
-    }
-    let actions = x + w - 1 - ACTIONS.len() as i32;
-    Some(match col - actions {
-        0..=2 => SwitcherHit::Rename(i),
-        4..=6 => SwitcherHit::Delete(i),
-        _ => SwitcherHit::Open(i),
-    })
-}
-
-pub fn draw(grid: &mut Grid, sw: &Switcher) {
-    let screen = (grid.w as u16, grid.h as u16);
-    let r = rect(screen, sw.names.len());
-    boxed(grid, r, "Canvases");
-    grid.text(r.0 + 2, r.1 + 1, "+ New", ACTIVE);
-    let name_room = (r.2 - 4 - ACTIONS.len() as i32 - 1).max(0) as usize;
-    for (i, name) in sw.names.iter().enumerate() {
-        let y = r.1 + 2 + i as i32;
-        let shown: String = name.chars().take(name_room).collect();
-        grid.text(
-            r.0 + 2,
-            y,
-            &shown,
-            if *name == sw.current { ACTIVE } else { 0 },
-        );
-        grid.text(r.0 + r.2 - 1 - ACTIONS.len() as i32, y, ACTIONS, MUTED);
+    pub fn draw(&self, grid: &mut Grid) {
+        self.list.draw(grid);
     }
 }

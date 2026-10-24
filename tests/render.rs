@@ -390,21 +390,49 @@ fn overlay_dims_the_canvas_behind_it() {
     assert!(!draw(&s, &Overlay::None)[(20, 4)]
         .modifier
         .contains(Modifier::DIM));
-    assert!(draw(&s, &Overlay::Scope(ExportFormat::Svg))[(20, 4)]
-        .modifier
-        .contains(Modifier::DIM));
+    assert!(
+        draw(&s, &Overlay::Scope(ExportFormat::Svg, ui::scope::list()))[(20, 4)]
+            .modifier
+            .contains(Modifier::DIM)
+    );
 }
 
 #[test]
-fn switcher_action_tags_are_dim_and_new_row_stays_reversed() {
+fn switcher_rows_show_current_and_dim_keys_at_every_width() {
+    for w in [40u16, 60, 120] {
+        let s = Session::new(Canvas::default(), View::default(), (w, 24));
+        let sw = Switcher::new(vec!["main".into(), "other".into()], "main");
+        let b = draw(&s, &Overlay::Switcher(sw));
+        let all: Vec<String> = (0..24).map(|y| row(&b, y)).collect();
+        let at = |needle: &str| all.iter().position(|r| r.contains(needle)).unwrap();
+        assert!(
+            all[at("main (current)")].contains("r rename  x delete"),
+            "{w}"
+        );
+        let (selected, other) = (at("main (current)") as u16, at("other") as u16);
+        let col = |y: u16, needle: &str| row(&b, y).find(needle).unwrap() as u16;
+        let x = col(other, "r rename");
+        assert!(b[(x, other)].modifier.contains(Modifier::DIM), "{w}");
+        assert!(b[(col(selected, "main"), selected)]
+            .modifier
+            .contains(Modifier::REVERSED));
+    }
+}
+
+#[test]
+fn context_menu_rows_show_their_registry_key() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let sw = Switcher {
-        names: vec!["main".into()],
-        current: "main".into(),
-    };
-    let b = draw(&s, &Overlay::Switcher(sw));
-    assert!(b[(54, 12)].modifier.contains(Modifier::DIM), "tag [");
-    assert!(b[(20, 11)].modifier.contains(Modifier::REVERSED), "+ New");
+    let b = draw(
+        &s,
+        &Overlay::Context(ui::menu::element((10, 5), false, false)),
+    );
+    let line = (0..24)
+        .map(|y| row(&b, y))
+        .find(|r| r.contains("Raise"))
+        .unwrap();
+    assert!(line.contains("Raise") && line.contains(" ] "), "{line}");
+    let first = (0..24).find(|&y| row(&b, y).contains("Duplicate")).unwrap();
+    assert!(b[(12, first)].modifier.contains(Modifier::REVERSED));
 }
 
 #[test]
@@ -1059,7 +1087,7 @@ fn info_bar_hints_come_from_the_registry_at_every_width() {
 #[test]
 fn palette_keys_come_from_the_registry() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let overlay = Overlay::Actions(ui::actions::Actions::new(&s));
+    let overlay = Overlay::Actions(ui::actions::list(&s));
     let b = draw(&s, &overlay);
     let all: String = (0..24).map(|y| row(&b, y)).collect::<Vec<_>>().join("\n");
     assert!(all.contains("Redo") && all.contains("Ctrl-r"), "{all}");
@@ -1178,7 +1206,7 @@ fn label_align_places_the_text_and_bold_sets_the_modifier() {
 #[test]
 fn context_menu_near_the_corner_stays_on_screen() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let menu = ui::menu::Context::for_element((79, 23), (80, 24), true, false);
+    let menu = ui::menu::element((79, 23), true, false);
     let b = draw(&s, &Overlay::Context(menu));
     let all: String = (0..24).map(|y| row(&b, y)).collect();
     for e in ["Duplicate", "Send to back"] {
@@ -1190,16 +1218,13 @@ fn context_menu_near_the_corner_stays_on_screen() {
 #[test]
 fn actions_palette_draws_query_rows_and_selection() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let b = draw(
-        &s,
-        &Overlay::Actions(clidraw::ui::actions::Actions::new(&s)),
-    );
+    let b = draw(&s, &Overlay::Actions(clidraw::ui::actions::list(&s)));
     let rows: Vec<String> = (0..24).map(|y| row(&b, y)).collect();
     assert!(rows.iter().any(|r| r.contains("> _")));
     let undo = rows.iter().position(|r| r.contains("Undo")).unwrap();
     assert!(rows[undo].contains("u │"));
     assert!(b[(30, undo as u16)].modifier.contains(Modifier::REVERSED));
-    let mut a = clidraw::ui::actions::Actions::new(&s);
+    let mut a = clidraw::ui::actions::list(&s);
     a.push('q');
     a.push('q');
     a.push('q');

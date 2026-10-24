@@ -45,7 +45,7 @@ fn clip(s: &str, max: i32) -> String {
         .collect()
 }
 
-fn fit(s: &str, max: i32) -> String {
+pub(super) fn fit(s: &str, max: i32) -> String {
     if width(s) <= max {
         return s.to_string();
     }
@@ -129,7 +129,9 @@ fn hints(s: &Session, doc: &Doc, overlay: &Overlay) -> Vec<(String, &'static str
         Overlay::None if s.tool != Tool::Select => &["draw", "cancel", "tool_select"],
         Overlay::None if !s.selection.is_empty() => &["delete", "connect", "copy", "group"],
         Overlay::None => &["help", "command", "find", "fit"],
-        Overlay::Actions(_) => &["run", "select", "close"],
+        Overlay::Context(_) | Overlay::Scope(..) | Overlay::Switcher(_) | Overlay::Actions(_) => {
+            &["run", "select", "close"]
+        }
         Overlay::Map => &["jump", "close"],
         _ => &["close"],
     };

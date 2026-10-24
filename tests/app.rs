@@ -159,7 +159,7 @@ fn area_app(dir: &std::path::Path) -> (App, Instant) {
     }
     let t = Instant::now();
     open_export(&mut app, t);
-    click(&mut app, 31, 11, t);
+    click(&mut app, 34, 11, t);
     (app, t)
 }
 
@@ -196,7 +196,7 @@ fn exports_only_the_selection() {
     app.on_event(key(KeyCode::Esc), now);
     app.session.selection = vec![Id::from("bbbbbbbb")];
     open_export(&mut app, now);
-    click(&mut app, 31, 12, now);
+    click(&mut app, 34, 12, now);
     let out = t.path().join("sel.svg");
     type_path(&mut app, out.to_str().unwrap(), now);
     let svg = std::fs::read_to_string(out).unwrap();
@@ -210,7 +210,7 @@ fn an_empty_selection_opens_no_prompt() {
     let (mut app, now) = area_app(t.path());
     app.on_event(key(KeyCode::Esc), now);
     open_export(&mut app, now);
-    click(&mut app, 31, 12, now);
+    click(&mut app, 34, 12, now);
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
     assert_eq!(
         app.status.as_ref().map(|s| s.text.as_str()),
@@ -239,7 +239,7 @@ fn export_padding_comes_from_the_config() {
     ));
     let now = Instant::now();
     open_export(&mut app, now);
-    click(&mut app, 31, 10, now);
+    click(&mut app, 34, 10, now);
     let out = t.path().join("pad.svg");
     type_path(&mut app, out.to_str().unwrap(), now);
     let svg = std::fs::read_to_string(out).unwrap();
@@ -1139,7 +1139,7 @@ fn right_click_menu_closes_and_moves() {
     let clidraw::ui::Overlay::Context(c) = &app.overlay else {
         panic!("no menu")
     };
-    assert_eq!(c.at, (60, 15));
+    assert_eq!(c.anchor, clidraw::ui::list::Anchor::At(60, 15));
 }
 
 #[test]
@@ -1281,7 +1281,7 @@ fn palette_enter_runs_the_entry() {
     ctrl_key(&mut app, 'p', now);
     type_str(&mut app, "export svg", now);
     app.on_event(key(KeyCode::Enter), now);
-    assert!(matches!(app.overlay, clidraw::ui::Overlay::Scope(_)));
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Scope(..)));
     app.on_event(key(KeyCode::Esc), now);
 
     ctrl_key(&mut app, 'p', now);
@@ -1841,7 +1841,7 @@ fn palette_ctrl_n_and_ctrl_p_move_the_selection() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     let selected = |app: &App| match &app.overlay {
-        clidraw::ui::Overlay::Actions(a) => a.selected_action(),
+        clidraw::ui::Overlay::Actions(a) => a.selected(),
         _ => panic!("palette is not open"),
     };
     ctrl_key(&mut app, 'p', now);
@@ -1994,7 +1994,7 @@ fn registry_display_only_entries_are_covered() {
         (
             "select",
             palette_open_at_second,
-            |a| matches!(&a.overlay, Overlay::Actions(x) if x.selected_action() == Some(Action::Ex("u"))),
+            |a| matches!(&a.overlay, Overlay::Actions(x) if x.selected() == Some(Action::Ex("u"))),
         ),
         (
             "close",
@@ -2043,4 +2043,97 @@ fn registry_display_only_entries_are_covered() {
         press(&mut app, &b.keys[0]);
         assert!(check(&app), "{} {}", b.id, b.keys[0].label());
     }
+}
+
+fn prompt_kind(app: &App) -> Option<clidraw::ui::prompt::PromptKind> {
+    match &app.overlay {
+        clidraw::ui::Overlay::Prompt(p) => Some(p.kind.clone()),
+        _ => None,
+    }
+}
+
+#[test]
+fn context_menu_runs_the_highlighted_row_from_the_keyboard() {
+    use clidraw::ui::Overlay;
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    right_click(&mut app, 22, 6, now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(app.overlay, Overlay::None));
+    assert_eq!(app.session.canvas.elements.len(), 2);
+
+    right_click(&mut app, 22, 6, now);
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(!context_open(&app));
+}
+
+#[test]
+fn export_scope_runs_the_highlighted_row_from_the_keyboard() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    open_export(&mut app, now);
+    ctrl_key(&mut app, 'n', now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(
+        app.status.as_ref().map(|s| s.text.as_str()),
+        Some("nothing selected")
+    );
+}
+
+#[test]
+fn switcher_renames_and_deletes_the_highlighted_canvas_from_the_keyboard() {
+    use clidraw::ui::prompt::PromptKind;
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    open_canvases(&mut app, now);
+    app.on_event(key(KeyCode::Char('x')), now);
+    assert!(matches!(prompt_kind(&app), Some(PromptKind::ConfirmDelete(n)) if n == app.name));
+    app.on_event(key(KeyCode::Esc), now);
+    open_canvases(&mut app, now);
+    app.on_event(key(KeyCode::Char('r')), now);
+    assert!(matches!(prompt_kind(&app), Some(PromptKind::Rename(n)) if n == app.name));
+}
+
+#[test]
+fn switcher_moves_with_j_k_and_enter_on_the_current_canvas_closes() {
+    use clidraw::ui::prompt::PromptKind;
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    open_canvases(&mut app, now);
+    app.on_event(key(KeyCode::Char('k')), now);
+    app.on_event(key(KeyCode::Char('x')), now);
+    assert!(prompt_kind(&app).is_none(), "x on the New row does nothing");
+    app.on_event(key(KeyCode::Char('j')), now);
+    app.on_event(key(KeyCode::Char('x')), now);
+    assert!(matches!(
+        prompt_kind(&app),
+        Some(PromptKind::ConfirmDelete(_))
+    ));
+    app.on_event(key(KeyCode::Esc), now);
+    open_canvases(&mut app, now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+}
+
+#[test]
+fn palette_types_j_k_into_the_query_and_esc_clears_it_before_closing() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    let all = palette_labels(&app).len();
+    type_str(&mut app, "jk", now);
+    assert!(palette_labels(&app).len() < all);
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(palette_open(&app));
+    assert_eq!(palette_labels(&app).len(), all);
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(!palette_open(&app));
 }

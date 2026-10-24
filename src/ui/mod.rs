@@ -4,6 +4,7 @@ mod grid;
 pub mod help;
 mod infobar;
 mod layout;
+pub mod list;
 pub mod menu;
 pub mod minimap;
 pub mod palette;
@@ -27,12 +28,12 @@ use ratatui::layout::Rect;
 
 pub enum Overlay {
     None,
-    Context(menu::Context),
-    Scope(scope::ExportFormat),
+    Context(list::List<menu::ContextItem>),
+    Scope(scope::ExportFormat, list::List<scope::ScopeItem>),
     Switcher(switcher::Switcher),
     Prompt(prompt::Prompt),
     Help(usize, String),
-    Actions(actions::Actions),
+    Actions(list::List<actions::Action>),
     Map,
 }
 
@@ -100,8 +101,8 @@ pub fn render(
     match overlay {
         Overlay::None => {}
         Overlay::Context(c) => c.draw(&mut grid),
-        Overlay::Scope(_) => scope::draw(&mut grid),
-        Overlay::Switcher(sw) => switcher::draw(&mut grid, sw),
+        Overlay::Scope(_, l) => l.draw(&mut grid),
+        Overlay::Switcher(sw) => sw.draw(&mut grid),
         Overlay::Prompt(p) => prompt::draw(&mut grid, p),
         Overlay::Help(p, q) => help::draw(&mut grid, *p, q),
         Overlay::Actions(a) => a.draw(&mut grid),

@@ -128,7 +128,7 @@ last row    bottom bar    [Undo] [Redo]  MODE  key action  key action …   12x4
 - An open overlay dims everything under it.
 - Every action that the mouse can reach is also reachable by keyboard: a shortcut, a palette entry, or both.
 
-`src/ui/mod.rs:139` defines the box helper that every overlay uses.
+`src/ui/mod.rs:150` defines the box helper that every overlay uses.
 
 ```rust
 pub(crate) fn boxed(grid: &mut Grid, (x, y, w, h): (i32, i32, i32, i32), title: &str) {
@@ -155,10 +155,10 @@ Chrome code uses the named styles in the UI style module, never raw `BOLD`, `DIM
 
 The tokens live in `src/ui/style.rs`.
 
-- Good: `src/ui/switcher.rs:60` passes the `MUTED` token:
+- Good: `src/ui/list.rs:195` passes the `MUTED` token for the key column:
 
   ```rust
-  grid.text(r.0 + r.2 - 1 - ACTIONS.len() as i32, y, ACTIONS, MUTED);
+  if on { ACTIVE } else { MUTED },
   ```
 
 - Bad: `grid.text(x, y, label, DIM);` passes a raw flag.
@@ -179,10 +179,10 @@ The tokens live in `src/ui/style.rs`.
   x -= width(&t) + GAP;
   ```
 
-- Bad: `src/ui/switcher.rs:37` measures the actions with `len`, which counts bytes, not cells:
+- Bad: `src/ui/prompt.rs:65` measures the button with `len`, which counts bytes, not cells:
 
   ```rust
-  let actions = x + w - 1 - ACTIONS.len() as i32;
+  let ok = x + 2..x + 2 + OK.len() as i32;
   ```
 
 - Good width: `src/model/geom.rs:147` asks `unicode-width` for the cell width of a char.
