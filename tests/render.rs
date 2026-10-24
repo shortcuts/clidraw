@@ -1789,3 +1789,32 @@ fn mermaid_prompt_shows_the_fix_only_when_enabled() {
     let narrow = line_at(&mermaid_prompt_fixes("A -> B", 40, 24, true), 23);
     assert!(narrow.starts_with("mmd> A -> B"), "{narrow}");
 }
+
+#[test]
+fn change_shape_overlay_draws_the_kind_rows() {
+    for width in [40u16, 60, 120] {
+        let s = Session::new(Canvas::default(), View::default(), (width, 24));
+        let overlay = Overlay::Kinds(vec![], clidraw::ui::kinds::list(ShapeKind::Rect, 23));
+        let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
+        let mut t = Terminal::new(TestBackend::new(width, 24)).unwrap();
+        t.draw(|f| {
+            let area = f.area();
+            ui::render(f.buffer_mut(), area, &s, &overlay, None, None, &doc(true))
+        })
+        .unwrap();
+        let b = t.backend().buffer().clone();
+        let rows: Vec<String> = (0..24).map(|y| line_at(&b, y)).collect();
+        assert!(rows.iter().any(|r| r.contains("Change shape")), "{width}");
+        for name in [
+            "Rect",
+            "Diamond",
+            "Cylinder",
+            "Parallelogram",
+            "Hexagon",
+            "Frame",
+        ] {
+            let at = rows.iter().position(|r| r.contains(name)).expect(name);
+            assert!(at < 23, "{name} at {at}");
+        }
+    }
+}

@@ -4,6 +4,7 @@ pub mod colors;
 mod grid;
 pub mod help;
 mod infobar;
+pub mod kinds;
 mod layout;
 pub mod list;
 pub mod menu;
@@ -33,6 +34,10 @@ pub enum Overlay {
     Formats(list::List<scope::ExportFormat>),
     Scope(scope::ExportFormat, list::List<scope::ScopeItem>),
     Colors(palette::Choice, list::List<Option<crate::model::Paint>>),
+    Kinds(
+        Vec<crate::input::Origin>,
+        list::List<crate::model::ShapeKind>,
+    ),
     Switcher(switcher::Switcher),
     Prompt(prompt::Prompt),
     Help(usize, String),
@@ -108,6 +113,7 @@ pub fn render(
         Overlay::Formats(l) => l.draw(&mut grid),
         Overlay::Scope(_, l) => l.draw(&mut grid),
         Overlay::Colors(_, l) => l.draw(&mut grid),
+        Overlay::Kinds(_, l) => l.draw(&mut grid),
         Overlay::Switcher(sw) => sw.draw(&mut grid),
         Overlay::Prompt(p)
             if matches!(

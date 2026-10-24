@@ -34,6 +34,22 @@ impl App {
                 Outcome::Close => self.overlay = Overlay::None,
                 _ => {}
             },
+            Overlay::Kinds(origins, l) => match l.key(k) {
+                Outcome::Run(kind) => {
+                    self.session.set_kind(origins, kind);
+                    self.overlay = Overlay::None;
+                }
+                Outcome::Close => {
+                    self.session.restore_kinds(origins);
+                    self.overlay = Overlay::None;
+                }
+                Outcome::Idle => {
+                    if let Some(kind) = l.selected() {
+                        self.session.preview_kind(origins, kind);
+                    }
+                }
+                _ => {}
+            },
             Overlay::Actions(l) => match l.key(k) {
                 Outcome::Run(action) => self.run_action(action),
                 Outcome::Close => self.overlay = Overlay::None,
@@ -83,6 +99,17 @@ impl App {
                 }
                 Click::Inside => {}
                 Click::Outside => self.overlay = Overlay::None,
+            },
+            Overlay::Kinds(origins, l) => match l.click(screen, col, row) {
+                Click::Row(kind, _) => {
+                    self.session.set_kind(origins, kind);
+                    self.overlay = Overlay::None;
+                }
+                Click::Inside => {}
+                Click::Outside => {
+                    self.session.restore_kinds(origins);
+                    self.overlay = Overlay::None;
+                }
             },
             Overlay::Actions(l) => match l.click(screen, col, row) {
                 Click::Row(action, _) => self.run_action(action),

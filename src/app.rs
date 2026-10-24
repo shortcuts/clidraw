@@ -61,6 +61,9 @@ impl App {
     }
 
     pub fn save(&mut self) {
+        if let Overlay::Kinds(origins, _) = &self.overlay {
+            self.session.restore_kinds(origins);
+        }
         let offset = (self.session.view.ox, self.session.view.oy);
         if self.state.offsets.insert(self.name.clone(), offset) != Some(offset) {
             let _ = self.store.save_state(&self.state);
@@ -89,6 +92,7 @@ impl App {
         self.dirty |= self.session.tip_step(now);
         if self.saved_rev != self.session.rev
             && !self.session.dragging()
+            && !matches!(self.overlay, Overlay::Kinds(..))
             && now.duration_since(self.last_edit) >= self.autosave
         {
             self.save();
@@ -299,6 +303,7 @@ impl App {
                 | Overlay::Formats(_)
                 | Overlay::Scope(..)
                 | Overlay::Colors(..)
+                | Overlay::Kinds(..)
                 | Overlay::Switcher(_)
                 | Overlay::Actions(_)
         ) {
@@ -320,6 +325,7 @@ impl App {
             | Overlay::Formats(_)
             | Overlay::Scope(..)
             | Overlay::Colors(..)
+            | Overlay::Kinds(..)
             | Overlay::Switcher(_)
             | Overlay::Actions(_) => self.list_click(col, row),
             Overlay::Prompt(p)

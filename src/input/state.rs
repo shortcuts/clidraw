@@ -1,13 +1,21 @@
 use super::drag::{drag, pan_step, up};
 use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
-use crate::model::{Command, Element, Id, Paint, Side};
+use crate::model::{Command, Element, Id, Paint, Shape, ShapeKind, Side};
 use crate::ui::palette::{self, paint, Choice, PaletteHit};
 use crate::view::View;
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, Instant};
 
 pub(super) type P = (i32, i32);
+
+/// A selected shape as it stood before a kind preview began.
+#[derive(Clone, Debug)]
+pub struct Origin {
+    pub id: Id,
+    pub kind: ShapeKind,
+    pub rect: (i32, i32, i32, i32),
+}
 
 pub(super) enum Gesture {
     Idle,
@@ -404,6 +412,53 @@ impl Session {
         self.exec(Command::Batch(cmds));
     }
 
+    pub fn origins(&self) -> Vec<Origin> {
+        self.selection
+            .iter()
+            .filter_map(|id| match self.canvas.get(id)? {
+                Element::Shape(s) => Some(Origin {
+                    id: id.clone(),
+                    kind: s.kind,
+                    rect: (s.x, s.y, s.w, s.h),
+                }),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Shows `kind` on the origin shapes without a history entry.
+    pub fn preview_kind(&mut self, from: &[Origin], kind: ShapeKind) {
+        self.restore_kinds(from);
+        let _ = self.canvas.apply(Command::Batch(kind_cmds(from, kind)));
+    }
+
+    pub fn restore_kinds(&mut self, from: &[Origin]) {
+        let cmds = from.iter().flat_map(|o| {
+            let (x, y, w, h) = o.rect;
+            [
+                Command::SetKind {
+                    id: o.id.clone(),
+                    kind: o.kind,
+                },
+                Command::SetRect {
+                    id: o.id.clone(),
+                    x,
+                    y,
+                    w,
+                    h,
+                },
+            ]
+        });
+        let _ = self.canvas.apply(Command::Batch(cmds.collect()));
+        self.rev += 1;
+    }
+
+    /// Restores the origins, then applies `kind` as one undoable edit relative to them.
+    pub fn set_kind(&mut self, from: &[Origin], kind: ShapeKind) {
+        self.restore_kinds(from);
+        self.exec(Command::Batch(kind_cmds(from, kind)));
+    }
+
     /// Sets the ink or fill of the selected elements that carry that color.
     pub fn set_paint(&mut self, c: Choice, color: Option<Paint>) {
         let cmds: Vec<Command> = self
@@ -423,6 +478,30 @@ impl Session {
             .collect();
         self.exec(Command::Batch(cmds));
     }
+}
+
+/// Switches each origin to `kind`, resized to the kind's ratio from the origin size; the origin kind keeps its size.
+fn kind_cmds(from: &[Origin], kind: ShapeKind) -> Vec<Command> {
+    from.iter()
+        .flat_map(|o| {
+            let (x, y, w, h) = o.rect;
+            let (sw, sh) = if kind == o.kind {
+                (w, h)
+            } else {
+                Shape::snap_size(kind, w, h)
+            };
+            let id = o.id.clone();
+            let resize = ((sw, sh) != (w, h)).then(|| Command::SetRect {
+                id: id.clone(),
+                x,
+                y,
+                w: sw,
+                h: sh,
+            });
+            [Some(Command::SetKind { id, kind }), resize]
+        })
+        .flatten()
+        .collect()
 }
 
 fn palette_down(s: &mut Session, h: PaletteHit) {

@@ -3,7 +3,7 @@ use super::menu::{ContextItem, MenuItem};
 use super::palette::{self, Choice};
 use super::registry;
 use crate::input::{Session, Tool};
-use crate::model::{Align, Z};
+use crate::model::{Align, Element, Z};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Action {
@@ -17,6 +17,7 @@ pub enum Action {
     Bold,
     Style(Choice),
     Pick(Choice),
+    ChangeShape,
     Copy,
     Cut,
     ZoomIn,
@@ -52,6 +53,9 @@ impl Action {
                     _ => c == *a,
                 })
             }
+            Action::ChangeShape => palette::selected(s)
+                .iter()
+                .any(|e| matches!(e, Element::Shape(_))),
             Action::Prefill("link ") => !s.selection.is_empty(),
             _ => true,
         }

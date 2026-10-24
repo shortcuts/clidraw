@@ -133,6 +133,7 @@ fn hints(s: &Session, doc: &Doc, overlay: &Overlay) -> Vec<(String, &'static str
         | Overlay::Formats(_)
         | Overlay::Scope(..)
         | Overlay::Colors(..)
+        | Overlay::Kinds(..)
         | Overlay::Switcher(_)
         | Overlay::Actions(_) => &["run", "select", "close"],
         Overlay::Map(_) => &["overview_target", "jump", "close"],

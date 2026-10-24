@@ -7,7 +7,7 @@ mod state;
 pub use edit::{Edit, EditBox, EditTarget};
 pub use hit::{handles, shape_at, Handle, Hit};
 pub use keys::{edit_key, handle_key, handle_paste, KeyOutcome};
-pub use state::{handle_mouse, scroll_step};
+pub use state::{handle_mouse, scroll_step, Origin};
 
 use crate::model::{
     wrap, Align, Anchor, Canvas, Command, Dir, Element, End, History, Id, Line, LineKind, Shape,

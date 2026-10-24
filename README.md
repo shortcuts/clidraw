@@ -38,6 +38,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Select shapes and run `:lib save <name>` to keep them in the library. Run `:lib insert <name>` to add them to any canvas.
 - Group elements to select and move them as one.
 - Click a shape tool to draw a new shape of that kind. A selected shape stays unchanged and the selection clears.
+- Select shapes, open the command palette and choose Change shape. Up and Down preview each kind, Enter applies it, Esc cancels.
 - Select a line to show its options in the top bar. Pick a head: none, end, start or both.
 - Select elements to get align, group and ungroup cells in the top bar. Each cell shows its key.
 - Select a shape and click the align cell in the top bar to cycle its label: left, middle, right.

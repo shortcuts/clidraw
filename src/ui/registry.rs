@@ -257,6 +257,13 @@ pub const BINDINGS: &[Binding] = &[
         Some(Action::Context(ContextItem::EditLabel)),
     ),
     Binding::new(
+        "change_shape",
+        &[],
+        "Change shape",
+        Scope::Palette,
+        Some(Action::ChangeShape),
+    ),
+    Binding::new(
         "select_all",
         &[ctrl('a')],
         "Select all",

@@ -1,10 +1,10 @@
 use super::App;
 use crate::names;
 use crate::ui::actions::Action;
-use crate::ui::colors;
 use crate::ui::minimap::Target;
 use crate::ui::prompt::{Prompt, PromptKind};
 use crate::ui::Overlay;
+use crate::ui::{colors, kinds};
 
 impl App {
     pub(super) fn run_action(&mut self, action: Action) {
@@ -21,6 +21,13 @@ impl App {
             Action::Bold => s.toggle_bold(),
             Action::Style(c) => s.set_choice(c),
             Action::Pick(c) => self.overlay = Overlay::Colors(c, colors::list(c)),
+            Action::ChangeShape => {
+                let origins = s.origins();
+                if let Some(first) = origins.first() {
+                    let list = kinds::list(first.kind, i32::from(s.screen.1));
+                    self.overlay = Overlay::Kinds(origins, list);
+                }
+            }
             Action::Copy => s.copy(),
             Action::Cut => s.cut(),
             Action::ZoomIn | Action::ZoomOut => {
