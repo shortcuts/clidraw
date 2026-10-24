@@ -418,6 +418,21 @@ fn minimap_action_opens_and_a_click_jumps() {
 }
 
 #[test]
+fn clicking_a_shape_in_the_selection_overview_fits_the_view_to_it() {
+    let t = tempfile::tempdir().unwrap();
+    let (mut app, now) = map_app(t.path());
+    app.session.selection.push(Id::from("bbbbbbbb"));
+    app.on_event(key(KeyCode::Tab), now);
+    click(&mut app, 40, 11, now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+    assert!(
+        (900..1010).contains(&app.session.view.ox),
+        "view at {}",
+        app.session.view.ox
+    );
+}
+
+#[test]
 fn tab_cycles_the_overview_target_from_the_canvas() {
     use clidraw::ui::{minimap::Target, Overlay};
     let t = tempfile::tempdir().unwrap();
