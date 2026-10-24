@@ -1,5 +1,6 @@
 mod export;
 mod import;
+mod validate;
 
 use super::{Diagnostic, DiagramKind, Exported, Imported};
 use crate::model::Canvas;
@@ -15,8 +16,7 @@ impl DiagramKind for Flowchart {
         export::export(canvas)
     }
 
-    fn validate(&self, _text: &str) -> Vec<Diagnostic> {
-        // shortcut: no checks yet, validator-behind-the-trait-with-shared-diagnostic-type fills this
-        vec![]
+    fn validate(&self, text: &str) -> Vec<Diagnostic> {
+        validate::validate(text)
     }
 }

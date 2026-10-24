@@ -4,7 +4,7 @@ use crate::model::{
 };
 use std::collections::HashMap;
 
-const MAX_SHAPES: usize = 2000;
+pub(super) const MAX_SHAPES: usize = 2000;
 
 const UNSUPPORTED: [&str; 8] = [
     "style",
@@ -38,8 +38,8 @@ const BRACKETS: [(&str, &str, ShapeKind, Border); 7] = [
     ("{", "}", ShapeKind::Diamond, Border::Single),
 ];
 
-struct Node {
-    id: String,
+pub(super) struct Node {
+    pub(super) id: String,
     def: Option<(ShapeKind, Border, String)>,
 }
 
@@ -119,13 +119,28 @@ fn chain(s: &str) -> Option<(Vec<Node>, Vec<Edge>)> {
     Some((nodes, edges))
 }
 
-fn header(line: &str) -> Result<Dir, String> {
+pub(super) fn header(line: &str) -> Result<Dir, String> {
     let mut words = line.trim_end_matches(';').split_whitespace();
     match (words.next(), words.next()) {
         (Some("flowchart" | "graph"), Some("LR" | "RL")) => Ok(Dir::LeftRight),
         (Some("flowchart" | "graph"), _) => Ok(Dir::TopDown),
         _ => Err("only flowchart diagrams can be imported".into()),
     }
+}
+
+pub(super) enum Rejected {
+    Unsupported(&'static str),
+    Unparsable,
+}
+
+/// Reads one trimmed statement line. `import` and `validate` share it so they never disagree.
+pub(super) fn parse_line(line: &str) -> Result<(Vec<Node>, Vec<Edge>), Rejected> {
+    let line = line.strip_suffix(';').unwrap_or(line);
+    let first = line.split_whitespace().next().unwrap_or("");
+    if let Some(word) = UNSUPPORTED.iter().find(|&&w| w == first) {
+        return Err(Rejected::Unsupported(word));
+    }
+    chain(line).ok_or(Rejected::Unparsable)
 }
 
 pub(super) fn import(text: &str) -> Result<Imported, String> {
@@ -140,14 +155,7 @@ pub(super) fn import(text: &str) -> Result<Imported, String> {
     let mut edges: Vec<(usize, usize, Edge)> = vec![];
     let mut skipped = 0;
     for line in lines {
-        let line = line.strip_suffix(';').unwrap_or(line);
-        let first = line.split_whitespace().next().unwrap_or("");
-        let parsed = if UNSUPPORTED.contains(&first) {
-            None
-        } else {
-            chain(line)
-        };
-        let Some((nodes, links)) = parsed else {
+        let Ok((nodes, links)) = parse_line(line) else {
             skipped += 1;
             continue;
         };

@@ -15,17 +15,20 @@ pub struct Exported {
     pub skipped: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Severity {
     Error,
     Warning,
 }
 
 /// Replaces the diagnostic's `range` with `replacement`.
+#[derive(Debug)]
 pub struct Fix {
     pub label: String,
     pub replacement: String,
 }
 
+#[derive(Debug)]
 pub struct Diagnostic {
     pub severity: Severity,
     pub message: String,
