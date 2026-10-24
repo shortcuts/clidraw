@@ -437,12 +437,11 @@ fn context_menu_rows_show_their_registry_key() {
 }
 
 #[test]
-fn prompt_shows_a_dim_hint_for_keyboard_dismissal() {
+fn prompt_box_holds_no_hint_text() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let p = Prompt::new(PromptKind::NewCanvas, String::new());
     let b = draw(&s, &Overlay::Prompt(p));
-    assert_eq!(cols(&b, 11, 16, 27), "Enter confirms, Esc cancels");
-    assert!(b[(16, 11)].modifier.contains(Modifier::DIM));
+    assert!(!(0..24).any(|y| row(&b, y).contains("Enter confirms")));
 }
 
 #[test]

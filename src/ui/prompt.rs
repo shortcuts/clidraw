@@ -1,7 +1,7 @@
 use super::grid::REVERSE;
 use super::list::{Anchor, List, Row};
 use super::registry::{self, Binding};
-use super::style::{ACTIVE, MUTED};
+use super::style::ACTIVE;
 use super::{boxed, centered, Grid};
 use crate::input::{Edit, EditTarget};
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
@@ -99,7 +99,6 @@ pub fn draw(grid: &mut Grid, p: &Prompt) {
         }
         _ => caret_line(grid, r.0 + 2, r.1 + 1, r.2 - 4, "", p),
     }
-    grid.text(r.0 + 2, r.1 + 2, "Enter confirms, Esc cancels", MUTED);
     grid.text(r.0 + 2, r.1 + 3, OK, ACTIVE);
     grid.text(r.0 + 4 + OK.len() as i32, r.1 + 3, CANCEL, 0);
 }
