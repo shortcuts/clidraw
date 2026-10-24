@@ -58,7 +58,7 @@ fn check(name: &str, actual: &str) {
 A diagram kind reads and writes one text format. Each kind implements the `DiagramKind` trait in `src/diagram/mod.rs`. Flowchart is the only kind now.
 
 - Add a kind in its own module under `src/diagram/`. Implement `keywords`, `import`, `export` and `validate`.
-- Register the kind in `KINDS` (`src/diagram/mod.rs:48`). The first word of the header picks the kind.
+- Register the kind in `KINDS` (`src/diagram/mod.rs:48`, private to that module). The first word of the header picks the kind.
 - Callers outside `src/diagram/` name no kind. Use `diagram::validate` for live checks.
 - Validation returns each problem with a byte `range` into the text. `import_failure` turns that range into a line number.
 - `Error` marks a line the kind cannot read. `Warning` marks an unsupported construct or an empty diagram.
