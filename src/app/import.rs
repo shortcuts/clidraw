@@ -43,13 +43,13 @@ impl App {
                     }),
                 );
                 self.session.insert(framed);
-                let mut text = format!("imported {shapes} shapes, {} lines", ids.len() - shapes);
+                let mut text = format!("Imported {shapes} shapes, {} lines", ids.len() - shapes);
                 if input.skipped > 0 {
                     text += &format!(", skipped {} line(s)", input.skipped);
                 }
                 Status::notice(text)
             }
-            Err(e) => Status::error(format!("import failed: {e}")),
+            Err(e) => Status::error(format!("Import failed: {e}")),
         });
     }
 

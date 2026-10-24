@@ -217,7 +217,7 @@ fn an_empty_selection_opens_no_prompt() {
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
     assert_eq!(
         app.status.as_ref().map(|s| s.text.as_str()),
-        Some("nothing selected")
+        Some("Nothing selected: select a shape first")
     );
 }
 
@@ -269,7 +269,7 @@ fn notice_status_is_plain_and_error_status_is_reversed() {
         .as_ref()
         .map(|s| s.text.as_str())
         .unwrap()
-        .starts_with("exported"));
+        .starts_with("Exported"));
     assert!(!status_row_reversed(&app), "a notice is not reversed");
 
     run(&mut app, "nope");
@@ -297,7 +297,7 @@ fn an_empty_area_opens_no_prompt() {
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
     assert_eq!(
         app.status.as_ref().map(|s| s.text.as_str()),
-        Some("nothing inside the area")
+        Some("Nothing inside the area: drag over a shape")
     );
 }
 
@@ -604,7 +604,7 @@ fn unknown_command_sets_status_and_esc_cancels_the_prompt() {
     run(&mut app, "nope");
     assert_eq!(
         app.status.as_ref().map(|s| s.text.as_str()),
-        Some("Unknown command: nope")
+        Some("Unknown command: nope (Ctrl-p lists commands)")
     );
     assert!(!app.quit);
     let now = Instant::now();
@@ -1487,7 +1487,7 @@ fn import_adds_selected_shapes_as_one_undo_step() {
         .as_ref()
         .unwrap()
         .text
-        .starts_with("imported 3 shapes, 2 lines"));
+        .starts_with("Imported 3 shapes, 2 lines"));
     app.on_event(key(KeyCode::Char('u')), Instant::now());
     assert!(app.session.canvas.elements.is_empty());
 }
@@ -1527,12 +1527,12 @@ fn lib_save_then_insert_adds_fresh_selected_copies_in_one_undo_step() {
     run(&mut app, &format!("import {}", file.display()));
     assert_eq!(app.session.selection.len(), 4);
     run(&mut app, "lib save pair");
-    assert_eq!(status(&app), "saved pair to the library");
+    assert_eq!(status(&app), "Saved pair to the library");
     assert!(t.path().join("c/library/pair.clidraw.json").exists());
 
     run(&mut app, "e other");
     run(&mut app, "lib insert pair");
-    assert_eq!(status(&app), "inserted pair");
+    assert_eq!(status(&app), "Inserted pair");
     assert_eq!(app.session.canvas.elements.len(), 4);
     assert_eq!(app.session.selection.len(), 4);
     let (wx, wy) = app.session.view.to_world(2, 2);
@@ -1563,9 +1563,9 @@ fn lib_errors_write_nothing() {
     insert_shape(&mut app);
     app.session.selection = vec![Id::from("aaaaaaaa")];
     run(&mut app, "lib save a/b");
-    assert!(status(&app).starts_with("lib failed"));
+    assert!(status(&app).starts_with("Library failed"));
     run(&mut app, "lib insert nope");
-    assert!(status(&app).starts_with("lib failed"));
+    assert!(status(&app).starts_with("Library failed"));
 }
 
 #[test]
@@ -1573,7 +1573,7 @@ fn import_of_a_missing_file_shows_an_error() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     run(&mut app, "import /no/such.mmd");
-    assert!(app.status.unwrap().text.starts_with("import failed"));
+    assert!(app.status.unwrap().text.starts_with("Import failed"));
 }
 
 #[test]
@@ -2103,7 +2103,7 @@ fn export_scope_runs_the_highlighted_row_from_the_keyboard() {
     app.on_event(key(KeyCode::Enter), now);
     assert_eq!(
         app.status.as_ref().map(|s| s.text.as_str()),
-        Some("nothing selected")
+        Some("Nothing selected: select a shape first")
     );
 }
 

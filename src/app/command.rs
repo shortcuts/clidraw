@@ -1,5 +1,6 @@
 use super::App;
 use crate::model::Dir;
+use crate::ui::registry;
 use crate::ui::scope::{self, ExportFormat};
 use crate::ui::{Overlay, Perf, Status};
 
@@ -8,7 +9,7 @@ impl App {
         let line = line.trim().trim_start_matches(':');
         if let Some(term) = line.strip_prefix('/') {
             if !self.session.find(term.trim()) {
-                self.status = Some(Status::error("No match"));
+                self.status = Some(Status::error("No match: try another search term"));
             }
             return;
         }
@@ -41,7 +42,12 @@ impl App {
             },
             "u" => self.status = self.session.undo().map(Status::notice),
             "redo" => self.status = self.session.redo().map(Status::notice),
-            _ => self.status = Some(Status::error(format!("Unknown command: {cmd}"))),
+            _ => {
+                self.status = Some(Status::error(format!(
+                    "Unknown command: {cmd} ({} lists commands)",
+                    registry::by_id("palette").first_label()
+                )))
+            }
         }
     }
 }

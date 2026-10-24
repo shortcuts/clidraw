@@ -1161,8 +1161,11 @@ fn screen_text(b: &Buffer) -> String {
 #[test]
 fn empty_canvas_shows_welcome_until_the_first_edit() {
     let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let hint = "drag to draw";
-    assert!(screen_text(&draw(&s, &Overlay::None)).contains(hint));
+    let hint = "Drag to draw";
+    let shown = screen_text(&draw(&s, &Overlay::None));
+    assert!(
+        shown.contains(hint) && shown.contains("? for keys") && shown.contains(": for commands")
+    );
     s.exec(Command::Insert(0, shape("aaaaaaaa", 20, "box")));
     assert!(!screen_text(&draw(&s, &Overlay::None)).contains(hint));
     s.undo();

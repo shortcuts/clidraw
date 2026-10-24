@@ -1,5 +1,6 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE, UNDERLINE};
 use super::layout::refresh;
+use super::registry;
 use super::theme;
 use crate::input::{handles, EditTarget, Handle, Hit, Session};
 use crate::model::{
@@ -101,9 +102,13 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
 }
 
 fn welcome(grid: &mut Grid, (vx, vy, vw, vh): (i32, i32, i32, i32)) {
-    let lines = ["drag to draw", "? for keys", ": for commands"];
+    let lines = [
+        "Drag to draw".to_string(),
+        format!("{} for keys", registry::by_id("help").first_label()),
+        format!("{} for commands", registry::by_id("command").first_label()),
+    ];
     let y0 = vy + vh / 2 - 1;
-    for (y, l) in (y0..).zip(lines) {
+    for (y, l) in (y0..).zip(&lines) {
         grid.text(vx + (vw - l.width() as i32) / 2, y, l, DIM);
     }
 }

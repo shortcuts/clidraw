@@ -17,7 +17,7 @@ impl App {
         match item {
             ScopeItem::Whole => self.open_export_prompt(format, Extent::Whole),
             ScopeItem::Selection if self.session.selection.is_empty() => {
-                self.status = Some(Status::error("nothing selected"))
+                self.status = Some(Status::error("Nothing selected: select a shape first"))
             }
             ScopeItem::Selection => self.open_export_prompt(format, Extent::Selection),
             ScopeItem::Area => {
@@ -85,7 +85,7 @@ impl App {
             (a.1 - b.1).abs() + 1,
         );
         if self.session.canvas.within(area).elements.is_empty() {
-            self.status = Some(Status::error("nothing inside the area"));
+            self.status = Some(Status::error("Nothing inside the area: drag over a shape"));
         } else {
             self.open_export_prompt(format, Extent::Area(area));
         }
@@ -112,10 +112,10 @@ impl App {
         let (text, skipped) = export::render(&canvas, format, self.export_padding);
         self.status = Some(match std::fs::write(path, text) {
             Ok(()) if skipped > 0 => Status::notice(format!(
-                "exported {path}, skipped {skipped} element(s) with no Mermaid form"
+                "Exported {path}, skipped {skipped} element(s) with no Mermaid form"
             )),
-            Ok(()) => Status::notice(format!("exported {path}")),
-            Err(e) => Status::error(format!("export failed: {e}")),
+            Ok(()) => Status::notice(format!("Exported {path}")),
+            Err(e) => Status::error(format!("Export failed: {e}")),
         });
     }
 }

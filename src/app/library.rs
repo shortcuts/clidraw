@@ -17,7 +17,7 @@ impl App {
                     .canvas
                     .clone_canvas(&self.session.selection, 0, 0);
                 match store.save(name, &snippet) {
-                    Ok(_) => Status::notice(format!("saved {name} to the library")),
+                    Ok(_) => Status::notice(format!("Saved {name} to the library")),
                     Err(e) => failed(e),
                 }
             }
@@ -29,7 +29,7 @@ impl App {
                     let (wx, wy) = self.session.view.to_world(vx + 2, vy + 1);
                     self.session
                         .insert(snippet.clone_canvas(&ids, wx - x, wy - y));
-                    Status::notice(format!("inserted {name}"))
+                    Status::notice(format!("Inserted {name}"))
                 }
                 Err(e) => failed(e),
             },
@@ -43,5 +43,5 @@ fn usage() -> Status {
 }
 
 fn failed(e: crate::store::StoreError) -> Status {
-    Status::error(format!("lib failed: {e}"))
+    Status::error(format!("Library failed: {e}"))
 }
