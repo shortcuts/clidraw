@@ -463,6 +463,33 @@ fn help_commands_page_lists_every_command_line_verb() {
 }
 
 #[test]
+fn help_canvas_page_lists_find_palette_present_and_minimap() {
+    let rows = ui::help::rows(0);
+    for (keys, action) in [
+        ("/", "Find"),
+        ("Ctrl-p", "Command palette"),
+        ("Ctrl-p", "Present"),
+        ("Ctrl-p", "Show minimap"),
+    ] {
+        assert!(
+            rows.contains(&(keys.to_string(), action.to_string())),
+            "{action}"
+        );
+    }
+}
+
+#[test]
+fn help_bottom_bar_hints_the_tab_keys() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let b = draw(&s, &Overlay::Help(0, String::new()));
+    assert!(
+        row(&b, 23).contains("\u{2039} \u{203a} switch tab  Esc close"),
+        "{}",
+        row(&b, 23)
+    );
+}
+
+#[test]
 fn help_canvas_esc_row_stays_inside_the_border() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0, String::new()));

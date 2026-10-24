@@ -431,9 +431,10 @@ pub const BINDINGS: &[Binding] = &[
         "minimap",
         &[],
         "Show minimap",
-        Scope::Palette,
+        Scope::Canvas,
         Some(Action::Map),
-    ),
+    )
+    .shown("Ctrl-p"),
     Binding::new(
         "zoom_in",
         &[],
@@ -454,9 +455,10 @@ pub const BINDINGS: &[Binding] = &[
         "present",
         &[],
         "Present",
-        Scope::Palette,
+        Scope::Canvas,
         Some(Action::Present),
-    ),
+    )
+    .shown("Ctrl-p"),
     Binding::new("find", &[c('/')], "Find", Scope::Canvas, Some(Action::Find)).hint("find"),
     Binding::new(
         "canvases",
@@ -609,6 +611,9 @@ pub const BINDINGS: &[Binding] = &[
         None,
     )
     .hint("cancel"),
+    Binding::new("tabs", &[], "Switch tab", Scope::Overlay, None)
+        .shown("‹ ›")
+        .hint("switch tab"),
     Binding::new("run", &[plain(KeyCode::Enter)], "Run", Scope::Overlay, None).hint("run"),
     Binding::new(
         "select",

@@ -31,8 +31,7 @@ pub const SYNONYMS: [(&str, &str); 9] = [
 
 const MAX_ROWS: usize = 18;
 const WIDTH: i32 = 64;
-// Two borders, the tab row, a blank row and the longest page; fixed so the box does not jump.
-const HEIGHT: i32 = 22;
+const CHROME_ROWS: i32 = 4;
 const ACTION_COL: i32 = 20;
 
 /// Keys and action for each row of a page.
@@ -83,8 +82,10 @@ pub fn search(query: &str) -> Vec<(String, String)> {
     exact
 }
 
+/// Fits the longest page so the box does not jump between tabs.
 fn rect(screen: (u16, u16)) -> (i32, i32, i32, i32) {
-    centered(screen, WIDTH, HEIGHT)
+    let longest = (0..SCOPES.len()).map(|p| rows(p).len()).max().unwrap_or(0);
+    centered(screen, WIDTH, CHROME_ROWS + longest as i32)
 }
 
 /// Column offset from the box edge and width of each tab, drawn as " name ".
@@ -134,7 +135,7 @@ pub fn draw(grid: &mut Grid, page: usize, query: &str) {
     if shown.is_empty() {
         grid.text(r.0 + 2, r.1 + 3, "No match", MUTED);
     }
-    for (i, (keys, action)) in shown.iter().enumerate() {
+    for (i, (keys, action)) in shown.iter().take((r.3 - CHROME_ROWS) as usize).enumerate() {
         let y = r.1 + 3 + i as i32;
         grid.text(r.0 + 2, y, keys, 0);
         grid.text(r.0 + ACTION_COL, y, action, 0);
