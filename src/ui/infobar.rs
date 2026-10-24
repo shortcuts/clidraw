@@ -135,7 +135,7 @@ fn hints(s: &Session, doc: &Doc, overlay: &Overlay) -> Vec<(String, &'static str
         | Overlay::Colors(..)
         | Overlay::Switcher(_)
         | Overlay::Actions(_) => &["run", "select", "close"],
-        Overlay::Map => &["jump", "close"],
+        Overlay::Map(_) => &["jump", "close"],
         Overlay::Help(..) => &["tabs", "close"],
     };
     ids.iter()

@@ -2,6 +2,7 @@ use super::App;
 use crate::names;
 use crate::ui::actions::Action;
 use crate::ui::colors;
+use crate::ui::minimap::Target;
 use crate::ui::prompt::{Prompt, PromptKind};
 use crate::ui::Overlay;
 
@@ -33,7 +34,7 @@ impl App {
                 s.present = true;
             }
             Action::Help => self.overlay = Overlay::Help(0, String::new()),
-            Action::Map => self.overlay = Overlay::Map,
+            Action::Map => self.overlay = Overlay::Map(Target::Canvas),
             Action::Find => {
                 self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, "/".into()))
             }

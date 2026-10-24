@@ -251,7 +251,7 @@ fn frame_fits_the_budget_on_5000_elements() {
 fn minimap_frame_fits_the_budget_on_5000_elements() {
     let t = tempfile::tempdir().unwrap();
     let mut app = busy_app(t.path());
-    app.overlay = clidraw::ui::Overlay::Map;
+    app.overlay = clidraw::ui::Overlay::Map(clidraw::ui::minimap::Target::Canvas);
     let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
     let times = (0..FRAMES)
         .map(|_| {

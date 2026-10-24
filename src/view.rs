@@ -169,9 +169,23 @@ impl View {
     }
 }
 
+/// World cells per screen cell, at least 1, that fit a `size` box into `room` cells.
+pub fn fit_divisor(size: (i32, i32), room: (i32, i32)) -> i32 {
+    let ceil = |n: i32, r: i32| (n.max(0) + r.max(1) - 1) / r.max(1);
+    ceil(size.0, room.0).max(ceil(size.1, room.1)).max(1)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fit_divisor_rounds_up_per_axis_and_never_drops_below_one() {
+        assert_eq!(fit_divisor((100, 20), (78, 20)), 2);
+        assert_eq!(fit_divisor((78, 20), (78, 20)), 1);
+        assert_eq!(fit_divisor((0, 0), (78, 20)), 1);
+        assert_eq!(fit_divisor((10, 61), (78, 20)), 4);
+    }
 
     #[test]
     fn round_trip_with_negative_coordinates() {

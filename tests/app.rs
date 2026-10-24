@@ -406,7 +406,7 @@ fn map_app(dir: &std::path::Path) -> (App, Instant) {
 fn minimap_action_opens_and_a_click_jumps() {
     let t = tempfile::tempdir().unwrap();
     let (mut app, now) = map_app(t.path());
-    assert!(matches!(app.overlay, clidraw::ui::Overlay::Map));
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Map(_)));
     click(&mut app, 78, 5, now);
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
     assert!(

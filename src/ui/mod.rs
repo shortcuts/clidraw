@@ -37,7 +37,7 @@ pub enum Overlay {
     Prompt(prompt::Prompt),
     Help(usize, String),
     Actions(list::List<actions::Action>),
-    Map,
+    Map(minimap::Target),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -120,7 +120,7 @@ pub fn render(
         Overlay::Prompt(p) => prompt::draw(&mut grid, p),
         Overlay::Help(p, q) => help::draw(&mut grid, *p, q),
         Overlay::Actions(a) => a.draw(&mut grid),
-        Overlay::Map => minimap::draw(&mut grid, s),
+        Overlay::Map(t) => minimap::draw(&mut grid, s, *t),
     }
     if let Some(st) = status.filter(|_| !s.present) {
         infobar::status(&mut grid, s, doc, st);

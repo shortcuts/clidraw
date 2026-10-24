@@ -337,8 +337,8 @@ impl App {
                 None => {}
             },
             Overlay::Help(..) => self.help_click(col, row),
-            Overlay::Map => {
-                minimap::click(&mut self.session, col, row);
+            Overlay::Map(t) => {
+                minimap::click(&mut self.session, col, row, *t);
                 self.overlay = Overlay::None;
             }
             Overlay::None => {}

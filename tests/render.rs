@@ -3,6 +3,7 @@ use clidraw::model::{
     Anchor, Border, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
     Stroke, TextAlign,
 };
+use clidraw::ui::minimap::Target;
 use clidraw::ui::prompt::{Prompt, PromptKind};
 use clidraw::ui::scope::ExportFormat;
 use clidraw::ui::switcher::Switcher;
@@ -1275,12 +1276,12 @@ fn minimap_overlay_labels_frames_and_shapes() {
     c.elements.push(shape("aaaaaaaa", 2, "box"));
     c.elements.push(shape("bbbbbbbb", 100, ""));
     let s = Session::new(c, View::default(), (80, 24));
-    let b = draw(&s, &Overlay::Map);
+    let b = draw(&s, &Overlay::Map(Target::Canvas));
     let rows: Vec<String> = (0..24).map(|y| row(&b, y)).collect();
     assert!(rows.iter().any(|r| r.contains("┌Zone")), "{rows:#?}");
     assert!(rows.iter().any(|r| r.contains("box")));
     assert!(
-        (0..23).any(|y| b[(78, y)].symbol() == "▒"),
+        rows.iter().any(|r| r.contains("▒▒▒▒")),
         "the unlabelled far shape is a plain box"
     );
     assert!(rows.iter().all(|r| !r.contains("bbbbbbbb")));
@@ -1290,6 +1291,96 @@ fn minimap_overlay_labels_frames_and_shapes() {
         " ",
         "no corner box without the overlay"
     );
+}
+
+fn at(mut e: Element, x: i32, y: i32, w: i32, h: i32) -> Element {
+    if let Element::Shape(s) = &mut e {
+        (s.x, s.y, s.w, s.h) = (x, y, w, h);
+    }
+    e
+}
+
+fn map_rows(s: &Session, target: Target) -> String {
+    let b = draw(s, &Overlay::Map(target));
+    (0..24).map(|y| row(&b, y)).collect::<Vec<_>>().join("\n")
+}
+
+/// A frame around the viewport centre holding "in", plus "out" far to the right.
+fn framed() -> Session {
+    let mut c = Canvas::default();
+    let mut frame = shape("ffffffff", 0, "Zone");
+    if let Element::Shape(f) = &mut frame {
+        f.kind = ShapeKind::Frame;
+    }
+    c.elements.push(at(frame, 20, 5, 40, 15));
+    c.elements.push(at(shape("aaaaaaaa", 0, "in"), 30, 8, 8, 3));
+    c.elements
+        .push(at(shape("bbbbbbbb", 0, "out"), 100, 8, 8, 3));
+    Session::new(c, View::default(), (80, 24))
+}
+
+#[test]
+fn minimap_hides_a_label_wider_than_its_block() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 0, "abcdefgh"));
+    let s = Session::new(c.clone(), View::default(), (80, 24));
+    assert!(map_rows(&s, Target::Canvas).contains("abcdefgh"), "d = 1");
+    c.elements.push(shape("bbbbbbbb", 100, ""));
+    let s = Session::new(c, View::default(), (80, 24));
+    assert!(!map_rows(&s, Target::Canvas).contains("abcd"), "d = 2");
+}
+
+#[test]
+fn minimap_draws_the_route_between_linked_shapes() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 0, ""));
+    c.elements.push(shape("bbbbbbbb", 40, ""));
+    c.elements.push(Element::Line(Line {
+        id: Id::from("cccccccc"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        bends: vec![],
+        color: None,
+    }));
+    let s = Session::new(c, View::default(), (80, 24));
+    assert!(map_rows(&s, Target::Canvas).contains("▒·"));
+}
+
+#[test]
+fn minimap_frame_target_shows_only_the_frame_around_the_viewport_centre() {
+    let s = framed();
+    let frame = map_rows(&s, Target::Frame);
+    assert!(frame.contains("┌Zone") && frame.contains("in"));
+    assert!(!frame.contains("out"));
+    assert!(map_rows(&s, Target::Canvas).contains("out"));
+}
+
+#[test]
+fn minimap_selection_target_shows_only_the_selected_shape() {
+    let mut s = framed();
+    s.selection.push(Id::from("aaaaaaaa"));
+    let sel = map_rows(&s, Target::Selection);
+    assert!(sel.contains("in▒▒▒▒▒▒"), "whole block at d = 1");
+    assert!(!sel.contains("out"));
+    s.selection.clear();
+    assert_eq!(
+        map_rows(&s, Target::Selection),
+        map_rows(&s, Target::Canvas),
+        "no selection falls back to the canvas"
+    );
+}
+
+#[test]
+fn minimap_frame_target_without_a_frame_draws_the_canvas() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 0, "in"));
+    c.elements.push(shape("bbbbbbbb", 100, "out"));
+    let s = Session::new(c, View::default(), (80, 24));
+    assert_eq!(map_rows(&s, Target::Frame), map_rows(&s, Target::Canvas));
 }
 
 #[test]
