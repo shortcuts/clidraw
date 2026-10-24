@@ -39,7 +39,14 @@ impl App {
             .view
             .to_world(i32::from(m.column), i32::from(m.row));
         match m.kind {
-            MouseEventKind::Down(MouseButton::Left) => pick.start = Some(at),
+            MouseEventKind::Down(MouseButton::Left) => {
+                if self
+                    .session
+                    .in_viewport(i32::from(m.column), i32::from(m.row))
+                {
+                    pick.start = Some(at);
+                }
+            }
             MouseEventKind::Drag(MouseButton::Left) => {
                 self.session.band = pick.start.map(|s| (s, at));
             }

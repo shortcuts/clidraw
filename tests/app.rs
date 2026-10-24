@@ -177,7 +177,7 @@ fn type_path(app: &mut App, path: &str, t: Instant) {
 fn exports_only_the_dragged_area() {
     let t = tempfile::tempdir().unwrap();
     let (mut app, now) = area_app(t.path());
-    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 0, 0), now);
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 0, 2), now);
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 40, 8), now);
     assert!(app.session.band.is_some());
     app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 40, 8), now);
@@ -257,7 +257,7 @@ fn status_row_reversed(app: &App) -> bool {
 fn notice_status_is_plain_and_error_status_is_reversed() {
     let t = tempfile::tempdir().unwrap();
     let (mut app, now) = area_app(t.path());
-    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 0, 0), now);
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 0, 2), now);
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 40, 8), now);
     app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 40, 8), now);
     type_path(&mut app, t.path().join("area.svg").to_str().unwrap(), now);
@@ -277,7 +277,7 @@ fn notice_status_is_plain_and_error_status_is_reversed() {
 fn esc_cancels_the_area_pick() {
     let t = tempfile::tempdir().unwrap();
     let (mut app, now) = area_app(t.path());
-    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 0, 0), now);
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 0, 2), now);
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 40, 8), now);
     app.on_event(key(KeyCode::Esc), now);
     assert!(app.session.band.is_none());
@@ -1450,7 +1450,7 @@ fn import_adds_selected_shapes_as_one_undo_step() {
     let mut unit = vec![frame.id.clone()];
     app.session.canvas.expand_frames(&mut unit);
     assert_eq!(unit.len(), 6);
-    let (wx, wy) = app.session.view.to_world(2, 1);
+    let (wx, wy) = app.session.view.to_world(2, 2);
     assert_eq!((frame.x, frame.y), (wx - 1, wy - 1));
     assert!(app
         .status
@@ -1505,7 +1505,7 @@ fn lib_save_then_insert_adds_fresh_selected_copies_in_one_undo_step() {
     assert_eq!(status(&app), "inserted pair");
     assert_eq!(app.session.canvas.elements.len(), 4);
     assert_eq!(app.session.selection.len(), 4);
-    let (wx, wy) = app.session.view.to_world(2, 1);
+    let (wx, wy) = app.session.view.to_world(2, 2);
     assert_eq!(app.session.canvas.origin(), (wx, wy));
     let bound = app.session.canvas.elements.iter().any(|e| {
         matches!(e, Element::Line(l) if matches!(l.from, clidraw::model::End::Bound(..))

@@ -1,7 +1,7 @@
 use super::actions::Action;
 use super::grid::Grid;
 use super::registry;
-use super::style::{ACTIVE, HOVER, MUTED};
+use super::style::{ACTIVE, DISABLED, HOVER, MUTED};
 use crate::input::{Session, Tool};
 use crate::model::{Align, Border, Element, Id, LineKind, Paint, Stroke, TextAlign};
 use std::collections::HashMap;
@@ -225,7 +225,28 @@ pub fn cells(opts: &[Choice], width: i32) -> Vec<(PaletteHit, i32, i32, i32)> {
     out
 }
 
+/// Screen rows the tool row and the option rows take at the top; 0 in present mode.
+pub fn rows(s: &Session) -> i32 {
+    if s.present {
+        return 0;
+    }
+    if s.zoomed_out() {
+        return 1;
+    }
+    cells(
+        &choices(&selected(s), &s.canvas.groups),
+        i32::from(s.screen.0),
+    )
+    .iter()
+    .map(|c| c.2 + 1)
+    .max()
+    .unwrap_or(1)
+}
+
 pub fn hit(s: &Session, col: i32, row: i32) -> Option<PaletteHit> {
+    if s.zoomed_out() {
+        return None;
+    }
     cells(
         &choices(&selected(s), &s.canvas.groups),
         i32::from(s.screen.0),
@@ -237,10 +258,25 @@ pub fn hit(s: &Session, col: i32, row: i32) -> Option<PaletteHit> {
 
 pub fn draw(grid: &mut Grid, s: &Session) {
     let els = selected(s);
-    let cells = cells(&choices(&els, &s.canvas.groups), grid.w);
+    let off = s.zoomed_out();
+    let opts = if off {
+        vec![]
+    } else {
+        choices(&els, &s.canvas.groups)
+    };
+    let cells = cells(&opts, grid.w);
     for &(h, x, y, w) in &cells {
         let (text, flags) = match h {
-            PaletteHit::Tool(t) => (t.label().to_string(), if t == s.tool { ACTIVE } else { 0 }),
+            PaletteHit::Tool(t) => (
+                t.label().to_string(),
+                if off {
+                    DISABLED
+                } else if t == s.tool {
+                    ACTIVE
+                } else {
+                    0
+                },
+            ),
             PaletteHit::Option(c) => (c.label(), if active(&els, c) { ACTIVE } else { 0 }),
         };
         let flags = flags | if s.palette_hover == Some(h) { HOVER } else { 0 };

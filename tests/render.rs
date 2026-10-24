@@ -1248,3 +1248,57 @@ fn option_cells_leave_no_canvas_gap_after_wide_glyph_labels() {
         " __ solid  -- dashed  .. dotted  ┌┐ single  ╭╮ round  ╔╗ double ",
     );
 }
+
+fn render_at(s: &Session, w: u16, h: u16) -> Buffer {
+    let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
+    let mut t = Terminal::new(TestBackend::new(w, h)).unwrap();
+    t.draw(|f| {
+        let area = f.area();
+        ui::render(f.buffer_mut(), area, s, &Overlay::None, None, None, true)
+    })
+    .unwrap();
+    t.backend().buffer().clone()
+}
+
+fn line_at(b: &Buffer, y: u16) -> String {
+    (0..b.area.width)
+        .map(|x| b[(x, y)].symbol().to_string())
+        .collect()
+}
+
+#[test]
+fn chrome_rows_never_show_canvas_cells() {
+    for w in [40, 60, 120] {
+        let mut c = Canvas::default();
+        let mut e = shape("aaaaaaaa", 20, "box");
+        if let Element::Shape(sh) = &mut e {
+            sh.y = 0;
+            sh.h = 30;
+        }
+        c.elements.push(e);
+        let mut s = Session::new(c, View::default(), (w, 12));
+        s.selection = vec![Id::from("aaaaaaaa")];
+        let top = ui::palette::rows(&s) as u16;
+        assert!(top >= 2);
+        let b = render_at(&s, w, 12);
+        for y in (0..top).chain([11]) {
+            assert!(!line_at(&b, y).contains('│'), "w={w} row {y}");
+        }
+        assert!(line_at(&b, top).contains('│'), "w={w} first viewport row");
+    }
+}
+
+#[test]
+fn zoomed_out_keeps_the_tool_row_and_one_top_row() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "box"));
+    let view = View {
+        zoom: Zoom::Half,
+        ..View::default()
+    };
+    let mut s = Session::new(c, view, (80, 24));
+    s.selection = vec![Id::from("aaaaaaaa")];
+    assert_eq!(ui::palette::rows(&s), 1);
+    let b = render_at(&s, 80, 24);
+    assert!(line_at(&b, 0).starts_with(" Select"));
+}

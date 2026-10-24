@@ -25,7 +25,8 @@ impl App {
                 Ok(snippet) => {
                     let ids: Vec<_> = snippet.elements.iter().map(|e| e.id().clone()).collect();
                     let (x, y) = snippet.origin();
-                    let (wx, wy) = self.session.view.to_world(2, 1);
+                    let (vx, vy, ..) = self.session.viewport();
+                    let (wx, wy) = self.session.view.to_world(vx + 2, vy + 1);
                     self.session
                         .insert(snippet.clone_canvas(&ids, wx - x, wy - y));
                     Status::notice(format!("inserted {name}"))

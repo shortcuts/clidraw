@@ -28,11 +28,13 @@ impl Map {
         }
         let mut slot = s.layout.borrow_mut();
         let layout = refresh(&mut slot, &s.canvas, s.rev);
-        let (vw, vh) = s.view.span(s.screen);
-        let (x0, y0, x1, y1) = layout.bounds.iter().fold(
-            (s.view.ox, s.view.oy, s.view.ox + vw, s.view.oy + vh),
-            |a, &(x, y, w, h)| (a.0.min(x), a.1.min(y), a.2.max(x + w), a.3.max(y + h)),
-        );
+        let (vx, vy, vw, vh) = s.visible_world();
+        let (x0, y0, x1, y1) = layout
+            .bounds
+            .iter()
+            .fold((vx, vy, vx + vw, vy + vh), |a, &(x, y, w, h)| {
+                (a.0.min(x), a.1.min(y), a.2.max(x + w), a.3.max(y + h))
+            });
         Some(Map {
             rect: (0, 0, sw, sh - 1),
             area: (x0, y0, x1 - x0, y1 - y0),
@@ -141,11 +143,8 @@ pub fn draw(grid: &mut Grid, s: &Session) {
             grid.text(x0, (y0 + y1) / 2, &cut(&it.label, x1 - x0 + 1), ACTIVE);
         }
     }
-    let (vw, vh) = s.view.span(s.screen);
-    let ((x0, y0), (x1, y1)) = (
-        m.cell(s.view.ox, s.view.oy),
-        m.cell(s.view.ox + vw - 1, s.view.oy + vh - 1),
-    );
+    let (vx, vy, vw, vh) = s.visible_world();
+    let ((x0, y0), (x1, y1)) = (m.cell(vx, vy), m.cell(vx + vw - 1, vy + vh - 1));
     for cy in y0..=y1 {
         for cx in x0..=x1 {
             if cx == x0 || cx == x1 || cy == y0 || cy == y1 {
@@ -177,8 +176,7 @@ pub fn click(s: &mut Session, col: i32, row: i32) {
         Some(i) => s.fit(Some(i.bounds)),
         None => {
             let (wx, wy) = m.world(col, row);
-            let (sw, sh) = s.view.span(s.screen);
-            s.go_to((wx - sw / 2, wy - sh / 2));
+            s.go_to(s.view.origin_for((wx, wy), s.viewport()));
         }
     }
 }

@@ -245,6 +245,34 @@ impl Session {
         self.view.zoom < Zoom::One
     }
 
+    /// The screen rect (x, y, w, h) between the tool rows and the info bar; all of it in present mode.
+    pub fn viewport(&self) -> (i32, i32, i32, i32) {
+        let (w, h) = (i32::from(self.screen.0), i32::from(self.screen.1));
+        if self.present {
+            return (0, 0, w, h);
+        }
+        let top = palette::rows(self);
+        (0, top, w, (h - 1 - top).max(0))
+    }
+
+    pub fn in_viewport(&self, col: i32, row: i32) -> bool {
+        let (x, y, w, h) = self.viewport();
+        col >= x && col < x + w && row >= y && row < y + h
+    }
+
+    pub fn viewport_center(&self) -> (i32, i32) {
+        let (x, y, w, h) = self.viewport();
+        (x + w / 2, y + h / 2)
+    }
+
+    /// The world rect (x, y, w, h) the viewport shows.
+    pub fn visible_world(&self) -> (i32, i32, i32, i32) {
+        let (x, y, w, h) = self.viewport();
+        let (wx, wy) = self.view.to_world(x, y);
+        let (sw, sh) = self.view.span((w as u16, h as u16));
+        (wx, wy, sw, sh)
+    }
+
     /// Moves `n` steps along the zoom scale around screen cell `at`; ignored while editing or dragging.
     pub fn zoom(&mut self, n: i32, at: (i32, i32)) {
         self.zoom_to(self.view.zoom.step(n), at);
@@ -465,6 +493,7 @@ impl Session {
         if self.zoomed_out()
             || self.present
             || !self.idle()
+            || !self.in_viewport(col, row)
             || palette::hit(self, col, row).is_some()
         {
             return None;

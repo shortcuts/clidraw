@@ -41,8 +41,10 @@ impl App {
             Action::Copy => s.copy(),
             Action::Cut => s.cut(),
             Action::ZoomIn | Action::ZoomOut => {
-                let at = (i32::from(s.screen.0) / 2, i32::from(s.screen.1) / 2);
-                s.zoom(if action == Action::ZoomIn { 1 } else { -1 }, at);
+                s.zoom(
+                    if action == Action::ZoomIn { 1 } else { -1 },
+                    s.viewport_center(),
+                );
             }
             Action::Present => {
                 s.selection.clear();

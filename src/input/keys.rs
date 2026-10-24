@@ -81,8 +81,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
                 KeyOutcome::None
             }
             KeyCode::Esc => {
-                let (w, h) = s.screen;
-                s.zoom_to(Zoom::One, (i32::from(w) / 2, i32::from(h) / 2));
+                s.zoom_to(Zoom::One, s.viewport_center());
                 KeyOutcome::None
             }
             KeyCode::Char('?') => KeyOutcome::Help,

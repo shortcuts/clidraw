@@ -586,7 +586,7 @@ fn band_step_fits_the_budget_on_5000_elements() {
     let now = Instant::now();
     let drag = shift_mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40);
     app.on_event(
-        shift_mouse_at(MouseEventKind::Down(MouseButton::Left), 250, 0),
+        shift_mouse_at(MouseEventKind::Down(MouseButton::Left), 199, 5),
         now,
     );
     app.on_event(drag.clone(), now);
@@ -655,7 +655,12 @@ fn line_end_drag_step_fits_the_budget_on_5000_elements() {
     let (_, _, (x, y)) = handles(&app.session.canvas, &app.session.selection)
         .pop()
         .unwrap();
-    let grab = mouse_at(MouseEventKind::Down(MouseButton::Left), x as u16, y as u16);
+    app.session.view.oy = -10;
+    let grab = mouse_at(
+        MouseEventKind::Down(MouseButton::Left),
+        x as u16,
+        (y + 10) as u16,
+    );
     let drag = shift_mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40);
     app.on_event(grab, now);
     app.on_event(drag.clone(), now);
@@ -928,7 +933,7 @@ fn wheel_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duratio
 fn band_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
     let now = Instant::now();
     app.on_event(
-        shift_mouse_at(MouseEventKind::Down(MouseButton::Left), 250, 0),
+        shift_mouse_at(MouseEventKind::Down(MouseButton::Left), 199, 5),
         now,
     );
     app.on_event(
@@ -984,8 +989,13 @@ fn line_end_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Dura
     let (_, _, (x, y)) = handles(&app.session.canvas, &app.session.selection)
         .pop()
         .unwrap();
+    app.session.view.oy = -10;
     app.on_event(
-        mouse_at(MouseEventKind::Down(MouseButton::Left), x as u16, y as u16),
+        mouse_at(
+            MouseEventKind::Down(MouseButton::Left),
+            x as u16,
+            (y + 10) as u16,
+        ),
         now,
     );
     app.on_event(

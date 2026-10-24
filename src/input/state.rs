@@ -95,7 +95,7 @@ impl Session {
     /// Centers `bounds` on screen, gliding there when `motion` is on.
     pub fn fit(&mut self, bounds: Option<(i32, i32, i32, i32)>) {
         let mut target = self.view;
-        target.fit_all(bounds, self.screen);
+        target.fit_all(bounds, self.viewport());
         if target.zoom == self.view.zoom {
             self.go_to((target.ox, target.oy));
         } else {
@@ -183,7 +183,7 @@ impl Session {
             return (0, 0);
         }
         let axis = |pos: i32, len: i32| {
-            let speed = |dist: i32| if dist == 0 { 3 } else { 1 };
+            let speed = |dist: i32| if dist <= 0 { 3 } else { 1 };
             if pos < EDGE_ZONE {
                 -speed(pos)
             } else if len - 1 - pos < EDGE_ZONE {
@@ -192,11 +192,8 @@ impl Session {
                 0
             }
         };
-        let (w, h) = self.screen;
-        (
-            axis(self.cursor.0, i32::from(w)),
-            axis(self.cursor.1, i32::from(h)),
-        )
+        let (vx, vy, vw, vh) = self.viewport();
+        (axis(self.cursor.0 - vx, vw), axis(self.cursor.1 - vy, vh))
     }
 
     /// Time until the next edge pan, or `None` when the drag is not at an edge.
@@ -269,7 +266,10 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
 
 fn hover(s: &mut Session, screen: P, world: P) {
     let idle = s.tool == Tool::Select && s.edit.is_none() && matches!(s.gesture, Gesture::Idle);
-    s.hover = if idle && palette::hit(s, screen.0, screen.1).is_none() {
+    s.hover = if idle
+        && s.in_viewport(screen.0, screen.1)
+        && palette::hit(s, screen.0, screen.1).is_none()
+    {
         hit::test(&s.canvas, &s.selection, world)
     } else {
         Hit::Empty
@@ -297,6 +297,9 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     s.gesture = Gesture::Idle;
     if let Some(h) = palette::hit(s, screen.0, screen.1) {
         return palette_down(s, h);
+    }
+    if !s.in_viewport(screen.0, screen.1) {
+        return;
     }
     let hit = hit::test(&s.canvas, &s.selection, world);
     if double {
@@ -363,6 +366,9 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
 
 fn middle_down(s: &mut Session, screen: P, world: P) {
     s.hover = Hit::Empty;
+    if !s.in_viewport(screen.0, screen.1) {
+        return;
+    }
     s.commit_edit();
     s.gesture = Gesture::Pressed {
         origin: screen,

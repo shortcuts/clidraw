@@ -2537,3 +2537,35 @@ fn a_dragged_head_over_a_shape_routes_to_its_edge() {
         "head inside C: {cells:?}"
     );
 }
+
+#[test]
+fn viewport_sits_between_the_bars_and_present_takes_the_screen() {
+    let mut s = session();
+    assert_eq!(s.viewport(), (0, 1, 80, 22));
+    s.present = true;
+    assert_eq!(s.viewport(), (0, 0, 80, 24));
+}
+
+#[test]
+fn a_click_in_a_chrome_row_starts_nothing() {
+    let t = Instant::now();
+    let mut s = with_shape("aaaaaaaa", 20, 0);
+    s.selection = vec![Id::from("aaaaaaaa")];
+    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 60, 0, t);
+    assert_eq!(s.selection.len(), 1);
+    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 70, 23, t);
+    assert_eq!(s.selection.len(), 1);
+    mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 70, 23, t);
+    assert_eq!(s.selection.len(), 1);
+}
+
+#[test]
+fn fit_all_keeps_the_content_inside_the_viewport() {
+    let mut s = with_shape("aaaaaaaa", 100, 100);
+    s.motion = false;
+    s.fit(s.canvas.all_bounds());
+    let (_, vy, _, vh) = s.viewport();
+    let (_, y) = s.view.to_screen(100, 100);
+    let (_, y2) = s.view.to_screen(100, 103);
+    assert!(y >= vy && y2 < vy + vh);
+}

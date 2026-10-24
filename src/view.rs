@@ -146,21 +146,27 @@ impl View {
         self.oy = p.1 - q.1;
     }
 
-    /// Picks the largest zoom up to 1x that shows the box (x, y, w, h) and centers it.
-    pub fn fit_all(&mut self, bounds: Option<(i32, i32, i32, i32)>, screen: (u16, u16)) {
+    /// The origin that puts world cell `center` at the middle of the screen rect `vp` at this zoom.
+    pub fn origin_for(&self, center: (i32, i32), vp: (i32, i32, i32, i32)) -> (i32, i32) {
+        let (k, d) = (self.zoom.k(), self.zoom.d());
+        let (sw, sh) = self.span((vp.2 as u16, vp.3 as u16));
+        (
+            center.0 - sw / 2 - (vp.0 * d).div_euclid(k),
+            center.1 - sh / 2 - (vp.1 * d).div_euclid(k),
+        )
+    }
+
+    /// Picks the largest zoom up to 1x that shows the box (x, y, w, h) inside the screen rect `vp` and centers it.
+    pub fn fit_all(&mut self, bounds: Option<(i32, i32, i32, i32)>, vp: (i32, i32, i32, i32)) {
         let Some((x, y, w, h)) = bounds else {
             *self = View::default();
             return;
         };
-        // The last row belongs to the info bar.
-        let rows = i32::from(screen.1) - 1;
         self.zoom = [Zoom::One, Zoom::Half]
             .into_iter()
-            .find(|z| w <= i32::from(screen.0) * z.d() && h <= rows * z.d())
+            .find(|z| w <= vp.2 * z.d() && h <= vp.3 * z.d())
             .unwrap_or(Zoom::Quarter);
-        let (sw, sh) = self.span(screen);
-        self.ox = x + w / 2 - sw / 2;
-        self.oy = y + h / 2 - sh / 2;
+        (self.ox, self.oy) = self.origin_for((x + w / 2, y + h / 2), vp);
     }
 }
 
@@ -183,8 +189,15 @@ mod tests {
     #[test]
     fn fit_all_centers_the_box() {
         let mut v = View::default();
-        v.fit_all(Some((100, 50, 10, 4)), (80, 24));
-        assert_eq!(v.to_screen(105, 52), (40, 12));
+        v.fit_all(Some((100, 50, 10, 4)), (0, 0, 80, 23));
+        assert_eq!(v.to_screen(105, 52), (40, 11));
+    }
+
+    #[test]
+    fn fit_all_centers_inside_a_viewport_below_the_chrome() {
+        let mut v = View::default();
+        v.fit_all(Some((100, 50, 10, 4)), (0, 2, 80, 21));
+        assert_eq!(v.to_screen(105, 52), (40, 2 + 21 / 2));
     }
 
     fn at(zoom: Zoom) -> View {
@@ -309,12 +322,12 @@ mod tests {
     #[test]
     fn fit_all_picks_half_for_a_box_wider_than_the_screen() {
         let mut v = View::default();
-        v.fit_all(Some((0, 0, 120, 10)), (80, 24));
+        v.fit_all(Some((0, 0, 120, 10)), (0, 0, 80, 23));
         assert_eq!(v.zoom, Zoom::Half);
-        assert_eq!(v.to_screen(60, 5), (40, 12));
-        v.fit_all(Some((0, 0, 400, 10)), (80, 24));
+        assert_eq!(v.to_screen(60, 5), (40, 11));
+        v.fit_all(Some((0, 0, 400, 10)), (0, 0, 80, 23));
         assert_eq!(v.zoom, Zoom::Quarter);
-        v.fit_all(Some((0, 0, 10, 10)), (80, 24));
+        v.fit_all(Some((0, 0, 10, 10)), (0, 0, 80, 23));
         assert_eq!(v.zoom, Zoom::One);
     }
 

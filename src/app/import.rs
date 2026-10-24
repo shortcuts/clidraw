@@ -18,7 +18,8 @@ impl App {
                     .filter(|e| matches!(e, Element::Shape(_)))
                     .count();
                 let (bx, by, bw, bh) = self.extent(&canvas);
-                let (wx, wy) = self.session.view.to_world(2, 1);
+                let (vx, vy, ..) = self.session.viewport();
+                let (wx, wy) = self.session.view.to_world(vx + 2, vy + 1);
                 let (fw, fh) = (bw + 2, bh + 2);
                 let (fx, fy) = self.free_spot(wx - 1, wy - 1, fw, fh);
                 let mut framed = canvas.clone_canvas(&ids, fx + 1 - bx, fy + 1 - by);

@@ -81,10 +81,11 @@ pub fn render(
     let colors = theme::colors(no_color, colorterm.as_deref());
     let accent = theme::accent(s.theme, no_color, colorterm.as_deref());
     canvas_view::draw(&mut grid, s, accent, colors);
-    if !s.zoomed_out() && !s.present {
-        palette::draw(&mut grid, s);
-    }
     if !s.present {
+        let (w, h) = (i32::from(area.width), i32::from(area.height));
+        grid.fill(0, 0, w, palette::rows(s));
+        grid.fill(0, h - 1, w, 1);
+        palette::draw(&mut grid, s);
         infobar::draw(&mut grid, s, overlay, saved);
     }
     if !matches!(overlay, Overlay::None) {
@@ -116,7 +117,7 @@ pub fn text(canvas: &Canvas) -> String {
     };
     let clamp = |n: i32| u16::try_from(n).unwrap_or(u16::MAX);
     let screen = (clamp(w), clamp(h));
-    let s = Session::new(
+    let mut s = Session::new(
         canvas.clone(),
         View {
             ox: x,
@@ -125,6 +126,7 @@ pub fn text(canvas: &Canvas) -> String {
         },
         screen,
     );
+    s.present = true;
     let mut grid = Grid::new(screen.0, screen.1);
     canvas_view::draw(&mut grid, &s, None, false);
     grid.to_text()

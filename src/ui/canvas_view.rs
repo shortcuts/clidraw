@@ -96,15 +96,15 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     }
     guides(grid, s);
     if s.rev == 0 && s.canvas.elements.is_empty() {
-        welcome(grid);
+        welcome(grid, s.viewport());
     }
 }
 
-fn welcome(grid: &mut Grid) {
+fn welcome(grid: &mut Grid, (vx, vy, vw, vh): (i32, i32, i32, i32)) {
     let lines = ["drag to draw", "? for keys", ": for commands"];
-    let y0 = grid.h / 2 - 1;
+    let y0 = vy + vh / 2 - 1;
     for (y, l) in (y0..).zip(lines) {
-        grid.text((grid.w - l.width() as i32) / 2, y, l, DIM);
+        grid.text(vx + (vw - l.width() as i32) / 2, y, l, DIM);
     }
 }
 
