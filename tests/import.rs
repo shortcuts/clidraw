@@ -127,3 +127,19 @@ fn flowchart_validate_reports_nothing_for_valid_text() {
     let kind: &dyn DiagramKind = &Flowchart;
     assert!(kind.validate("flowchart TD\nA --> B").is_empty());
 }
+
+#[test]
+fn flowchart_validate_offers_an_arrow_fix_only_when_it_parses() {
+    let fix = |t: &str| {
+        let d = Flowchart.validate(t).remove(0);
+        d.fix.map(|f| (f.label, f.replacement))
+    };
+    let fixed = |r: &str| Some(("Use -->".to_string(), r.to_string()));
+    assert_eq!(fix("flowchart TD\nA -> B"), fixed("A --> B"));
+    assert_eq!(fix("flowchart TD\nA => B"), fixed("A --> B"));
+    assert_eq!(
+        fix("flowchart TD\nA <-> B"),
+        Some(("Use <-->".into(), "A <--> B".into()))
+    );
+    assert_eq!(fix("flowchart TD\nA ->"), None);
+}

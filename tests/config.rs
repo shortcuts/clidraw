@@ -217,3 +217,12 @@ fn chrome_accent_reads_a_hex_color_and_rejects_the_rest() {
         );
     }
 }
+
+#[test]
+fn quick_fixes_defaults_on_and_accepts_false() {
+    assert!(Config::default().quick_fixes);
+    let (c, w, _t) = load_text("quick_fixes = false\n");
+    assert!(!c.quick_fixes && w.is_empty());
+    let (c, w, _t) = load_text("quick_fixes = \"yes\"\n");
+    assert!(c.quick_fixes && w.len() == 1, "{w:?}");
+}

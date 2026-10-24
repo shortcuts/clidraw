@@ -2022,6 +2022,11 @@ fn registry_display_only_entries_are_covered() {
             |a| matches!(a.overlay, Overlay::None),
         ),
         (
+            "apply_fix",
+            |a| type_mermaid(a, "A -> B", KeyCode::Tab),
+            |a| buffer(a) == "A --> B",
+        ),
+        (
             "run",
             |a| palette_typed(a, "present"),
             |a| a.session.present,
@@ -2500,4 +2505,32 @@ fn mermaid_editor_enter_on_empty_buffer_sets_no_status() {
     type_mermaid(&mut app, "", KeyCode::Enter);
     assert!(app.session.canvas.elements.is_empty());
     assert!(status(&app).is_empty());
+}
+
+#[test]
+fn mermaid_editor_tab_applies_the_fix_and_enter_alone_does_not() {
+    let d = tempfile::tempdir().unwrap();
+    let mut app = app_in(d.path());
+    type_mermaid(&mut app, "A -> B", KeyCode::Enter);
+    assert!(app.session.canvas.elements.is_empty());
+
+    let mut app = app_in(d.path());
+    type_mermaid(&mut app, "A -> B", KeyCode::Tab);
+    assert_eq!(buffer(&app), "A --> B");
+    assert!(app.session.canvas.elements.is_empty());
+    app.on_event(key(KeyCode::Enter), Instant::now());
+    assert_eq!(app.session.canvas.elements.len(), 4);
+}
+
+#[test]
+fn mermaid_editor_tab_does_nothing_when_quick_fixes_are_off() {
+    let d = tempfile::tempdir().unwrap();
+    let store = Store::at(d.path().join("c"), d.path().join("state"));
+    let cfg = Config {
+        quick_fixes: false,
+        ..Config::default()
+    };
+    let mut app = App::open_with(store, Some("demo".into()), (80, 24), cfg, vec![]).unwrap();
+    type_mermaid(&mut app, "A -> B", KeyCode::Tab);
+    assert_eq!(buffer(&app), "A -> B");
 }

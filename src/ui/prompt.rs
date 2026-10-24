@@ -32,6 +32,8 @@ pub struct Prompt {
     pub edit: Edit,
     /// Highlighted completion of the command line.
     pub sel: usize,
+    /// Offer and apply the first diagnostic's fix.
+    pub fixes: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -53,7 +55,12 @@ impl Prompt {
     pub fn new(kind: PromptKind, buf: String) -> Prompt {
         // target is unused for prompts
         let edit = Edit::new(EditTarget::New(0, 0), buf);
-        Prompt { kind, edit, sel: 0 }
+        Prompt {
+            kind,
+            edit,
+            sel: 0,
+            fixes: false,
+        }
     }
 
     pub fn buf(&self) -> &str {
@@ -66,17 +73,35 @@ impl Prompt {
     }
 
     /// The first diagnostic of the session header plus the typed line.
-    fn hint(&self) -> Option<(Severity, String)> {
+    fn diagnostic(&self) -> Option<diagram::Diagnostic> {
         let PromptKind::Mermaid(header) = &self.kind else {
             return None;
         };
         if self.buf().trim().is_empty() {
             return None;
         }
-        let d = diagram::validate(&format!("{header}\n{}", self.buf()))
+        diagram::validate(&format!("{header}\n{}", self.buf()))
             .into_iter()
-            .next()?;
-        Some((d.severity, d.message))
+            .next()
+    }
+
+    /// Replaces the typed line with the first diagnostic's fix.
+    pub fn apply_fix(&mut self) {
+        let (
+            PromptKind::Mermaid(header),
+            Some(diagram::Diagnostic {
+                range,
+                fix: Some(fix),
+                ..
+            }),
+        ) = (&self.kind, self.diagnostic())
+        else {
+            return;
+        };
+        let mut text = format!("{header}\n{}", self.buf());
+        text.replace_range(range, &fix.replacement);
+        let buf = text[header.len() + 1..].to_string();
+        self.edit = Edit::new(EditTarget::New(0, 0), buf);
     }
 
     fn title(&self) -> &'static str {
@@ -166,8 +191,8 @@ pub fn draw_command(grid: &mut Grid, p: &Prompt) {
         _ => ":",
     };
     caret_line(grid, 0, row, grid.w, prefix, p);
-    if let Some((severity, message)) = p.hint() {
-        let (label, style) = match severity {
+    if let Some(d) = p.diagnostic() {
+        let (label, style) = match d.severity {
             Severity::Error => ("error", ERROR),
             Severity::Warning => ("warning", MUTED),
         };
@@ -175,7 +200,12 @@ pub fn draw_command(grid: &mut Grid, p: &Prompt) {
         let room = grid.w - x;
         if room >= MIN_HINT {
             let mut text = String::new();
-            for c in format!("{label}: {message}").chars() {
+            let mut shown = format!("{label}: {}", d.message);
+            if let Some(fix) = d.fix.filter(|_| p.fixes) {
+                let key = registry::by_id("apply_fix").first_label();
+                shown.push_str(&format!("  {key}: {}", fix.label));
+            }
+            for c in shown.chars() {
                 if (text.width() + c.width().unwrap_or(0)) as i32 > room {
                     break;
                 }

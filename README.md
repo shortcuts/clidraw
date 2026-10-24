@@ -34,7 +34,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap, and the shape grows to fit.
 - Select shapes and run `:layout` (top-down) or `:layout lr` to arrange them by their connecting lines.
 - Run `:import <path>` to add a Mermaid flowchart to the canvas. It reads nodes, edges and labels, and arranges them with `:layout`.
-- Run `:mermaid` to type one flowchart line. It flags mistakes as you type. Enter adds the diagram.
+- Run `:mermaid` to type one flowchart line. It flags mistakes as you type. A fixable mistake shows a fix that Tab applies. Enter adds the diagram.
 - Select shapes and run `:lib save <name>` to keep them in the library. Run `:lib insert <name>` to add them to any canvas.
 - Group elements to select and move them as one.
 - Click a shape tool while a shape is selected to change its kind.
@@ -147,7 +147,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request.
 ## Files
 
 - Canvases: `$CLIDRAW_HOME`, else `$XDG_CONFIG_HOME/clidraw`, else `~/.config/clidraw`. One `<name>.clidraw.json` per canvas. Output is stable, so the files diff cleanly in git.
-- Settings: `config.toml` in the canvas directory. The first run writes it with every key commented. Keys: `autosave_ms` (500), `double_click_ms` (400), `default_canvas` (`untitled`), `grid` (1 = no snapping; a larger number snaps drawn, moved and resized shapes to multiples of that many cells), `theme` (`auto`, `dark`, `light`; default `auto`; auto asks the terminal for its background and falls back to dark), `scroll_speed` (100 = percent of the default distance wheel and trackpad scrolling pans; 1 to 1000), `chrome_accent` (`"#rrggbb"`; color of the active tool, selected row and mode badge; default is the theme accent), `motion` (`true`; `false` makes Fit all and search jump snap instead of gliding over 120 ms). A bad or unknown key shows a status line and keeps the default.
+- Settings: `config.toml` in the canvas directory. The first run writes it with every key commented. Keys: `autosave_ms` (500), `double_click_ms` (400), `default_canvas` (`untitled`), `grid` (1 = no snapping; a larger number snaps drawn, moved and resized shapes to multiples of that many cells), `theme` (`auto`, `dark`, `light`; default `auto`; auto asks the terminal for its background and falls back to dark), `scroll_speed` (100 = percent of the default distance wheel and trackpad scrolling pans; 1 to 1000), `chrome_accent` (`"#rrggbb"`; color of the active tool, selected row and mode badge; default is the theme accent), `motion` (`true`; `false` makes Fit all and search jump snap instead of gliding over 120 ms), `quick_fixes` (`true`; `false` hides fix suggestions and turns Tab off in the `:mermaid` editor). A bad or unknown key shows a status line and keeps the default.
 - Viewport and last canvas: `$XDG_STATE_HOME/clidraw/state.json`, else `~/.local/state/clidraw/state.json`.
 - Undo history: `history/<name>.json` beside `state.json`. It holds at most `history_limit` steps and is dropped when the canvas file changes outside clidraw. Redo does not persist.
 - Edits from the CLI while the UI has the same canvas open are lost: the UI autosaves its own state over them. A CLI edit also drops that canvas's undo history.

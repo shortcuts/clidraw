@@ -613,6 +613,14 @@ pub const BINDINGS: &[Binding] = &[
         None,
     )
     .hint("cancel"),
+    Binding::new(
+        "apply_fix",
+        &[plain(KeyCode::Tab)],
+        "Apply fix",
+        Scope::Overlay,
+        None,
+    )
+    .hint("fix"),
     Binding::new("tabs", &[], "Switch tab", Scope::Overlay, None)
         .shown("‹ ›")
         .hint("switch tab"),

@@ -33,6 +33,9 @@ pub const DEFAULT_TOML: &str = "\
 # Glide the view for Fit all and search jumps. false snaps instantly.
 # motion = true
 
+# Offer a fix for a mistake in the :mermaid editor and apply it with Tab. false turns it off.
+# quick_fixes = true
+
 # Percent of the default distance that wheel and trackpad scrolling pans. 50 halves it.
 # scroll_speed = 100
 
@@ -52,6 +55,7 @@ pub struct Config {
     pub history_limit: usize,
     pub export_padding: i32,
     pub motion: bool,
+    pub quick_fixes: bool,
     pub scroll_speed: i32,
     pub theme: ThemeSetting,
     pub chrome_accent: Option<Color>,
@@ -67,6 +71,7 @@ impl Default for Config {
             history_limit: HISTORY_LIMIT,
             export_padding: 2,
             motion: true,
+            quick_fixes: true,
             scroll_speed: 100,
             theme: ThemeSetting::Auto,
             chrome_accent: None,
@@ -112,6 +117,7 @@ impl Config {
                 "history_limit" => count(value).map(|n| self.history_limit = n),
                 "export_padding" => padding(value).map(|n| self.export_padding = n),
                 "motion" => flag(value).map(|b| self.motion = b),
+                "quick_fixes" => flag(value).map(|b| self.quick_fixes = b),
                 "scroll_speed" => speed(value).map(|n| self.scroll_speed = n),
                 "chrome_accent" => hex(value).map(|c| self.chrome_accent = Some(c)),
                 "theme" => theme(value).map(|t| self.theme = t),

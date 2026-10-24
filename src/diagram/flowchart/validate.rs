@@ -1,5 +1,5 @@
 use super::import::{header, parse_line, Rejected, MAX_SHAPES};
-use crate::diagram::{statements, Diagnostic, Severity};
+use crate::diagram::{statements, Diagnostic, Fix, Severity};
 use std::collections::HashSet;
 use std::ops::Range;
 
@@ -10,6 +10,16 @@ fn diagnostic(severity: Severity, message: String, range: Range<usize>) -> Diagn
         range,
         fix: None,
     }
+}
+
+/// The broken arrow, its replacement and the fixed line, when the fixed line parses.
+fn arrow_fix(line: &str) -> Option<(&'static str, &'static str, String)> {
+    // shortcut: replaces every occurrence, even inside quotes; parse_line vets the result, upgrade if a valid label ever loses text
+    [("<->", "<-->"), ("->", "-->"), ("=>", "-->")]
+        .into_iter()
+        .filter(|(bad, _)| line.contains(bad))
+        .map(|(bad, good)| (bad, good, line.replace(bad, good)))
+        .find(|(.., fixed)| parse_line(fixed).is_ok())
 }
 
 pub(super) fn validate(text: &str) -> Vec<Diagnostic> {
@@ -31,11 +41,20 @@ pub(super) fn validate(text: &str) -> Vec<Diagnostic> {
                 format!("`{word}` is not supported and is skipped on import"),
                 range,
             )),
-            Err(Rejected::Unparsable) => out.push(diagnostic(
-                Severity::Error,
-                "Cannot read this line: expected nodes joined by arrows".into(),
-                range,
-            )),
+            Err(Rejected::Unparsable) => out.push(match arrow_fix(line) {
+                Some((bad, good, replacement)) => Diagnostic {
+                    fix: Some(Fix {
+                        label: format!("Use {good}"),
+                        replacement,
+                    }),
+                    ..diagnostic(Severity::Error, format!("`{bad}` is not an arrow"), range)
+                },
+                None => diagnostic(
+                    Severity::Error,
+                    "Cannot read this line: expected nodes joined by arrows".into(),
+                    range,
+                ),
+            }),
         }
     }
     if ids.len() > MAX_SHAPES {

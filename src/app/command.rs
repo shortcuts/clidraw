@@ -24,6 +24,7 @@ impl App {
             KeyCode::Char('n') if ctrl => 1,
             KeyCode::Esc => return self.overlay = Overlay::None,
             KeyCode::Enter => return self.confirm(),
+            KeyCode::Tab if p.fixes => return p.apply_fix(),
             KeyCode::Tab if p.completing() => {
                 if let Some(b) = prompt::command_list(p, 0).selected() {
                     self.complete(b);
@@ -69,7 +70,9 @@ impl App {
             "import" => self.import(arg.trim()),
             "mermaid" => {
                 let kind = PromptKind::Mermaid(self.mermaid_header.clone());
-                self.overlay = Overlay::Prompt(Prompt::new(kind, String::new()));
+                let mut p = Prompt::new(kind, String::new());
+                p.fixes = self.quick_fixes;
+                self.overlay = Overlay::Prompt(p);
             }
             "export" => match arg.trim() {
                 "" => self.overlay = Overlay::Formats(scope::formats()),

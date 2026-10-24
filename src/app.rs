@@ -42,6 +42,7 @@ pub struct App {
     autosave: Duration,
     default_canvas: String,
     export_padding: i32,
+    quick_fixes: bool,
     mermaid_header: String,
 }
 

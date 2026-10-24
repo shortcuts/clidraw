@@ -1640,12 +1640,15 @@ fn command_line_keeps_the_caret_on_screen_when_the_buffer_overflows() {
 }
 
 fn mermaid_prompt_at(buf: &str, w: u16, h: u16) -> Buffer {
+    mermaid_prompt_fixes(buf, w, h, false)
+}
+
+fn mermaid_prompt_fixes(buf: &str, w: u16, h: u16, fixes: bool) -> Buffer {
     let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
     let s = Session::new(Canvas::default(), View::default(), (w, h));
-    let overlay = Overlay::Prompt(Prompt::new(
-        PromptKind::Mermaid("flowchart TD".into()),
-        buf.into(),
-    ));
+    let mut p = Prompt::new(PromptKind::Mermaid("flowchart TD".into()), buf.into());
+    p.fixes = fixes;
+    let overlay = Overlay::Prompt(p);
     let mut t = Terminal::new(TestBackend::new(w, h)).unwrap();
     t.draw(|f| {
         let area = f.area();
@@ -1679,4 +1682,19 @@ fn mermaid_prompt_hints_the_first_diagnostic_after_the_text() {
             .collect();
         assert!(!all.contains("[ OK ]"), "{w}");
     }
+}
+
+#[test]
+fn mermaid_prompt_shows_the_fix_only_when_enabled() {
+    for w in [60, 120] {
+        let on = line_at(&mermaid_prompt_fixes("A -> B", w, 24, true), 23);
+        assert!(on.contains("is not an arrow  Tab: Use -->"), "{w}: {on}");
+        let off = line_at(&mermaid_prompt_fixes("A -> B", w, 24, false), 23);
+        assert!(
+            off.contains("is not an arrow") && !off.contains("Tab"),
+            "{w}: {off}"
+        );
+    }
+    let narrow = line_at(&mermaid_prompt_fixes("A -> B", 40, 24, true), 23);
+    assert!(narrow.starts_with("mmd> A -> B"), "{narrow}");
 }
