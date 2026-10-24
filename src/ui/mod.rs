@@ -115,7 +115,7 @@ pub fn render(
         infobar::status(&mut grid, s, doc, st);
     }
     if let Some(p) = perf {
-        p.draw(&mut grid, s.canvas.elements.len());
+        p.draw(&mut grid, s.canvas.elements.len(), s.viewport().1);
     }
     grid.copy_to(buf, area);
 }

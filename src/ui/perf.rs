@@ -24,7 +24,7 @@ impl Perf {
         self.last_bytes = bytes;
     }
 
-    pub(super) fn draw(&self, grid: &mut Grid, elements: usize) {
+    pub(super) fn draw(&self, grid: &mut Grid, elements: usize, y: i32) {
         let mut sorted: Vec<f64> = self
             .frames
             .iter()
@@ -41,6 +41,6 @@ impl Perf {
             elements
         );
         let x = (grid.w - text.chars().count() as i32).max(0);
-        grid.text(x, 0, &text, ACTIVE);
+        grid.text(x, y, &text, ACTIVE);
     }
 }

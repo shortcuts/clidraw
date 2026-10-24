@@ -593,6 +593,7 @@ fn line_crossing_the_view_draws_when_both_ends_are_off_screen() {
 #[test]
 fn perf_row_shows_the_last_120_frames_at_the_top_right() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let top = s.viewport().1 as u16;
     let mut perf = Perf::default();
     for ms in 1..=150 {
         perf.events = 3;
@@ -614,11 +615,12 @@ fn perf_row_shows_the_last_120_frames_at_the_top_right() {
     .unwrap();
     let b = t.backend().buffer().clone();
     assert!(
-        row(&b, 0).ends_with(" frame 91.0/150.0ms  ev 3  1234B  0 el "),
+        row(&b, top).ends_with(" frame 91.0/150.0ms  ev 3  1234B  0 el "),
         "{}",
-        row(&b, 0)
+        row(&b, top)
     );
-    assert!(!row(&draw(&s, &Overlay::None), 0).contains("frame"));
+    assert!(!row(&b, 0).contains("frame"));
+    assert!(!row(&draw(&s, &Overlay::None), top).contains("frame"));
 }
 
 #[test]
