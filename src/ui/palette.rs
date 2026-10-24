@@ -2,6 +2,7 @@ use super::grid::{Grid, DIM, REVERSE, UNDERLINE};
 use crate::input::{Session, Tool};
 use crate::model::{Align, Border, Element, Id, LineKind, Paint, Stroke, TextAlign};
 use std::collections::HashMap;
+use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PaletteHit {
@@ -189,17 +190,17 @@ pub fn cells(opts: &[Choice], width: i32) -> Vec<(PaletteHit, i32, i32, i32)> {
     let key_w = |t: Tool| t.key().map_or(0, |_| 2);
     let keyed = Tool::ALL
         .iter()
-        .map(|&t| t.label().len() as i32 + 2 + key_w(t))
+        .map(|&t| t.label().width() as i32 + 2 + key_w(t))
         .sum::<i32>()
         <= width;
     for t in Tool::ALL {
-        let w = t.label().len() as i32 + 2 + if keyed { key_w(t) } else { 0 };
+        let w = t.label().width() as i32 + 2 + if keyed { key_w(t) } else { 0 };
         out.push((PaletteHit::Tool(t), x, 0, w));
         x += w;
     }
     let (mut x, mut y) = (0, 1);
     for c in opts {
-        let w = c.label().len() as i32 + 2;
+        let w = c.label().width() as i32 + 2;
         if x > 0 && x + w > width {
             (x, y) = (0, y + 1);
         }
@@ -237,10 +238,10 @@ pub fn draw(grid: &mut Grid, s: &Session) {
                 0
             };
         let key = match h {
-            PaletteHit::Tool(t) if w as usize > text.len() + 2 => t.key(),
+            PaletteHit::Tool(t) if w as usize > text.width() + 2 => t.key(),
             _ => None,
         };
-        let pad = " ".repeat((w as usize).saturating_sub(text.len() + 1));
+        let pad = " ".repeat((w as usize).saturating_sub(text.width() + 1));
         grid.text(x, y, &format!(" {text}{pad}"), flags);
         if let Some(k) = key {
             grid.text(x + w - 2, y, &k.to_string(), flags | DIM);

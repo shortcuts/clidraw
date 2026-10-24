@@ -1202,3 +1202,20 @@ fn info_bar_shows_the_zoom_percent_and_zoomed_out_hints() {
     s.view.zoom = Zoom::Three;
     assert!(bar(&s, 120, true).contains("300%"));
 }
+
+#[test]
+fn option_cells_leave_no_canvas_gap_after_wide_glyph_labels() {
+    let mut c = Canvas::default();
+    let Element::Shape(mut sh) = shape("aaaaaaaa", 0, "") else {
+        unreachable!()
+    };
+    (sh.y, sh.w, sh.h) = (1, 80, 40);
+    c.elements.push(Element::Shape(sh));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.selection.push(Id::from("aaaaaaaa"));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(
+        cols(&b, 1, 0, 64),
+        " __ solid  -- dashed  .. dotted  ┌┐ single  ╭╮ round  ╔╗ double ",
+    );
+}
