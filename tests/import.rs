@@ -1,5 +1,5 @@
-use clidraw::import::mermaid;
-use clidraw::model::{Border, Dir, Element, LineKind, Shape, ShapeKind, Stroke};
+use clidraw::diagram::{DiagramKind, Flowchart};
+use clidraw::model::{Border, Element, LineKind, Shape, ShapeKind, Stroke};
 
 fn shapes(c: &clidraw::model::Canvas) -> Vec<&Shape> {
     c.elements
@@ -29,7 +29,9 @@ fn lines(c: &clidraw::model::Canvas) -> Vec<&clidraw::model::Line> {
 
 #[test]
 fn sample_round_trip() {
-    let out = mermaid(&std::fs::read_to_string("tests/golden/sample.mmd").unwrap()).unwrap();
+    let out = Flowchart
+        .import(&std::fs::read_to_string("tests/golden/sample.mmd").unwrap())
+        .unwrap();
     let s = shapes(&out.canvas);
     let kinds: Vec<_> = s.iter().map(|s| (s.kind, s.border)).collect();
     assert_eq!(
@@ -56,7 +58,7 @@ fn sample_round_trip() {
 
 #[test]
 fn chain_makes_one_line_per_arrow() {
-    let out = mermaid("graph TD\nA --> B --> C").unwrap();
+    let out = Flowchart.import("graph TD\nA --> B --> C").unwrap();
     assert_eq!(
         (shapes(&out.canvas).len(), lines(&out.canvas).len()),
         (3, 2)
@@ -65,7 +67,7 @@ fn chain_makes_one_line_per_arrow() {
 
 #[test]
 fn stadium_imports_as_rounded_rect() {
-    let out = mermaid("graph TD\nA([hi])").unwrap();
+    let out = Flowchart.import("graph TD\nA([hi])").unwrap();
     let s = shapes(&out.canvas);
     assert_eq!(
         (s.len(), s[0].kind, s[0].border, s[0].label.as_str()),
@@ -75,14 +77,16 @@ fn stadium_imports_as_rounded_rect() {
 
 #[test]
 fn arrow_inside_quotes_does_not_split() {
-    let out = mermaid("flowchart TD\nA[\"a --> b\"] --> B").unwrap();
+    let out = Flowchart
+        .import("flowchart TD\nA[\"a --> b\"] --> B")
+        .unwrap();
     let s = shapes(&out.canvas);
     assert_eq!((s.len(), s[0].label.as_str()), (2, "a --> b"));
 }
 
 #[test]
 fn later_definition_names_an_earlier_bare_node() {
-    let out = mermaid("flowchart TD\nA --> B\nA{Pick}").unwrap();
+    let out = Flowchart.import("flowchart TD\nA --> B\nA{Pick}").unwrap();
     let s = shapes(&out.canvas);
     assert_eq!(
         (s[0].kind, s[0].label.as_str()),
@@ -92,24 +96,34 @@ fn later_definition_names_an_earlier_bare_node() {
 
 #[test]
 fn other_diagrams_fail() {
-    assert!(mermaid("sequenceDiagram\nA->>B: hi").is_err());
+    assert!(Flowchart.import("sequenceDiagram\nA->>B: hi").is_err());
 }
 
 #[test]
 fn lr_lays_out_left_to_right() {
-    let out = mermaid("flowchart LR\nA --> B").unwrap();
-    assert_eq!(out.dir, Dir::LeftRight);
+    let out = Flowchart.import("flowchart LR\nA --> B").unwrap();
     let s = shapes(&out.canvas);
     assert!(s[1].x > s[0].x, "{} {}", s[0].x, s[1].x);
 }
 
 #[test]
 fn comments_are_not_skipped_lines() {
-    let out = mermaid("flowchart TD\n%% note\nA --> B\nA -- text --> B").unwrap();
+    let out = Flowchart
+        .import("flowchart TD\n%% note\nA --> B\nA -- text --> B")
+        .unwrap();
     assert_eq!(out.skipped, 1);
 }
 
 #[test]
 fn header_only_is_empty() {
-    assert_eq!(mermaid("flowchart TD").err().unwrap(), "nothing to import");
+    assert_eq!(
+        Flowchart.import("flowchart TD").err().unwrap(),
+        "nothing to import"
+    );
+}
+
+#[test]
+fn flowchart_validate_reports_nothing_for_valid_text() {
+    let kind: &dyn DiagramKind = &Flowchart;
+    assert!(kind.validate("flowchart TD\nA --> B").is_empty());
 }

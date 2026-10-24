@@ -1,12 +1,8 @@
+use super::super::Exported;
 use crate::model::{
     Border, Canvas, Element, End, Id, LineKind, Paint, ShapeKind, Stroke, FILL_ALPHA,
 };
 use std::fmt::Write;
-
-pub struct MermaidOutput {
-    pub text: String,
-    pub skipped: usize,
-}
 
 fn label(s: &str) -> String {
     let s = if s.is_empty() { " " } else { s };
@@ -18,7 +14,7 @@ fn hex(p: Paint) -> String {
     format!("#{r:02x}{g:02x}{b:02x}")
 }
 
-pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
+pub(super) fn export(canvas: &Canvas) -> Exported {
     let shapes: Vec<&Id> = canvas
         .elements
         .iter()
@@ -110,5 +106,5 @@ pub fn mermaid(canvas: &Canvas) -> MermaidOutput {
     text.push_str(&edges);
     text.push_str(&styles);
     text.push_str(&clicks);
-    MermaidOutput { text, skipped }
+    Exported { text, skipped }
 }

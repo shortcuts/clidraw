@@ -1,4 +1,5 @@
-use clidraw::export::{mermaid, svg, svg_padded, text};
+use clidraw::diagram::{DiagramKind, Flowchart};
+use clidraw::export::{svg, svg_padded, text};
 use clidraw::model::{
     Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind, Stroke,
     Text, TextAlign,
@@ -155,7 +156,7 @@ fn svg_matches_golden() {
 
 #[test]
 fn mermaid_matches_golden_and_counts_skipped() {
-    let out = mermaid(&sample());
+    let out = Flowchart.export(&sample());
     check("sample.mmd", &out.text);
     assert_eq!(out.skipped, 3);
 }
@@ -163,14 +164,14 @@ fn mermaid_matches_golden_and_counts_skipped() {
 #[test]
 fn empty_canvas_exports_without_panicking() {
     assert!(svg(&Canvas::default()).contains("<svg"));
-    assert_eq!(mermaid(&Canvas::default()).text, "flowchart TD\n");
+    assert_eq!(Flowchart.export(&Canvas::default()).text, "flowchart TD\n");
 }
 
 #[test]
 fn area_exports_match_golden() {
     let area = sample().within((0, 0, 42, 5));
     check("sample_area.svg", &svg(&area));
-    let out = mermaid(&area);
+    let out = Flowchart.export(&area);
     check("sample_area.mmd", &out.text);
     assert_eq!(out.skipped, 0);
 }

@@ -1,13 +1,8 @@
+use super::super::Imported;
 use crate::model::{
     Anchor, Border, Canvas, Dir, Element, End, Id, Line, LineKind, Shape, ShapeKind, Stroke,
 };
 use std::collections::HashMap;
-
-pub struct MermaidInput {
-    pub canvas: Canvas,
-    pub dir: Dir,
-    pub skipped: usize,
-}
 
 const MAX_SHAPES: usize = 2000;
 
@@ -133,7 +128,7 @@ fn header(line: &str) -> Result<Dir, String> {
     }
 }
 
-pub fn mermaid(text: &str) -> Result<MermaidInput, String> {
+pub(super) fn import(text: &str) -> Result<Imported, String> {
     let mut lines = text
         .lines()
         .map(str::trim)
@@ -229,9 +224,5 @@ pub fn mermaid(text: &str) -> Result<MermaidInput, String> {
     for cmd in canvas.layout(&ids, dir) {
         let _ = canvas.apply(cmd);
     }
-    Ok(MermaidInput {
-        canvas,
-        dir,
-        skipped,
-    })
+    Ok(Imported { canvas, skipped })
 }

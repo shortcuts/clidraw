@@ -1,9 +1,9 @@
 pub mod app;
 pub mod cli;
 pub mod config;
+pub mod diagram;
 pub mod export;
 pub mod frame_writer;
-pub mod import;
 pub mod input;
 pub mod mcp;
 pub mod model;

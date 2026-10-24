@@ -1,5 +1,5 @@
 use super::App;
-use crate::import;
+use crate::diagram::{DiagramKind, Flowchart};
 use crate::model::{Element, Id, Shape, ShapeKind};
 use crate::ui::Status;
 
@@ -7,7 +7,7 @@ impl App {
     pub(super) fn import(&mut self, path: &str) {
         let parsed = std::fs::read_to_string(path)
             .map_err(|e| e.to_string())
-            .and_then(|text| import::mermaid(&text));
+            .and_then(|text| Flowchart.import(&text));
         self.status = Some(match parsed {
             Ok(input) => {
                 let canvas = input.canvas;

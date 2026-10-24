@@ -1,11 +1,10 @@
-mod mermaid;
 mod svg;
 
 pub use crate::ui::text;
 
-pub use mermaid::{mermaid, MermaidOutput};
 pub use svg::{svg, svg_padded};
 
+use crate::diagram::{DiagramKind, Flowchart};
 use crate::model::Canvas;
 use crate::ui::scope::ExportFormat;
 
@@ -15,7 +14,7 @@ pub fn render(canvas: &Canvas, format: ExportFormat, padding: i32) -> (String, u
         ExportFormat::Svg => (svg_padded(canvas, padding), 0),
         ExportFormat::Text => (text(canvas), 0),
         ExportFormat::Mermaid => {
-            let out = mermaid(canvas);
+            let out = Flowchart.export(canvas);
             (out.text, out.skipped)
         }
     }

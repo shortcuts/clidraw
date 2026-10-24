@@ -1,6 +1,7 @@
 use clidraw::app::App;
 use clidraw::config::Config;
-use clidraw::export::{mermaid, svg};
+use clidraw::diagram::{DiagramKind, Flowchart};
+use clidraw::export::svg;
 use clidraw::frame_writer::FrameWriter;
 use clidraw::input::handles;
 use clidraw::model::{Anchor, Element, End, Id, Line, LineKind, Shape, ShapeKind};
@@ -821,12 +822,12 @@ fn svg_export_fits_the_budget_on_5000_elements() {
 fn mermaid_export_fits_the_budget_on_5000_elements() {
     let t = tempfile::tempdir().unwrap();
     let app = busy_app(t.path());
-    let out = mermaid(&app.session.canvas);
+    let out = Flowchart.export(&app.session.canvas);
     assert_eq!((out.skipped, out.text.matches("-->").count()), (0, 2499));
     let times = (0..FRAMES)
         .map(|_| {
             let t0 = Instant::now();
-            std::hint::black_box(mermaid(&app.session.canvas));
+            std::hint::black_box(Flowchart.export(&app.session.canvas));
             t0.elapsed()
         })
         .collect();
