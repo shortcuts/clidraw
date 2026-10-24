@@ -1318,3 +1318,70 @@ fn a_lane_stub_far_from_the_start_stays_inside_the_search_area() {
         [(5, 4), (5, 5), (5, 6), (5, 7)]
     );
 }
+
+fn at(id: &str, x: i32, y: i32, w: i32, h: i32) -> Element {
+    let Element::Shape(s) = shape(id, x) else {
+        unreachable!()
+    };
+    Element::Shape(Shape { y, w, h, ..s })
+}
+
+fn scene(shapes: &[Element]) -> (Canvas, History, Line) {
+    let mut c = Canvas::default();
+    let mut h = History::default();
+    let line = arrow(bound("aaaaaaaa"), bound("bbbbbbbb"));
+    for e in shapes.iter().cloned().chain([line.clone()]) {
+        let i = c.elements.len();
+        h.exec(&mut c, Command::Insert(i, e)).unwrap();
+    }
+    let Element::Line(l) = line else {
+        unreachable!()
+    };
+    (c, h, l)
+}
+
+#[test]
+fn a_stub_blocked_beyond_its_end_still_detours() {
+    let wall = (28, 18, 10, 3);
+    let (c, _, l) = scene(&[
+        at("aaaaaaaa", 38, 7, 5, 3),
+        at("bbbbbbbb", 14, 14, 11, 8),
+        at("cccccccc", wall.0, wall.1, wall.2, wall.3),
+    ]);
+    let cells = c.route(&l);
+    assert!(!cells.iter().any(|&p| inside(p, wall)), "{cells:?}");
+    assert_eq!(cells.last(), Some(&(25, 18)));
+}
+
+#[test]
+fn a_pinned_route_replays_and_crosses_no_shape() {
+    let walls = [(21, 1, 4, 8), (7, 5, 4, 6)];
+    let (mut c, mut h, l) = scene(&[
+        at("aaaaaaaa", 32, 3, 6, 6),
+        at("bbbbbbbb", 19, 11, 11, 3),
+        at("cccccccc", walls[0].0, walls[0].1, walls[0].2, walls[0].3),
+        at("dddddddd", walls[1].0, walls[1].1, walls[1].2, walls[1].3),
+    ]);
+    let fresh = c.route(&l);
+    for cmd in c.pin_cmds(std::slice::from_ref(&l.id)) {
+        h.exec(&mut c, cmd).unwrap();
+    }
+    let Some(Element::Line(pinned)) = c.elements.last().cloned() else {
+        unreachable!()
+    };
+    assert!(!pinned.bends.is_empty());
+    let cells = c.route(&pinned);
+    assert_eq!(cells, fresh);
+    assert!(!cells.iter().any(|&p| walls.iter().any(|&w| inside(p, w))));
+}
+
+#[test]
+fn a_straight_stub_still_wins_when_free() {
+    let (c, _, l) = scene(&[at("aaaaaaaa", 0, 0, 6, 3), at("bbbbbbbb", 30, 0, 6, 3)]);
+    let cells = c.route(&l);
+    let n = cells.len();
+    assert!(
+        cells[n - 3..].iter().all(|p| p.1 == cells[n - 1].1),
+        "{cells:?}"
+    );
+}

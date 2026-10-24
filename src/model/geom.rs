@@ -42,6 +42,19 @@ pub fn edge_anchor(s: &Shape, (x, y): Pt) -> Anchor {
     }
 }
 
+/// Anchor on the side of `s` that the outside cell `c` touches, at the offset of `c` along it.
+pub fn side_anchor(s: &Shape, c: Pt) -> Anchor {
+    if c.1 < s.y {
+        Anchor::Top(c.0 - s.x)
+    } else if c.1 >= s.y + s.h {
+        Anchor::Bottom(c.0 - s.x)
+    } else if c.0 < s.x {
+        Anchor::Left(c.1 - s.y)
+    } else {
+        Anchor::Right(c.1 - s.y)
+    }
+}
+
 /// The cell just outside the side of `s` the anchor names, at its offset along it, or at the
 /// midpoint of the side that faces `toward` for `Auto`, and the axis a line leaves it on.
 // shortcut: shapes under 2 cells apart overlap the end cells, clamp if it matters

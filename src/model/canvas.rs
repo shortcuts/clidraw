@@ -1,6 +1,8 @@
-use super::geom::{center, corners, route, side_mid, Axis};
+use super::geom::{center, corners, route, side_anchor, side_mid, Axis};
 use super::router::{grow, union};
-use super::{Command, Element, End, Id, Line, Router, Shape, ShapeKind, Text, VERSION};
+use super::{
+    Anchor, Command, Element, End, Id, Line, Router, Shape, ShapeKind, Side, Text, VERSION,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -234,10 +236,40 @@ impl Canvas {
                 if bends.is_empty() && cells.len() >= 3 {
                     bends.push(cells[cells.len() / 2]);
                 }
-                (bends != l.bends).then(|| Command::SetBends {
-                    id: l.id.clone(),
-                    bends,
-                })
+                let pinned = Line {
+                    bends: bends.clone(),
+                    ..l.clone()
+                };
+                // An `Auto` end picks its side from the first bend, which can differ from the fresh route.
+                let mut cmds = vec![];
+                if self.plain_with(&pinned, &find) != cells {
+                    for (side, end, cell) in [
+                        (Side::From, &l.from, cells[0]),
+                        (Side::To, &l.to, cells[cells.len() - 1]),
+                    ] {
+                        if let End::Bound(id, Anchor::Auto) = end {
+                            if let Some(s) = find(id) {
+                                let end = End::Bound(id.clone(), side_anchor(s, cell));
+                                cmds.push(Command::SetEnd {
+                                    id: l.id.clone(),
+                                    side,
+                                    end,
+                                });
+                            }
+                        }
+                    }
+                }
+                if bends != l.bends {
+                    cmds.push(Command::SetBends {
+                        id: l.id.clone(),
+                        bends,
+                    });
+                }
+                match cmds.len() {
+                    0 => None,
+                    1 => cmds.pop(),
+                    _ => Some(Command::Batch(cmds)),
+                }
             })
             .collect()
     }

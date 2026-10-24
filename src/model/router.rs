@@ -16,6 +16,7 @@ const BUCKET: i32 = 16;
 
 // Packed cost, compared as (obstacle cells, line cells, length, bends): a path has at most
 // MAX_AREA steps, so no lower term outweighs one unit of a higher one.
+// Entering the end against its axis counts as a line cell, so a bent stub beats a crossed shape.
 const BEND: u64 = 1;
 const STEP: u64 = 1 << 12;
 const LINE: u64 = 1 << 24;
@@ -347,9 +348,10 @@ impl Router {
             Some(Axis::Vertical) => d >= 2,
             None => true,
         };
-        let enter = |c: usize, turn: bool| {
+        let enter = |c: usize, turn: bool, d: usize| {
             let v = grid[c];
             STEP + u64::from(turn) * BEND
+                + if c == goal && !last(d) { LINE } else { 0 }
                 + if v & 2 != 0 { LINE } else { 0 }
                 + if v & 1 != 0 { SOLID } else { 0 }
         };
@@ -372,7 +374,7 @@ impl Router {
         for &d in first {
             if let Some(n) = step(start, d) {
                 if grid[n] & 4 == 0 || n == goal {
-                    dist[n * 4 + d] = enter(n, false);
+                    dist[n * 4 + d] = enter(n, false, d);
                     heap.push(Reverse((dist[n * 4 + d] + est(n), (n * 4 + d) as u32)));
                 }
             }
@@ -383,7 +385,7 @@ impl Router {
             if f > cost + est(c) {
                 continue;
             }
-            if c == goal && last(d) {
+            if c == goal {
                 let mut path = vec![];
                 let mut at = s;
                 while at != u32::MAX {
@@ -403,7 +405,7 @@ impl Router {
                 if grid[n] & 4 != 0 && n != goal {
                     continue;
                 }
-                let next = cost + enter(n, nd != d);
+                let next = cost + enter(n, nd != d, nd);
                 let t = n * 4 + nd;
                 if next < dist[t] {
                     dist[t] = next;
