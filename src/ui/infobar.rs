@@ -1,8 +1,7 @@
+use super::registry;
 use super::style::{DISABLED, ERROR, KEY, MUTED};
 use super::{Grid, Overlay, Severity, Status};
 use crate::input::{Session, Tool};
-
-type Hints = &'static [(&'static str, &'static str)];
 
 const GAP: i32 = 2;
 
@@ -61,30 +60,25 @@ fn draw_buttons(grid: &mut Grid, y: i32, s: &Session) {
     }
 }
 
-fn hints(s: &Session, overlay: &Overlay) -> Hints {
-    match overlay {
-        Overlay::Prompt(_) => &[("Enter", "confirm"), ("Esc", "cancel")],
-        Overlay::None if s.edit.is_some() => &[
-            ("Enter", "commit"),
-            ("Esc", "discard"),
-            ("Alt-Enter", "new line"),
-        ],
-        Overlay::None if s.zoomed_out() => &[("Esc", "1x"), ("Ctrl+wheel", "zoom"), ("?", "help")],
-        Overlay::None if s.dragging() => &[("Esc", "cancel")],
-        Overlay::None if s.tool != Tool::Select => {
-            &[("drag", "draw"), ("Esc", "cancel"), ("v", "select")]
-        }
-        Overlay::None if !s.selection.is_empty() => &[
-            ("Del", "delete"),
-            ("Shift+arrows", "connect"),
-            ("y", "copy"),
-            ("g", "group"),
-        ],
-        Overlay::None => &[("?", "help"), (":", "command"), ("/", "find"), ("z", "fit")],
-        Overlay::Actions(_) => &[("Enter", "run"), ("Up/Down", "select"), ("Esc", "close")],
-        Overlay::Map => &[("click", "jump"), ("Esc", "close")],
-        _ => &[("Esc", "close")],
-    }
+fn hints(s: &Session, overlay: &Overlay) -> Vec<(String, &'static str)> {
+    let ids: &[&str] = match overlay {
+        Overlay::Prompt(_) => &["confirm", "cancel_prompt"],
+        Overlay::None if s.edit.is_some() => &["commit_edit", "discard_edit", "newline"],
+        Overlay::None if s.zoomed_out() => &["reset_zoom", "zoom_wheel", "help"],
+        Overlay::None if s.dragging() => &["cancel"],
+        Overlay::None if s.tool != Tool::Select => &["draw", "cancel", "tool_select"],
+        Overlay::None if !s.selection.is_empty() => &["delete", "connect", "copy", "group"],
+        Overlay::None => &["help", "command", "find", "fit"],
+        Overlay::Actions(_) => &["run", "select", "close"],
+        Overlay::Map => &["jump", "close"],
+        _ => &["close"],
+    };
+    ids.iter()
+        .map(|id| {
+            let b = registry::by_id(id);
+            (b.first_label(), b.hint.unwrap_or_default())
+        })
+        .collect()
 }
 
 fn width(s: &str) -> i32 {
@@ -140,18 +134,19 @@ pub(super) fn draw(grid: &mut Grid, s: &Session, overlay: &Overlay, saved: bool)
     }
     let y = grid.h - 1;
     let hs = hints(s, overlay);
-    let full = hs.iter().map(|&p| pair_width(p)).sum::<i32>() + GAP * (hs.len() as i32 - 1);
+    let full =
+        hs.iter().map(|(k, a)| pair_width((k, a))).sum::<i32>() + GAP * (hs.len() as i32 - 1);
     let off = offset(grid.w);
     let mut parts = right(s, saved, grid.w, off + full);
     let mut room = grid.w - right_width(&parts) - GAP;
-    if room < off + pair_width(hs[0]) {
+    if room < off + pair_width((&hs[0].0, hs[0].1)) {
         parts.clear();
         room = grid.w;
     }
     draw_right(grid, y, &parts);
     draw_buttons(grid, y, s);
     let mut x = off;
-    for &(k, a) in hs {
+    for (k, a) in &hs {
         if x > off && x + GAP + pair_width((k, a)) > room {
             break;
         }

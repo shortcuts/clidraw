@@ -352,12 +352,14 @@ fn help_pages_list_their_scope() {
     for (page, wants) in [
         (
             0,
-            vec!["Shortcuts", "Canvas", "Delete, Backspace", "u, Ctrl-r"],
+            vec!["Shortcuts", "Canvas", "Undo", "Ctrl-r", "Ctrl-wheel"],
         ),
-        (1, vec!["Commit the label"]),
-        (2, vec!["Tools", "Diamond", "Hexagon"]),
+        (1, vec!["Del", "Align left", "Ctrl-b"]),
+        (2, vec!["Commit the label", "Alt-Enter, Ctrl-j"]),
+        (3, vec!["Tools", "Diamond", "Hexagon"]),
+        (4, vec![":wq", ":import <path>", ":layout lr"]),
         (
-            3,
+            5,
             vec![
                 "github.com/shortcuts/clidraw",
                 "github.com/shortcuts/clidraw#contributing",
@@ -407,29 +409,35 @@ fn prompt_shows_a_dim_hint_for_keyboard_dismissal() {
 }
 
 #[test]
-fn help_canvas_row_lists_every_command_line_verb() {
+fn help_commands_page_lists_every_command_line_verb() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let b = draw(&s, &Overlay::Help(0, String::new()));
-    assert!(
-        row(&b, 21).contains("Commands q w wq e u redo layout"),
-        "{}",
-        row(&b, 21)
-    );
-    assert_eq!(cols(&b, 20, 71, 1), "│");
+    let b = draw(&s, &Overlay::Help(4, String::new()));
+    let page: String = (4..20).map(|y| row(&b, y)).collect();
+    for verb in [
+        ":q",
+        ":w",
+        ":wq",
+        ":e <name>",
+        ":import <path>",
+        ":export",
+        ":layout lr",
+    ] {
+        assert!(page.contains(verb), "{verb}");
+    }
 }
 
 #[test]
 fn help_canvas_esc_row_stays_inside_the_border() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0, String::new()));
-    assert!(row(&b, 4).contains("│ Esc"), "{}", row(&b, 4));
+    assert!(row(&b, 4).contains("│ u"), "{}", row(&b, 4));
     assert_eq!(cols(&b, 4, 71, 1), "│", "{}", row(&b, 4));
 }
 
 #[test]
 fn help_rows_stay_inside_the_border_on_every_page() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    for page in 0..4 {
+    for page in 0..ui::help::SCOPES.len() {
         let b = draw(&s, &Overlay::Help(page, String::new()));
         let edge = row(&b, 2).trim_end().chars().count();
         for i in 0..ui::help::rows(page).len() as u16 {
@@ -925,6 +933,27 @@ fn info_bar_idle_shows_hints_left_and_tool_with_save_state_right() {
 }
 
 #[test]
+fn info_bar_hints_come_from_the_registry_at_every_width() {
+    let idle = Session::new(Canvas::default(), View::default(), (80, 24));
+    assert!(bar(&idle, 120, true).contains("? help  : command  / find  z fit"));
+    assert!(bar(&idle, 60, true).contains("? help  : command"));
+    assert!(bar(&idle, 40, true).starts_with("? help  : command  / find"));
+    let sel = two_shapes();
+    assert!(bar(&sel, 120, true).contains("Del delete  Shift-arrows connect  y copy  g group"));
+    assert!(bar(&sel, 60, true).contains("Del delete"));
+}
+
+#[test]
+fn palette_keys_come_from_the_registry() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let overlay = Overlay::Actions(ui::actions::Actions::new(&s));
+    let b = draw(&s, &overlay);
+    let all: String = (0..24).map(|y| row(&b, y)).collect::<Vec<_>>().join("\n");
+    assert!(all.contains("Redo") && all.contains("Ctrl-r"), "{all}");
+    assert!(!all.contains("Ctrl+"), "{all}");
+}
+
+#[test]
 fn info_bar_idle_hides_the_repo_link() {
     let s = Session::new(Canvas::default(), View::default(), (120, 24));
     assert!(!bar(&s, 120, true).contains("repo github.com/shortcuts/clidraw"));
@@ -949,7 +978,7 @@ fn info_bar_drops_the_right_side_first_on_a_narrow_screen() {
     let r = bar(&s, 40, true);
     assert!(r.ends_with("saved"), "{r}");
     assert!(!r.contains("2 sel"), "{r}");
-    assert!(r.starts_with("Del delete  Shift+arrows connect"), "{r}");
+    assert!(r.starts_with("Del delete  Shift-arrows connect"), "{r}");
 }
 
 #[test]
@@ -1145,7 +1174,7 @@ fn help_search_line_shows_hint_then_query_and_keeps_the_box_aligned() {
     assert!(row(&b, 3).contains("Type to filter"), "{}", row(&b, 3));
     let b = draw(&s, &Overlay::Help(0, "remove".into()));
     assert!(row(&b, 3).contains("> remove"), "{}", row(&b, 3));
-    assert!(row(&b, 4).contains("Delete, Backspace"), "{}", row(&b, 4));
+    assert!(row(&b, 4).contains("Del"), "{}", row(&b, 4));
     assert_eq!(cols(&b, 4, 71, 1), "│");
     assert_eq!(cols(&b, 20, 71, 1), "│");
     let b = draw(&s, &Overlay::Help(0, "zzzz".into()));
@@ -1197,7 +1226,7 @@ fn info_bar_shows_the_zoom_percent_and_zoomed_out_hints() {
     assert!(!bar(&s, 80, true).contains('%'));
     s.view.zoom = Zoom::Half;
     let r = bar(&s, 120, true);
-    assert!(r.contains("Esc 1x  Ctrl+wheel zoom  ? help"), "{r}");
+    assert!(r.contains("Esc 1x  Ctrl-wheel zoom  ? help"), "{r}");
     assert!(r.contains("50%"), "{r}");
     s.view.zoom = Zoom::Three;
     assert!(bar(&s, 120, true).contains("300%"));

@@ -1,41 +1,14 @@
+use super::registry::{Scope, BINDINGS};
 use super::style::{ACTIVE, MUTED};
 use super::{boxed, centered, Grid};
-use crate::input::Tool;
 
-pub const SCOPES: [&str; 4] = ["Canvas", "Text edit", "Tools", "Project"];
-
-const CANVAS: [(&str, &str); 18] = [
-    ("Esc", "Cancel, deselect"),
-    ("Delete, Backspace", "Delete the selection"),
-    ("Ctrl-a", "Select everything"),
-    ("Arrows, h j k l", "Move or pan; Shift adds linked shape"),
-    ("] [", "Raise, lower the selection"),
-    ("} {", "Send to front, to back"),
-    ("< | > ^ - _", "Align the selection"),
-    ("= #", "Distribute evenly, H or V"),
-    ("g, G", "Group, ungroup the selection"),
-    ("y, x", "Copy, cut the selection"),
-    ("p", "Paste, offset from the last"),
-    ("Ctrl-b", "Bold labels"),
-    ("u, Ctrl-r", "Undo, redo"),
-    ("z", "Fit all"),
-    ("Ctrl+wheel", "Zoom, 25% to 300%"),
-    ("Ctrl-c", "Quit"),
-    ("?, Ctrl-p", "Help, command palette"),
-    (":", "Commands q w wq e u redo layout"),
-];
-
-const TEXT_EDIT: [(&str, &str); 10] = [
-    ("Type, paste", "Insert at the caret"),
-    ("Left, Right", "Move the caret"),
-    ("Home, End", "Jump to the start, end"),
-    ("Ctrl-Left/Right", "Jump by word"),
-    ("Shift + move", "Select text"),
-    ("Backspace, Delete", "Delete a character"),
-    ("Ctrl-w, Ctrl-u", "Delete word, to start"),
-    ("Alt-Enter, Ctrl-j", "New line in a shape label"),
-    ("Enter", "Commit the label"),
-    ("Esc", "Discard the edit"),
+pub const SCOPES: [&str; 6] = [
+    "Canvas",
+    "Selection",
+    "Text edit",
+    "Tools",
+    "Commands",
+    "Project",
 ];
 
 const PROJECT: [(&str, &str); 2] = [
@@ -64,19 +37,21 @@ const ACTION_COL: i32 = 20;
 
 /// Keys and action for each row of a page.
 pub fn rows(page: usize) -> Vec<(String, String)> {
-    let own = |t: &[(&str, &str)]| {
-        t.iter()
-            .map(|(k, a)| (k.to_string(), a.to_string()))
+    let scoped = |scopes: &[Scope]| -> Vec<(String, String)> {
+        BINDINGS
+            .iter()
+            .filter(|b| scopes.contains(&b.scope) && (b.shown.is_some() || !b.keys.is_empty()))
+            .map(|b| (b.keys_label(), b.name().to_string()))
             .collect()
     };
+    let project = || PROJECT.map(|(k, a)| (k.to_string(), a.to_string()));
     match page {
-        0 => own(&CANVAS),
-        1 => own(&TEXT_EDIT),
-        3 => own(&PROJECT),
-        _ => Tool::ALL
-            .iter()
-            .filter_map(|t| Some((t.key()?.to_string(), t.label().to_string())))
-            .collect(),
+        0 => scoped(&[Scope::Canvas, Scope::ZoomedOut]),
+        1 => scoped(&[Scope::Selection]),
+        2 => scoped(&[Scope::TextEdit]),
+        3 => scoped(&[Scope::Tool]),
+        4 => scoped(&[Scope::Command]),
+        _ => project().into(),
     }
 }
 

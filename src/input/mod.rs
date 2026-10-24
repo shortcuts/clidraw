@@ -62,17 +62,7 @@ impl Tool {
     }
 
     pub fn key(self) -> Option<char> {
-        match self {
-            Tool::Select => Some('v'),
-            Tool::Rect => Some('r'),
-            Tool::Diamond => Some('d'),
-            Tool::Cylinder => Some('c'),
-            Tool::Parallelogram => Some('s'),
-            Tool::Hexagon => Some('e'),
-            Tool::Frame => Some('f'),
-            Tool::Arrow => Some('a'),
-            Tool::Text => Some('t'),
-        }
+        crate::ui::registry::tool_key(self)
     }
 }
 

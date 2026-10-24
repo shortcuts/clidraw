@@ -333,6 +333,10 @@ fn question_mark_opens_help_and_right_left_page_clamped() {
     assert_eq!(help_page(&app), 3);
     app.on_event(key(KeyCode::Left), now);
     assert_eq!(help_page(&app), 2);
+    for _ in 0..9 {
+        app.on_event(key(KeyCode::Right), now);
+    }
+    assert_eq!(help_page(&app), 5);
 }
 
 #[test]
@@ -1698,9 +1702,9 @@ fn help_search_matches_substring_fuzzy_and_synonyms() {
             .map(|r| r.0)
             .collect()
     };
-    assert_eq!(keys("delete a char"), ["Backspace, Delete"]);
-    assert!(keys("dlt").contains(&"Delete, Backspace".to_string()));
-    assert!(keys("remove").contains(&"Delete, Backspace".to_string()));
+    assert_eq!(keys("delete a char"), ["Backspace, Del"]);
+    assert!(keys("dlt").contains(&"Del".to_string()));
+    assert!(keys("remove").contains(&"Del".to_string()));
     assert!(keys("zzzz").is_empty());
     assert!(clidraw::ui::help::search("e").len() <= 18);
 }
@@ -1839,4 +1843,193 @@ fn palette_ctrl_n_and_ctrl_p_move_the_selection() {
     assert!(palette_open(&app));
     app.on_event(key(KeyCode::Down), now);
     assert_eq!(selected(&app), second);
+}
+
+fn registry_app(dir: &std::path::Path) -> App {
+    let mut app = app_in(dir);
+    for (id, x, y) in [
+        ("aaaaaaaa", 2, 5),
+        ("dddddddd", 70, 2),
+        ("bbbbbbbb", 20, 8),
+        ("cccccccc", 50, 20),
+        ("eeeeeeee", 30, 18),
+    ] {
+        app.session.exec(shape_at(id, x, y));
+    }
+    app.session.undo();
+    app.session.selection = ["aaaaaaaa", "bbbbbbbb", "cccccccc"].map(Id::from).to_vec();
+    app.session.copy();
+    app
+}
+
+/// Canvas, selection and mode as text, with generated ids masked.
+fn world(app: &App) -> String {
+    let mut out = format!(
+        "{}|{:?}|{:?}|{}|{}|{:?}",
+        serde_json::to_string(&app.session.canvas).unwrap(),
+        app.session.selection,
+        app.session.tool,
+        app.quit,
+        app.session.present,
+        std::mem::discriminant(&app.overlay),
+    );
+    let fixed = ["aaaaaaaa", "bbbbbbbb", "cccccccc", "dddddddd"];
+    for e in &app.session.canvas.elements {
+        if !fixed.contains(&e.id().0.as_str()) {
+            out = out.replace(&e.id().0, "new");
+        }
+    }
+    out
+}
+
+fn press(app: &mut App, k: &clidraw::ui::registry::Key) {
+    app.on_event(Event::Key(KeyEvent::new(k.code, k.mods)), Instant::now());
+}
+
+#[test]
+fn registry_runnable_entries_dispatch_their_action() {
+    use clidraw::ui::registry::{Scope, BINDINGS};
+    let t = tempfile::tempdir().unwrap();
+    let now = Instant::now();
+    let runnable = BINDINGS
+        .iter()
+        .filter(|b| b.action.is_some() && !b.keys.is_empty());
+    for (i, b) in runnable.enumerate() {
+        for (n, k) in b.keys.iter().enumerate() {
+            let mut by_key = registry_app(&t.path().join(format!("k{i}-{n}")));
+            let mut by_palette = registry_app(&t.path().join(format!("p{i}-{n}")));
+            let start = world(&by_key);
+            press(&mut by_key, k);
+            ctrl_key(&mut by_palette, 'p', now);
+            let label = match b.scope {
+                Scope::Tool => format!("Tool: {}", b.name()),
+                _ => b.label.to_string(),
+            };
+            type_str(&mut by_palette, &label, now);
+            by_palette.on_event(key(KeyCode::Enter), now);
+            assert_eq!(world(&by_key), world(&by_palette), "{} {}", b.id, k.label());
+            let inert = ["copy", "ungroup", "fit", "tool_select"];
+            assert!(
+                world(&by_key) != start || inert.contains(&b.id),
+                "{} did nothing",
+                b.id
+            );
+        }
+    }
+}
+
+type Case = (&'static str, fn(&mut App), fn(&App) -> bool);
+
+fn palette_typed(app: &mut App, text: &str) {
+    let now = Instant::now();
+    ctrl_key(app, 'p', now);
+    type_str(app, text, now);
+}
+
+fn editing(app: &mut App) {
+    app.session.start_edit_existing(Id::from("aaaaaaaa"));
+    let e = app.session.edit.as_mut().unwrap();
+    e.buf = "hello world".into();
+    e.caret = e.buf.len();
+}
+
+fn label_is(app: &App, want: &str) -> bool {
+    app.session.edit.as_ref().is_some_and(|e| e.buf == want)
+}
+
+fn palette_open_at_second(app: &mut App) {
+    palette_typed(app, "");
+    app.on_event(key(KeyCode::Down), Instant::now());
+}
+
+fn zoomed(app: &mut App) {
+    app.session.zoom_to(clidraw::view::Zoom::Half, (40, 12));
+}
+
+#[test]
+fn registry_display_only_entries_are_covered() {
+    use clidraw::ui::actions::Action;
+    use clidraw::ui::{registry::BINDINGS, Overlay};
+    let cases: Vec<Case> = vec![
+        ("cancel", |_| {}, |a| a.session.selection.is_empty()),
+        ("move", |_| {}, |a| world(a).contains("\"x\":1")),
+        (
+            "connect",
+            |a| a.session.selection = vec![Id::from("bbbbbbbb")],
+            |a| a.session.canvas.elements.len() == 6,
+        ),
+        (
+            "palette",
+            |_| {},
+            |a| matches!(a.overlay, Overlay::Actions(_)),
+        ),
+        (
+            "command",
+            |_| {},
+            |a| matches!(a.overlay, Overlay::Prompt(_)),
+        ),
+        ("reset_zoom", zoomed, |a| !a.session.zoomed_out()),
+        ("confirm", |a| type_str(a, ":q", Instant::now()), |a| a.quit),
+        (
+            "cancel_prompt",
+            |a| type_str(a, ":", Instant::now()),
+            |a| matches!(a.overlay, Overlay::None),
+        ),
+        (
+            "run",
+            |a| palette_typed(a, "present"),
+            |a| a.session.present,
+        ),
+        (
+            "select",
+            palette_open_at_second,
+            |a| matches!(&a.overlay, Overlay::Actions(x) if x.selected_action() == Some(Action::Ex("u"))),
+        ),
+        (
+            "close",
+            |a| palette_typed(a, ""),
+            |a| matches!(a.overlay, Overlay::None),
+        ),
+        ("caret", editing, |a| {
+            a.session.edit.as_ref().is_some_and(|e| e.caret == 10)
+        }),
+        ("caret_ends", editing, |a| {
+            a.session.edit.as_ref().is_some_and(|e| e.caret == 0)
+        }),
+        ("word", editing, |a| {
+            a.session.edit.as_ref().is_some_and(|e| e.caret == 6)
+        }),
+        ("select_text", editing, |a| {
+            a.session.edit.as_ref().is_some_and(|e| e.anchor.is_some())
+        }),
+        ("delete_char", editing, |a| label_is(a, "hello worl")),
+        ("delete_word", editing, |a| label_is(a, "hello ")),
+        ("delete_to_start", editing, |a| label_is(a, "")),
+        ("newline", editing, |a| {
+            a.session
+                .edit
+                .as_ref()
+                .is_some_and(|e| e.buf.ends_with('\n'))
+        }),
+        ("commit_edit", editing, |a| {
+            a.session.edit.is_none() && world(a).contains("hello world")
+        }),
+        ("discard_edit", editing, |a| {
+            a.session.edit.is_none() && !world(a).contains("hello")
+        }),
+    ];
+    let t = tempfile::tempdir().unwrap();
+    for b in BINDINGS
+        .iter()
+        .filter(|b| b.action.is_none() && !b.keys.is_empty())
+    {
+        let Some((i, (_, setup, check))) = cases.iter().enumerate().find(|(_, c)| c.0 == b.id)
+        else {
+            panic!("no case for {}", b.id);
+        };
+        let mut app = registry_app(&t.path().join(format!("d{i}")));
+        setup(&mut app);
+        press(&mut app, &b.keys[0]);
+        assert!(check(&app), "{} {}", b.id, b.keys[0].label());
+    }
 }

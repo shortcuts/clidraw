@@ -9,6 +9,7 @@ pub mod minimap;
 pub mod palette;
 mod perf;
 pub mod prompt;
+pub mod registry;
 pub mod scope;
 mod style;
 pub mod switcher;

@@ -1,4 +1,6 @@
+use super::actions::Action;
 use super::grid::Grid;
+use super::registry;
 use super::style::{ACTIVE, HOVER, MUTED};
 use crate::input::{Session, Tool};
 use crate::model::{Align, Border, Element, Id, LineKind, Paint, Stroke, TextAlign};
@@ -27,7 +29,32 @@ pub enum Choice {
 }
 
 impl Choice {
-    fn label(self) -> &'static str {
+    /// Registry action and word of the choices that run a keyed action.
+    fn keyed(self) -> Option<(Action, &'static str)> {
+        Some(match self {
+            Choice::Place(a) => (
+                Action::Align(a),
+                match a {
+                    Align::Left => "align-l",
+                    Align::Center => "align-c",
+                    Align::Right => "align-r",
+                    Align::Top => "align-t",
+                    Align::Middle => "align-m",
+                    Align::Bottom => "align-b",
+                    Align::DistributeH => "spread-h",
+                    Align::DistributeV => "spread-v",
+                },
+            ),
+            Choice::Group => (Action::Group, "group"),
+            Choice::Ungroup => (Action::Ungroup, "ungroup"),
+            _ => return None,
+        })
+    }
+
+    fn label(self) -> String {
+        if let Some((word, key)) = self.hint() {
+            return format!("{key} {word}");
+        }
         match self {
             Choice::Stroke(Stroke::Solid) => "__ solid",
             Choice::Stroke(Stroke::Dashed) => "-- dashed",
@@ -45,28 +72,15 @@ impl Choice {
             Choice::Head(LineKind::Arrow) => "-> end",
             Choice::Head(LineKind::ArrowStart) => "<- start",
             Choice::Head(LineKind::ArrowBoth) => "<-> both",
-            Choice::Place(Align::Left) => "< align-l",
-            Choice::Place(Align::Center) => "| align-c",
-            Choice::Place(Align::Right) => "> align-r",
-            Choice::Place(Align::Top) => "^ align-t",
-            Choice::Place(Align::Middle) => "- align-m",
-            Choice::Place(Align::Bottom) => "_ align-b",
-            Choice::Place(Align::DistributeH) => "= spread-h",
-            Choice::Place(Align::DistributeV) => "# spread-v",
-            Choice::Arrange => "~ arrange",
-            Choice::Group => "g group",
-            Choice::Ungroup => "G ungroup",
+            _ => "~ arrange",
         }
+        .to_string()
     }
 
     /// Word and key of a one-shot action; the other choices have no key.
-    fn hint(self) -> Option<(&'static str, &'static str)> {
-        match self {
-            Choice::Place(_) | Choice::Group | Choice::Ungroup => {
-                self.label().split_once(' ').map(|(key, word)| (word, key))
-            }
-            _ => None,
-        }
+    fn hint(self) -> Option<(&'static str, String)> {
+        let (action, word) = self.keyed()?;
+        Some((word, registry::for_action(action)?.first_label()))
     }
 }
 
@@ -227,10 +241,7 @@ pub fn draw(grid: &mut Grid, s: &Session) {
     for &(h, x, y, w) in &cells {
         let (text, flags) = match h {
             PaletteHit::Tool(t) => (t.label().to_string(), if t == s.tool { ACTIVE } else { 0 }),
-            PaletteHit::Option(c) => (
-                c.label().to_string(),
-                if active(&els, c) { ACTIVE } else { 0 },
-            ),
+            PaletteHit::Option(c) => (c.label(), if active(&els, c) { ACTIVE } else { 0 }),
         };
         let flags = flags | if s.palette_hover == Some(h) { HOVER } else { 0 };
         let key = match h {

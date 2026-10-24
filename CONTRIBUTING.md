@@ -208,17 +208,13 @@ The tokens live in `src/ui/style.rs`.
 - A status message has no trailing period and starts with a capital letter.
 - An error names what failed and how to recover: `Nothing selected: select a shape first`, `Usage: :e <name>`.
 
-- Key notation, good: `src/ui/help.rs:10`.
+- Key notation, good: `src/ui/registry.rs` renders every label with `Key::label`.
 
   ```rust
-  ("Ctrl-a", "Select everything"),
+  Binding::new("redo", &[ctrl('r')], "Redo", Scope::Canvas, Some(Action::Ex("redo"))),
   ```
 
-- Key notation, bad: `src/ui/help.rs:22` writes `Ctrl+wheel`. It migrates in the `ui-chrome` backlog epic.
-
-  ```rust
-  ("Ctrl+wheel", "Zoom, 25% to 300%"),
-  ```
+- Key notation, bad: n/a: no violation in the code.
 
 - Error status, good: `src/app/command.rs:24` names the usage.
 

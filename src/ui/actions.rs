@@ -1,4 +1,5 @@
 use super::menu::{ContextItem, MenuItem};
+use super::registry::{self, Scope};
 use super::style::{ACTIVE, MUTED};
 use super::{boxed, centered, Grid};
 use crate::input::{Session, Tool};
@@ -44,61 +45,6 @@ impl Action {
     }
 }
 
-const TABLE: [(Action, &str, &str); 40] = [
-    (Action::Ex("u"), "Undo", "u"),
-    (Action::Ex("redo"), "Redo", "Ctrl-r"),
-    (Action::Copy, "Copy", "y"),
-    (Action::Cut, "Cut", "x"),
-    (Action::Context(ContextItem::Paste), "Paste", "p"),
-    (Action::Context(ContextItem::Duplicate), "Duplicate", ""),
-    (Action::Context(ContextItem::Delete), "Delete", "Del"),
-    (Action::Context(ContextItem::EditLabel), "Edit label", ""),
-    (
-        Action::Context(ContextItem::SelectAll),
-        "Select all",
-        "Ctrl-a",
-    ),
-    (Action::Group, "Group", "g"),
-    (Action::Ungroup, "Ungroup", "G"),
-    (Action::Bold, "Toggle bold", "Ctrl-b"),
-    (Action::Align(Align::Left), "Align left", "<"),
-    (Action::Align(Align::Center), "Align center", "|"),
-    (Action::Align(Align::Right), "Align right", ">"),
-    (Action::Align(Align::Top), "Align top", "^"),
-    (Action::Align(Align::Middle), "Align middle", "-"),
-    (Action::Align(Align::Bottom), "Align bottom", "_"),
-    (
-        Action::Align(Align::DistributeH),
-        "Distribute horizontally",
-        "=",
-    ),
-    (
-        Action::Align(Align::DistributeV),
-        "Distribute vertically",
-        "#",
-    ),
-    (Action::Order(Z::Front), "Bring to front", "}"),
-    (Action::Order(Z::Back), "Send to back", "{"),
-    (Action::Order(Z::Forward), "Raise", "]"),
-    (Action::Order(Z::Backward), "Lower", "["),
-    (Action::Menu(MenuItem::FitAll), "Fit all", ""),
-    (Action::Map, "Minimap", ""),
-    (Action::ZoomIn, "Zoom in", "Ctrl+wheel"),
-    (Action::ZoomOut, "Zoom out", "Ctrl+wheel"),
-    (Action::Present, "Present", ""),
-    (Action::Find, "Find", "/"),
-    (Action::Menu(MenuItem::Canvases), "Canvases", ""),
-    (Action::Menu(MenuItem::ExportSvg), "Export SVG", ""),
-    (Action::Menu(MenuItem::ExportMermaid), "Export Mermaid", ""),
-    (Action::Menu(MenuItem::ExportText), "Export Text", ""),
-    (Action::Ex("w"), "Save", ":w"),
-    (Action::Ex("layout"), "Layout top-down", ":layout"),
-    (Action::Ex("layout lr"), "Layout left-right", ":layout lr"),
-    (Action::Ex("perf"), "Toggle perf overlay", ":perf"),
-    (Action::Help, "Shortcuts", "?"),
-    (Action::Menu(MenuItem::Quit), "Quit", "Ctrl-c"),
-];
-
 #[derive(Clone, Debug)]
 struct Entry {
     action: Action,
@@ -141,22 +87,17 @@ fn rect(screen: (u16, u16)) -> (i32, i32, i32, i32) {
 
 impl Actions {
     pub fn new(s: &Session) -> Actions {
-        let tools = Tool::ALL.map(|t| {
-            (
-                Action::Tool(t),
-                format!("Tool: {}", t.label()),
-                t.key().map(String::from).unwrap_or_default(),
-            )
-        });
-        let table = TABLE.map(|(a, l, k)| (a, l.to_string(), k.to_string()));
-        let entries = table
-            .into_iter()
-            .chain(tools)
-            .filter(|e| e.0.applies(s))
-            .map(|(action, label, keys)| Entry {
+        let entries = registry::BINDINGS
+            .iter()
+            .filter_map(|b| Some((b, b.action?)))
+            .filter(|(_, action)| action.applies(s))
+            .map(|(b, action)| Entry {
                 action,
-                label,
-                keys,
+                label: match b.scope {
+                    Scope::Tool => format!("Tool: {}", b.name()),
+                    _ => b.label.to_string(),
+                },
+                keys: b.keys_label(),
             })
             .collect();
         Actions {
