@@ -1385,3 +1385,57 @@ fn a_straight_stub_still_wins_when_free() {
         "{cells:?}"
     );
 }
+
+fn anchored(id: &str, a: Anchor) -> End {
+    End::Bound(Id::from(id), a)
+}
+
+#[test]
+fn no_arrow_of_the_bugarrows_scene_crosses_a_shape() {
+    use Anchor::{Bottom, Left, Right, Top};
+    let (a, b, c) = ("0mx542hi", "7im642ob", "s1v8fndx");
+    let boxes = [
+        (a, (4, 9, 21, 11)),
+        (b, (33, 12, 26, 11)),
+        (c, (87, 9, 30, 9)),
+    ];
+    let ends = [
+        (anchored(c, Bottom(15)), anchored(b, Top(11))),
+        (anchored(c, Top(15)), anchored(b, Right(7))),
+        (anchored(b, Left(5)), anchored(c, Right(4))),
+        (anchored(c, Top(19)), anchored(a, Top(7))),
+        (anchored(b, Left(2)), anchored(a, Right(5))),
+        (anchored(b, Left(9)), anchored(a, Right(3))),
+        (anchored(a, Bottom(10)), anchored(b, Bottom(4))),
+        (anchored(a, Bottom(14)), anchored(b, Bottom(2))),
+        (anchored(a, Bottom(5)), anchored(b, Bottom(6))),
+        (anchored(a, Bottom(2)), anchored(b, Bottom(8))),
+        (anchored(a, Bottom(7)), anchored(b, Bottom(15))),
+    ];
+    let mut canvas = Canvas {
+        elements: boxes
+            .iter()
+            .map(|&(id, r)| rect(id, ShapeKind::Rect, r))
+            .collect(),
+        ..Canvas::default()
+    };
+    let lines: Vec<Line> = ends
+        .into_iter()
+        .enumerate()
+        .map(|(i, (f, t))| elbow(&format!("arrow{i:03}"), f, t))
+        .collect();
+    canvas
+        .elements
+        .extend(lines.iter().cloned().map(Element::Line));
+    for l in &lines {
+        let cells = canvas.route(l);
+        for (id, r) in boxes {
+            let interior = (r.0 + 1, r.1 + 1, r.2 - 2, r.3 - 2);
+            assert!(
+                !cells.iter().any(|&p| inside(p, interior)),
+                "{} crosses {id}: {cells:?}",
+                l.id
+            );
+        }
+    }
+}

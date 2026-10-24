@@ -11,7 +11,7 @@ type Rect = (i32, i32, i32, i32);
 pub const MARGIN: i32 = 3;
 const STUB: i32 = 2;
 const LANE: i32 = 4;
-const MAX_AREA: i32 = 1000;
+const MAX_AREA: i32 = 2000;
 const BUCKET: i32 = 16;
 
 // Packed cost, compared as (obstacle cells, line cells, length, bends): a path has at most
