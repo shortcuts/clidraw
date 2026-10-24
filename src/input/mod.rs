@@ -219,11 +219,21 @@ impl Session {
         }
     }
 
+    /// Applies `cmd`, then pins the automatic route of the lines it moved or reconnected, in one undo step.
     pub fn exec(&mut self, cmd: Command) {
-        if self.history.exec(&mut self.canvas, cmd).is_ok() {
-            self.rev += 1;
-            self.prune_selection();
+        let ids = cmd.rerouting();
+        let Ok(mut undo) = self.canvas.apply(cmd) else {
+            return;
+        };
+        let pins = self.canvas.pin_cmds(&ids);
+        if !pins.is_empty() {
+            if let Ok(pin_undo) = self.canvas.apply(Command::Batch(pins)) {
+                undo = Command::Batch(vec![pin_undo, undo]);
+            }
         }
+        self.history.record(undo);
+        self.rev += 1;
+        self.prune_selection();
     }
 
     pub fn undo(&mut self) -> Option<String> {
@@ -473,17 +483,7 @@ impl Session {
     }
 
     pub fn reset_route(&mut self) {
-        let cmds: Vec<Command> = self
-            .selection
-            .iter()
-            .filter(
-                |id| matches!(self.canvas.get(id), Some(Element::Line(l)) if !l.bends.is_empty()),
-            )
-            .map(|id| Command::SetBends {
-                id: id.clone(),
-                bends: vec![],
-            })
-            .collect();
+        let cmds = self.canvas.pin_cmds(&self.selection);
         if !cmds.is_empty() {
             self.exec(Command::Batch(cmds));
         }

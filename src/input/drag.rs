@@ -198,7 +198,9 @@ pub(super) fn drag(s: &mut Session, screen: P, world: P) {
                 };
                 return;
             }
-            begin(s, &mut inv, target, origin, w0)
+            let action = begin(s, &mut inv, target, origin, w0);
+            unpin(s, &mut inv, &action);
+            action
         }
         Gesture::Dragging { action, inv: old } => {
             inv = old;
@@ -297,6 +299,31 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                 Action::CreateLine(id)
             }
         }
+    }
+}
+
+/// The ids whose lines a drag reroutes.
+fn rerouted(s: &Session, action: &Action) -> Vec<Id> {
+    match action {
+        Action::Move { .. } => s.selection.clone(),
+        Action::Resize { id, .. } | Action::EndDrag { id, .. } | Action::CreateLine(id) => {
+            vec![id.clone()]
+        }
+        _ => vec![],
+    }
+}
+
+/// Clears the bends of the lines the drag reroutes, so they follow the pointer.
+fn unpin(s: &mut Session, inv: &mut Vec<Command>, action: &Action) {
+    let pinned: Vec<Id> = s
+        .canvas
+        .touching(&rerouted(s, action))
+        .into_iter()
+        .filter(|l| !l.bends.is_empty())
+        .map(|l| l.id.clone())
+        .collect();
+    for id in pinned {
+        run(s, inv, Command::SetBends { id, bends: vec![] });
     }
 }
 
@@ -480,6 +507,9 @@ pub(super) fn up(s: &mut Session, world: P) {
                 Action::Create { .. } => s.tool = Tool::Select,
                 Action::BendDrag { id, .. } => drop_spikes(s, &mut inv, id),
                 _ => {}
+            }
+            for cmd in s.canvas.pin_cmds(&rerouted(s, &action)) {
+                run(s, &mut inv, cmd);
             }
             if !inv.is_empty() {
                 inv.reverse();

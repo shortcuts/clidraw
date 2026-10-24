@@ -15,6 +15,17 @@ rm -rf "$${CLIDRAW_HOME:-$${XDG_CONFIG_HOME:-$$HOME/.config}/clidraw}" "$${XDG_S
 - Good: the target above.
 - Bad: n/a: no violation in the code.
 
+A line with bends routes plain, with no obstacle search, so an edit to an unrelated shape never reroutes it. Only the pin moments call the router: drawing or moving a line, moving or resizing a shape at a line end, and Arrange. Each pin runs in the same undo step as its edit.
+
+```rust
+for cmd in s.canvas.pin_cmds(&rerouted(s, &action)) {
+    run(s, &mut inv, cmd);
+}
+```
+
+- Good: `Canvas::pin_cmds` stores the automatic route as `bends` after the edit.
+- Bad: calling `Router::around` for a bent leg in `route_with`, so a new shape reroutes a line that nobody edited.
+
 ## Workflow
 
 Run these commands from the repo root.

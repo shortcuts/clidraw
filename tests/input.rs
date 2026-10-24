@@ -2474,11 +2474,11 @@ fn dragging_a_selected_line_adds_a_bend_and_one_undo_removes_it() {
 }
 
 #[test]
-fn the_first_drag_on_an_unselected_line_does_not_bend_it() {
+fn the_first_drag_on_an_unselected_line_moves_it_instead_of_bending_it() {
     let mut s = session();
     s.canvas.push(free_line("llllllll", vec![])).unwrap();
     drag(&mut s, (15, 5), (15, 8));
-    assert_eq!(bends_of(&s), vec![]);
+    assert!(route_of(&s).iter().all(|p| p.1 == 8));
 }
 
 #[test]
@@ -2504,20 +2504,19 @@ fn dragging_a_bend_handle_moves_that_bend_and_undo_restores_it() {
 }
 
 #[test]
-fn reset_route_clears_the_bends_and_undo_restores_them() {
+fn reset_route_pins_the_automatic_route_and_undo_restores_the_bends() {
     let mut s = session();
     s.canvas.push(free_line("llllllll", vec![(15, 8)])).unwrap();
     s.selection = vec![Id::from("llllllll")];
     assert!(s.line_has_bends());
     s.reset_route();
-    assert_eq!(bends_of(&s), vec![]);
-    assert!(!s.line_has_bends());
+    assert_eq!(bends_of(&s), vec![(15, 5)]);
     key(&mut s, KeyCode::Char('u'));
     assert_eq!(bends_of(&s), vec![(15, 8)]);
 }
 
 #[test]
-fn arrange_clears_bends_and_matches_a_fresh_route() {
+fn arrange_pins_a_fresh_route_around_a_shape_and_undo_restores_the_bends() {
     let mut s = with_shape("aaaaaaaa", 12, 3);
     let Element::Line(fresh) = free_line("llllllll", vec![]) else {
         unreachable!()
@@ -2526,28 +2525,109 @@ fn arrange_clears_bends_and_matches_a_fresh_route() {
     s.canvas.push(free_line("llllllll", vec![(15, 9)])).unwrap();
     s.selection = vec![Id::from("llllllll")];
     click_choice(&mut s, Choice::Arrange);
-    assert_eq!(bends_of(&s), vec![]);
-    let Some(Element::Line(l)) = s.canvas.get(&Id::from("llllllll")) else {
-        unreachable!()
-    };
-    assert_eq!(s.canvas.route(l), expected);
+    assert_ne!(bends_of(&s), vec![(15, 9)]);
+    assert_eq!(route_of(&s), expected);
     key(&mut s, KeyCode::Char('u'));
     assert_eq!(bends_of(&s), vec![(15, 9)]);
 }
 
 #[test]
-fn arrange_on_an_unbent_line_records_no_history() {
-    let mut s = with_shape("aaaaaaaa", 12, 3);
+fn a_second_arrange_records_no_history() {
+    let mut s = session();
     s.canvas.push(free_line("llllllll", vec![])).unwrap();
-    s.selection = vec![Id::from("aaaaaaaa")];
-    key(&mut s, KeyCode::Char('l'));
     s.selection = vec![Id::from("llllllll")];
     click_choice(&mut s, Choice::Arrange);
+    let pinned = bends_of(&s);
+    assert!(!pinned.is_empty());
+    click_choice(&mut s, Choice::Arrange);
+    assert_eq!(bends_of(&s), pinned);
     key(&mut s, KeyCode::Char('u'));
-    let Some(Element::Shape(sh)) = s.canvas.get(&Id::from("aaaaaaaa")) else {
+    assert_eq!(bends_of(&s), vec![]);
+}
+
+fn route_of(s: &Session) -> Vec<(i32, i32)> {
+    let Some(Element::Line(l)) = s.canvas.get(&Id::from("llllllll")) else {
         unreachable!()
     };
-    assert_eq!(sh.x, 12);
+    s.canvas.route(l)
+}
+
+fn fresh_route_of(s: &Session) -> Vec<(i32, i32)> {
+    let Some(Element::Line(l)) = s.canvas.get(&Id::from("llllllll")) else {
+        unreachable!()
+    };
+    s.canvas.route(&Line {
+        bends: vec![],
+        ..l.clone()
+    })
+}
+
+fn shape_y(s: &Session, id: &str) -> i32 {
+    s.canvas.shape(&Id::from(id)).unwrap().y
+}
+
+/// Shapes a and b side by side, an arrow drawn between them with the mouse, and a third shape c below.
+fn drawn_arrow() -> Session {
+    let mut s = with_shape("aaaaaaaa", 10, 10);
+    for (id, x, y) in [("bbbbbbbb", 40, 10), ("cccccccc", 24, 20)] {
+        let mut t = with_shape(id, x, y);
+        s.canvas.elements.append(&mut t.canvas.elements);
+    }
+    pick(&mut s, Tool::Arrow);
+    drag(&mut s, (14, 12), (44, 12));
+    let Some(Element::Line(l)) = s.canvas.elements.last_mut() else {
+        unreachable!()
+    };
+    l.id = Id::from("llllllll");
+    s.selection.clear();
+    s
+}
+
+#[test]
+fn drawing_a_shape_over_a_drawn_arrow_keeps_its_route() {
+    let mut s = drawn_arrow();
+    let before = route_of(&s);
+    pick(&mut s, Tool::Rect);
+    drag(&mut s, (24, 15), (30, 19));
+    assert_eq!(shapes(&s).len(), 4);
+    assert_eq!(route_of(&s), before);
+}
+
+#[test]
+fn moving_an_unrelated_shape_across_an_arrow_keeps_its_route() {
+    let mut s = drawn_arrow();
+    let before = route_of(&s);
+    drag(&mut s, (26, 21), (26, 16));
+    assert_eq!(shape_y(&s, "cccccccc"), 15);
+    assert_eq!(route_of(&s), before);
+}
+
+#[test]
+fn moving_an_end_shape_reroutes_the_arrow_and_one_undo_restores_both() {
+    let mut s = drawn_arrow();
+    let (before, bends) = (route_of(&s), bends_of(&s));
+    drag(&mut s, (43, 11), (43, 17));
+    assert_ne!(shape_y(&s, "bbbbbbbb"), 10);
+    assert_ne!(route_of(&s), before);
+    assert_eq!(route_of(&s), fresh_route_of(&s));
+    key(&mut s, KeyCode::Char('u'));
+    assert_eq!(shape_y(&s, "bbbbbbbb"), 10);
+    assert_eq!((route_of(&s), bends_of(&s)), (before, bends));
+}
+
+#[test]
+fn nudging_an_end_shape_pins_the_new_route_in_one_undo_step() {
+    let mut s = drawn_arrow();
+    let (before, bends) = (route_of(&s), bends_of(&s));
+    s.selection = vec![Id::from("bbbbbbbb")];
+    key(&mut s, KeyCode::Char('j'));
+    assert_eq!(shape_y(&s, "bbbbbbbb"), 11);
+    assert_eq!(route_of(&s), fresh_route_of(&s));
+    assert_eq!(s.undo().as_deref(), Some("Undid: move 1 element"));
+    s.redo();
+    key(&mut s, KeyCode::Char('u'));
+    assert_eq!(shape_y(&s, "bbbbbbbb"), 10);
+    assert_eq!((route_of(&s), bends_of(&s)), (before, bends));
 }
 
 #[test]

@@ -118,12 +118,35 @@ impl Command {
             return "group change".into();
         }
         leaves.retain(|c| !matches!(c, Command::SetGroups(_)));
+        // A pinned route rides along with the edit that caused it, so the edit names the step.
+        if leaves
+            .iter()
+            .any(|c| !matches!(c, Command::SetBends { .. }))
+        {
+            leaves.retain(|c| !matches!(c, Command::SetBends { .. }));
+        }
         let Some(first) = leaves.first() else {
             return "nothing".into();
         };
         let n = leaves.iter().filter(|c| c.verb() == first.verb()).count();
         let s = if n == 1 { "" } else { "s" };
         format!("{} {n} element{s}", first.verb())
+    }
+
+    /// Ids of the elements this command moves, resizes, reconnects or inserts as an unbent line.
+    pub fn rerouting(&self) -> Vec<Id> {
+        let mut leaves = vec![];
+        self.leaves(&mut leaves);
+        leaves
+            .into_iter()
+            .filter_map(|c| match c {
+                Command::Move { id, .. }
+                | Command::SetRect { id, .. }
+                | Command::SetEnd { id, .. } => Some(id.clone()),
+                Command::Insert(_, Element::Line(l)) if l.bends.is_empty() => Some(l.id.clone()),
+                _ => None,
+            })
+            .collect()
     }
 
     fn leaves<'a>(&'a self, out: &mut Vec<&'a Command>) {

@@ -1,8 +1,7 @@
-use super::geom::{center, route, side_mid, Axis};
-use super::router::union;
+use super::geom::{center, corners, route, side_mid, Axis};
+use super::router::{grow, union};
 use super::{Command, Element, End, Id, Line, Router, Shape, ShapeKind, Text, VERSION};
 use serde::{Deserialize, Serialize};
-use std::cell::Cell;
 use std::collections::HashMap;
 
 type Stop = ((i32, i32), Option<Axis>);
@@ -73,13 +72,15 @@ impl Canvas {
         self.elements.iter().position(|e| e.id() == id)
     }
 
-    /// Element indices in draw order: a frame groups visually, so it draws above everything else.
+    /// Element indices in draw order: lines draw above shapes so a crossing shows, and a frame
+    /// groups visually, so it draws above everything else.
     pub fn stacking(&self) -> impl DoubleEndedIterator<Item = usize> + '_ {
-        let frame = |&i: &usize| matches!(&self.elements[i], Element::Shape(s) if s.kind == ShapeKind::Frame);
-        let n = self.elements.len();
-        (0..n)
-            .filter(move |i| !frame(i))
-            .chain((0..n).filter(move |i| frame(i)))
+        let rank = |i: usize| match &self.elements[i] {
+            Element::Shape(s) if s.kind == ShapeKind::Frame => 2,
+            Element::Line(_) => 1,
+            _ => 0,
+        };
+        (0..3).flat_map(move |r| (0..self.elements.len()).filter(move |&i| rank(i) == r))
     }
 
     pub fn get(&self, id: &Id) -> Option<&Element> {
@@ -130,7 +131,7 @@ impl Canvas {
         [anchor(&l.from, from, face_from), anchor(&l.to, to, face_to)]
     }
 
-    /// Cells of the line from start to end: two bends unless an elbow must go around an obstacle.
+    /// Cells of the line from start to end. A line with bends routes plain; one without goes around obstacles.
     pub fn route(&self, l: &Line) -> Vec<(i32, i32)> {
         self.route_with(l, &|id| self.shape(id), &self.router())
     }
@@ -148,13 +149,14 @@ impl Canvas {
                 self.plain_with(l, find),
             )
         } else {
-            let foot = Cell::new(None::<(i32, i32, i32, i32)>);
-            let path = self.chain(l, find, |(p, q)| {
-                let (path, f) = router.around(self, find, l, [p, q], route(p.0, p.1, q.0, q.1));
-                foot.set(Some(foot.get().map_or(f, |g| union(g, f))));
-                path
-            });
-            (path, foot.get().expect("a bent line has a leg"))
+            let path = self.plain_with(l, find);
+            let foot = path
+                .iter()
+                .map(|&(x, y)| (x, y, 1, 1))
+                .reduce(union)
+                .map(|r| grow(r, 1))
+                .expect("a route has a cell");
+            (path, foot)
         };
         router.store(l.id.clone(), path.clone(), foot);
         path
@@ -197,6 +199,47 @@ impl Canvas {
         let holds =
             |w: &[((i32, i32), Option<Axis>)]| route(w[0].0, w[0].1, w[1].0, w[1].1).contains(&p);
         stops.windows(2).position(holds).unwrap_or(l.bends.len())
+    }
+
+    /// Lines in `ids` and lines bound to a shape in `ids`.
+    pub fn touching<'a>(&'a self, ids: &[Id]) -> Vec<&'a Line> {
+        let ids: std::collections::HashSet<&Id> = ids.iter().collect();
+        let bound = |e: &End| matches!(e, End::Bound(id, _) if ids.contains(id));
+        self.elements
+            .iter()
+            .filter_map(|e| match e {
+                Element::Line(l) if ids.contains(&l.id) || bound(&l.from) || bound(&l.to) => {
+                    Some(l)
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// One `SetBends` per line `touching` `ids` that stores its automatic route as bends.
+    pub fn pin_cmds(&self, ids: &[Id]) -> Vec<Command> {
+        let find = self.shape_lookup();
+        let router = self.router();
+        self.touching(ids)
+            .into_iter()
+            .filter_map(|l| {
+                let bare = Line {
+                    bends: vec![],
+                    ..l.clone()
+                };
+                let cells = self.route_with(&bare, &find, &router);
+                let turns = corners(&cells);
+                let mut bends = turns[1..turns.len().saturating_sub(1).max(1)].to_vec();
+                // An unbent line reroutes on its own, so a straight one keeps a collinear bend.
+                if bends.is_empty() && cells.len() >= 3 {
+                    bends.push(cells[cells.len() / 2]);
+                }
+                (bends != l.bends).then(|| Command::SetBends {
+                    id: l.id.clone(),
+                    bends,
+                })
+            })
+            .collect()
     }
 
     pub fn router(&self) -> Router {

@@ -24,13 +24,13 @@
   <text x="288" y="360" text-anchor="middle" dominant-baseline="central">In</text>
   <polygon points="144,192 208,192 224,232 208,272 144,272 128,232" fill="#f0dc50" fill-opacity="0.25" stroke="black"/>
   <text x="176" y="232" text-anchor="middle" dominant-baseline="central">Prep</text>
+  <text x="-64" y="-40" text-anchor="start" dominant-baseline="central" fill="#64dc78">note &lt;1&gt;</text>
   <path d="M100 40 L236 40" fill="none" stroke="#ff5f5f" stroke-linejoin="round" marker-end="url(#arrow)"/>
   <text x="164" y="40" text-anchor="middle" dominant-baseline="central" fill="#ff5f5f">go</text>
   <path d="M292 88 L292 184" fill="none" stroke="black" stroke-dasharray="8 4" stroke-linejoin="round"/>
   <path d="M-44 136 L-44 232" fill="none" stroke="black" stroke-linejoin="round" marker-end="url(#arrow)"/>
-  <path d="M100 40 L108 40 L108 152 L228 152 L228 232 L236 232" fill="none" stroke="black" stroke-dasharray="2 4" stroke-linejoin="round" marker-start="url(#arrow)"/>
-  <path d="M292 184 L292 168 L212 168 L212 136 L124 136 L124 40 L100 40" fill="none" stroke="black" stroke-linejoin="round" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-  <text x="-64" y="-40" text-anchor="start" dominant-baseline="central" fill="#64dc78">note &lt;1&gt;</text>
+  <path d="M100 40 L164 40 L164 232 L236 232" fill="none" stroke="black" stroke-dasharray="2 4" stroke-linejoin="round" marker-start="url(#arrow)"/>
+  <path d="M292 184 L292 136 L212 136 L212 40 L100 40" fill="none" stroke="black" stroke-linejoin="round" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
   <rect x="-8" y="288" width="352" height="144" fill="none" stroke="black"/>
   <text x="0" y="288" text-anchor="start" dominant-baseline="central">Group</text>
 </svg>

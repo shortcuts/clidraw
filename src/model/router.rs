@@ -79,7 +79,7 @@ pub(super) fn union(a: Rect, b: Rect) -> Rect {
     )
 }
 
-fn grow((x, y, w, h): Rect, by: i32) -> Rect {
+pub(super) fn grow((x, y, w, h): Rect, by: i32) -> Rect {
     (x - by, y - by, w + 2 * by, h + 2 * by)
 }
 
@@ -201,7 +201,7 @@ impl Router {
 
     /// `plain` when no cell of it lies in an obstacle and it crosses no earlier line, else the
     /// cheapest path in the box of the end cells plus `MARGIN`. Obstacles are the other shapes and
-    /// texts, minus the two end shapes (a bent line keeps them as obstacles). A frame is no obstacle.
+    /// texts, minus the two end shapes. A frame is no obstacle.
     /// Also returns a box: a change outside it leaves the path as is.
     // shortcut: other lines count by their plain route, a long line or a wide obstacle is not avoided
     pub fn around<'a>(
@@ -236,8 +236,6 @@ impl Router {
                 .any(|e| matches!(e, End::Bound(id, _) if *id == s.id)),
             _ => false,
         };
-        let bent = !own.bends.is_empty();
-        let skip = |i: &Item| is_end(i) && !bent;
         let blocked = |p: Pt| {
             if p == a || p == b {
                 return false;
@@ -246,7 +244,7 @@ impl Router {
             let items = self.solid.get(&at).map_or(&[][..], |v| v);
             items.iter().any(|&i| {
                 let i = &self.items[i as usize];
-                has(i.rect, p) && !skip(i)
+                has(i.rect, p) && !is_end(i)
             })
         };
         // The cells before the end cell run straight away from the shape, so the head points at it.
@@ -320,7 +318,7 @@ impl Router {
         for i in self.near(&self.solid, area) {
             if is_end(i) {
                 stamp(i.rect, 4);
-            } else if !skip(i) {
+            } else {
                 stamp(i.rect, 1);
             }
         }

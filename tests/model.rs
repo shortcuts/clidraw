@@ -1124,8 +1124,8 @@ fn the_route_follows_a_moved_obstacle_live() {
 }
 
 #[test]
-fn a_bent_line_keeps_its_bends_and_goes_around_an_obstacle() {
-    let wall = rect("wwwwwwww", ShapeKind::Rect, O);
+fn a_bent_line_keeps_its_bends_and_crosses_an_obstacle() {
+    let wall = rect("wwwwwwww", ShapeKind::Rect, (14, 4, 3, 8));
     let (mut c, _) = ab(vec![wall]);
     let bend = (16, 9);
     let Some(Element::Line(l)) = c.elements.last_mut() else {
@@ -1136,38 +1136,83 @@ fn a_bent_line_keeps_its_bends_and_goes_around_an_obstacle() {
     let cells = c.route(&l);
     walks(&cells);
     assert!(cells.contains(&bend));
-    assert!(!cells.iter().any(|&p| inside(p, O)));
+    assert!(cells.iter().any(|&p| inside(p, (14, 4, 3, 8))));
+}
+
+fn pin(c: &mut Canvas, ids: &[&str]) {
+    let ids: Vec<Id> = ids.iter().map(|i| Id::from(*i)).collect();
+    for cmd in c.pin_cmds(&ids) {
+        c.apply(cmd).unwrap();
+    }
 }
 
 #[test]
-fn a_bent_arrow_avoids_its_own_start_shape() {
-    let start = (52, 7, 24, 7);
-    let end = (75, 23, 14, 5);
-    let (a, f) = (Id::from("ot2efij1"), Id::from("a5iawbhl"));
-    let mut line = elbow(
-        "nl9llhzp",
-        End::Bound(a, Anchor::Top(12)),
-        End::Bound(f, Anchor::Left(2)),
-    );
-    line.bends = vec![(82, 6), (76, 11), (63, 17), (69, 21), (82, 23)];
-    let c = Canvas {
-        elements: vec![
-            rect("ot2efij1", ShapeKind::Rect, start),
-            rect("a5iawbhl", ShapeKind::Frame, end),
-            Element::Line(line.clone()),
-        ],
-        ..Canvas::default()
-    };
-    let cells = c.route(&line);
-    walks(&cells);
-    for b in &line.bends {
-        assert!(cells.contains(b));
+fn pinning_keeps_the_automatic_route_cells() {
+    let obstacles: [Vec<Element>; 3] = [
+        vec![],
+        vec![rect("oooooooo", ShapeKind::Rect, O)],
+        vec![rect("oooooooo", ShapeKind::Rect, (10, 0, 3, 12))],
+    ];
+    for extra in obstacles {
+        for (from, to) in [
+            (bound("aaaaaaaa"), bound("bbbbbbbb")),
+            (End::Free(1, 0), bound("bbbbbbbb")),
+            (bound("aaaaaaaa"), End::Free(30, 15)),
+        ] {
+            let (mut c, _) = ab(extra.clone());
+            let Some(Element::Line(l)) = c.elements.last_mut() else {
+                unreachable!()
+            };
+            (l.from, l.to) = (from, to);
+            let before = c.route(&line_of(&c));
+            pin(&mut c, &["arrow000"]);
+            assert_eq!(c.route(&line_of(&c)), before);
+            assert!(!line_of(&c).bends.is_empty());
+        }
     }
-    let bad: Vec<_> = cells
-        .iter()
-        .filter(|&&p| !line.bends.contains(&p) && inside(p, start))
-        .collect();
-    assert!(bad.is_empty(), "{bad:?}");
+}
+
+#[test]
+fn a_pinned_line_ignores_a_shape_added_across_it() {
+    let (mut c, _) = ab(vec![]);
+    pin(&mut c, &["arrow000"]);
+    let before = c.route(&line_of(&c));
+    c.apply(Command::Insert(0, rect("oooooooo", ShapeKind::Rect, O)))
+        .unwrap();
+    assert_eq!(c.route(&line_of(&c)), before);
+    assert!(before.iter().any(|&p| inside(p, O)));
+}
+
+#[test]
+fn pinning_a_moved_end_shape_follows_the_automatic_route() {
+    let (mut c, _) = ab(vec![]);
+    pin(&mut c, &["arrow000"]);
+    c.apply(Command::Move {
+        id: Id::from("bbbbbbbb"),
+        dx: 0,
+        dy: 10,
+    })
+    .unwrap();
+    pin(&mut c, &["bbbbbbbb"]);
+    let mut fresh = line_of(&c);
+    fresh.bends.clear();
+    assert_eq!(c.route(&line_of(&c)), c.route(&fresh));
+}
+
+#[test]
+fn pinning_a_pinned_line_again_emits_nothing() {
+    let (mut c, _) = ab(vec![]);
+    pin(&mut c, &["arrow000"]);
+    assert!(c.pin_cmds(&[Id::from("arrow000")]).is_empty());
+}
+
+#[test]
+fn stacking_draws_lines_above_shapes_and_frames_last() {
+    let (c, _) = ab(vec![rect("ffffffff", ShapeKind::Frame, (0, 0, 40, 20))]);
+    let ids: Vec<_> = c.stacking().map(|i| c.elements[i].id().clone()).collect();
+    let last = |s: &str| ids.iter().position(|i| *i == Id::from(s)).unwrap();
+    assert!(last("bbbbbbbb") < last("arrow000"));
+    assert!(last("arrow000") < last("ffffffff"));
 }
 
 #[test]

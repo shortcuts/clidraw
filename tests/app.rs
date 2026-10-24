@@ -1701,7 +1701,7 @@ fn pointer_shape_follows_tool_hover_and_drag() {
 }
 
 #[test]
-fn right_click_menu_resets_the_route_of_a_bent_line() {
+fn right_click_menu_arranges_the_route_of_a_bent_line() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     let now = Instant::now();
@@ -1728,7 +1728,7 @@ fn right_click_menu_resets_the_route_of_a_bent_line() {
     let Some(Element::Line(l)) = app.session.canvas.get(&Id::from("lllllll1")) else {
         panic!("no line")
     };
-    assert_eq!(l.bends, vec![]);
+    assert_eq!(l.bends, vec![(30, 5)]);
 }
 
 fn help_query(app: &App) -> String {
