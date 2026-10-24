@@ -2,6 +2,7 @@ use crate::input::{handle_key, handle_mouse, handle_paste, scroll_step, KeyOutco
 use crate::model::Z;
 use crate::names;
 use crate::store::{State, Store, StoreError};
+use crate::ui::list::Click;
 use crate::ui::menu::{self, ContextItem, MenuItem};
 use crate::ui::minimap;
 use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
@@ -197,7 +198,9 @@ impl App {
             Event::Resize(w, h) => self.session.screen = (w, h),
             Event::Key(k) => self.on_key(k),
             Event::Paste(text) => match &mut self.overlay {
-                Overlay::Prompt(p) => p.buf.extend(text.chars().filter(|c| !c.is_control())),
+                Overlay::Prompt(p) => p
+                    .edit
+                    .insert(&text.chars().filter(|c| !c.is_control()).collect::<String>()),
                 Overlay::None => handle_paste(&mut self.session, &text),
                 _ => {}
             },
@@ -300,13 +303,9 @@ impl App {
             self.list_key(k);
             return;
         }
-        match (k.code, &mut self.overlay) {
+        match (k.code, &self.overlay) {
+            (_, Overlay::Prompt(_)) => self.prompt_key(k),
             (KeyCode::Esc, _) => self.overlay = Overlay::None,
-            (KeyCode::Char(c), Overlay::Prompt(p)) => p.buf.push(c),
-            (KeyCode::Backspace, Overlay::Prompt(p)) => {
-                p.buf.pop();
-            }
-            (KeyCode::Enter, Overlay::Prompt(_)) => self.confirm(),
             _ => {}
         }
     }
@@ -320,6 +319,14 @@ impl App {
             | Overlay::Colors(..)
             | Overlay::Switcher(_)
             | Overlay::Actions(_) => self.list_click(col, row),
+            Overlay::Prompt(p) if p.kind == PromptKind::Command => {
+                let bar = i32::from(screen.1) - 1;
+                match prompt::command_list(p, bar).click(screen, col, row) {
+                    Click::Row(b, _) => self.complete(b),
+                    Click::Outside if row != bar => self.overlay = Overlay::None,
+                    _ => {}
+                }
+            }
             Overlay::Prompt(_) => match prompt::hit(screen, col, row) {
                 Some(PromptHit::Ok) => self.confirm(),
                 Some(PromptHit::Cancel) => self.overlay = Overlay::None,
@@ -428,21 +435,22 @@ impl App {
         let Overlay::Prompt(p) = std::mem::replace(&mut self.overlay, Overlay::None) else {
             return;
         };
+        let buf = p.edit.buf;
         match p.kind {
-            PromptKind::Command => self.run_command(&p.buf),
-            PromptKind::ExportSvg(x) => self.export(&p.buf, ExportFormat::Svg, x),
-            PromptKind::ExportMermaid(x) => self.export(&p.buf, ExportFormat::Mermaid, x),
-            PromptKind::ExportText(x) => self.export(&p.buf, ExportFormat::Text, x),
-            PromptKind::NewCanvas => match self.store.create(&p.buf) {
-                Ok(()) => self.switch_to(&p.buf),
+            PromptKind::Command => self.run_command(&buf),
+            PromptKind::ExportSvg(x) => self.export(&buf, ExportFormat::Svg, x),
+            PromptKind::ExportMermaid(x) => self.export(&buf, ExportFormat::Mermaid, x),
+            PromptKind::ExportText(x) => self.export(&buf, ExportFormat::Text, x),
+            PromptKind::NewCanvas => match self.store.create(&buf) {
+                Ok(()) => self.switch_to(&buf),
                 Err(e) => self.status = Some(ui::Status::error(e.to_string())),
             },
             PromptKind::Rename(old) => {
                 self.save();
-                let r = self.store.rename(&old, &p.buf);
+                let r = self.store.rename(&old, &buf);
                 if r.is_ok() && old == self.name {
-                    self.name = p.buf.clone();
-                    self.state.last = Some(p.buf.clone());
+                    self.name = buf.clone();
+                    self.state.last = Some(buf.clone());
                     self.session.rev += 1;
                 }
                 self.report(r);

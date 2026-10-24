@@ -16,6 +16,8 @@ pub struct Row<T> {
 pub enum Anchor {
     Center,
     At(i32, i32),
+    /// Left edge, ending directly above the given row.
+    Bottom(i32),
 }
 
 pub enum Outcome<T> {
@@ -38,6 +40,7 @@ pub struct List<T: Copy> {
     title: &'static str,
     rows: Vec<Row<T>>,
     query: Option<String>,
+    headless: bool,
     selected: usize,
     pub anchor: Anchor,
     min_width: i32,
@@ -73,6 +76,7 @@ impl<T: Copy> List<T> {
             title,
             rows,
             query: None,
+            headless: false,
             selected: 0,
             anchor: Anchor::Center,
             min_width: 0,
@@ -90,9 +94,32 @@ impl<T: Copy> List<T> {
         self
     }
 
+    pub fn max_rows(mut self, n: usize) -> List<T> {
+        self.max_rows = n;
+        self
+    }
+
     pub fn with_query(mut self) -> List<T> {
         self.query = Some(String::new());
         self
+    }
+
+    /// Filters by a query the caller owns: no input row, and only the matching rows take space.
+    pub fn headless(mut self) -> List<T> {
+        self.query = Some(String::new());
+        self.headless = true;
+        self
+    }
+
+    pub fn set_query(&mut self, q: &str) {
+        if self.query.as_deref() != Some(q) {
+            self.query = Some(q.into());
+            self.selected = 0;
+        }
+    }
+
+    fn has_input(&self) -> bool {
+        self.query.is_some() && !self.headless
     }
 
     pub fn select(mut self, index: usize) -> List<T> {
@@ -147,12 +174,14 @@ impl<T: Copy> List<T> {
             .min_width
             .max(label + gap + key + 4)
             .max(width(self.title) + 6);
-        let visible = if self.query.is_some() {
+        let visible = if self.headless {
+            self.view().len().min(self.max_rows)
+        } else if self.query.is_some() {
             self.max_rows
         } else {
             self.rows.len().min(self.max_rows)
         };
-        (w, visible as i32 + 2 + i32::from(self.query.is_some()))
+        (w, visible as i32 + 2 + i32::from(self.has_input()))
     }
 
     fn rect(&self, screen: (u16, u16)) -> (i32, i32, i32, i32) {
@@ -164,17 +193,24 @@ impl<T: Copy> List<T> {
                 let (w, h) = (w.min(sw), h.min(sh));
                 (x.min(sw - w).max(0), y.min(sh - h).max(0), w, h)
             }
+            Anchor::Bottom(row) => {
+                let (w, h) = (w.min(i32::from(screen.0)), h.min(row));
+                (0, (row - h).max(0), w, h)
+            }
         }
     }
 
     pub fn draw(&self, grid: &mut Grid) {
+        let view = self.view();
+        if self.headless && view.is_empty() {
+            return;
+        }
         let r = self.rect((grid.w as u16, grid.h as u16));
         boxed(grid, r, self.title);
-        if let Some(q) = &self.query {
+        if let (Some(q), true) = (&self.query, self.has_input()) {
             grid.text(r.0 + 2, r.1 + 1, &format!("> {q}_"), 0);
         }
-        let top = r.1 + 1 + i32::from(self.query.is_some());
-        let view = self.view();
+        let top = r.1 + 1 + i32::from(self.has_input());
         if view.is_empty() {
             grid.text(r.0 + 2, top, "No match", MUTED);
         }
@@ -240,11 +276,14 @@ impl<T: Copy> List<T> {
     }
 
     pub fn click(&self, screen: (u16, u16), col: i32, row: i32) -> Click<T> {
+        if self.headless && self.view().is_empty() {
+            return Click::Outside;
+        }
         let (x, y, w, h) = self.rect(screen);
         if col < x || col >= x + w || row < y || row >= y + h {
             return Click::Outside;
         }
-        let top = y + 1 + i32::from(self.query.is_some());
+        let top = y + 1 + i32::from(self.has_input());
         let Ok(i) = usize::try_from(row - top) else {
             return Click::Inside;
         };

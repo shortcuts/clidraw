@@ -365,7 +365,7 @@ fn help_pages_list_their_scope() {
         (1, vec!["Del", "Align left", "Ctrl-b"]),
         (2, vec!["Commit the label", "Alt-Enter, Ctrl-j"]),
         (3, vec!["Tools", "Diamond", "Hexagon"]),
-        (4, vec![":wq", ":import <path>", ":layout lr"]),
+        (4, vec![":wq", ":import <path>", ":layout [td|lr]"]),
         (
             5,
             vec![
@@ -457,7 +457,7 @@ fn help_commands_page_lists_every_command_line_verb() {
         ":e <name>",
         ":import <path>",
         ":export",
-        ":layout lr",
+        ":layout [td|lr]",
     ] {
         assert!(page.contains(verb), "{verb}");
     }
@@ -1578,4 +1578,64 @@ fn export_scope_box_title_names_its_format() {
         &Overlay::Scope(ExportFormat::Svg, ui::scope::list(ExportFormat::Svg)),
     ));
     assert!(text.contains("Export SVG"));
+}
+
+fn command_prompt_at(buf: &str, w: u16, h: u16) -> Buffer {
+    let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
+    let s = Session::new(Canvas::default(), View::default(), (w, h));
+    let overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, buf.into()));
+    let mut t = Terminal::new(TestBackend::new(w, h)).unwrap();
+    t.draw(|f| {
+        let area = f.area();
+        ui::render(f.buffer_mut(), area, &s, &overlay, None, None, &doc(true))
+    })
+    .unwrap();
+    t.backend().buffer().clone()
+}
+
+#[test]
+fn command_line_replaces_the_bottom_row_with_a_caret_and_a_list_above() {
+    for w in [40, 60, 120] {
+        let b = command_prompt_at("lay", w, 24);
+        if w >= 60 {
+            assert!(line_at(&b, 21).contains(":layout [td|lr]"), "{w}");
+        }
+        let all: String = (0..24).map(|y| line_at(&b, y)).collect();
+        assert!(line_at(&b, 23).starts_with(":lay "), "{w}");
+        assert!(b[(4, 23)].modifier.contains(Modifier::REVERSED), "{w}");
+        assert!(!all.replace("Commands", "").contains("Command"), "{w}");
+        assert!(!all.contains("[ OK ]"), "{w}");
+        assert!(line_at(&b, 22).starts_with("└─"), "{w}");
+        assert!(line_at(&b, 21).contains(":layout"), "{w}");
+    }
+}
+
+#[test]
+fn find_line_and_unmatched_command_draw_no_list() {
+    let b = command_prompt_at("/x", 60, 24);
+    assert!(line_at(&b, 23).starts_with("/x "));
+    assert!(!(0..23).map(|y| line_at(&b, y)).any(|l| l.contains("└─")));
+    let b = command_prompt_at("zzz", 60, 24);
+    assert!(!(0..23).map(|y| line_at(&b, y)).any(|l| l.contains("└─")));
+}
+
+#[test]
+fn empty_command_line_lists_every_verb() {
+    let b = command_prompt_at("", 120, 40);
+    let all: String = (0..40).map(|y| line_at(&b, y)).collect();
+    for verb in [
+        ":perf",
+        ":redo",
+        ":u",
+        ":import <path>",
+        ":lib save|insert <name>",
+    ] {
+        assert!(all.contains(verb), "{verb}");
+    }
+}
+
+#[test]
+fn command_line_keeps_the_caret_on_screen_when_the_buffer_overflows() {
+    let b = command_prompt_at(&"a".repeat(80), 40, 24);
+    assert!(b[(39, 23)].modifier.contains(Modifier::REVERSED));
 }

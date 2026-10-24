@@ -6,7 +6,7 @@ mod state;
 
 pub use edit::{Edit, EditBox, EditTarget};
 pub use hit::{handles, shape_at, Handle, Hit};
-pub use keys::{handle_key, handle_paste, KeyOutcome};
+pub use keys::{edit_key, handle_key, handle_paste, KeyOutcome};
 pub use state::{handle_mouse, scroll_step};
 
 use crate::model::{

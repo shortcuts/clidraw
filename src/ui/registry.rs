@@ -512,16 +512,18 @@ pub const BINDINGS: &[Binding] = &[
     ex("save", ":w", "Save", Some(Action::Ex("w"))),
     ex(
         "layout_td",
-        ":layout",
+        ":layout [td|lr]",
         "Layout top-down",
         Some(Action::Ex("layout")),
     ),
-    ex(
+    Binding::new(
         "layout_lr",
-        ":layout lr",
+        &[],
         "Layout left-right",
+        Scope::Palette,
         Some(Action::Ex("layout lr")),
-    ),
+    )
+    .shown(":layout lr"),
     ex(
         "perf",
         ":perf",
@@ -720,6 +722,8 @@ pub const BINDINGS: &[Binding] = &[
     tool!("tool_arrow", 'a', "", Tool::Arrow),
     tool!("tool_text", 't', "", Tool::Text),
     ex("quit_cmd", ":q", "Quit", None),
+    ex("undo_cmd", ":u", "Undo", None),
+    ex("redo_cmd", ":redo", "Redo", None),
     ex("save_quit", ":wq", "Save and quit", None),
     ex("open", ":e <name>", "Open or create a canvas", None),
     ex(
@@ -728,14 +732,19 @@ pub const BINDINGS: &[Binding] = &[
         "Import file",
         Some(Action::Prefill("import ")),
     ),
-    ex("export", ":export", "Export the canvas", None),
+    ex("export", ":export [svg|mmd|txt]", "Export the canvas", None),
     ex(
         "link",
         ":link <url>",
         "Link selection to URL",
         Some(Action::Prefill("link ")),
     ),
-    ex("lib", ":lib", "Use library", Some(Action::Prefill("lib "))),
+    ex(
+        "lib",
+        ":lib save|insert <name>",
+        "Use library",
+        Some(Action::Prefill("lib ")),
+    ),
 ];
 
 pub fn by_id(id: &str) -> &'static Binding {
@@ -747,6 +756,22 @@ pub fn by_id(id: &str) -> &'static Binding {
 
 pub fn in_scope(scope: Scope) -> impl Iterator<Item = &'static Binding> {
     BINDINGS.iter().filter(move |b| b.scope == scope)
+}
+
+/// The command-line verbs, in registry order.
+pub fn commands() -> impl Iterator<Item = &'static Binding> {
+    in_scope(Scope::Command).filter(|b| b.shown.is_some_and(|s| s.starts_with(':')))
+}
+
+/// The text a completion puts in the command line: the verb, plus a space when it takes an argument.
+pub fn fill(b: &Binding) -> String {
+    let shown = b.shown.unwrap_or("").trim_start_matches(':');
+    let (word, rest) = shown.split_once(' ').unwrap_or((shown, ""));
+    if rest.is_empty() {
+        word.into()
+    } else {
+        format!("{word} ")
+    }
 }
 
 pub fn for_action(action: Action) -> Option<&'static Binding> {

@@ -65,7 +65,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `Ctrl-c` | Quit |
 | `Ctrl-p` | Open the command palette: type to filter every action, `Enter` runs it |
 | `?` | Show the shortcuts, one page per scope. Type to filter all pages |
-| `:` | Open the command line: `q`, `w`, `wq`, `e <name>`, `u`, `redo`, `layout [td|lr]`, `import <path>`, `lib save|insert <name>`, `perf` |
+| `:` | Open the command line on the bottom row. A list above it shows each command with its usage. `Tab` completes, `Enter` runs |
 
 The command palette (`Ctrl-p`) lists every action with its key, including Canvases, Fit all, the exports and Quit. Saving is automatic. The Minimap action shows the whole canvas. Click a frame or shape to jump to it.
 

@@ -1,10 +1,49 @@
 use super::App;
+use crate::input::edit_key;
 use crate::model::Dir;
-use crate::ui::registry;
+use crate::ui::prompt::{self, Prompt};
+use crate::ui::registry::{self, Binding};
 use crate::ui::scope::{self, ExportFormat};
 use crate::ui::{Overlay, Perf, Status};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 impl App {
+    pub(super) fn prompt_key(&mut self, k: KeyEvent) {
+        let Overlay::Prompt(p) = &mut self.overlay else {
+            return;
+        };
+        if edit_key(&mut p.edit, &k) {
+            p.sel = 0;
+            return;
+        }
+        let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
+        let by = match k.code {
+            KeyCode::Up => -1,
+            KeyCode::Down => 1,
+            KeyCode::Char('p') if ctrl => -1,
+            KeyCode::Char('n') if ctrl => 1,
+            KeyCode::Esc => return self.overlay = Overlay::None,
+            KeyCode::Enter => return self.confirm(),
+            KeyCode::Tab if p.completing() => {
+                if let Some(b) = prompt::command_list(p, 0).selected() {
+                    self.complete(b);
+                }
+                return;
+            }
+            _ => return,
+        };
+        if p.completing() {
+            let last = prompt::command_list(p, 0).labels().len().saturating_sub(1);
+            p.sel = p.sel.saturating_add_signed(by).min(last);
+        }
+    }
+
+    pub(super) fn complete(&mut self, b: &'static Binding) {
+        if let Overlay::Prompt(p) = &mut self.overlay {
+            *p = Prompt::new(p.kind.clone(), registry::fill(b));
+        }
+    }
+
     pub(super) fn run_command(&mut self, line: &str) {
         let line = line.trim().trim_start_matches(':');
         if let Some(term) = line.strip_prefix('/') {

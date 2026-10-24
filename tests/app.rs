@@ -446,7 +446,7 @@ fn question_mark_types_into_a_label_and_a_prompt() {
     let clidraw::ui::Overlay::Prompt(p) = &app.overlay else {
         panic!("expected a prompt, got another overlay")
     };
-    assert_eq!(p.buf, "?");
+    assert_eq!(p.buf(), "?");
 }
 
 #[test]
@@ -459,7 +459,7 @@ fn new_canvas_prompt_is_prefilled_with_a_generated_name() {
     let clidraw::ui::Overlay::Prompt(p) = &app.overlay else {
         panic!("no prompt");
     };
-    let name = p.buf.clone();
+    let name = p.buf().to_string();
     let (adj, noun) = name.split_once('-').expect("adjective-noun");
     assert!(!adj.is_empty() && !noun.is_empty() && name != "demo");
     app.on_event(key(KeyCode::Enter), now);
@@ -2321,4 +2321,131 @@ fn export_command_takes_a_format_or_lists_them() {
         app.status.as_ref().map(|s| s.text.as_str()),
         Some("Usage: :export [svg|mmd|txt]")
     );
+}
+
+fn buffer(app: &App) -> String {
+    let clidraw::ui::Overlay::Prompt(p) = &app.overlay else {
+        panic!("no prompt")
+    };
+    p.buf().to_string()
+}
+
+fn command_line(app: &mut App, typed: &str, t: Instant) {
+    app.on_event(key(KeyCode::Char(':')), t);
+    type_str(app, typed, t);
+}
+
+#[test]
+fn command_line_edits_at_the_caret() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    command_line(&mut app, "layoutx", now);
+    app.on_event(key(KeyCode::Left), now);
+    app.on_event(key(KeyCode::Backspace), now);
+    assert_eq!(buffer(&app), "layoux");
+    app.on_event(key(KeyCode::Char('t')), now);
+    assert_eq!(buffer(&app), "layoutx");
+    app.on_event(key(KeyCode::Delete), now);
+    assert_eq!(buffer(&app), "layout");
+    app.on_event(key(KeyCode::Home), now);
+    app.on_event(key(KeyCode::Char('x')), now);
+    assert_eq!(buffer(&app), "xlayout");
+    app.on_event(key(KeyCode::End), now);
+    ctrl_key(&mut app, 'w', now);
+    assert_eq!(buffer(&app), "");
+    type_str(&mut app, "abc", now);
+    app.on_event(key(KeyCode::Left), now);
+    ctrl_key(&mut app, 'u', now);
+    assert_eq!(buffer(&app), "c");
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+}
+
+#[test]
+fn tab_completes_the_verb_and_adds_a_space_only_before_an_argument() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    command_line(&mut app, "e", now);
+    app.on_event(key(KeyCode::Tab), now);
+    assert_eq!(buffer(&app), "e ");
+    app.on_event(key(KeyCode::Esc), now);
+
+    command_line(&mut app, "wq", now);
+    app.on_event(key(KeyCode::Tab), now);
+    assert_eq!(buffer(&app), "wq");
+    app.on_event(key(KeyCode::Esc), now);
+
+    command_line(&mut app, "e", now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Tab), now);
+    assert_eq!(buffer(&app), "export ");
+}
+
+#[test]
+fn find_mode_has_no_completion() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Char('/')), now);
+    type_str(&mut app, "e", now);
+    app.on_event(key(KeyCode::Tab), now);
+    assert_eq!(buffer(&app), "/e");
+}
+
+#[test]
+fn enter_runs_the_typed_text_not_the_highlighted_row() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    command_line(&mut app, "e", now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+    assert_eq!(
+        app.status.as_ref().map(|s| s.text.as_str()),
+        Some("Usage: :e <name>")
+    );
+}
+
+#[test]
+fn clicking_a_completion_fills_it_and_clicking_away_closes() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    command_line(&mut app, "wq", now);
+    click(&mut app, 5, 21, now);
+    assert_eq!(buffer(&app), "wq");
+    type_str(&mut app, "x", now);
+    click(&mut app, 5, 23, now);
+    assert_eq!(buffer(&app), "wqx");
+    click(&mut app, 5, 2, now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+}
+
+#[test]
+fn clicking_a_completion_replaces_the_typed_prefix() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    command_line(&mut app, "lay", now);
+    click(&mut app, 5, 21, now);
+    assert_eq!(buffer(&app), "layout ");
+}
+
+#[test]
+fn dialog_prompts_edit_at_the_caret_too() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    open_canvases(&mut app, now);
+    click(&mut app, 25, 11, now);
+    for _ in 0..40 {
+        app.on_event(key(KeyCode::Backspace), now);
+    }
+    type_str(&mut app, "ac", now);
+    app.on_event(key(KeyCode::Left), now);
+    app.on_event(key(KeyCode::Char('b')), now);
+    assert_eq!(buffer(&app), "abc");
 }

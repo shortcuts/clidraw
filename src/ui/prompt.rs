@@ -1,5 +1,10 @@
+use super::grid::REVERSE;
+use super::list::{Anchor, List, Row};
+use super::registry::{self, Binding};
 use super::style::{ACTIVE, MUTED};
 use super::{boxed, centered, Grid};
+use crate::input::{Edit, EditTarget};
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 /// The part of the canvas an export writes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -20,10 +25,11 @@ pub enum PromptKind {
     Command,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Prompt {
     pub kind: PromptKind,
-    pub buf: String,
+    pub edit: Edit,
+    /// Highlighted completion of the command line.
+    pub sel: usize,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -41,7 +47,18 @@ fn rect(screen: (u16, u16)) -> (i32, i32, i32, i32) {
 
 impl Prompt {
     pub fn new(kind: PromptKind, buf: String) -> Prompt {
-        Prompt { kind, buf }
+        // target is unused for prompts
+        let edit = Edit::new(EditTarget::New(0, 0), buf);
+        Prompt { kind, edit, sel: 0 }
+    }
+
+    pub fn buf(&self) -> &str {
+        &self.edit.buf
+    }
+
+    /// Find mode starts with `/` and has no completions.
+    pub fn completing(&self) -> bool {
+        self.kind == PromptKind::Command && !self.buf().starts_with('/')
     }
 
     fn title(&self) -> &'static str {
@@ -52,7 +69,7 @@ impl Prompt {
             PromptKind::NewCanvas => "New canvas name",
             PromptKind::Rename(_) => "Rename canvas to",
             PromptKind::ConfirmDelete(_) => "Delete canvas",
-            PromptKind::Command => "Command",
+            PromptKind::Command => "",
         }
     }
 }
@@ -76,12 +93,56 @@ pub fn hit(screen: (u16, u16), col: i32, row: i32) -> Option<PromptHit> {
 pub fn draw(grid: &mut Grid, p: &Prompt) {
     let r = rect((grid.w as u16, grid.h as u16));
     boxed(grid, r, p.title());
-    let line = match &p.kind {
-        PromptKind::ConfirmDelete(name) => format!("Delete \"{name}\"?"),
-        _ => format!("{}_", p.buf),
-    };
-    grid.text(r.0 + 2, r.1 + 1, &line, 0);
+    match &p.kind {
+        PromptKind::ConfirmDelete(name) => {
+            grid.text(r.0 + 2, r.1 + 1, &format!("Delete \"{name}\"?"), 0)
+        }
+        _ => caret_line(grid, r.0 + 2, r.1 + 1, r.2 - 4, "", p),
+    }
     grid.text(r.0 + 2, r.1 + 2, "Enter confirms, Esc cancels", MUTED);
     grid.text(r.0 + 2, r.1 + 3, OK, ACTIVE);
     grid.text(r.0 + 4 + OK.len() as i32, r.1 + 3, CANCEL, 0);
+}
+
+/// Draws `prefix + buffer` with a reversed caret cell, dropping the head when the caret would leave `w` columns.
+fn caret_line(grid: &mut Grid, x: i32, y: i32, w: i32, prefix: &str, p: &Prompt) {
+    let (buf, caret) = (p.buf(), p.edit.caret);
+    let mut line = format!("{prefix}{buf} ");
+    let mut at = (prefix.width() + buf[..caret].width()) as i32;
+    // shortcut: drops the head, no ellipsis
+    while at >= w && !line.is_empty() {
+        let c = line.remove(0);
+        at -= c.width().unwrap_or(0) as i32;
+    }
+    grid.text(x, y, &line, 0);
+    let under = buf[caret..].chars().next().unwrap_or(' ');
+    grid.set(x + at, y, under, REVERSE);
+}
+
+pub fn command_list(p: &Prompt, bar: i32) -> List<&'static Binding> {
+    let rows: Vec<_> = registry::commands()
+        .map(|b| Row {
+            value: b,
+            label: b.shown.unwrap_or("").into(),
+            key: b.name().into(),
+        })
+        .collect();
+    let all = rows.len();
+    let mut list = List::new("Commands", rows)
+        .headless()
+        .min_width(44)
+        .max_rows(all);
+    list.set_query(p.buf().split_whitespace().next().unwrap_or(""));
+    list.anchor(Anchor::Bottom(bar)).select(p.sel)
+}
+
+/// Replaces the bottom row with the command line and draws the completions above it.
+pub fn draw_command(grid: &mut Grid, p: &Prompt) {
+    let row = grid.h - 1;
+    grid.fill(0, row, grid.w, 1);
+    if p.completing() {
+        command_list(p, row).draw(grid);
+    }
+    let prefix = if p.buf().starts_with('/') { "" } else { ":" };
+    caret_line(grid, 0, row, grid.w, prefix, p);
 }

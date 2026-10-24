@@ -20,7 +20,7 @@ fn notice(text: Option<String>) -> KeyOutcome {
 }
 
 /// Applies a text-editing key to the label; false leaves the key to the caller.
-fn edit_key(e: &mut Edit, k: &KeyEvent) -> bool {
+pub fn edit_key(e: &mut Edit, k: &KeyEvent) -> bool {
     let m = k.modifiers;
     let shift = m.contains(KeyModifiers::SHIFT);
     // macOS Terminal sends Option-arrows as Alt-b and Alt-f.

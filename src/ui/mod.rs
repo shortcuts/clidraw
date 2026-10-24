@@ -109,6 +109,9 @@ pub fn render(
         Overlay::Scope(_, l) => l.draw(&mut grid),
         Overlay::Colors(_, l) => l.draw(&mut grid),
         Overlay::Switcher(sw) => sw.draw(&mut grid),
+        Overlay::Prompt(p) if p.kind == prompt::PromptKind::Command => {
+            prompt::draw_command(&mut grid, p)
+        }
         Overlay::Prompt(p) => prompt::draw(&mut grid, p),
         Overlay::Help(p, q) => help::draw(&mut grid, *p, q),
         Overlay::Actions(a) => a.draw(&mut grid),
