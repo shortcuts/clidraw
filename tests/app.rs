@@ -1577,6 +1577,19 @@ fn import_of_a_missing_file_shows_an_error() {
 }
 
 #[test]
+fn failed_import_lists_the_live_hint_diagnostics() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let file = t.path().join("d.mmd");
+    std::fs::write(&file, "flowchart TD\nsubgraph x\nA -->\n").unwrap();
+    run(&mut app, &format!("import {}", file.display()));
+    assert_eq!(
+        status(&app),
+        "Import failed: nothing to import; line 2: `subgraph` is not supported and is skipped on import; line 3: Cannot read this line: expected nodes joined by arrows"
+    );
+}
+
+#[test]
 fn undo_survives_a_reopen_only_while_the_file_is_unchanged() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());

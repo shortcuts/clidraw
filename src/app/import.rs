@@ -1,5 +1,5 @@
 use super::App;
-use crate::diagram::{DiagramKind, Flowchart};
+use crate::diagram::{import_failure, DiagramKind, Flowchart};
 use crate::model::{Element, Id, Shape, ShapeKind};
 use crate::ui::Status;
 
@@ -54,7 +54,7 @@ impl App {
                 }
                 Status::notice(text)
             }
-            Err(e) => Status::error(format!("Import failed: {e}")),
+            Err(e) => Status::error(format!("Import failed: {}", import_failure(text, &e))),
         });
     }
 

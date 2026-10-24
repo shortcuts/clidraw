@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::diagram::{DiagramKind, Flowchart};
+use crate::diagram::{import_failure, DiagramKind, Flowchart};
 use crate::model::{
     Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind, Text,
 };
@@ -248,7 +248,9 @@ fn import(
     } else {
         text = std::fs::read_to_string(path)?;
     }
-    let input = Flowchart.import(&text).map_err(anyhow::Error::msg)?;
+    let input = Flowchart
+        .import(&text)
+        .map_err(|e| anyhow::Error::msg(import_failure(&text, &e)))?;
     let parsed = input.canvas;
     let ids: Vec<Id> = parsed.elements.iter().map(|e| e.id().clone()).collect();
     let (px, py, _, _) = parsed.all_bounds().unwrap_or_default();

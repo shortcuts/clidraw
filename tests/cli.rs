@@ -222,6 +222,19 @@ fn import_appends_below_existing() {
 }
 
 #[test]
+fn failed_import_lists_diagnostics() {
+    let t = seeded_empty();
+    let r = run_stdin(
+        t.path(),
+        &["import", "demo", "-"],
+        "sequenceDiagram\nA->>B: hi",
+    );
+    assert!(!r.status.success());
+    assert!(String::from_utf8_lossy(&r.stderr)
+        .contains("line 1: `sequenceDiagram` diagrams are not supported"));
+}
+
+#[test]
 fn export_text_to_stdout() {
     let t = seeded();
     let r = run(t.path(), &["export", "demo", "--text", "-"]);

@@ -78,3 +78,11 @@ pub fn validate(text: &str) -> Vec<Diagnostic> {
         }],
     }
 }
+
+/// Appends the live-hint diagnostics of `text` to why its import failed.
+pub fn import_failure(text: &str, reason: &str) -> String {
+    validate(text).iter().fold(reason.to_string(), |out, d| {
+        let line = text[..d.range.start].matches('\n').count() + 1;
+        format!("{out}; line {line}: {}", d.message)
+    })
+}
