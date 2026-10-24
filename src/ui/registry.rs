@@ -435,6 +435,15 @@ pub const BINDINGS: &[Binding] = &[
     Binding::new("draw", &[], "Draw", Scope::Overlay, None)
         .shown("drag")
         .hint("draw"),
+    Binding::new(
+        "pick_area",
+        &[],
+        "Pick an export area",
+        Scope::Overlay,
+        None,
+    )
+    .shown("drag")
+    .hint("area"),
     Binding::new("jump", &[], "Jump", Scope::Overlay, None)
         .shown("click")
         .hint("jump"),

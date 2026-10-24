@@ -963,7 +963,7 @@ fn info_bar_badge_follows_the_mode() {
         picking: true,
         ..doc(true)
     };
-    assert!(bar_with(&idle, 120, &picking).contains(" PICK   Esc cancel"));
+    assert!(bar_with(&idle, 120, &picking).contains(" PICK   drag area  Esc cancel"));
 }
 
 #[test]

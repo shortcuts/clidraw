@@ -121,7 +121,7 @@ fn layout(s: &Session, doc: &Doc, w: i32) -> Bar {
 
 fn hints(s: &Session, doc: &Doc, overlay: &Overlay) -> Vec<(String, &'static str)> {
     let ids: &[&str] = match overlay {
-        _ if doc.picking => &["cancel"],
+        _ if doc.picking => &["pick_area", "cancel"],
         Overlay::Prompt(_) => &["confirm", "cancel_prompt"],
         Overlay::None if s.edit.is_some() => &["commit_edit", "discard_edit", "newline"],
         Overlay::None if s.zoomed_out() => &["reset_zoom", "zoom_wheel", "help"],
