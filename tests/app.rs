@@ -954,30 +954,47 @@ fn palette_tooltip_names_the_tool_and_key_after_a_rest() {
     assert!(!row(&app).contains("Rect  r"));
 }
 
-#[test]
-fn palette_tooltip_names_a_keyed_cell_and_its_key_after_a_rest() {
-    use clidraw::model::Align;
-    use clidraw::ui::palette::{hit, Choice, PaletteHit};
+fn tooltip_row(choice: clidraw::ui::palette::Choice) -> String {
+    use clidraw::ui::palette::{hit, PaletteHit};
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     app.session.exec(shape_at("bbbbbbbb", 40, 8));
     app.session.exec(shape_at("aaaaaaaa", 20, 8));
     app.session.selection = vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")];
-    let (c, r) = (0..80u16)
-        .flat_map(|c| (0..24u16).map(move |r| (c, r)))
-        .find(|&(c, r)| {
-            hit(&app.session, c.into(), r.into())
-                == Some(PaletteHit::Option(Choice::Place(Align::Left)))
-        })
-        .unwrap();
+    let at = |app: &clidraw::app::App| {
+        (0..80u16)
+            .flat_map(|c| (0..24u16).map(move |r| (c, r)))
+            .find(|&(c, r)| {
+                hit(&app.session, c.into(), r.into()) == Some(PaletteHit::Option(choice))
+            })
+    };
+    while at(&app).is_none() {
+        app.session.option_scroll += 4;
+    }
+    let (c, r) = at(&app).unwrap();
     let area = Rect::new(0, 0, 80, 24);
     let t0 = Instant::now();
     app.on_events(vec![mouse(MouseEventKind::Moved, c, r)], t0);
     app.tick(t0 + Duration::from_millis(400));
     let mut buf = Buffer::empty(area);
     app.render(&mut buf, area);
-    let row: String = (0..80u16).map(|x| buf[(x, r + 1)].symbol()).collect();
-    assert!(row.contains(" align-l  < "), "{row}");
+    (0..80u16).map(|x| buf[(x, r + 1)].symbol()).collect()
+}
+
+#[test]
+fn palette_tooltip_names_a_keyed_cell_and_its_key_after_a_rest() {
+    use clidraw::model::Align;
+    use clidraw::ui::palette::Choice;
+    let row = tooltip_row(Choice::Place(Align::Left));
+    assert!(row.contains(" Arrange: Align left  < "), "{row}");
+}
+
+#[test]
+fn palette_tooltip_names_a_keyless_option() {
+    use clidraw::model::Stroke;
+    use clidraw::ui::palette::Choice;
+    let row = tooltip_row(Choice::Stroke(Stroke::Dashed));
+    assert!(row.contains(" Stroke: dashed "), "{row}");
 }
 
 #[test]

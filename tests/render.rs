@@ -1383,8 +1383,8 @@ fn option_cells_leave_no_canvas_gap_after_wide_glyph_labels() {
     s.selection.push(Id::from("aaaaaaaa"));
     let b = draw(&s, &Overlay::None);
     assert_eq!(
-        cols(&b, 1, 0, 64),
-        " __ solid  -- dashed  .. dotted  ┌┐ single  ╭╮ round  ╔╗ double ",
+        cols(&b, 1, 3, 62),
+        " __ solid  -- dashed  .. dotted │ ┌┐ single  ╭╮ round  ╔╗ doub",
     );
 }
 
@@ -1421,18 +1421,84 @@ fn chrome_rows_never_show_canvas_cells() {
         if let Element::Shape(sh) = &mut e {
             sh.y = 0;
             sh.h = 30;
+            sh.border = Border::Double;
         }
         c.elements.push(e);
         let mut s = Session::new(c, View::default(), (w, 12));
         s.selection = vec![Id::from("aaaaaaaa")];
         let top = ui::palette::rows(&s) as u16;
-        assert!(top >= 2);
+        assert_eq!(top, 2);
         let b = render_at(&s, w, 12);
         for y in (0..top).chain([11]) {
-            assert!(!line_at(&b, y).contains('│'), "w={w} row {y}");
+            assert!(!line_at(&b, y).contains('║'), "w={w} row {y}");
         }
-        assert!(line_at(&b, top).contains('│'), "w={w} first viewport row");
+        assert!(line_at(&b, top).contains('║'), "w={w} first viewport row");
     }
+}
+
+fn strip_session(w: u16) -> Session {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, "box"));
+    c.elements.push(shape("bbbbbbbb", 40, ""));
+    c.elements.push(Element::Line(Line {
+        id: Id::from("llllllll"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        bends: vec![],
+        color: None,
+    }));
+    let mut s = Session::new(c, View::default(), (w, 12));
+    s.selection = vec![Id::from("aaaaaaaa"), Id::from("llllllll")];
+    s
+}
+
+#[test]
+fn strip_is_one_row_with_group_separators_and_arrows_when_it_overflows() {
+    for w in [40, 60, 120] {
+        let mut s = strip_session(w);
+        if w == 120 {
+            s.selection.truncate(1);
+        }
+        assert_eq!(ui::palette::rows(&s), 2, "w={w}");
+        let b = render_at(&s, w, 12);
+        let row = line_at(&b, 1);
+        assert!(w == 40 || row.contains('│'), "w={w} {row}");
+        assert!(
+            !line_at(&b, 2).contains("single"),
+            "w={w} no second option row"
+        );
+        let (first, last) = (cols(&b, 1, 0, 3), cols(&b, 1, w - 3, 3));
+        if w == 120 {
+            assert!(!row.contains('›') && !row.contains('‹'), "{row}");
+        } else {
+            assert_eq!((first.as_str(), last.as_str()), (" ‹ ", " › "), "w={w}");
+            assert!(
+                b[(1, 1)].modifier.contains(Modifier::DIM),
+                "w={w} left arrow is dimmed"
+            );
+            assert!(
+                !b[(w - 2, 1)].modifier.contains(Modifier::DIM),
+                "w={w} right arrow is live"
+            );
+        }
+    }
+}
+
+#[test]
+fn tool_row_scrolls_at_58_columns_and_ends_with_text() {
+    let mut s = Session::new(Canvas::default(), View::default(), (58, 12));
+    let b = render_at(&s, 58, 12);
+    assert_eq!(cols(&b, 0, 55, 3), " › ");
+    s.tool_scroll = 1000;
+    let b = render_at(&s, 58, 12);
+    assert_eq!(cols(&b, 0, 0, 3), " ‹ ");
+    assert_eq!(cols(&b, 0, 55, 3), " › ");
+    assert!(b[(56, 0)].modifier.contains(Modifier::DIM));
+    assert!(line_at(&b, 0).contains(" Text "), "{}", line_at(&b, 0));
 }
 
 #[test]

@@ -230,6 +230,9 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
         }
     }
     if let Some(step) = scroll_step(&ev) {
+        if row < palette::rows(s) && step.0 != 0 {
+            return palette::wheel(s, row, step.0.signum());
+        }
         return s.scroll(step, 1, now);
     }
     if s.present {
@@ -424,6 +427,7 @@ impl Session {
 
 fn palette_down(s: &mut Session, h: PaletteHit) {
     match h {
+        PaletteHit::Scroll(strip, dir) => palette::jump(s, strip, dir),
         PaletteHit::Option(Choice::Align(cur)) => s.set_choice(Choice::Align(cur.next())),
         PaletteHit::Option(c @ (Choice::Ink | Choice::Fill)) => {
             let cur = s

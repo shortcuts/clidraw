@@ -6,7 +6,7 @@ use clidraw::model::{
     Align, Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
     Stroke, TextAlign,
 };
-use clidraw::ui::palette::{self, Choice, PaletteHit};
+use clidraw::ui::palette::{self, Choice, PaletteHit, Strip};
 use clidraw::view::{View, Zoom};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use std::time::{Duration, Instant};
@@ -67,18 +67,31 @@ fn pick(s: &mut Session, tool: Tool) {
 }
 
 fn option_cells(s: &Session) -> Vec<(PaletteHit, i32, i32, i32)> {
-    let cells = palette::cells(
+    palette::layout(
         &palette::choices(&palette::selected(s), &s.canvas.groups),
         i32::from(s.screen.0),
-    );
-    cells
-        .into_iter()
-        .filter(|c| matches!(c.0, PaletteHit::Option(_)))
-        .collect()
+        (s.tool_scroll, s.option_scroll),
+    )
+    .cells
+    .into_iter()
+    .filter(|c| matches!(c.hit, PaletteHit::Option(_)))
+    .map(|c| (c.hit, c.x, c.y, c.w))
+    .collect()
+}
+
+/// Wheels the option row right until `c` shows.
+fn reveal(s: &mut Session, c: Choice) {
+    for _ in 0..50 {
+        if option_cells(s).iter().any(|k| k.0 == PaletteHit::Option(c)) {
+            return;
+        }
+        mouse(s, MouseEventKind::ScrollRight, 40, 1, Instant::now());
+    }
 }
 
 /// Clicks the option cell showing `c`.
 fn click_choice(s: &mut Session, c: Choice) {
+    reveal(s, c);
     let (_, x, y, _) = option_cells(s)
         .into_iter()
         .find(|c2| c2.0 == PaletteHit::Option(c))
@@ -88,8 +101,8 @@ fn click_choice(s: &mut Session, c: Choice) {
 
 /// Clicks the `i`-th option cell of the selection.
 fn option(s: &mut Session, i: usize) {
-    let (_, x, y, _) = option_cells(s).into_iter().nth(i).unwrap();
-    click(s, (x as u16, y as u16), Instant::now());
+    let c = palette::choices(&palette::selected(s), &s.canvas.groups)[i];
+    click_choice(s, c);
 }
 
 fn shapes(s: &Session) -> Vec<&Shape> {
@@ -2231,16 +2244,91 @@ fn bar_hides_place_and_group_with_one_selected_and_all_with_none() {
     assert!(option_cells(&s).is_empty());
 }
 
-#[test]
-fn bar_options_wrap_inside_a_narrow_screen_and_hit_at_their_row() {
-    let mut s = Session::new(Canvas::default(), View::default(), (40, 24));
+fn narrow_two_selected(w: u16) -> Session {
+    let mut s = Session::new(Canvas::default(), View::default(), (w, 24));
     s.canvas = two_selected().canvas;
     s.selection = vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")];
+    s
+}
+
+fn arrow(s: &Session, dir: i32) -> Option<(u16, u16)> {
+    (0..s.screen.0)
+        .flat_map(|c| (0..2u16).map(move |r| (c, r)))
+        .find(|&(c, r)| {
+            palette::hit(s, c.into(), r.into()) == Some(PaletteHit::Scroll(Strip::Options, dir))
+        })
+}
+
+#[test]
+fn strip_stays_on_one_row_and_a_click_on_a_clipped_cell_runs_it() {
+    let s = narrow_two_selected(40);
+    assert_eq!(palette::rows(&s), 2);
     let cells = option_cells(&s);
-    assert!(cells.iter().all(|&(_, x, _, w)| x + w <= 40));
+    assert!(cells.iter().all(|&(_, x, y, w)| y == 1 && x + w <= 40));
     let &(h, x, y, _) = cells.last().unwrap();
-    assert!(y > 1);
     assert_eq!(palette::hit(&s, x, y), Some(h));
+}
+
+#[test]
+fn strip_wheel_and_shift_wheel_scroll_the_row_and_not_the_canvas() {
+    let mut s = narrow_two_selected(40);
+    let view = s.view;
+    let t = Instant::now();
+    mouse(&mut s, MouseEventKind::ScrollRight, 10, 1, t);
+    assert_eq!(s.option_scroll, 4);
+    mouse_mod(
+        &mut s,
+        MouseEventKind::ScrollDown,
+        KeyModifiers::SHIFT,
+        10,
+        1,
+        t,
+    );
+    assert_eq!(s.option_scroll, 8);
+    mouse(&mut s, MouseEventKind::ScrollLeft, 10, 1, t);
+    mouse_mod(
+        &mut s,
+        MouseEventKind::ScrollUp,
+        KeyModifiers::SHIFT,
+        10,
+        1,
+        t,
+    );
+    mouse(&mut s, MouseEventKind::ScrollLeft, 10, 1, t);
+    assert_eq!(s.option_scroll, 0, "never below 0");
+    for _ in 0..100 {
+        mouse(&mut s, MouseEventKind::ScrollRight, 10, 1, t);
+    }
+    let max = s.option_scroll;
+    mouse(&mut s, MouseEventKind::ScrollRight, 10, 1, t);
+    assert_eq!(s.option_scroll, max, "never above max");
+    assert_eq!(s.tool_scroll, 0);
+    assert_eq!(s.view, view);
+    mouse(&mut s, MouseEventKind::ScrollRight, 10, 0, t);
+    assert!(s.tool_scroll > 0, "row 0 scrolls the tools");
+    mouse(&mut s, MouseEventKind::ScrollDown, 10, 5, t);
+    assert_ne!(s.view, view, "a plain wheel below the chrome still pans");
+}
+
+#[test]
+fn strip_arrows_scroll_by_group_and_a_dimmed_arrow_does_nothing() {
+    let mut s = narrow_two_selected(40);
+    assert_eq!(arrow(&s, -1), None, "dimmed arrow is no hit");
+    let right = arrow(&s, 1).unwrap();
+    click(&mut s, right, Instant::now());
+    let layout = palette::layout(
+        &palette::choices(&palette::selected(&s), &s.canvas.groups),
+        40,
+        (0, 0),
+    );
+    assert!(s.option_scroll > 0);
+    assert!(layout.cells.len() > 1);
+    assert!(arrow(&s, -1).is_some());
+    let back = arrow(&s, -1).unwrap();
+    click(&mut s, back, Instant::now());
+    assert_eq!(s.option_scroll, 0);
+    click(&mut s, back, Instant::now());
+    assert_eq!(s.option_scroll, 0);
 }
 
 fn rect_of(s: &Session) -> (i32, i32, i32, i32) {

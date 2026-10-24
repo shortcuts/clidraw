@@ -100,6 +100,9 @@ pub struct Session {
     /// Whether a click at the pointer would grab a label to drag or edit it.
     pub label_hover: bool,
     pub palette_hover: Option<PaletteHit>,
+    /// Columns the tool row and the option row are scrolled by.
+    pub tool_scroll: i32,
+    pub option_scroll: i32,
     /// Whether the pointer rested on `palette_hover` long enough to show its tooltip.
     pub tip: bool,
     tip_due: Option<Instant>,
@@ -142,6 +145,8 @@ impl Session {
             hover: Hit::Empty,
             label_hover: false,
             palette_hover: None,
+            tool_scroll: 0,
+            option_scroll: 0,
             tip: false,
             tip_due: None,
             rev: 0,
