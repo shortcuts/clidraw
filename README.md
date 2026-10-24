@@ -68,7 +68,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 | `?` | Show the shortcuts, one page per scope. Type to filter all pages |
 | `:` | Open the command line on the bottom row. A list above it shows each command with its usage. `Tab` completes, `Enter` runs |
 
-The command palette (`Ctrl-p`) lists every action with its key, including Canvases, Fit all, the exports and Quit. Saving is automatic. The Minimap action shows the whole canvas. Click a frame or shape to jump to it.
+The command palette (`Ctrl-p`) lists every action with its key, including Canvases, Fit all, the exports and Quit. Saving is automatic. The Minimap action shows the whole canvas. Press Tab to switch between the canvas, the selection and its frame. Click a frame or shape to jump to it.
 
 Export asks what to write: the whole canvas, a dragged area or the selection. `:export` lists the formats; `:export svg`, `:export mmd` and `:export txt` skip the list. Text writes the canvas as plain text, as the screen draws it. Set `export_padding` in `config.toml` for the SVG margin in cells.
 

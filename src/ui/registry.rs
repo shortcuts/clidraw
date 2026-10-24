@@ -598,6 +598,14 @@ pub const BINDINGS: &[Binding] = &[
         .shown("click")
         .hint("jump"),
     Binding::new(
+        "overview_target",
+        &[plain(KeyCode::Tab)],
+        "Switch overview target",
+        Scope::Overlay,
+        None,
+    )
+    .hint("target"),
+    Binding::new(
         "confirm",
         &[plain(KeyCode::Enter)],
         "Confirm",

@@ -16,6 +16,16 @@ pub enum Target {
     Canvas,
 }
 
+impl Target {
+    pub fn next(self) -> Target {
+        match self {
+            Target::Canvas => Target::Selection,
+            Target::Selection => Target::Frame,
+            Target::Frame => Target::Canvas,
+        }
+    }
+}
+
 /// The full-screen box, its inner cells and the world cells per screen cell.
 struct Map {
     rect: Rect,

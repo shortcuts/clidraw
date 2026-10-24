@@ -307,6 +307,7 @@ impl App {
         }
         match (k.code, &self.overlay) {
             (_, Overlay::Prompt(_)) => self.prompt_key(k),
+            (KeyCode::Tab, Overlay::Map(t)) => self.overlay = Overlay::Map(t.next()),
             (KeyCode::Esc, _) => self.overlay = Overlay::None,
             _ => {}
         }
