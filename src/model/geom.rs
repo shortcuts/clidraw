@@ -60,10 +60,9 @@ pub fn side_anchor(s: &Shape, c: Pt) -> Anchor {
 // shortcut: shapes under 2 cells apart overlap the end cells, clamp if it matters
 pub fn side_mid(s: &Shape, anchor: Anchor, toward: Pt) -> (Pt, Axis) {
     let (cx, cy) = center(s);
-    let (ox, oy) = (
-        |o: i32| s.x + o.clamp(0, s.w - 1),
-        |o: i32| s.y + o.clamp(0, s.h - 1),
-    );
+    // A corner has no side to land on, so an offset stays off it.
+    let along = |o: i32, len: i32| o.clamp((len > 2) as i32, (len - 1 - (len > 2) as i32).max(0));
+    let (ox, oy) = (|o: i32| s.x + along(o, s.w), |o: i32| s.y + along(o, s.h));
     match anchor {
         Anchor::Top(o) => return ((ox(o), s.y - 1), Axis::Vertical),
         Anchor::Bottom(o) => return ((ox(o), s.y + s.h), Axis::Vertical),

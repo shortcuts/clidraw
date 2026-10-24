@@ -673,9 +673,10 @@ fn side_mid_lands_one_cell_outside_the_border() {
     assert_eq!(at(Anchor::Left(1), (0, 0)), (1, 2));
     assert_eq!(at(Anchor::Right(1), (0, 0)), (9, 2));
     assert_eq!(at(Anchor::Top(1), (0, 0)), (3, 0));
-    assert_eq!(at(Anchor::Top(0), (0, 0)), (2, 0));
-    assert_eq!(at(Anchor::Top(99), (0, 0)), (8, 0));
-    assert_eq!(at(Anchor::Left(-4), (0, 0)), (1, 1));
+    assert_eq!(at(Anchor::Top(0), (0, 0)), (3, 0));
+    assert_eq!(at(Anchor::Top(99), (0, 0)), (7, 0));
+    assert_eq!(at(Anchor::Left(-4), (0, 0)), (1, 2));
+    assert_eq!(at(Anchor::Right(0), (0, 0)), (9, 2));
     assert_eq!(at(Anchor::Auto, (50, 2)), (9, 2));
     assert_eq!(at(Anchor::Auto, (5, 40)), (5, 4));
 }
@@ -1265,20 +1266,20 @@ fn arrows_into_the_same_side_run_the_same_direction_for_four_cells() {
         )
     };
     let (top, bottom) = (
-        into("arrow001", "aaaaaaaa", 0),
-        into("arrow002", "cccccccc", 2),
+        into("arrow001", "aaaaaaaa", 1),
+        into("arrow002", "cccccccc", 3),
     );
     let mut c = Canvas {
         elements: vec![
             rect("aaaaaaaa", ShapeKind::Rect, (10, 0, 3, 3)),
             rect("cccccccc", ShapeKind::Rect, (10, 10, 3, 3)),
-            rect("bbbbbbbb", ShapeKind::Rect, (20, 4, 3, 3)),
+            rect("bbbbbbbb", ShapeKind::Rect, (20, 4, 3, 5)),
         ],
         ..Canvas::default()
     };
     c.elements
         .extend([top.clone(), bottom.clone()].map(Element::Line));
-    for (l, y) in [(top, 4), (bottom, 6)] {
+    for (l, y) in [(top, 5), (bottom, 7)] {
         let cells = c.route(&l);
         walks(&cells);
         assert_eq!(
@@ -1298,8 +1299,8 @@ fn a_lane_stub_far_from_the_start_stays_inside_the_search_area() {
         )
     };
     let (one, two) = (
-        into("arrow001", "aaaaaaaa", 0),
-        into("arrow002", "cccccccc", 2),
+        into("arrow001", "aaaaaaaa", 1),
+        into("arrow002", "cccccccc", 4),
     );
     let mut c = Canvas {
         elements: vec![
@@ -1312,10 +1313,10 @@ fn a_lane_stub_far_from_the_start_stays_inside_the_search_area() {
     c.elements.extend([one.clone(), two].map(Element::Line));
     let cells = c.route(&one);
     walks(&cells);
-    assert_eq!(cells.last(), Some(&(5, 8)));
+    assert_eq!(cells.last(), Some(&(6, 8)));
     assert_eq!(
         cells[cells.len() - 5..cells.len() - 1],
-        [(5, 4), (5, 5), (5, 6), (5, 7)]
+        [(6, 4), (6, 5), (6, 6), (6, 7)]
     );
 }
 
