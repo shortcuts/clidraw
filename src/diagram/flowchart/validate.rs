@@ -12,13 +12,28 @@ fn diagnostic(severity: Severity, message: String, range: Range<usize>) -> Diagn
     }
 }
 
+fn replace_arrow(line: &str, bad: &str, good: &str) -> String {
+    let mut out = String::new();
+    let mut last = 0;
+    for (at, _) in line.match_indices(bad) {
+        // `-->` contains `->`: skip the tail of a valid arrow
+        if line[..at].ends_with(&bad[..1]) {
+            continue;
+        }
+        out += &line[last..at];
+        out += good;
+        last = at + bad.len();
+    }
+    out + &line[last..]
+}
+
 /// The broken arrow, its replacement and the fixed line, when the fixed line parses.
 fn arrow_fix(line: &str) -> Option<(&'static str, &'static str, String)> {
     // shortcut: replaces every occurrence, even inside quotes; parse_line vets the result, upgrade if a valid label ever loses text
     [("<->", "<-->"), ("->", "-->"), ("=>", "-->")]
         .into_iter()
         .filter(|(bad, _)| line.contains(bad))
-        .map(|(bad, good)| (bad, good, line.replace(bad, good)))
+        .map(|(bad, good)| (bad, good, replace_arrow(line, bad, good)))
         .find(|(.., fixed)| parse_line(fixed).is_ok())
 }
 

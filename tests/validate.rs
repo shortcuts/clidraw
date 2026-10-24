@@ -114,3 +114,16 @@ fn registered_header_dispatches_to_its_kind() {
     assert_eq!(clidraw::diagram::validate(text).len(), 1);
     assert!(clidraw::diagram::validate(" \n").is_empty());
 }
+
+#[test]
+fn import_failure_names_the_line_of_each_hint() {
+    let text = "%% c\r\n\r\nflowchart TD\r\nA[\"é\"] --> B\r\nsubgraph x\r\nA -->\r\n";
+    assert_eq!(
+        clidraw::diagram::import_failure(text, "nothing to import"),
+        "nothing to import; line 5: `subgraph` is not supported and is skipped on import; line 6: Cannot read this line: expected nodes joined by arrows"
+    );
+    assert_eq!(
+        clidraw::diagram::import_failure("%%c\n\nsequenceDiagram\nA->>B", "x"),
+        "x; line 3: `sequenceDiagram` diagrams are not supported"
+    );
+}
