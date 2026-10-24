@@ -266,6 +266,38 @@ fn minimap_frame_fits_the_budget_on_5000_elements() {
 
 #[test]
 #[ignore = "needs a release build: run `make perf`"]
+fn overview_frame_fits_the_budget_on_50000_elements() {
+    use clidraw::ui::minimap::Target;
+    let t = tempfile::tempdir().unwrap();
+    let mut app = busy_app_of(t.path(), 50000);
+    app.session.selection = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .take(100)
+        .map(|e| e.id().clone())
+        .collect();
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    for target in [Target::Selection, Target::Frame, Target::Canvas] {
+        app.overlay = clidraw::ui::Overlay::Map(target);
+        let times = (0..FRAMES)
+            .map(|_| {
+                let t0 = Instant::now();
+                frame(&app, &mut term);
+                t0.elapsed()
+            })
+            .collect();
+        let m = median(times);
+        assert!(
+            m < BUDGET,
+            "{target:?} overview frame {m:?} exceeds {BUDGET:?}"
+        );
+    }
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
 fn frame_fits_the_budget_at_quarter_zoom_on_5000_elements() {
     let t = tempfile::tempdir().unwrap();
     let mut app = busy_app(t.path());

@@ -2,8 +2,9 @@ use super::grid::Grid;
 use super::layout::{refresh, Layout};
 use super::style::ACTIVE;
 use crate::input::Session;
-use crate::model::{Element, ShapeKind};
+use crate::model::{Element, Id, ShapeKind};
 use crate::view::fit_divisor;
+use std::collections::HashSet;
 use unicode_width::UnicodeWidthStr;
 
 type Rect = (i32, i32, i32, i32);
@@ -67,12 +68,13 @@ fn frame_around(s: &Session, layout: &Layout, selection: Option<Rect>) -> Option
 
 /// The world rect a target covers; an empty target falls back to the canvas, then the viewport.
 fn area(s: &Session, layout: &Layout, target: Target) -> Rect {
+    let picked: HashSet<&Id> = s.selection.iter().collect();
     let selected = union(
         s.canvas
             .elements
             .iter()
             .zip(&layout.bounds)
-            .filter(|(e, _)| s.selection.contains(e.id()))
+            .filter(|(e, _)| picked.contains(e.id()))
             .map(|(_, &b)| b),
     );
     let chosen = match target {
