@@ -279,10 +279,10 @@ impl Router {
         }
         let t = stub.as_ref().map_or(b, |s| s[s.len() - 1]);
         let base = (
-            a.0.min(t.0) - MARGIN,
-            a.1.min(t.1) - MARGIN,
-            a.0.max(t.0) + MARGIN,
-            a.1.max(t.1) + MARGIN,
+            a.0.min(t.0).min(b.0) - MARGIN,
+            a.1.min(t.1).min(b.1) - MARGIN,
+            a.0.max(t.0).max(b.0) + MARGIN,
+            a.1.max(t.1).max(b.1) + MARGIN,
         );
         let (mut x0, mut y0, mut x1, mut y1) = base;
         // An obstacle that spans the whole box blocks every way round inside it, so widen the box past it.

@@ -1242,3 +1242,34 @@ fn arrows_into_the_same_side_run_the_same_direction_for_four_cells() {
         );
     }
 }
+
+#[test]
+fn a_lane_stub_far_from_the_start_stays_inside_the_search_area() {
+    let into = |id: &str, from: &str, off: i32| {
+        elbow(
+            id,
+            bound(from),
+            End::Bound(Id::from("bbbbbbbb"), Anchor::Top(off)),
+        )
+    };
+    let (one, two) = (
+        into("arrow001", "aaaaaaaa", 0),
+        into("arrow002", "cccccccc", 2),
+    );
+    let mut c = Canvas {
+        elements: vec![
+            rect("aaaaaaaa", ShapeKind::Rect, (0, 0, 3, 3)),
+            rect("cccccccc", ShapeKind::Rect, (10, 0, 3, 3)),
+            rect("bbbbbbbb", ShapeKind::Rect, (5, 9, 6, 3)),
+        ],
+        ..Canvas::default()
+    };
+    c.elements.extend([one.clone(), two].map(Element::Line));
+    let cells = c.route(&one);
+    walks(&cells);
+    assert_eq!(cells.last(), Some(&(5, 8)));
+    assert_eq!(
+        cells[cells.len() - 5..cells.len() - 1],
+        [(5, 4), (5, 5), (5, 6), (5, 7)]
+    );
+}
