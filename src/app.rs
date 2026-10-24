@@ -117,8 +117,16 @@ impl App {
             &self.overlay,
             self.status.as_ref(),
             self.perf.as_ref(),
-            self.saved_rev == self.session.rev,
+            &self.doc(),
         );
+    }
+
+    fn doc(&self) -> ui::Doc<'_> {
+        ui::Doc {
+            name: &self.name,
+            saved: self.saved_rev == self.session.rev,
+            picking: self.pick.is_some(),
+        }
     }
 
     /// Handles a queue of events, keeping only the last of each run of drags or moves
@@ -209,9 +217,8 @@ impl App {
                     && matches!(self.overlay, Overlay::None)
                     && !self.session.present
                 {
-                    let (w, h) = self.session.screen;
                     let (col, row) = (i32::from(m.column), i32::from(m.row));
-                    if let Some(b) = ui::button_at(i32::from(w), col, row, i32::from(h)) {
+                    if let Some(b) = ui::button_at(&self.session, &self.doc(), col, row) {
                         return self.button(b);
                     }
                 }

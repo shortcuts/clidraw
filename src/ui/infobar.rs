@@ -1,7 +1,8 @@
 use super::registry;
-use super::style::{DISABLED, ERROR, KEY, MUTED};
-use super::{Grid, Overlay, Severity, Status};
+use super::style::{ACTIVE, DISABLED, ERROR, KEY, MUTED};
+use super::{Doc, Grid, Overlay, Severity, Status};
 use crate::input::{Session, Tool};
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 const GAP: i32 = 2;
 
@@ -14,54 +15,113 @@ pub enum Button {
     Redo,
 }
 
-const BUTTONS: [(Button, &str); 5] = [
-    (Button::ZoomOut, "[-]"),
-    (Button::ZoomIn, "[+]"),
-    (Button::Fit, "[Fit]"),
-    (Button::Undo, "[Undo]"),
-    (Button::Redo, "[Redo]"),
-];
+const UNDO_X: i32 = 0;
+const REDO_X: i32 = 7;
+const LEFT_END: i32 = 13;
+const CLUSTER_W: i32 = 18;
+const MARKER: &str = " ●";
+const MIN_NAME_W: i32 = 2;
 
-/// Below this width the hints and the right side get the whole bar.
-const BUTTONS_MIN_W: i32 = 60;
-
-/// Columns the buttons and the gap after them take, or 0 on a narrow screen.
-fn offset(w: i32) -> i32 {
-    if w < BUTTONS_MIN_W {
-        return 0;
-    }
-    BUTTONS.iter().map(|&(_, l)| width(l) + 1).sum::<i32>() + GAP - 1
+struct Bar {
+    badge: Option<String>,
+    readout: Option<(i32, String)>,
+    sel: Option<(i32, String)>,
+    cluster_x: i32,
+    name: Option<(i32, String)>,
+    hints: (i32, i32),
 }
 
-/// The button under a cell of the bottom row.
-pub fn hit(w: i32, col: i32, row: i32, h: i32) -> Option<Button> {
-    if row != h - 1 || col >= offset(w) {
-        return None;
+fn width(s: &str) -> i32 {
+    s.width() as i32
+}
+
+fn clip(s: &str, max: i32) -> String {
+    let mut used = 0;
+    s.chars()
+        .take_while(|c| {
+            used += c.width().unwrap_or(0) as i32;
+            used <= max
+        })
+        .collect()
+}
+
+fn fit(s: &str, max: i32) -> String {
+    if width(s) <= max {
+        return s.to_string();
     }
-    let mut x = 0;
-    for &(b, l) in &BUTTONS {
-        if (x..x + width(l)).contains(&col) {
-            return Some(b);
+    clip(s, max - 1) + "…"
+}
+
+fn pair_width((k, a): (&str, &str)) -> i32 {
+    width(k) + 1 + width(a)
+}
+
+fn badge(s: &Session, doc: &Doc) -> String {
+    let text = match () {
+        _ if doc.picking => "PICK".to_string(),
+        _ if s.edit.is_some() => "EDIT".to_string(),
+        _ if s.zoomed_out() => "ZOOM".to_string(),
+        _ => s.tool.label().to_uppercase(),
+    };
+    format!(" {text} ")
+}
+
+fn layout(s: &Session, doc: &Doc, w: i32) -> Bar {
+    let badge = badge(s, doc);
+    let marker = if doc.saved { "" } else { MARKER };
+    let readout = s.readout();
+    let sel = (!s.selection.is_empty()).then(|| format!("{} sel", s.selection.len()));
+    let name_w = width(doc.name) + width(marker);
+    let extra = |part: &Option<String>, on: bool| {
+        part.as_ref().filter(|_| on).map_or(0, |p| width(p) + GAP)
+    };
+    let left_end = |badge_on: bool| LEFT_END + if badge_on { GAP + width(&badge) } else { 0 };
+    let room = |badge_on: bool, ro: bool, se: bool| {
+        w - left_end(badge_on) - GAP - CLUSTER_W - GAP - extra(&readout, ro) - extra(&sel, se)
+    };
+    let (mut badge_on, mut use_readout, mut use_sel) = (true, readout.is_some(), sel.is_some());
+    while room(badge_on, use_readout, use_sel) < name_w {
+        if use_readout {
+            use_readout = false;
+        } else if use_sel {
+            use_sel = false;
+        } else {
+            break;
         }
-        x += width(l) + 1;
     }
-    None
+    let mut avail = room(badge_on, use_readout, use_sel);
+    if avail - width(marker) < MIN_NAME_W && badge_on {
+        badge_on = false;
+        avail = room(false, use_readout, use_sel);
+    }
+    let text_w = avail.min(name_w) - width(marker);
+    let name = (text_w >= MIN_NAME_W.min(width(doc.name)))
+        .then(|| format!("{}{marker}", fit(doc.name, text_w)));
+    let name_x = w - name.as_deref().map_or(0, width);
+    let gap_name = if name.is_some() { GAP } else { 0 };
+    let cluster_x = name_x - gap_name - CLUSTER_W;
+    let mut x = cluster_x;
+    let mut place = |text: Option<String>, on: bool| {
+        text.filter(|_| on).map(|t| {
+            x -= width(&t) + GAP;
+            (x, t)
+        })
+    };
+    let sel = place(sel, use_sel);
+    let readout = place(readout, use_readout);
+    Bar {
+        hints: (left_end(badge_on) + GAP, x - GAP),
+        badge: badge_on.then_some(badge),
+        readout,
+        sel,
+        cluster_x,
+        name: name.map(|n| (name_x, n)),
+    }
 }
 
-fn draw_buttons(grid: &mut Grid, y: i32, s: &Session) {
-    if offset(grid.w) == 0 {
-        return;
-    }
-    let mut x = 0;
-    for &(b, l) in &BUTTONS {
-        let off = matches!(b, Button::Undo | Button::Redo) && !s.can_edit();
-        grid.text(x, y, l, if off { DISABLED } else { KEY });
-        x += width(l) + 1;
-    }
-}
-
-fn hints(s: &Session, overlay: &Overlay) -> Vec<(String, &'static str)> {
+fn hints(s: &Session, doc: &Doc, overlay: &Overlay) -> Vec<(String, &'static str)> {
     let ids: &[&str] = match overlay {
+        _ if doc.picking => &["cancel"],
         Overlay::Prompt(_) => &["confirm", "cancel_prompt"],
         Overlay::None if s.edit.is_some() => &["commit_edit", "discard_edit", "newline"],
         Overlay::None if s.zoomed_out() => &["reset_zoom", "zoom_wheel", "help"],
@@ -81,103 +141,80 @@ fn hints(s: &Session, overlay: &Overlay) -> Vec<(String, &'static str)> {
         .collect()
 }
 
-fn width(s: &str) -> i32 {
-    s.chars().count() as i32
-}
-
-fn pair_width((k, a): (&str, &str)) -> i32 {
-    width(k) + 1 + width(a)
-}
-
-/// Right-side parts that fit beside `left_w` columns; the save marker always stays.
-fn right(s: &Session, saved: bool, w: i32, left_w: i32) -> Vec<(String, u8)> {
-    let marker = if saved {
-        ("saved", MUTED)
-    } else {
-        ("unsaved", KEY)
-    };
-    let mut parts = [
-        s.readout().map(|r| (r, KEY)),
-        Some((s.tool.label().to_string(), 0)),
-        (!s.selection.is_empty()).then(|| (format!("{} sel", s.selection.len()), 0)),
-        s.view.zoom.label().map(|l| (l.to_string(), 0)),
-        Some((marker.0.to_string(), marker.1)),
-    ];
-    let total = |p: &[Option<(String, u8)>]| -> i32 {
-        let shown = p.iter().flatten();
-        shown.clone().map(|(t, _)| width(t)).sum::<i32>() + GAP * (shown.count() as i32 - 1)
-    };
-    for i in [2, 3, 1, 0] {
-        if left_w + GAP + total(&parts) <= w {
-            break;
-        }
-        parts[i] = None;
+/// The button under a cell of the bottom row.
+pub fn hit(s: &Session, doc: &Doc, col: i32, row: i32) -> Option<Button> {
+    let (w, h) = (i32::from(s.screen.0), i32::from(s.screen.1));
+    if row != h - 1 {
+        return None;
     }
-    parts.into_iter().flatten().collect()
+    let bar = layout(s, doc, w);
+    let c = col - bar.cluster_x;
+    [
+        (col - UNDO_X, 6, Button::Undo),
+        (col - REDO_X, 6, Button::Redo),
+        (c, 3, Button::ZoomOut),
+        (c - 9, 3, Button::ZoomIn),
+        (c - 13, 5, Button::Fit),
+    ]
+    .into_iter()
+    .find(|&(x, len, _)| (0..len).contains(&x))
+    .map(|(_, _, b)| b)
 }
 
-fn draw_right(grid: &mut Grid, y: i32, parts: &[(String, u8)]) {
-    let mut x = grid.w - right_width(parts);
-    for (t, f) in parts {
-        grid.text(x, y, t, *f);
-        x += width(t) + GAP;
+fn draw_chrome(grid: &mut Grid, y: i32, s: &Session, bar: &Bar) {
+    let off = !s.can_edit();
+    grid.text(UNDO_X, y, "[Undo]", if off { DISABLED } else { KEY });
+    grid.text(REDO_X, y, "[Redo]", if off { DISABLED } else { KEY });
+    if let Some(b) = &bar.badge {
+        grid.text(LEFT_END + GAP, y, b, ACTIVE);
+    }
+    if let Some((x, t)) = &bar.readout {
+        grid.text(*x, y, t, KEY);
+    }
+    if let Some((x, t)) = &bar.sel {
+        grid.text(*x, y, t, 0);
+    }
+    let x = bar.cluster_x;
+    grid.text(x, y, "[-]", KEY);
+    grid.text(x + 4, y, &format!("{:>4}", s.view.zoom.label()), MUTED);
+    grid.text(x + 9, y, "[+] [Fit]", KEY);
+    if let Some((x, t)) = &bar.name {
+        grid.text(*x, y, t, 0);
     }
 }
 
-fn right_width(parts: &[(String, u8)]) -> i32 {
-    parts.iter().map(|(t, _)| width(t) + GAP).sum::<i32>() - GAP
-}
-
-pub(super) fn draw(grid: &mut Grid, s: &Session, overlay: &Overlay, saved: bool) {
+pub(super) fn draw(grid: &mut Grid, s: &Session, doc: &Doc, overlay: &Overlay) {
     if grid.h < 2 {
         return;
     }
     let y = grid.h - 1;
-    let hs = hints(s, overlay);
-    let full =
-        hs.iter().map(|(k, a)| pair_width((k, a))).sum::<i32>() + GAP * (hs.len() as i32 - 1);
-    let off = offset(grid.w);
-    let mut parts = right(s, saved, grid.w, off + full);
-    let mut room = grid.w - right_width(&parts) - GAP;
-    if room < off + pair_width((&hs[0].0, hs[0].1)) {
-        parts.clear();
-        room = grid.w;
-    }
-    draw_right(grid, y, &parts);
-    draw_buttons(grid, y, s);
-    let mut x = off;
-    for (k, a) in &hs {
-        if x > off && x + GAP + pair_width((k, a)) > room {
-            break;
-        }
-        if x > off {
+    let bar = layout(s, doc, grid.w);
+    draw_chrome(grid, y, s, &bar);
+    let (from, to) = bar.hints;
+    let mut x = from;
+    for (k, a) in hints(s, doc, overlay) {
+        if x > from {
+            if x + GAP + pair_width((&k, a)) > to {
+                break;
+            }
             x += GAP;
         }
-        let key: String = k.chars().take((room - x).max(0) as usize).collect();
-        grid.text(x, y, &key, KEY);
-        let rest = (room - x - width(k) - 1).max(0) as usize;
-        grid.text(
-            x + width(k) + 1,
-            y,
-            &a.chars().take(rest).collect::<String>(),
-            MUTED,
-        );
-        x += pair_width((k, a));
+        grid.text(x, y, &clip(&k, to - x), KEY);
+        let rest = to - x - width(&k) - 1;
+        grid.text(x + width(&k) + 1, y, &clip(a, rest), MUTED);
+        x += pair_width((&k, a));
     }
 }
 
-pub(super) fn status(grid: &mut Grid, s: &Session, st: &Status, saved: bool) {
+pub(super) fn status(grid: &mut Grid, s: &Session, doc: &Doc, st: &Status) {
     let y = grid.h - 1;
     grid.fill(0, y, grid.w, 1);
-    let off = offset(grid.w);
-    let parts = right(s, saved, grid.w, off + width(&st.text));
-    let room = (grid.w - right_width(&parts) - GAP - off).max(0);
-    draw_right(grid, y, &parts);
-    draw_buttons(grid, y, s);
+    let bar = layout(s, doc, grid.w);
+    draw_chrome(grid, y, s, &bar);
     let flags = match st.severity {
         Severity::Notice => 0,
         Severity::Error => ERROR,
     };
-    let text: String = st.text.chars().take(room as usize).collect();
-    grid.text(off, y, &text, flags);
+    let (from, to) = bar.hints;
+    grid.text(from, y, &clip(&st.text, to - from), flags);
 }

@@ -64,6 +64,12 @@ impl Status {
     }
 }
 
+pub struct Doc<'a> {
+    pub name: &'a str,
+    pub saved: bool,
+    pub picking: bool,
+}
+
 pub fn render(
     buf: &mut Buffer,
     area: Rect,
@@ -71,7 +77,7 @@ pub fn render(
     overlay: &Overlay,
     status: Option<&Status>,
     perf: Option<&Perf>,
-    saved: bool,
+    doc: &Doc,
 ) {
     let mut grid = Grid::new(area.width, area.height);
     let (no_color, colorterm) = (
@@ -86,7 +92,7 @@ pub fn render(
         grid.fill(0, 0, w, palette::rows(s));
         grid.fill(0, h - 1, w, 1);
         palette::draw(&mut grid, s);
-        infobar::draw(&mut grid, s, overlay, saved);
+        infobar::draw(&mut grid, s, doc, overlay);
     }
     if !matches!(overlay, Overlay::None) {
         grid.dim_all();
@@ -102,7 +108,7 @@ pub fn render(
         Overlay::Map => minimap::draw(&mut grid, s),
     }
     if let Some(st) = status.filter(|_| !s.present) {
-        infobar::status(&mut grid, s, st, saved);
+        infobar::status(&mut grid, s, doc, st);
     }
     if let Some(p) = perf {
         p.draw(&mut grid, s.canvas.elements.len());

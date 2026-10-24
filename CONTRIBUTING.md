@@ -113,7 +113,7 @@ last row    bottom bar    [Undo] [Redo]  MODE  key action  key action …   12x4
 - The option strip separates its groups (head, stroke, border, align, color, placement, group) with `│`.
 - Bottom bar, left zone: `[Undo] [Redo]`, the mode badge, then key hints for the current mode. A status message replaces the hints only, never the buttons or the right zone.
 - Bottom bar, right zone, in this order: drag readout, selection count, `[-] <zoom> [+] [Fit]`, canvas name. An unsaved canvas shows ` ●` after its name.
-- Narrow screens drop items in this order: hints (last hint first), drag readout, selection count. The buttons stay. The canvas name truncates with `…` and never disappears.
+- Narrow screens drop items in this order: hints (last hint first), drag readout, selection count. The buttons stay. The canvas name truncates with `…`. If the buttons, the zoom cluster and a 2-column name do not fit, the mode badge drops too.
 - The `:` command line and the `/` find input replace the bottom bar, as in vim. Completions show in a list above the bar.
 - Centered dialogs are only for input that needs a full line: export path, new canvas, rename, delete confirmation.
 - Present mode draws the canvas only, with no chrome and no hint.
@@ -169,14 +169,14 @@ The tokens live in `src/ui/style.rs`.
 - Clickable cells: 1 column of padding on each side.
 - Measure every width with `unicode-width`, never with `str::len` or `chars().count()`.
 
-- Good: `src/ui/infobar.rs:7` names the gap, and `src/ui/infobar.rs:129` uses it.
+- Good: `src/ui/infobar.rs:7` names the gap, and `src/ui/infobar.rs:106` uses it.
 
   ```rust
   const GAP: i32 = 2;
   ```
 
   ```rust
-  x += width(t) + GAP;
+  x -= width(&t) + GAP;
   ```
 
 - Bad: `src/ui/switcher.rs:37` measures the actions with `len`, which counts bytes, not cells:
@@ -191,12 +191,10 @@ The tokens live in `src/ui/style.rs`.
   let cw = c.width().unwrap_or(0);
   ```
 
-- Bad width: `src/ui/infobar.rs:90-92` counts code points, and a wide glyph takes two cells.
+- Bad width: `src/ui/perf.rs:43` counts code points, and a wide glyph takes two cells.
 
   ```rust
-  fn width(s: &str) -> i32 {
-      s.chars().count() as i32
-  }
+  let x = (grid.w - text.chars().count() as i32).max(0);
   ```
 
 ### Copy
@@ -233,14 +231,14 @@ The tokens live in `src/ui/style.rs`.
 - A chrome change gets a render test: render the screen into a buffer and assert the row text.
 - Test each changed bar at 40, 60 and 120 columns.
 
-`tests/render.rs:61-73` renders the screen into a `TestBackend`, and `row` reads the text of one row.
+`tests/render.rs:69-81` renders the screen into a `TestBackend`, and `row` reads the text of one row.
 
 ```rust
 fn render(s: &Session, overlay: &Overlay) -> Buffer {
     let mut t = Terminal::new(TestBackend::new(80, 24)).unwrap();
     t.draw(|f| {
         let area = f.area();
-        ui::render(f.buffer_mut(), area, s, overlay, None, None, true)
+        ui::render(f.buffer_mut(), area, s, overlay, None, None, &doc(true))
     })
     .unwrap();
     t.backend().buffer().clone()

@@ -36,14 +36,13 @@ impl Zoom {
         Zoom::ALL[(i + n).clamp(0, 4) as usize]
     }
 
-    /// Info bar text; none at 1x.
-    pub fn label(self) -> Option<&'static str> {
+    pub fn label(self) -> &'static str {
         match self {
-            Zoom::Quarter => Some("25%"),
-            Zoom::Half => Some("50%"),
-            Zoom::One => None,
-            Zoom::Two => Some("200%"),
-            Zoom::Three => Some("300%"),
+            Zoom::Quarter => "25%",
+            Zoom::Half => "50%",
+            Zoom::One => "100%",
+            Zoom::Two => "200%",
+            Zoom::Three => "300%",
         }
     }
 }

@@ -58,11 +58,19 @@ fn draw_env(s: &Session, no_color: bool, colorterm: Option<&str>) -> Buffer {
     b
 }
 
+fn doc(saved: bool) -> ui::Doc<'static> {
+    ui::Doc {
+        name: "demo",
+        saved,
+        picking: false,
+    }
+}
+
 fn render(s: &Session, overlay: &Overlay) -> Buffer {
     let mut t = Terminal::new(TestBackend::new(80, 24)).unwrap();
     t.draw(|f| {
         let area = f.area();
-        ui::render(f.buffer_mut(), area, s, overlay, None, None, true)
+        ui::render(f.buffer_mut(), area, s, overlay, None, None, &doc(true))
     })
     .unwrap();
     t.backend().buffer().clone()
@@ -464,7 +472,7 @@ fn help_draws_on_a_tiny_screen() {
             &Overlay::Help(0, String::new()),
             None,
             None,
-            true,
+            &doc(true),
         )
     })
     .unwrap();
@@ -572,7 +580,7 @@ fn perf_row_shows_the_last_120_frames_at_the_top_right() {
             &Overlay::None,
             None,
             Some(&perf),
-            true,
+            &doc(true),
         )
     })
     .unwrap();
@@ -781,10 +789,10 @@ fn present_hides_palette_and_status_line() {
     let mut s = half_session(100, 40);
     s.view = View::default();
     let normal = draw(&s, &Overlay::None);
-    assert!(row(&normal, 23).contains("saved"));
+    assert!(row(&normal, 23).ends_with("demo"));
     s.present = true;
     let b = draw(&s, &Overlay::None);
-    assert!((0..24).all(|y| !row(&b, y).contains("saved")));
+    assert!((0..24).all(|y| !row(&b, y).contains("demo")));
     assert!(!row(&b, 1).contains(" Select"));
 }
 
@@ -903,11 +911,15 @@ fn new_kinds_draw_at_minimum_and_odd_sizes_without_panicking() {
 }
 
 fn bar(s: &Session, w: u16, saved: bool) -> String {
+    bar_with(s, w, &doc(saved))
+}
+
+fn bar_with(s: &Session, w: u16, d: &ui::Doc) -> String {
     let h = s.screen.1;
     let mut t = Terminal::new(TestBackend::new(w, h)).unwrap();
     t.draw(|f| {
         let area = f.area();
-        ui::render(f.buffer_mut(), area, s, &Overlay::None, None, None, saved)
+        ui::render(f.buffer_mut(), area, s, &Overlay::None, None, None, d)
     })
     .unwrap();
     let b = t.backend().buffer();
@@ -924,23 +936,124 @@ fn two_shapes() -> Session {
 }
 
 #[test]
-fn info_bar_idle_shows_hints_left_and_tool_with_save_state_right() {
+fn info_bar_idle_reads_buttons_badge_hints_then_view_cluster_and_name() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let r = bar(&s, 80, true);
-    assert!(r.contains("[Redo]  ? help  : command  / find"), "{r}");
-    assert!(r.ends_with("saved"), "{r}");
-    assert!(bar(&s, 120, false).ends_with("Select  unsaved"));
+    let r = bar(&s, 120, true);
+    assert!(
+        r.starts_with("[Undo] [Redo]   SELECT   ? help  : command  / find  z fit"),
+        "{r}"
+    );
+    assert!(r.ends_with("[-] 100% [+] [Fit]  demo"), "{r}");
+    assert!(bar(&s, 120, false).ends_with("demo ●"));
+}
+
+#[test]
+fn info_bar_badge_follows_the_mode() {
+    let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
+    s.tool = Tool::Rect;
+    assert!(bar(&s, 120, true).contains(" RECT "));
+    s.tool = Tool::Select;
+    s.start_edit_new((5, 5));
+    assert!(bar(&s, 120, true).contains(" EDIT "));
+    let mut z = Session::new(Canvas::default(), View::default(), (80, 24));
+    z.view.zoom = Zoom::Half;
+    assert!(bar(&z, 120, true).contains(" ZOOM "));
+    let idle = Session::new(Canvas::default(), View::default(), (80, 24));
+    let picking = ui::Doc {
+        picking: true,
+        ..doc(true)
+    };
+    assert!(bar_with(&idle, 120, &picking).contains(" PICK   Esc cancel"));
+}
+
+#[test]
+fn info_bar_keeps_buttons_and_drops_hints_first_when_narrow() {
+    let s = two_shapes();
+    let r = bar(&s, 60, true);
+    assert!(r.contains("2 sel") && r.contains("[Fit]"), "{r}");
+    let r = bar(&s, 40, true);
+    assert!(r.starts_with("[Undo] [Redo]"), "{r}");
+    assert!(
+        r.contains("[Fit]") && !r.contains("2 sel") && !r.contains("Del"),
+        "{r}"
+    );
+}
+
+#[test]
+fn info_bar_truncates_a_long_name_and_keeps_the_marker() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let long = "n".repeat(30);
+    let d = ui::Doc {
+        name: &long,
+        saved: false,
+        picking: false,
+    };
+    let r = bar_with(&s, 60, &d);
+    assert!(r.ends_with("… ●"), "{r}");
+    assert!(r.contains("[+] [Fit]"), "{r}");
+}
+
+#[test]
+fn info_bar_buttons_are_hit_where_the_layout_draws_them() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let long = "n".repeat(30);
+    let d = ui::Doc {
+        name: &long,
+        saved: true,
+        picking: false,
+    };
+    for d in [&doc(true), &d] {
+        let r = bar_with(&s, 80, d);
+        let at = |needle: &str| {
+            r.find(needle)
+                .map(|i| r[..i].chars().count() as i32)
+                .unwrap()
+        };
+        let hit = |col| ui::button_at(&s, d, col, 23);
+        assert_eq!(hit(7), Some(ui::Button::Redo));
+        assert_eq!(hit(at("[+]")), Some(ui::Button::ZoomIn));
+        assert_eq!(hit(at("[Fit]")), Some(ui::Button::Fit));
+        assert_eq!(hit(at("100%")), None);
+        assert_eq!(hit(at("SELECT")), None);
+    }
+}
+
+#[test]
+fn info_bar_status_replaces_only_the_hints() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let mut t = Terminal::new(TestBackend::new(100, 24)).unwrap();
+    t.draw(|f| {
+        let area = f.area();
+        let st = ui::Status::notice("saved to disk");
+        ui::render(
+            f.buffer_mut(),
+            area,
+            &s,
+            &Overlay::None,
+            Some(&st),
+            None,
+            &doc(true),
+        )
+    })
+    .unwrap();
+    let b = t.backend().buffer();
+    let r: String = (0..100).map(|x| b[(x, 23)].symbol().to_string()).collect();
+    assert!(
+        r.starts_with("[Undo] [Redo]   SELECT   saved to disk"),
+        "{r}"
+    );
+    assert!(r.ends_with("demo") && !r.contains("? help"), "{r}");
 }
 
 #[test]
 fn info_bar_hints_come_from_the_registry_at_every_width() {
     let idle = Session::new(Canvas::default(), View::default(), (80, 24));
     assert!(bar(&idle, 120, true).contains("? help  : command  / find  z fit"));
-    assert!(bar(&idle, 60, true).contains("? help  : command"));
-    assert!(bar(&idle, 40, true).starts_with("? help  : command  / find"));
+    assert!(bar(&idle, 80, true).contains("? help  : command"));
+    assert!(bar(&idle, 70, true).contains("? help  : command"));
     let sel = two_shapes();
     assert!(bar(&sel, 120, true).contains("Del delete  Shift-arrows connect  y copy  g group"));
-    assert!(bar(&sel, 60, true).contains("Del delete"));
+    assert!(bar(&sel, 80, true).contains("Del delete"));
 }
 
 #[test]
@@ -970,15 +1083,6 @@ fn info_bar_hints_follow_the_state() {
     s.tool = Tool::Select;
     s.start_edit_new((5, 5));
     assert!(bar(&s, 80, true).contains("Enter commit"));
-}
-
-#[test]
-fn info_bar_drops_the_right_side_first_on_a_narrow_screen() {
-    let s = two_shapes();
-    let r = bar(&s, 40, true);
-    assert!(r.ends_with("saved"), "{r}");
-    assert!(!r.contains("2 sel"), "{r}");
-    assert!(r.starts_with("Del delete  Shift-arrows connect"), "{r}");
 }
 
 #[test]
@@ -1148,7 +1252,15 @@ fn top_row(s: &Session, w: u16) -> (String, Buffer) {
     let mut t = Terminal::new(TestBackend::new(w, 24)).unwrap();
     t.draw(|f| {
         let area = f.area();
-        ui::render(f.buffer_mut(), area, s, &Overlay::None, None, None, true)
+        ui::render(
+            f.buffer_mut(),
+            area,
+            s,
+            &Overlay::None,
+            None,
+            None,
+            &doc(true),
+        )
     })
     .unwrap();
     let b = t.backend().buffer().clone();
@@ -1223,7 +1335,7 @@ fn double_zoom_draws_the_arrow_head_at_the_scaled_end() {
 #[test]
 fn info_bar_shows_the_zoom_percent_and_zoomed_out_hints() {
     let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
-    assert!(!bar(&s, 80, true).contains('%'));
+    assert!(bar(&s, 80, true).contains("100%"));
     s.view.zoom = Zoom::Half;
     let r = bar(&s, 120, true);
     assert!(r.contains("Esc 1x  Ctrl-wheel zoom  ? help"), "{r}");
@@ -1254,7 +1366,15 @@ fn render_at(s: &Session, w: u16, h: u16) -> Buffer {
     let mut t = Terminal::new(TestBackend::new(w, h)).unwrap();
     t.draw(|f| {
         let area = f.area();
-        ui::render(f.buffer_mut(), area, s, &Overlay::None, None, None, true)
+        ui::render(
+            f.buffer_mut(),
+            area,
+            s,
+            &Overlay::None,
+            None,
+            None,
+            &doc(true),
+        )
     })
     .unwrap();
     t.backend().buffer().clone()
