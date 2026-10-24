@@ -26,6 +26,15 @@ for cmd in s.canvas.pin_cmds(&rerouted(s, &action)) {
 - Good: `Canvas::pin_cmds` stores the automatic route as `bends` after the edit.
 - Bad: calling `Router::around` for a bent leg in `route_with`, so a new shape reroutes a line that nobody edited.
 
+A line avoids the actual route of every earlier line, so two lines never share a segment.
+
+```rust
+self.earlier(canvas, find, l, &mut deps)
+```
+
+- Good: `Router::around` reads an earlier line through `earlier`, so a second line that detours a shape takes another lane.
+- Bad: reading an earlier line with `plain_with`, so two lines that both detour a shape share the detour row.
+
 ## Workflow
 
 Run these commands from the repo root.

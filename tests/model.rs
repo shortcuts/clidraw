@@ -2,6 +2,7 @@ use clidraw::model::{
     corners, edge_anchor, label_pos, route, side_mid, wrap, Anchor, Axis, Canvas, Command, Element,
     End, History, Id, Line, LineKind, Shape, ShapeKind, Side, Stroke, Text, Z,
 };
+use std::collections::HashSet;
 
 fn shape(id: &str, x: i32) -> Element {
     Element::Shape(Shape {
@@ -1391,15 +1392,17 @@ fn anchored(id: &str, a: Anchor) -> End {
     End::Bound(Id::from(id), a)
 }
 
-#[test]
-fn no_arrow_of_the_bugarrows_scene_crosses_a_shape() {
+type Boxes = [(&'static str, (i32, i32, i32, i32)); 3];
+
+const BUGARROWS: Boxes = [
+    ("0mx542hi", (4, 9, 21, 11)),
+    ("7im642ob", (33, 12, 26, 11)),
+    ("s1v8fndx", (87, 9, 30, 9)),
+];
+
+fn bugarrows() -> Canvas {
     use Anchor::{Bottom, Left, Right, Top};
-    let (a, b, c) = ("0mx542hi", "7im642ob", "s1v8fndx");
-    let boxes = [
-        (a, (4, 9, 21, 11)),
-        (b, (33, 12, 26, 11)),
-        (c, (87, 9, 30, 9)),
-    ];
+    let [(a, _), (b, _), (c, _)] = BUGARROWS;
     let ends = [
         (anchored(c, Bottom(15)), anchored(b, Top(11))),
         (anchored(c, Top(15)), anchored(b, Right(7))),
@@ -1414,23 +1417,55 @@ fn no_arrow_of_the_bugarrows_scene_crosses_a_shape() {
         (anchored(a, Bottom(7)), anchored(b, Bottom(15))),
     ];
     let mut canvas = Canvas {
-        elements: boxes
+        elements: BUGARROWS
             .iter()
             .map(|&(id, r)| rect(id, ShapeKind::Rect, r))
             .collect(),
         ..Canvas::default()
     };
-    let lines: Vec<Line> = ends
-        .into_iter()
-        .enumerate()
-        .map(|(i, (f, t))| elbow(&format!("arrow{i:03}"), f, t))
-        .collect();
+    canvas.elements.extend(
+        ends.into_iter()
+            .enumerate()
+            .map(|(i, (f, t))| Element::Line(elbow(&format!("arrow{i:03}"), f, t))),
+    );
     canvas
-        .elements
-        .extend(lines.iter().cloned().map(Element::Line));
-    for l in &lines {
-        let cells = canvas.route(l);
-        for (id, r) in boxes {
+}
+
+fn lines_of(c: &Canvas) -> Vec<Line> {
+    c.elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Line(l) => Some(l.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+fn shared_segments(c: &Canvas) -> Vec<(String, String)> {
+    let segments = |l: &Line| -> HashSet<_> {
+        c.route(l)
+            .windows(2)
+            .map(|w| (w[0].min(w[1]), w[0].max(w[1])))
+            .collect()
+    };
+    let lines = lines_of(c);
+    let mut shared = vec![];
+    for (i, l) in lines.iter().enumerate() {
+        for m in &lines[i + 1..] {
+            if !segments(l).is_disjoint(&segments(m)) {
+                shared.push((l.id.to_string(), m.id.to_string()));
+            }
+        }
+    }
+    shared
+}
+
+#[test]
+fn no_arrow_of_the_bugarrows_scene_crosses_a_shape() {
+    let canvas = bugarrows();
+    for l in lines_of(&canvas) {
+        let cells = canvas.route(&l);
+        for (id, r) in BUGARROWS {
             let interior = (r.0 + 1, r.1 + 1, r.2 - 2, r.3 - 2);
             assert!(
                 !cells.iter().any(|&p| inside(p, interior)),
@@ -1439,4 +1474,45 @@ fn no_arrow_of_the_bugarrows_scene_crosses_a_shape() {
             );
         }
     }
+}
+
+#[test]
+fn no_two_arrows_of_the_bugarrows_scene_share_a_segment() {
+    let mut canvas = bugarrows();
+    assert_eq!(shared_segments(&canvas), vec![]);
+    let ids: Vec<String> = lines_of(&canvas).iter().map(|l| l.id.to_string()).collect();
+    pin(
+        &mut canvas,
+        &ids.iter().map(String::as_str).collect::<Vec<_>>(),
+    );
+    assert_eq!(shared_segments(&canvas), vec![]);
+}
+
+#[test]
+fn two_detouring_arrows_in_one_corridor_share_no_segment() {
+    use Anchor::Bottom;
+    let (a, b) = ("0mx542hi", "7im642ob");
+    let mut c = Canvas {
+        elements: vec![
+            rect(a, ShapeKind::Rect, (4, 9, 21, 11)),
+            rect(b, ShapeKind::Rect, (33, 12, 26, 11)),
+            Element::Line(elbow(
+                "arrow000",
+                anchored(a, Bottom(10)),
+                anchored(b, Bottom(4)),
+            )),
+            Element::Line(elbow(
+                "arrow001",
+                anchored(a, Bottom(14)),
+                anchored(b, Bottom(2)),
+            )),
+        ],
+        ..Canvas::default()
+    };
+    assert_eq!(shared_segments(&c), vec![]);
+    let Element::Shape(s) = &mut c.elements[1] else {
+        unreachable!()
+    };
+    s.x += 1;
+    assert_eq!(shared_segments(&c), vec![]);
 }
