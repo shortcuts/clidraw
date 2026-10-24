@@ -1,7 +1,7 @@
 use super::drag::{drag, pan_step, up};
 use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
-use crate::model::{Command, Element, Id, Paint, Shape, ShapeKind, Side};
+use crate::model::{Command, Element, Id, Paint, Side};
 use crate::ui::palette::{self, paint, Choice, PaletteHit};
 use crate::view::View;
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -445,43 +445,10 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
         PaletteHit::Option(Choice::Group) => s.group(true),
         PaletteHit::Option(Choice::Ungroup) => s.group(false),
         PaletteHit::Tool(t) => {
-            let kind = match t {
-                Tool::Rect => Some(ShapeKind::Rect),
-                Tool::Diamond => Some(ShapeKind::Diamond),
-                Tool::Cylinder => Some(ShapeKind::Cylinder),
-                Tool::Parallelogram => Some(ShapeKind::Parallelogram),
-                Tool::Hexagon => Some(ShapeKind::Hexagon),
-                Tool::Frame => Some(ShapeKind::Frame),
-                _ => None,
-            };
-            let shapes: Vec<Id> = s
-                .selection
-                .iter()
-                .filter(|id| s.canvas.shape(id).is_some())
-                .cloned()
-                .collect();
-            match kind {
-                Some(kind) if !shapes.is_empty() => {
-                    let mut cmds = vec![];
-                    for id in shapes {
-                        if let Some(sh) = s.canvas.shape(&id) {
-                            let (w, h) = Shape::snap_size(kind, sh.w, sh.h);
-                            if (w, h) != (sh.w, sh.h) {
-                                cmds.push(Command::SetRect {
-                                    id: id.clone(),
-                                    x: sh.x,
-                                    y: sh.y,
-                                    w,
-                                    h,
-                                });
-                            }
-                        }
-                        cmds.push(Command::SetKind { id, kind });
-                    }
-                    s.exec(Command::Batch(cmds));
-                }
-                _ => s.tool = t,
+            if !matches!(t, Tool::Select | Tool::Arrow | Tool::Text) {
+                s.selection.clear();
             }
+            s.tool = t;
         }
     }
 }

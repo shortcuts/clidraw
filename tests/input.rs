@@ -632,20 +632,15 @@ fn esc_clears_the_selection() {
 }
 
 #[test]
-fn palette_entry_changes_the_kind_of_a_selected_shape() {
-    let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (22, 6), Instant::now());
-    pick(&mut s, Tool::Diamond);
-    assert_eq!(shapes(&s)[0].kind, ShapeKind::Diamond);
-    assert_eq!(s.tool, Tool::Select);
-}
-
-#[test]
-fn palette_entry_changes_a_selected_shape_to_hexagon() {
-    let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (22, 6), Instant::now());
-    pick(&mut s, Tool::Hexagon);
-    assert_eq!(shapes(&s)[0].kind, ShapeKind::Hexagon);
+fn palette_shape_tool_keeps_the_selected_shape_and_arms_the_tool() {
+    for tool in [Tool::Diamond, Tool::Hexagon] {
+        let mut s = with_shape("aaaaaaaa", 20, 5);
+        click(&mut s, (22, 6), Instant::now());
+        pick(&mut s, tool);
+        assert_eq!(shapes(&s)[0].kind, ShapeKind::Rect);
+        assert!(s.selection.is_empty());
+        assert_eq!(s.tool, tool);
+    }
 }
 
 #[test]
@@ -2409,21 +2404,6 @@ fn ratio_label_growth_widens_a_bound_shape() {
     typed(&mut s, "d");
     key(&mut s, KeyCode::Enter);
     assert_eq!(rect_of(&s), (20, 5, 11, 6));
-}
-
-#[test]
-fn ratio_kind_change_snaps_and_one_undo_restores() {
-    let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (22, 6), Instant::now());
-    pick(&mut s, Tool::Diamond);
-    assert_eq!(rect_of(&s), (20, 5, 7, 4));
-    s.undo();
-    assert_eq!(
-        (rect_of(&s), shapes(&s)[0].kind),
-        ((20, 5, 8, 4), ShapeKind::Rect)
-    );
-    pick(&mut s, Tool::Cylinder);
-    assert_eq!(rect_of(&s), (20, 5, 8, 4));
 }
 
 #[test]
