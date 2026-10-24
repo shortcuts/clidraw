@@ -1,8 +1,9 @@
 use super::grid::REVERSE;
 use super::list::{Anchor, List, Row};
 use super::registry::{self, Binding};
-use super::style::ACTIVE;
+use super::style::{ACTIVE, ERROR, MUTED};
 use super::{boxed, centered, Grid};
+use crate::diagram::{DiagramKind, Flowchart, Severity};
 use crate::input::{Edit, EditTarget};
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
@@ -23,6 +24,7 @@ pub enum PromptKind {
     Rename(String),
     ConfirmDelete(String),
     Command,
+    Mermaid(String),
 }
 
 pub struct Prompt {
@@ -38,6 +40,8 @@ pub enum PromptHit {
     Cancel,
 }
 
+const HINT_GAP: i32 = 2;
+const MIN_HINT: i32 = 4;
 const OK: &str = "[ OK ]";
 const CANCEL: &str = "[ Cancel ]";
 
@@ -61,6 +65,21 @@ impl Prompt {
         self.kind == PromptKind::Command && !self.buf().starts_with('/')
     }
 
+    /// The first diagnostic of the session header plus the typed line.
+    fn hint(&self) -> Option<(Severity, String)> {
+        let PromptKind::Mermaid(header) = &self.kind else {
+            return None;
+        };
+        if self.buf().trim().is_empty() {
+            return None;
+        }
+        let d = Flowchart
+            .validate(&format!("{header}\n{}", self.buf()))
+            .into_iter()
+            .next()?;
+        Some((d.severity, d.message))
+    }
+
     fn title(&self) -> &'static str {
         match self.kind {
             PromptKind::ExportSvg(_) => "Export SVG to path",
@@ -69,7 +88,7 @@ impl Prompt {
             PromptKind::NewCanvas => "New canvas name",
             PromptKind::Rename(_) => "Rename canvas to",
             PromptKind::ConfirmDelete(_) => "Delete canvas",
-            PromptKind::Command => "",
+            PromptKind::Command | PromptKind::Mermaid(_) => "",
         }
     }
 }
@@ -142,6 +161,28 @@ pub fn draw_command(grid: &mut Grid, p: &Prompt) {
     if p.completing() {
         command_list(p, row).draw(grid);
     }
-    let prefix = if p.buf().starts_with('/') { "" } else { ":" };
+    let prefix = match &p.kind {
+        PromptKind::Mermaid(_) => "mmd> ",
+        _ if p.buf().starts_with('/') => "",
+        _ => ":",
+    };
     caret_line(grid, 0, row, grid.w, prefix, p);
+    if let Some((severity, message)) = p.hint() {
+        let (label, style) = match severity {
+            Severity::Error => ("error", ERROR),
+            Severity::Warning => ("warning", MUTED),
+        };
+        let x = (prefix.width() + p.buf().width()) as i32 + HINT_GAP;
+        let room = grid.w - x;
+        if room >= MIN_HINT {
+            let mut text = String::new();
+            for c in format!("{label}: {message}").chars() {
+                if (text.width() + c.width().unwrap_or(0)) as i32 > room {
+                    break;
+                }
+                text.push(c);
+            }
+            grid.text(x, row, &text, style);
+        }
+    }
 }

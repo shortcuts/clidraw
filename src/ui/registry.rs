@@ -732,6 +732,7 @@ pub const BINDINGS: &[Binding] = &[
         "Import file",
         Some(Action::Prefill("import ")),
     ),
+    ex("mermaid", ":mermaid", "Edit a Mermaid line", None),
     ex("export", ":export [svg|mmd|txt]", "Export the canvas", None),
     ex(
         "link",

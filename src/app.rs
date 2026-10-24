@@ -42,6 +42,7 @@ pub struct App {
     autosave: Duration,
     default_canvas: String,
     export_padding: i32,
+    mermaid_header: String,
 }
 
 impl App {
@@ -319,7 +320,9 @@ impl App {
             | Overlay::Colors(..)
             | Overlay::Switcher(_)
             | Overlay::Actions(_) => self.list_click(col, row),
-            Overlay::Prompt(p) if p.kind == PromptKind::Command => {
+            Overlay::Prompt(p)
+                if matches!(p.kind, PromptKind::Command | PromptKind::Mermaid(_)) =>
+            {
                 let bar = i32::from(screen.1) - 1;
                 match prompt::command_list(p, bar).click(screen, col, row) {
                     Click::Row(b, _) => self.complete(b),
@@ -438,6 +441,11 @@ impl App {
         let buf = p.edit.buf;
         match p.kind {
             PromptKind::Command => self.run_command(&buf),
+            PromptKind::Mermaid(header) => {
+                if !buf.trim().is_empty() {
+                    self.import_text(&format!("{header}\n{buf}"));
+                }
+            }
             PromptKind::ExportSvg(x) => self.export(&buf, ExportFormat::Svg, x),
             PromptKind::ExportMermaid(x) => self.export(&buf, ExportFormat::Mermaid, x),
             PromptKind::ExportText(x) => self.export(&buf, ExportFormat::Text, x),

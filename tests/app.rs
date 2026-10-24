@@ -2449,3 +2449,42 @@ fn dialog_prompts_edit_at_the_caret_too() {
     app.on_event(key(KeyCode::Char('b')), now);
     assert_eq!(buffer(&app), "abc");
 }
+
+fn type_mermaid(app: &mut App, line: &str, end: KeyCode) {
+    let t = Instant::now();
+    app.on_event(key(KeyCode::Char(':')), t);
+    for c in "mermaid".chars() {
+        app.on_event(key(KeyCode::Char(c)), t);
+    }
+    app.on_event(key(KeyCode::Enter), t);
+    for c in line.chars() {
+        app.on_event(key(KeyCode::Char(c)), t);
+    }
+    app.on_event(key(end), t);
+}
+
+#[test]
+fn mermaid_editor_enter_imports_the_line() {
+    let d = tempfile::tempdir().unwrap();
+    let mut app = app_in(d.path());
+    type_mermaid(&mut app, "A --> B", KeyCode::Enter);
+    assert_eq!(app.session.canvas.elements.len(), 4);
+    assert_eq!(status(&app), "Imported 2 shapes, 1 lines");
+}
+
+#[test]
+fn mermaid_editor_esc_imports_nothing() {
+    let d = tempfile::tempdir().unwrap();
+    let mut app = app_in(d.path());
+    type_mermaid(&mut app, "A --> B", KeyCode::Esc);
+    assert!(app.session.canvas.elements.is_empty());
+}
+
+#[test]
+fn mermaid_editor_enter_on_empty_buffer_sets_no_status() {
+    let d = tempfile::tempdir().unwrap();
+    let mut app = app_in(d.path());
+    type_mermaid(&mut app, "", KeyCode::Enter);
+    assert!(app.session.canvas.elements.is_empty());
+    assert!(status(&app).is_empty());
+}

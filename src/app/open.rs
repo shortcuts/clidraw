@@ -50,6 +50,7 @@ impl App {
             autosave: config.autosave,
             default_canvas: config.default_canvas,
             export_padding: config.export_padding,
+            mermaid_header: "flowchart TD".into(),
         };
         app.load_into(&name)?;
         Ok(app)

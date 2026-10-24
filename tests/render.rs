@@ -1638,3 +1638,45 @@ fn command_line_keeps_the_caret_on_screen_when_the_buffer_overflows() {
     let b = command_prompt_at(&"a".repeat(80), 40, 24);
     assert!(b[(39, 23)].modifier.contains(Modifier::REVERSED));
 }
+
+fn mermaid_prompt_at(buf: &str, w: u16, h: u16) -> Buffer {
+    let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
+    let s = Session::new(Canvas::default(), View::default(), (w, h));
+    let overlay = Overlay::Prompt(Prompt::new(
+        PromptKind::Mermaid("flowchart TD".into()),
+        buf.into(),
+    ));
+    let mut t = Terminal::new(TestBackend::new(w, h)).unwrap();
+    t.draw(|f| {
+        let area = f.area();
+        ui::render(f.buffer_mut(), area, &s, &overlay, None, None, &doc(true))
+    })
+    .unwrap();
+    t.backend().buffer().clone()
+}
+
+#[test]
+fn mermaid_prompt_hints_the_first_diagnostic_after_the_text() {
+    for w in [40, 60, 120] {
+        let ok = line_at(&mermaid_prompt_at("A --> B", w, 24), 23);
+        assert!(ok.starts_with("mmd> A --> B"), "{w}");
+        assert!(!ok.contains("error") && !ok.contains("warning"), "{w}");
+
+        let bad = line_at(&mermaid_prompt_at("A -->", w, 24), 23);
+        assert!(bad.starts_with("mmd> A -->  error: Cann"), "{w}: {bad}");
+
+        let b = mermaid_prompt_at("subgraph x", w, 24);
+        let at = line_at(&b, 23).find("warning:").expect("warning hint") as u16;
+        assert!(b[(at, 23)].modifier.contains(Modifier::DIM), "{w}");
+
+        let empty = line_at(&mermaid_prompt_at("", w, 24), 23);
+        assert!(
+            !empty.contains("error") && !empty.contains("warning"),
+            "{w}"
+        );
+        let all: String = (0..24)
+            .map(|y| line_at(&mermaid_prompt_at("A -->", w, 24), y))
+            .collect();
+        assert!(!all.contains("[ OK ]"), "{w}");
+    }
+}

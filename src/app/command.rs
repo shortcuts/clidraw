@@ -1,7 +1,7 @@
 use super::App;
 use crate::input::edit_key;
 use crate::model::Dir;
-use crate::ui::prompt::{self, Prompt};
+use crate::ui::prompt::{self, Prompt, PromptKind};
 use crate::ui::registry::{self, Binding};
 use crate::ui::scope::{self, ExportFormat};
 use crate::ui::{Overlay, Perf, Status};
@@ -67,6 +67,10 @@ impl App {
                 self.status = Some(Status::error("Usage: :import <path>"))
             }
             "import" => self.import(arg.trim()),
+            "mermaid" => {
+                let kind = PromptKind::Mermaid(self.mermaid_header.clone());
+                self.overlay = Overlay::Prompt(Prompt::new(kind, String::new()));
+            }
             "export" => match arg.trim() {
                 "" => self.overlay = Overlay::Formats(scope::formats()),
                 "svg" => self.pick_scope(ExportFormat::Svg),
