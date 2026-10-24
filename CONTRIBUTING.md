@@ -53,6 +53,37 @@ fn check(name: &str, actual: &str) {
 - Good: the `check` helper above.
 - Bad: `tests/golden.rs:165` asserts only that the output contains `<svg`. That line is fine for the empty canvas. A full export needs a golden file.
 
+## Diagram kinds
+
+A diagram kind reads and writes one text format. Each kind implements the `DiagramKind` trait in `src/diagram/mod.rs`. Flowchart is the only kind now.
+
+- Add a kind in its own module under `src/diagram/`. Implement `keywords`, `import`, `export` and `validate`.
+- Register the kind in `KINDS` (`src/diagram/mod.rs:48`). The first word of the header picks the kind.
+- Callers outside `src/diagram/` name no kind. Use `diagram::validate` for live checks.
+- Validation returns each problem with a byte `range` into the text. `import_failure` turns that range into a line number.
+- `Error` marks a line the kind cannot read. `Warning` marks an unsupported construct or an empty diagram.
+- A `Fix` replaces only its diagnostic's `range`. Tab applies a fix in the `:mermaid` editor, and only when `quick_fixes` is on.
+- A fix ships only when its fixed text still parses.
+- Add a validation test in `tests/validate.rs` and an import test in `tests/import.rs`.
+
+`src/diagram/mod.rs:62` picks the kind by header word, so the UI calls one function.
+
+```rust
+pub fn validate(text: &str) -> Vec<Diagnostic> {
+```
+
+- Good: `validate` above. A new kind joins `KINDS`, and the UI does not change.
+- Bad: `src/export/mod.rs:17`, `src/app/import.rs:15` and `src/cli.rs:251` name `Flowchart` directly. A second kind needs changes in each. Add a dispatch function in `src/diagram/mod.rs` before you add a second kind.
+
+A fix must change only the broken part. `src/diagram/flowchart/validate.rs:37` keeps a candidate only when `parse_line` accepts the fixed line.
+
+```rust
+.find(|(.., fixed)| parse_line(fixed).is_ok())
+```
+
+- Good: the `find` above drops a candidate that leaves the line unreadable.
+- Bad: before commit `4fb9b6a`, `replace_arrow` rewrote the `->` inside `-->`. `A --> B -> C` became unparsable, so the line got no fix at all. Commit `4fb9b6a` added the skip for the tail of `-->`.
+
 ## Performance
 
 `make perf` checks the frame and drag-step budgets, including frames at 25% and 300% zoom. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet. CI runs `make check` with `CLIDRAW_PERF_SLACK=4`. That value divides each measured median by 4. Local runs leave `CLIDRAW_PERF_SLACK` unset.

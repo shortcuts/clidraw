@@ -10,7 +10,7 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
 - `cargo run -- list|new|show|edit|import|export` run without the UI, for scripts and agents. Each prints JSON on stdout, or the export text, and exits 1 with `Error: <msg>` on stderr. A canvas named like one of these commands opens from the canvas switcher (Ctrl-p, Canvases), not by argument.
   - `list` prints the canvas names as a JSON array. `new <name>` creates an empty canvas. `show <name>` prints the canvas file.
   - `edit <name>` reads a JSON array of ops on stdin and applies them all or none. It prints `{"applied":N,"ids":[...]}` with the ids of the created elements. The canvas must exist.
-  - `import <name> <path|->` adds a Mermaid flowchart below the existing content and creates the canvas if missing.
+  - `import <name> <path|->` adds a Mermaid flowchart below the existing content and creates the canvas if missing. A failed import exits 1 and names each problem with its line.
   - `export <name> --svg|--mermaid|--text <path|->` writes a saved canvas to a file, or to stdout for `-`.
   - Ops: `add_shape` (`x`, `y`, optional `kind`, `w`, `h`, `label`, `color`, `fill`, `id`), `add_text` (`x`, `y`, `text`, optional `color`, `id`), `connect` (`from`, `to`, optional `kind`, `label`, `id`), `set` (`id`, optional `label`, `color`, `fill`), `move` (`id`, `dx`, `dy`), `delete` (`id`). Shape `kind` is `Rect`, `Diamond`, `Cylinder`, `Parallelogram`, `Hexagon` or `Frame`. Line `kind` is `Line`, `Arrow`, `ArrowStart` or `ArrowBoth`. Colors are `red`, `orange`, `yellow`, `green`, `blue`, `violet`, or `none` in `set`. A `connect` end is a shape id or an `[x, y]` cell.
 
@@ -33,7 +33,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Double-click a shape or line to edit its label. Double-click empty canvas to place text.
 - In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap, and the shape grows to fit.
 - Select shapes and run `:layout` (top-down) or `:layout lr` to arrange them by their connecting lines.
-- Run `:import <path>` to add a Mermaid flowchart to the canvas. It reads nodes, edges and labels, and arranges them with `:layout`.
+- Run `:import <path>` to add a Mermaid flowchart to the canvas. It reads nodes, edges and labels, and arranges them with `:layout`. A failed import shows each problem with its line.
 - Run `:mermaid` to type one flowchart line. It flags mistakes as you type. A fixable mistake shows a fix that Tab applies. Enter adds the diagram.
 - Select shapes and run `:lib save <name>` to keep them in the library. Run `:lib insert <name>` to add them to any canvas.
 - Group elements to select and move them as one.
