@@ -1,6 +1,7 @@
 use super::App;
 use crate::names;
 use crate::ui::actions::Action;
+use crate::ui::colors;
 use crate::ui::prompt::{Prompt, PromptKind};
 use crate::ui::Overlay;
 
@@ -17,6 +18,8 @@ impl App {
             Action::Group => s.group(true),
             Action::Ungroup => s.group(false),
             Action::Bold => s.toggle_bold(),
+            Action::Style(c) => s.set_choice(c),
+            Action::Pick(c) => self.overlay = Overlay::Colors(c, colors::list(c)),
             Action::Copy => s.copy(),
             Action::Cut => s.cut(),
             Action::ZoomIn | Action::ZoomOut => {

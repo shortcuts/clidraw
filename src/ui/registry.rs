@@ -1,7 +1,8 @@
 use super::actions::Action;
 use super::menu::{ContextItem, MenuItem};
+use super::palette::Choice;
 use crate::input::Tool;
-use crate::model::{Align, Z};
+use crate::model::{Align, Border, LineKind, Stroke, TextAlign, Z};
 use crossterm::event::{KeyCode, KeyModifiers};
 
 pub const ZOOM_WHEEL: &str = "Ctrl-wheel";
@@ -283,6 +284,118 @@ pub const BINDINGS: &[Binding] = &[
         "Toggle bold",
         Scope::Selection,
         Some(Action::Bold),
+    ),
+    Binding::new(
+        "head_none",
+        &[],
+        "none",
+        Scope::Palette,
+        Some(Action::Style(Choice::Head(LineKind::Line))),
+    ),
+    Binding::new(
+        "head_end",
+        &[],
+        "end",
+        Scope::Palette,
+        Some(Action::Style(Choice::Head(LineKind::Arrow))),
+    ),
+    Binding::new(
+        "head_start",
+        &[],
+        "start",
+        Scope::Palette,
+        Some(Action::Style(Choice::Head(LineKind::ArrowStart))),
+    ),
+    Binding::new(
+        "head_both",
+        &[],
+        "both",
+        Scope::Palette,
+        Some(Action::Style(Choice::Head(LineKind::ArrowBoth))),
+    ),
+    Binding::new(
+        "stroke_solid",
+        &[],
+        "solid",
+        Scope::Palette,
+        Some(Action::Style(Choice::Stroke(Stroke::Solid))),
+    ),
+    Binding::new(
+        "stroke_dashed",
+        &[],
+        "dashed",
+        Scope::Palette,
+        Some(Action::Style(Choice::Stroke(Stroke::Dashed))),
+    ),
+    Binding::new(
+        "stroke_dotted",
+        &[],
+        "dotted",
+        Scope::Palette,
+        Some(Action::Style(Choice::Stroke(Stroke::Dotted))),
+    ),
+    Binding::new(
+        "border_single",
+        &[],
+        "single",
+        Scope::Palette,
+        Some(Action::Style(Choice::Border(Border::Single))),
+    ),
+    Binding::new(
+        "border_rounded",
+        &[],
+        "rounded",
+        Scope::Palette,
+        Some(Action::Style(Choice::Border(Border::Rounded))),
+    ),
+    Binding::new(
+        "border_double",
+        &[],
+        "double",
+        Scope::Palette,
+        Some(Action::Style(Choice::Border(Border::Double))),
+    ),
+    Binding::new(
+        "border_heavy",
+        &[],
+        "heavy",
+        Scope::Palette,
+        Some(Action::Style(Choice::Border(Border::Heavy))),
+    ),
+    Binding::new(
+        "text_left",
+        &[],
+        "left",
+        Scope::Palette,
+        Some(Action::Style(Choice::Align(TextAlign::Left))),
+    ),
+    Binding::new(
+        "text_center",
+        &[],
+        "center",
+        Scope::Palette,
+        Some(Action::Style(Choice::Align(TextAlign::Center))),
+    ),
+    Binding::new(
+        "text_right",
+        &[],
+        "right",
+        Scope::Palette,
+        Some(Action::Style(Choice::Align(TextAlign::Right))),
+    ),
+    Binding::new(
+        "ink",
+        &[],
+        "color",
+        Scope::Palette,
+        Some(Action::Pick(Choice::Ink)),
+    ),
+    Binding::new(
+        "fill",
+        &[],
+        "color",
+        Scope::Palette,
+        Some(Action::Pick(Choice::Fill)),
     ),
     align!("align_left", '<', "Align left", Align::Left),
     align!("align_center", '|', "Align center", Align::Center),

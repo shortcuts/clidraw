@@ -20,6 +20,15 @@ impl App {
                 Outcome::Close => self.overlay = Overlay::None,
                 _ => {}
             },
+            Overlay::Colors(c, l) => match l.key(k) {
+                Outcome::Run(p) => {
+                    let c = *c;
+                    self.session.set_paint(c, p);
+                    self.overlay = Overlay::None;
+                }
+                Outcome::Close => self.overlay = Overlay::None,
+                _ => {}
+            },
             Overlay::Actions(l) => match l.key(k) {
                 Outcome::Run(action) => self.run_action(action),
                 Outcome::Close => self.overlay = Overlay::None,
@@ -52,6 +61,15 @@ impl App {
                 Click::Row(item, _) => {
                     let format = *format;
                     self.scope_item(item, format)
+                }
+                Click::Inside => {}
+                Click::Outside => self.overlay = Overlay::None,
+            },
+            Overlay::Colors(c, l) => match l.click(screen, col, row) {
+                Click::Row(p, _) => {
+                    let c = *c;
+                    self.session.set_paint(c, p);
+                    self.overlay = Overlay::None;
                 }
                 Click::Inside => {}
                 Click::Outside => self.overlay = Overlay::None,

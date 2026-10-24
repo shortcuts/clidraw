@@ -1,5 +1,6 @@
 use super::list::{List, Row};
 use super::menu::{ContextItem, MenuItem};
+use super::palette::{self, Choice};
 use super::registry;
 use crate::input::{Session, Tool};
 use crate::model::{Align, Z};
@@ -14,6 +15,8 @@ pub enum Action {
     Group,
     Ungroup,
     Bold,
+    Style(Choice),
+    Pick(Choice),
     Copy,
     Cut,
     ZoomIn,
@@ -42,6 +45,13 @@ impl Action {
             | Action::Bold
             | Action::Copy
             | Action::Cut => !s.selection.is_empty(),
+            Action::Style(c) | Action::Pick(c) => {
+                let all = palette::choices(&palette::selected(s), &s.canvas.groups);
+                all.iter().any(|a| match (c, a) {
+                    (Choice::Align(_), Choice::Align(_)) => true,
+                    _ => c == *a,
+                })
+            }
             Action::Prefill("link ") => !s.selection.is_empty(),
             _ => true,
         }
@@ -51,6 +61,12 @@ impl Action {
         match self {
             Action::Tool(_) => "Tool",
             Action::Align(_) | Action::Order(_) | Action::Ex("layout" | "layout lr") => "Arrange",
+            Action::Style(Choice::Head(_)) => "Head",
+            Action::Style(Choice::Stroke(_)) => "Stroke",
+            Action::Style(Choice::Border(_)) => "Border",
+            Action::Style(_) => "Text",
+            Action::Pick(Choice::Fill) => "Fill",
+            Action::Pick(_) => "Ink",
             Action::Menu(MenuItem::FitAll)
             | Action::Map
             | Action::ZoomIn

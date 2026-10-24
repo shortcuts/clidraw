@@ -377,81 +377,64 @@ fn middle_down(s: &mut Session, screen: P, world: P) {
     };
 }
 
+impl Session {
+    /// Applies a head, stroke, border or text align value to the selected elements that carry it.
+    pub fn set_choice(&mut self, c: Choice) {
+        let cmds: Vec<Command> = self
+            .selection
+            .iter()
+            .filter_map(|id| {
+                let id = id.clone();
+                Some(match (c, self.canvas.get(&id)?) {
+                    (Choice::Head(kind), Element::Line(_)) => Command::SetLineKind { id, kind },
+                    (Choice::Stroke(stroke), Element::Line(_) | Element::Shape(_)) => {
+                        Command::SetStroke { id, stroke }
+                    }
+                    (Choice::Border(border), Element::Shape(sh)) if sh.has_border() => {
+                        Command::SetBorder { id, border }
+                    }
+                    (Choice::Align(align), Element::Shape(_)) => Command::SetAlign { id, align },
+                    _ => return None,
+                })
+            })
+            .collect();
+        self.exec(Command::Batch(cmds));
+    }
+
+    /// Sets the ink or fill of the selected elements that carry that color.
+    pub fn set_paint(&mut self, c: Choice, color: Option<Paint>) {
+        let cmds: Vec<Command> = self
+            .selection
+            .iter()
+            .filter(|id| self.canvas.get(id).and_then(|e| paint(e, c)).is_some())
+            .map(|id| match c {
+                Choice::Ink => Command::SetColor {
+                    id: id.clone(),
+                    color,
+                },
+                _ => Command::SetFill {
+                    id: id.clone(),
+                    fill: color,
+                },
+            })
+            .collect();
+        self.exec(Command::Batch(cmds));
+    }
+}
+
 fn palette_down(s: &mut Session, h: PaletteHit) {
     match h {
-        PaletteHit::Option(Choice::Head(kind)) => {
-            let cmds: Vec<Command> = s
-                .selection
-                .iter()
-                .filter(|id| matches!(s.canvas.get(id), Some(Element::Line(_))))
-                .map(|id| Command::SetLineKind {
-                    id: id.clone(),
-                    kind,
-                })
-                .collect();
-            s.exec(Command::Batch(cmds));
-        }
-        PaletteHit::Option(Choice::Stroke(stroke)) => {
-            let cmds: Vec<Command> = s
-                .selection
-                .iter()
-                .filter(|id| matches!(s.canvas.get(id), Some(Element::Line(_) | Element::Shape(_))))
-                .map(|id| Command::SetStroke {
-                    id: id.clone(),
-                    stroke,
-                })
-                .collect();
-            s.exec(Command::Batch(cmds));
-        }
-        PaletteHit::Option(Choice::Border(border)) => {
-            let cmds: Vec<Command> = s
-                .selection
-                .iter()
-                .filter(
-                    |id| matches!(s.canvas.get(id), Some(Element::Shape(sh)) if sh.has_border()),
-                )
-                .map(|id| Command::SetBorder {
-                    id: id.clone(),
-                    border,
-                })
-                .collect();
-            s.exec(Command::Batch(cmds));
-        }
-        PaletteHit::Option(Choice::Align(cur)) => {
-            let cmds: Vec<Command> = s
-                .selection
-                .iter()
-                .filter(|id| matches!(s.canvas.get(id), Some(Element::Shape(_))))
-                .map(|id| Command::SetAlign {
-                    id: id.clone(),
-                    align: cur.next(),
-                })
-                .collect();
-            s.exec(Command::Batch(cmds));
-        }
+        PaletteHit::Option(Choice::Align(cur)) => s.set_choice(Choice::Align(cur.next())),
         PaletteHit::Option(c @ (Choice::Ink | Choice::Fill)) => {
             let cur = s
                 .selection
                 .iter()
                 .find_map(|id| paint(s.canvas.get(id)?, c))
                 .flatten();
-            let next = Paint::next(cur);
-            let cmds: Vec<Command> = s
-                .selection
-                .iter()
-                .filter(|id| s.canvas.get(id).and_then(|e| paint(e, c)).is_some())
-                .map(|id| match c {
-                    Choice::Ink => Command::SetColor {
-                        id: id.clone(),
-                        color: next,
-                    },
-                    _ => Command::SetFill {
-                        id: id.clone(),
-                        fill: next,
-                    },
-                })
-                .collect();
-            s.exec(Command::Batch(cmds));
+            s.set_paint(c, Paint::next(cur));
+        }
+        PaletteHit::Option(c @ (Choice::Head(_) | Choice::Stroke(_) | Choice::Border(_))) => {
+            s.set_choice(c)
         }
         PaletteHit::Option(Choice::Place(a)) => s.align(a),
         PaletteHit::Option(Choice::Arrange) => s.reset_route(),

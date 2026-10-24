@@ -122,6 +122,17 @@ impl Paint {
         }
     }
 
+    pub fn name(self) -> &'static str {
+        match self {
+            Paint::Red => "red",
+            Paint::Orange => "orange",
+            Paint::Yellow => "yellow",
+            Paint::Green => "green",
+            Paint::Blue => "blue",
+            Paint::Violet => "violet",
+        }
+    }
+
     /// The click cycle: none, each color in order, then none again.
     pub fn next(cur: Option<Paint>) -> Option<Paint> {
         let i = cur.map_or(0, |p| Paint::ALL.iter().position(|&a| a == p).unwrap() + 1);

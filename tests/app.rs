@@ -1,6 +1,9 @@
 use clidraw::app::App;
 use clidraw::config::Config;
-use clidraw::model::{Anchor, Command, Element, End, Id, Line, LineKind, Shape, ShapeKind, Text};
+use clidraw::model::{
+    Anchor, Border, Command, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind, Stroke,
+    Text, TextAlign,
+};
 use clidraw::store::Store;
 use crossterm::event::{
     Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
@@ -2168,4 +2171,98 @@ fn palette_reaches_canvas_and_file_commands() {
     }
     ctrl_key(&mut app, 'p', now);
     assert!(!palette_labels(&app).contains(&"Edit: Link selection to URL".to_string()));
+}
+
+fn run_palette(app: &mut App, query: &str, now: Instant) {
+    ctrl_key(app, 'p', now);
+    type_str(app, query, now);
+    app.on_event(key(KeyCode::Enter), now);
+}
+
+fn rect(app: &App) -> Shape {
+    match app.session.canvas.get(&Id::from("aaaaaaaa")) {
+        Some(Element::Shape(s)) => s.clone(),
+        _ => panic!("no shape"),
+    }
+}
+
+#[test]
+fn palette_applies_the_selection_style_options_and_lists_them_only_for_a_selection() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    ctrl_key(&mut app, 'p', now);
+    assert!(!palette_labels(&app).contains(&"Stroke: dashed".to_string()));
+    app.on_event(key(KeyCode::Esc), now);
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    ctrl_key(&mut app, 'p', now);
+    let l = palette_labels(&app);
+    for here in [
+        "Stroke: dashed",
+        "Border: rounded",
+        "Text: right",
+        "Ink: color",
+        "Fill: color",
+    ] {
+        assert!(l.contains(&here.to_string()), "{here}");
+    }
+    assert!(!l.contains(&"Head: both".to_string()));
+    app.on_event(key(KeyCode::Esc), now);
+    run_palette(&mut app, "stroke dashed", now);
+    assert_eq!(rect(&app).stroke, Stroke::Dashed);
+    run_palette(&mut app, "border rounded", now);
+    assert_eq!(rect(&app).border, Border::Rounded);
+    run_palette(&mut app, "text right", now);
+    assert_eq!(rect(&app).align, TextAlign::Right);
+    app.session.undo();
+    assert_eq!(rect(&app).align, TextAlign::Center);
+}
+
+#[test]
+fn palette_head_both_sets_the_selected_line() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(Command::Insert(
+        0,
+        Element::Line(Line {
+            id: Id::from("llllllll"),
+            kind: LineKind::Line,
+            from: End::Free(5, 5),
+            to: End::Free(25, 5),
+            label: String::new(),
+            label_at: None,
+            stroke: Default::default(),
+            bends: vec![],
+            color: None,
+        }),
+    ));
+    app.session.selection = vec![Id::from("llllllll")];
+    run_palette(&mut app, "head both", now);
+    match app.session.canvas.get(&Id::from("llllllll")) {
+        Some(Element::Line(l)) => assert_eq!(l.kind, LineKind::ArrowBoth),
+        _ => panic!("no line"),
+    }
+}
+
+#[test]
+fn palette_ink_opens_a_color_list_that_enter_applies_and_esc_leaves() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    run_palette(&mut app, "ink color", now);
+    app.on_event(key(KeyCode::Esc), now);
+    assert_eq!(rect(&app).color, None);
+    run_palette(&mut app, "ink color", now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(rect(&app).color, Some(Paint::Orange));
+    run_palette(&mut app, "fill color", now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(rect(&app).fill, Some(Paint::Red));
 }

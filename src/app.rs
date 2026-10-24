@@ -290,7 +290,11 @@ impl App {
         }
         if matches!(
             self.overlay,
-            Overlay::Context(_) | Overlay::Scope(..) | Overlay::Switcher(_) | Overlay::Actions(_)
+            Overlay::Context(_)
+                | Overlay::Scope(..)
+                | Overlay::Colors(..)
+                | Overlay::Switcher(_)
+                | Overlay::Actions(_)
         ) {
             self.list_key(k);
             return;
@@ -311,6 +315,7 @@ impl App {
         match &self.overlay {
             Overlay::Context(_)
             | Overlay::Scope(..)
+            | Overlay::Colors(..)
             | Overlay::Switcher(_)
             | Overlay::Actions(_) => self.list_click(col, row),
             Overlay::Prompt(_) => match prompt::hit(screen, col, row) {
