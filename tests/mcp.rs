@@ -86,12 +86,15 @@ fn bad_input_lines_get_protocol_errors() {
 }
 
 #[test]
-fn tools_list_names_the_six_cli_commands() {
+fn tools_list_names_the_eight_cli_commands() {
     let (_t, s) = store();
     let r = rpc(&s, &[req(1, "tools/list", json!({}))]);
     let tools = r[0]["result"]["tools"].as_array().unwrap();
     let names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
-    assert_eq!(names, ["list", "new", "show", "edit", "import", "export"]);
+    assert_eq!(
+        names,
+        ["list", "new", "show", "edit", "import", "export", "rename", "delete"]
+    );
     assert!(tools.iter().all(|t| t["inputSchema"]["type"] == "object"));
 }
 
@@ -174,4 +177,21 @@ fn binary_serves_over_stdio() {
     let out = child.wait_with_output().unwrap();
     assert!(out.status.success());
     assert_eq!(String::from_utf8(out.stdout).unwrap().lines().count(), 2);
+}
+
+#[test]
+fn rename_and_delete_tools() {
+    let (_t, s) = store();
+    let r = rpc(
+        &s,
+        &[
+            tool(1, "new", json!({"name": "a"})),
+            tool(2, "rename", json!({"name": "a", "to": "b"})),
+            tool(3, "delete", json!({"name": "b"})),
+            tool(4, "delete", json!({"name": "b"})),
+        ],
+    );
+    assert_eq!(text(&r[1]), r#"{"renamed":"b"}"#);
+    assert_eq!(text(&r[2]), r#"{"deleted":"b"}"#);
+    assert_eq!(r[3]["result"]["isError"], true);
 }

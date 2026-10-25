@@ -10,10 +10,16 @@ const OPS: &str = "Applies all ops or none and returns {\"applied\":N,\"ids\":[.
 add_shape (x, y, optional kind, w, h, label, color, fill, id), \
 add_text (x, y, text, optional color, id), \
 connect (from, to, optional kind, label, id), \
-set (id, optional label, color, fill), move (id, dx, dy), delete (id). \
+set (id, optional label, color, fill, stroke, border, align, bold, link, kind, head), \
+resize (id, w, h), move (id, dx, dy), delete (id), \
+group (ids), ungroup (ids), order (ids, z), layout (optional ids, dir). \
 Shape kind: Rect, Diamond, Cylinder, Parallelogram, Hexagon, Frame. \
 Line kind: Line, Arrow, ArrowStart, ArrowBoth. \
+In set, kind changes a shape kind and head changes a line kind. \
 Colors: red, orange, yellow, green, blue, violet, or none in set. \
+stroke: solid, dashed, dotted. border: single, rounded, double, heavy. align: left, center, right. \
+bold: true or false. link: a URL, or an empty string to clear it. \
+z: front, back, forward, backward. dir: td (default) or lr; layout without ids arranges every shape. \
 A connect end is a shape id or an [x, y] cell.";
 
 fn schema(props: Value, required: &[&str]) -> Value {
@@ -39,6 +45,11 @@ fn tools() -> Value {
         {"name": "export", "description": "Render a saved canvas and return the text.",
          "inputSchema": schema(json!({"name": name,
              "format": {"type": "string", "enum": ["svg", "mermaid", "clidraw"]}}), &["name", "format"])},
+        {"name": "rename", "description": "Rename a canvas.",
+         "inputSchema": schema(json!({"name": name,
+             "to": {"type": "string", "description": "New canvas name"}}), &["name", "to"])},
+        {"name": "delete", "description": "Delete a canvas and its undo history.",
+         "inputSchema": schema(json!({"name": name}), &["name"])},
     ])
 }
 
@@ -67,6 +78,7 @@ fn command(tool: &str, a: &Value) -> Result<(Vec<String>, String)> {
             argv.push("-".into());
             stdin = string(a, "mermaid")?.to_string();
         }
+        "rename" => argv.push(string(a, "to")?.to_string()),
         "export" => {
             let format = string(a, "format")?;
             argv.extend([format!("--{format}"), "-".into()]);

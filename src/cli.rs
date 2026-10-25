@@ -1,7 +1,8 @@
 use crate::config::Config;
 use crate::diagram::{import_failure, DiagramKind, Flowchart};
 use crate::model::{
-    Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind, Text,
+    kind_cmds, Anchor, Border, Canvas, Command, Dir, Element, End, Id, Line, LineKind, ModelError,
+    Paint, Shape, ShapeKind, Stroke, Text, TextAlign, Z,
 };
 use crate::store::Store;
 use crate::ui::scope::ExportFormat;
@@ -10,7 +11,9 @@ use serde::Deserialize;
 use std::io::{Read, Write};
 use unicode_width::UnicodeWidthStr;
 
-pub const COMMANDS: [&str; 6] = ["list", "new", "show", "edit", "import", "export"];
+pub const COMMANDS: [&str; 8] = [
+    "list", "new", "show", "edit", "import", "export", "rename", "delete",
+];
 
 /// An endpoint is a shape id, or a `[x, y]` cell for a free end.
 #[derive(Deserialize)]
@@ -63,6 +66,32 @@ enum Op {
         label: Option<String>,
         color: Option<String>,
         fill: Option<String>,
+        stroke: Option<Stroke>,
+        border: Option<Border>,
+        align: Option<TextAlign>,
+        bold: Option<bool>,
+        link: Option<String>,
+        kind: Option<ShapeKind>,
+        head: Option<LineKind>,
+    },
+    Resize {
+        id: Id,
+        w: i32,
+        h: i32,
+    },
+    Group {
+        ids: Vec<Id>,
+    },
+    Ungroup {
+        ids: Vec<Id>,
+    },
+    Order {
+        ids: Vec<Id>,
+        z: Z,
+    },
+    Layout {
+        ids: Option<Vec<Id>>,
+        dir: Option<Dir>,
     },
     Move {
         id: Id,
@@ -91,27 +120,30 @@ fn fit(kind: ShapeKind, label: &str) -> (i32, i32) {
     Shape::snap_size(kind, w.max(6), h)
 }
 
-/// Rejects what the renderers cannot draw: an empty id, a set with no field, or a line break in a one-line label.
+/// Rejects what the renderers cannot draw: an empty id or a line break in a one-line field.
 fn check(op: &Op) -> Result<()> {
-    let (name, id, one_line) = match op {
-        Op::AddShape { id, .. } => ("add_shape", id.as_ref(), None),
-        Op::AddText { id, text, .. } => ("add_text", id.as_ref(), Some(("text", text.as_str()))),
+    let (name, ids, one_line): (_, Vec<&Id>, _) = match op {
+        Op::AddShape { id, .. } => ("add_shape", id.iter().collect(), None),
+        Op::AddText { id, text, .. } => (
+            "add_text",
+            id.iter().collect(),
+            Some(("text", text.as_str())),
+        ),
         Op::Connect { id, label, .. } => (
             "connect",
-            id.as_ref(),
+            id.iter().collect(),
             label.as_deref().map(|l| ("label", l)),
         ),
-        Op::Set {
-            label: None,
-            color: None,
-            fill: None,
-            ..
-        } => bail!("set: nothing to change"),
-        Op::Set { id, .. } => ("set", Some(id), None),
-        Op::Move { id, .. } => ("move", Some(id), None),
-        Op::Delete { id } => ("delete", Some(id), None),
+        Op::Set { id, link, .. } => ("set", vec![id], link.as_deref().map(|l| ("link", l))),
+        Op::Resize { id, .. } => ("resize", vec![id], None),
+        Op::Group { ids } => ("group", ids.iter().collect(), None),
+        Op::Ungroup { ids } => ("ungroup", ids.iter().collect(), None),
+        Op::Order { ids, .. } => ("order", ids.iter().collect(), None),
+        Op::Layout { ids, .. } => ("layout", ids.iter().flatten().collect(), None),
+        Op::Move { id, .. } => ("move", vec![id], None),
+        Op::Delete { id } => ("delete", vec![id], None),
     };
-    if id.is_some_and(|id| id.0.is_empty()) {
+    if ids.iter().any(|id| id.0.is_empty()) {
         bail!("{name}: empty id");
     }
     if let Some((field, value)) = one_line {
@@ -122,123 +154,215 @@ fn check(op: &Op) -> Result<()> {
     Ok(())
 }
 
-/// Turns ops into one command each. Pushes the id of each created element onto `created`.
-fn commands(ops: Vec<Op>, created: &mut Vec<Id>) -> Result<Vec<Command>> {
+fn exist(canvas: &Canvas, ids: &[Id]) -> Result<()> {
+    match ids.iter().find(|id| canvas.get(id).is_none()) {
+        Some(id) => Err(ModelError::NotFound(id.clone()).into()),
+        None => Ok(()),
+    }
+}
+
+/// Turns one op into commands against the canvas as the earlier ops left it. Pushes the id of each created element onto `created`.
+fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result<Vec<Command>> {
     let mut cmds = vec![];
     let add = |created: &mut Vec<Id>, id: Option<Id>, build: &dyn Fn(Id) -> Element| {
         let id = id.unwrap_or_else(Id::random);
         created.push(id.clone());
         Command::Insert(usize::MAX, build(id))
     };
-    for op in ops {
-        check(&op)?;
-        match op {
-            Op::AddShape {
+    match op {
+        Op::AddShape {
+            id,
+            kind,
+            x,
+            y,
+            w,
+            h,
+            label,
+            color,
+            fill,
+        } => {
+            let kind = kind.unwrap_or(ShapeKind::Rect);
+            let label = label.unwrap_or_default();
+            let (w, h) = match (w, h) {
+                (Some(w), Some(h)) => (w, h),
+                (w, h) => {
+                    let (fw, fh) = fit(kind, &label);
+                    (w.unwrap_or(fw), h.unwrap_or(fh))
+                }
+            };
+            cmds.push(add(created, id, &|id| {
+                Element::Shape(Shape {
+                    id,
+                    kind,
+                    x,
+                    y,
+                    w,
+                    h,
+                    label: label.clone(),
+                    stroke: Default::default(),
+                    border: Default::default(),
+                    color,
+                    fill,
+                    align: Default::default(),
+                    bold: false,
+                    link: None,
+                })
+            }));
+        }
+        Op::AddText {
+            id,
+            x,
+            y,
+            text,
+            color,
+        } => {
+            cmds.push(add(created, id, &|id| {
+                Element::Text(Text {
+                    id,
+                    x,
+                    y,
+                    text: text.clone(),
+                    color,
+                })
+            }));
+        }
+        Op::Connect {
+            id,
+            from,
+            to,
+            kind,
+            label,
+        } => {
+            let (from, to): (End, End) = (from.into(), to.into());
+            cmds.push(add(created, id, &|id| {
+                Element::Line(Line {
+                    id,
+                    kind: kind.unwrap_or(LineKind::Arrow),
+                    from: from.clone(),
+                    to: to.clone(),
+                    label: label.clone().unwrap_or_default(),
+                    label_at: None,
+                    stroke: Default::default(),
+                    bends: vec![],
+                    color: None,
+                })
+            }));
+        }
+        Op::Set {
+            id,
+            label,
+            color,
+            fill,
+            stroke,
+            border,
+            align,
+            bold,
+            link,
+            kind,
+            head,
+        } => {
+            if let Some(kind) = kind {
+                match canvas.get(&id) {
+                    Some(Element::Shape(s)) => {
+                        cmds.extend(kind_cmds(&id, s.kind, (s.x, s.y, s.w, s.h), kind))
+                    }
+                    Some(_) => return Err(ModelError::WrongKind(id).into()),
+                    None => return Err(ModelError::NotFound(id).into()),
+                }
+            }
+            if let Some(label) = label {
+                cmds.push(Command::SetLabel {
+                    id: id.clone(),
+                    label,
+                });
+            }
+            if let Some(c) = color {
+                cmds.push(Command::SetColor {
+                    id: id.clone(),
+                    color: paint(&c)?,
+                });
+            }
+            if let Some(f) = fill {
+                cmds.push(Command::SetFill {
+                    id: id.clone(),
+                    fill: paint(&f)?,
+                });
+            }
+            if let Some(stroke) = stroke {
+                cmds.push(Command::SetStroke {
+                    id: id.clone(),
+                    stroke,
+                });
+            }
+            if let Some(border) = border {
+                cmds.push(Command::SetBorder {
+                    id: id.clone(),
+                    border,
+                });
+            }
+            if let Some(align) = align {
+                cmds.push(Command::SetAlign {
+                    id: id.clone(),
+                    align,
+                });
+            }
+            if let Some(bold) = bold {
+                cmds.push(Command::SetBold {
+                    id: id.clone(),
+                    bold,
+                });
+            }
+            if let Some(link) = link {
+                cmds.push(Command::SetLink {
+                    id: id.clone(),
+                    link: Some(link).filter(|l| !l.is_empty()),
+                });
+            }
+            if let Some(kind) = head {
+                cmds.push(Command::SetLineKind { id, kind });
+            }
+            if cmds.is_empty() {
+                bail!("set: nothing to change");
+            }
+        }
+        Op::Resize { id, w, h } => match canvas.get(&id) {
+            Some(Element::Shape(s)) => cmds.push(Command::SetRect {
                 id,
-                kind,
-                x,
-                y,
+                x: s.x,
+                y: s.y,
                 w,
                 h,
-                label,
-                color,
-                fill,
-            } => {
-                let kind = kind.unwrap_or(ShapeKind::Rect);
-                let label = label.unwrap_or_default();
-                let (w, h) = match (w, h) {
-                    (Some(w), Some(h)) => (w, h),
-                    (w, h) => {
-                        let (fw, fh) = fit(kind, &label);
-                        (w.unwrap_or(fw), h.unwrap_or(fh))
-                    }
-                };
-                cmds.push(add(created, id, &|id| {
-                    Element::Shape(Shape {
-                        id,
-                        kind,
-                        x,
-                        y,
-                        w,
-                        h,
-                        label: label.clone(),
-                        stroke: Default::default(),
-                        border: Default::default(),
-                        color,
-                        fill,
-                        align: Default::default(),
-                        bold: false,
-                        link: None,
-                    })
-                }));
+            }),
+            Some(_) => return Err(ModelError::WrongKind(id).into()),
+            None => return Err(ModelError::NotFound(id).into()),
+        },
+        Op::Group { ids } => {
+            if ids.len() < 2 {
+                bail!("group: needs at least two ids");
             }
-            Op::AddText {
-                id,
-                x,
-                y,
-                text,
-                color,
-            } => {
-                cmds.push(add(created, id, &|id| {
-                    Element::Text(Text {
-                        id,
-                        x,
-                        y,
-                        text: text.clone(),
-                        color,
-                    })
-                }));
-            }
-            Op::Connect {
-                id,
-                from,
-                to,
-                kind,
-                label,
-            } => {
-                let (from, to): (End, End) = (from.into(), to.into());
-                cmds.push(add(created, id, &|id| {
-                    Element::Line(Line {
-                        id,
-                        kind: kind.unwrap_or(LineKind::Arrow),
-                        from: from.clone(),
-                        to: to.clone(),
-                        label: label.clone().unwrap_or_default(),
-                        label_at: None,
-                        stroke: Default::default(),
-                        bends: vec![],
-                        color: None,
-                    })
-                }));
-            }
-            Op::Set {
-                id,
-                label,
-                color,
-                fill,
-            } => {
-                if let Some(label) = label {
-                    cmds.push(Command::SetLabel {
-                        id: id.clone(),
-                        label,
-                    });
-                }
-                if let Some(c) = color {
-                    cmds.push(Command::SetColor {
-                        id: id.clone(),
-                        color: paint(&c)?,
-                    });
-                }
-                if let Some(f) = fill {
-                    cmds.push(Command::SetFill {
-                        id,
-                        fill: paint(&f)?,
-                    });
-                }
-            }
-            Op::Move { id, dx, dy } => cmds.push(Command::Move { id, dx, dy }),
-            Op::Delete { id } => cmds.push(Command::Remove(id)),
+            exist(canvas, &ids)?;
+            cmds.extend(canvas.group_cmd(&ids));
         }
+        Op::Ungroup { ids } => {
+            exist(canvas, &ids)?;
+            cmds.extend(canvas.ungroup_cmd(&ids));
+        }
+        Op::Order { ids, z } => {
+            exist(canvas, &ids)?;
+            cmds = canvas.z_order(&ids, z);
+        }
+        Op::Layout { ids, dir } => {
+            let ids = match ids {
+                Some(ids) => {
+                    exist(canvas, &ids)?;
+                    ids
+                }
+                None => canvas.elements.iter().map(|e| e.id().clone()).collect(),
+            };
+            cmds = canvas.layout(&ids, dir.unwrap_or(Dir::TopDown));
+        }
+        Op::Move { id, dx, dy } => cmds.push(Command::Move { id, dx, dy }),
+        Op::Delete { id } => cmds.push(Command::Remove(id)),
     }
     Ok(cmds)
 }
@@ -249,11 +373,14 @@ fn edit(name: &str, store: &Store, stdin: &mut impl Read, out: &mut impl Write) 
     stdin.read_to_string(&mut text)?;
     let ops: Vec<Op> = serde_json::from_str(&text)?;
     let mut created = vec![];
+    let mut moved = vec![];
     let applied = ops.len();
-    let cmds = commands(ops, &mut created)?;
-    let batch = Command::Batch(cmds);
-    let moved = batch.rerouting();
-    canvas.apply(batch)?;
+    for op in ops {
+        check(&op)?;
+        let batch = Command::Batch(commands(op, &canvas, &mut created)?);
+        moved.extend(batch.rerouting());
+        canvas.apply(batch)?;
+    }
     canvas.apply(Command::Batch(canvas.pin_cmds(&moved)))?;
     store.save(name, &canvas)?;
     let ids: Vec<&str> = created.iter().map(|i| i.0.as_str()).collect();
@@ -358,6 +485,14 @@ pub fn run(
         ("edit", [name]) => edit(name, store, stdin, out)?,
         ("import", [name, path]) => import(name, path, store, stdin, out)?,
         ("export", _) => export(&args[1..], store, out)?,
+        ("rename", [from, to]) => {
+            store.rename(from, to)?;
+            writeln!(out, "{}", serde_json::json!({ "renamed": to }))?;
+        }
+        ("delete", [name]) => {
+            store.delete(name)?;
+            writeln!(out, "{}", serde_json::json!({ "deleted": name }))?;
+        }
         (cmd, _) => bail!("usage: clidraw {cmd} (see README)"),
     }
     Ok(())

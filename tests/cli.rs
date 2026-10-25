@@ -332,3 +332,97 @@ fn edit_move_repins_the_bends_of_lines_bound_to_the_shape() {
         "before: {before}"
     );
 }
+
+fn edit_ok(t: &tempfile::TempDir, ops: &str) -> serde_json::Value {
+    let r = run_stdin(t.path(), &["edit", "demo"], ops);
+    assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
+    show(t.path())
+}
+
+const AB: &str = r#"{"op":"add_shape","id":"a","x":0,"y":0,"w":8,"h":4},{"op":"add_shape","id":"b","x":30,"y":9,"w":8,"h":4},{"op":"connect","id":"l","from":"a","to":"b"}"#;
+
+#[test]
+fn edit_resizes_and_restyles() {
+    let t = seeded_empty();
+    let c = edit_ok(
+        &t,
+        &format!(
+            r#"[{AB},{{"op":"resize","id":"a","w":12,"h":5}},
+            {{"op":"set","id":"b","kind":"Diamond","bold":true,"stroke":"dashed","border":"double","align":"right","link":"http://x"}},
+            {{"op":"set","id":"l","head":"ArrowBoth"}}]"#
+        ),
+    );
+    let els = c["elements"].as_array().unwrap();
+    assert_eq!(
+        (els[0]["w"].clone(), els[0]["h"].clone()),
+        (12.into(), 5.into())
+    );
+    assert_eq!(els[1]["kind"], "Diamond");
+    assert_eq!(els[1]["bold"], true);
+    assert_eq!(els[1]["stroke"], "dashed");
+    assert_eq!(els[1]["border"], "double");
+    assert_eq!(els[1]["align"], "right");
+    assert_eq!(els[1]["link"], "http://x");
+    assert_eq!(els[2]["kind"], "ArrowBoth");
+}
+
+#[test]
+fn edit_groups_orders_and_lays_out() {
+    let t = seeded_empty();
+    let c = edit_ok(
+        &t,
+        &format!(
+            r#"[{AB},{{"op":"group","ids":["a","b"]}},{{"op":"order","ids":["a"],"z":"front"}},
+            {{"op":"layout","dir":"lr"}}]"#
+        ),
+    );
+    assert_eq!(c["groups"], serde_json::json!([["a", "b"]]));
+    let els = c["elements"].as_array().unwrap();
+    assert_eq!(els.last().unwrap()["id"], "a");
+    assert_eq!(
+        els.iter().find(|e| e["id"] == "a").unwrap()["y"],
+        els.iter().find(|e| e["id"] == "b").unwrap()["y"]
+    );
+    let c = edit_ok(&t, r#"[{"op":"ungroup","ids":["a"]}]"#);
+    assert!(c["groups"].is_null());
+}
+
+#[test]
+fn new_ops_reject_bad_input_and_leave_the_file_alone() {
+    let t = seeded_empty();
+    edit_ok(&t, &format!("[{AB}]"));
+    let before = show(t.path());
+    for bad in [
+        r#"{"op":"resize","id":"a","w":0,"h":4}"#,
+        r#"{"op":"resize","id":"nope","w":9,"h":4}"#,
+        r#"{"op":"resize","id":"l","w":9,"h":4}"#,
+        r#"{"op":"set","id":"a","head":"Line"}"#,
+        r#"{"op":"set","id":"l","kind":"Diamond"}"#,
+        r#"{"op":"set","id":"a","link":"a\nb"}"#,
+        r#"{"op":"set","id":"a"}"#,
+        r#"{"op":"group","ids":["a"]}"#,
+        r#"{"op":"group","ids":["a","nope"]}"#,
+        r#"{"op":"order","ids":[""],"z":"back"}"#,
+        r#"{"op":"layout","ids":["nope"]}"#,
+    ] {
+        let ops = format!(r#"[{{"op":"move","id":"a","dx":1,"dy":0}},{bad}]"#);
+        assert!(
+            !run_stdin(t.path(), &["edit", "demo"], &ops)
+                .status
+                .success(),
+            "{bad}"
+        );
+        assert_eq!(show(t.path()), before, "{bad}");
+    }
+}
+
+#[test]
+fn rename_and_delete_manage_canvases() {
+    let t = seeded_empty();
+    let r = run(t.path(), &["rename", "demo", "other"]);
+    assert_eq!(out(&r).trim(), r#"{"renamed":"other"}"#);
+    assert!(!run(t.path(), &["show", "demo"]).status.success());
+    let r = run(t.path(), &["delete", "other"]);
+    assert_eq!(out(&r).trim(), r#"{"deleted":"other"}"#);
+    assert!(!run(t.path(), &["delete", "other"]).status.success());
+}

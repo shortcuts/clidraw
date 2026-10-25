@@ -1,7 +1,7 @@
 use super::canvas::{Index, BULK};
 use super::{
-    Border, Canvas, Element, End, Id, LineKind, ModelError, Paint, ShapeKind, Stroke, TextAlign,
-    MIN_SIZE,
+    Border, Canvas, Element, End, Id, LineKind, ModelError, Paint, Shape, ShapeKind, Stroke,
+    TextAlign, MIN_SIZE,
 };
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +11,8 @@ pub enum Side {
     To,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Z {
     Forward,
     Backward,
@@ -108,6 +109,38 @@ pub enum Command {
     /// Replaces the whole group list.
     SetGroups(Vec<Vec<Id>>),
     Batch(Vec<Command>),
+}
+
+/// Switches a shape to `kind`, resized to the kind's ratio from `rect`; the same kind keeps its size.
+pub fn kind_cmds(
+    id: &Id,
+    from: ShapeKind,
+    rect: (i32, i32, i32, i32),
+    kind: ShapeKind,
+) -> Vec<Command> {
+    let (x, y, w, h) = rect;
+    let (sw, sh) = if kind == from {
+        (w, h)
+    } else {
+        Shape::snap_size(kind, w, h)
+    };
+    let resize = ((sw, sh) != (w, h)).then(|| Command::SetRect {
+        id: id.clone(),
+        x,
+        y,
+        w: sw,
+        h: sh,
+    });
+    [
+        Some(Command::SetKind {
+            id: id.clone(),
+            kind,
+        }),
+        resize,
+    ]
+    .into_iter()
+    .flatten()
+    .collect()
 }
 
 impl Command {

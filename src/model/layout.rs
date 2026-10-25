@@ -1,8 +1,11 @@
 use super::{Canvas, Command, Element, End, Id, ShapeKind};
+use serde::Deserialize;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 pub enum Dir {
+    #[serde(rename = "td")]
     TopDown,
+    #[serde(rename = "lr")]
     LeftRight,
 }
 

@@ -9,7 +9,7 @@ mod layout;
 mod router;
 
 pub use canvas::{Canvas, Find};
-pub use command::{Align, Command, Side, Z};
+pub use command::{kind_cmds, Align, Command, Side, Z};
 pub use element::{
     Anchor, Border, Element, End, Line, LineKind, Paint, Shape, ShapeKind, Stroke, Text, TextAlign,
     FILL_ALPHA, MIN_SIZE,

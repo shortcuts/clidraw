@@ -1,7 +1,7 @@
 use super::drag::{drag, pan_step, up};
 use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
-use crate::model::{Command, Element, Id, Paint, Shape, ShapeKind, Side};
+use crate::model::{self, Command, Element, Id, Paint, ShapeKind, Side};
 use crate::ui::palette::{self, paint, Choice, PaletteHit};
 use crate::view::View;
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -483,27 +483,9 @@ impl Session {
     }
 }
 
-/// Switches each origin to `kind`, resized to the kind's ratio from the origin size; the origin kind keeps its size.
 fn kind_cmds(from: &[Origin], kind: ShapeKind) -> Vec<Command> {
     from.iter()
-        .flat_map(|o| {
-            let (x, y, w, h) = o.rect;
-            let (sw, sh) = if kind == o.kind {
-                (w, h)
-            } else {
-                Shape::snap_size(kind, w, h)
-            };
-            let id = o.id.clone();
-            let resize = ((sw, sh) != (w, h)).then(|| Command::SetRect {
-                id: id.clone(),
-                x,
-                y,
-                w: sw,
-                h: sh,
-            });
-            [Some(Command::SetKind { id, kind }), resize]
-        })
-        .flatten()
+        .flat_map(|o| model::kind_cmds(&o.id, o.kind, o.rect, kind))
         .collect()
 }
 
