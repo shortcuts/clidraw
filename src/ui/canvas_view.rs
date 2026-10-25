@@ -365,6 +365,21 @@ fn frame(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     }
 }
 
+/// Line glyphs and the sides (left, right, up, down) they connect.
+const JOINTS: [(char, (bool, bool, bool, bool)); 11] = [
+    ('─', (true, true, false, false)),
+    ('│', (false, false, true, true)),
+    ('╮', (true, false, false, true)),
+    ('╭', (false, true, false, true)),
+    ('╯', (true, false, true, false)),
+    ('╰', (false, true, true, false)),
+    ('┬', (true, true, false, true)),
+    ('┴', (true, true, true, false)),
+    ('├', (false, true, true, true)),
+    ('┤', (true, false, true, true)),
+    ('┼', (true, true, true, true)),
+];
+
 fn line<'a>(
     grid: &mut Grid,
     s: &'a Session,
@@ -392,15 +407,17 @@ fn line<'a>(
             }
             (left, right, up, down) = (left | d.0, right | d.1, up | d.2, down | d.3);
         }
+        let ends = i == 0 || i + 1 == cells.len();
+        if let Some(g) = grid.get(c.0, c.1).filter(|_| ends) {
+            if let Some(&(_, e)) = JOINTS.iter().find(|j| j.0 == g.ch) {
+                (left, right, up, down) = (left | e.0, right | e.1, up | e.2, down | e.3);
+            }
+        }
         // shortcut: diagonal glyphs have no dashed form, add one if wanted
-        let glyph = diagonal.unwrap_or(match (left, right, up, down) {
+        let glyph = diagonal.unwrap_or_else(|| match (left, right, up, down) {
             (_, _, false, false) if left || right => '─',
             (false, false, _, _) if up || down => '│',
-            (true, false, false, true) => '╮',
-            (false, true, false, true) => '╭',
-            (true, false, true, false) => '╯',
-            (false, true, true, false) => '╰',
-            _ => '·',
+            sides => JOINTS.iter().find(|j| j.1 == sides).map_or('·', |j| j.0),
         });
         grid.set(c.0, c.1, dashed(l.stroke, glyph), flags);
     }

@@ -1828,3 +1828,27 @@ fn change_shape_overlay_draws_the_kind_rows() {
         }
     }
 }
+
+fn free_line(id: &str, from: (i32, i32), to: (i32, i32)) -> Element {
+    Element::Line(Line {
+        id: Id::from(id),
+        from: End::Free(from.0, from.1),
+        to: End::Free(to.0, to.1),
+        kind: LineKind::Line,
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        bends: vec![],
+        color: None,
+    })
+}
+
+#[test]
+fn a_branch_off_a_line_draws_a_junction_glyph() {
+    let mut c = Canvas::default();
+    c.elements.push(free_line("aaaaaaaa", (10, 10), (30, 10)));
+    c.elements.push(free_line("bbbbbbbb", (20, 10), (26, 14)));
+    let b = draw(&Session::new(c, View::default(), (80, 24)), &Overlay::None);
+    assert_eq!(cols(&b, 10, 19, 3), "─┬─");
+    assert_eq!(cols(&b, 14, 20, 2), "╰─");
+}
