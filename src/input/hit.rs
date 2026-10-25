@@ -19,9 +19,12 @@ pub enum Hit {
 pub fn handles(canvas: &Canvas, selection: &[Id]) -> Vec<(Handle, Id, (i32, i32))> {
     let id = match selection {
         [id] => id,
-        [_, _, ..] => match selection
+        [_, _, ..] => match canvas
+            .elements
             .iter()
-            .find(|id| frame_unit(canvas, id, selection))
+            .filter(|e| matches!(e, Element::Shape(s) if s.kind == ShapeKind::Frame))
+            .map(Element::id)
+            .find(|id| selection.contains(id) && frame_unit(canvas, id, selection))
         {
             Some(id) => id,
             None => return vec![],

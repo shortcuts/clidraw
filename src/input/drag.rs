@@ -126,17 +126,21 @@ fn closer(best: &mut Option<Match>, hit: Option<(i32, i32)>, other: &Shape) {
 
 /// Snaps the selection box, moved by `(dx, dy)`, to the nearest other shape per axis.
 fn align(s: &Session, dx: i32, dy: i32) -> (i32, i32, Vec<(P, P)>) {
+    let picked: HashSet<&Id> = s.selection.iter().collect();
     let Some((x0, y0, x1, y1)) = s
-        .selection
+        .canvas
+        .elements
         .iter()
-        .filter_map(|id| s.canvas.shape(id))
+        .filter_map(|e| match e {
+            Element::Shape(o) if picked.contains(&o.id) => Some(o),
+            _ => None,
+        })
         .map(|e| (e.x, e.y, e.x + e.w, e.y + e.h))
         .reduce(|a, r| (a.0.min(r.0), a.1.min(r.1), a.2.max(r.2), a.3.max(r.3)))
     else {
         return (dx, dy, vec![]);
     };
     let (mx, my, mw, mh) = (x0 + dx, y0 + dy, x1 - x0, y1 - y0);
-    let picked: HashSet<&Id> = s.selection.iter().collect();
     let (mut bx, mut by) = (None, None);
     // shortcut: linear scan, add a spatial index past ~50k shapes
     for o in s.canvas.elements.iter().filter_map(|e| match e {
@@ -556,15 +560,16 @@ fn bind(s: &mut Session, inv: &mut Vec<Command>, id: &Id, side: Side, world: P) 
 
 /// Free ends of lines outside the selection that sit under a selected shape.
 fn dropped_ends(s: &Session) -> Vec<(Id, Side, P)> {
+    let selected: HashSet<&Id> = s.selection.iter().collect();
     let mut found = vec![];
     for e in &s.canvas.elements {
         let Element::Line(l) = e else { continue };
-        if s.selection.contains(&l.id) {
+        if selected.contains(&l.id) {
             continue;
         }
         for (side, end) in [(Side::From, &l.from), (Side::To, &l.to)] {
             let End::Free(x, y) = end else { continue };
-            if hit::shape_at(&s.canvas, (*x, *y)).is_some_and(|sid| s.selection.contains(&sid)) {
+            if hit::shape_at(&s.canvas, (*x, *y)).is_some_and(|sid| selected.contains(&sid)) {
                 found.push((l.id.clone(), side, (*x, *y)));
             }
         }

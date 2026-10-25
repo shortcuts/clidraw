@@ -2,7 +2,8 @@ use super::geom::Axis;
 use super::{Canvas, Element, End, Find, Id, Line, ShapeKind};
 use std::cell::RefCell;
 use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap};
+use std::hash::{BuildHasherDefault, Hasher};
 
 type Pt = (i32, i32);
 type Rect = (i32, i32, i32, i32);
@@ -35,7 +36,31 @@ struct Item {
     rect: Rect,
 }
 
-type Buckets = HashMap<Pt, Vec<u32>>;
+/// Hashes a bucket key by multiplication: SipHash dominates the per-cell obstacle lookups.
+#[derive(Default)]
+struct CellHasher(u64);
+
+impl Hasher for CellHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        for &b in bytes {
+            self.write_u64(u64::from(b));
+        }
+    }
+
+    fn write_i32(&mut self, n: i32) {
+        self.write_u64(n as u32 as u64);
+    }
+
+    fn write_u64(&mut self, n: u64) {
+        self.0 = (self.0.rotate_left(5) ^ n).wrapping_mul(0x517c_c1b7_2722_0a95);
+    }
+}
+
+type Buckets = HashMap<Pt, Vec<u32>, BuildHasherDefault<CellHasher>>;
 
 /// A routed line and the box outside which no change can alter it.
 struct Cached {
@@ -141,20 +166,26 @@ impl Router {
     }
 
     fn near(&self, map: &Buckets, area: Rect) -> Vec<&Item> {
-        let mut ids: Vec<u32> = buckets(area)
-            .filter_map(|b| map.get(&b))
-            .flatten()
-            .copied()
-            .collect();
-        ids.sort_unstable();
-        ids.dedup();
         let (x, y, w, h) = area;
-        let items = ids.into_iter().map(|i| &self.items[i as usize]);
-        items
-            .filter(|i| {
-                let r = i.rect;
-                r.0 < x + w && r.0 + r.2 > x && r.1 < y + h && r.1 + r.3 > y
+        let (ax, ay) = (x.div_euclid(BUCKET), y.div_euclid(BUCKET));
+        // An item sits in several buckets: keep it in the first one the area also covers.
+        buckets(area)
+            .flat_map(|b| {
+                let ids = map.get(&b).map_or(&[][..], |v| v);
+                ids.iter().map(move |&i| (b, &self.items[i as usize]))
             })
+            .filter(|&(b, i)| {
+                let r = i.rect;
+                r.0 < x + w
+                    && r.0 + r.2 > x
+                    && r.1 < y + h
+                    && r.1 + r.3 > y
+                    && b == (
+                        ax.max(r.0.div_euclid(BUCKET)),
+                        ay.max(r.1.div_euclid(BUCKET)),
+                    )
+            })
+            .map(|(_, i)| i)
             .collect()
     }
 
@@ -183,10 +214,23 @@ impl Router {
             .filter(|i| plain.iter().any(|&p| has(i.rect, p)))
             .filter_map(line)
             .any(|l| {
-                let theirs: HashSet<Pt> = self.earlier(canvas, find, l, deps).into_iter().collect();
-                plain
-                    .iter()
-                    .any(|&p| p != a && p != b && theirs.contains(&p))
+                let meets = |theirs: &[Pt]| {
+                    plain
+                        .iter()
+                        .any(|&p| p != a && p != b && theirs.contains(&p))
+                };
+                let seen = self
+                    .routes
+                    .borrow()
+                    .get(&l.id)
+                    .map(|c| (c.foot, meets(&c.path)));
+                match seen {
+                    Some((foot, hit)) => {
+                        deps.push(foot);
+                        hit
+                    }
+                    None => meets(&self.earlier(canvas, find, l, deps)),
+                }
             })
     }
 
