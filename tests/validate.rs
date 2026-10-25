@@ -93,6 +93,12 @@ fn skipped_count_matches_statement_diagnostics() {
 }
 
 #[test]
+fn doubled_and_slanted_openers_validate_clean() {
+    let text = "flowchart TD\nA((x))\nB[[y]]\nC>z] --> D[\\w/]";
+    assert!(Flowchart.validate(text).is_empty());
+}
+
+#[test]
 fn unregistered_header_gets_one_hint() {
     let text = "sequenceDiagram\nA->>B: hi\nsubgraph x";
     let found = clidraw::diagram::validate(text);

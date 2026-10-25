@@ -18,11 +18,15 @@ const ARROWS: [(&str, LineKind, Stroke); 6] = [
     ("---", LineKind::Line, Stroke::Solid),
 ];
 
-// Two-character openers come first so `([` is not read as `(`.
-const BRACKETS: [(&str, &str, ShapeKind, Border); 7] = [
+// Longer openers come first so `([` is not read as `(`.
+const BRACKETS: [(&str, &str, ShapeKind, Border); 11] = [
+    ("((", "))", ShapeKind::Rect, Border::Rounded),
+    ("[[", "]]", ShapeKind::Rect, Border::Double),
     ("([", "])", ShapeKind::Rect, Border::Rounded),
     ("[(", ")]", ShapeKind::Cylinder, Border::Single),
     ("[/", "/]", ShapeKind::Parallelogram, Border::Single),
+    ("[\\", "/]", ShapeKind::Parallelogram, Border::Single),
+    (">", "]", ShapeKind::Rect, Border::Single),
     ("{{", "}}", ShapeKind::Hexagon, Border::Single),
     ("[", "]", ShapeKind::Rect, Border::Single),
     ("(", ")", ShapeKind::Rect, Border::Rounded),
@@ -79,6 +83,14 @@ fn chain(s: &str) -> Option<(Vec<Node>, Vec<Edge>)> {
         match b[i] {
             b'"' => in_quote = !in_quote,
             b'[' | b'(' | b'{' if !in_quote => depth += 1,
+            // `A>x]` opens with `>`; `-->` never follows an id character.
+            b'>' if !in_quote
+                && depth == 0
+                && i > 0
+                && (b[i - 1].is_ascii_alphanumeric() || b[i - 1] == b'_') =>
+            {
+                depth += 1
+            }
             b']' | b')' | b'}' if !in_quote => depth -= 1,
             _ if !in_quote && depth == 0 => {
                 if let Some(&(arrow, kind, stroke)) =

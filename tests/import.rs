@@ -93,6 +93,27 @@ fn stadium_imports_as_rounded_rect() {
 }
 
 #[test]
+fn doubled_and_slanted_openers_keep_only_the_inner_text() {
+    let out = Flowchart
+        .import("graph TD\nA((Circle))\nB[[Sub]]\nC>Flag] --> D[\\Trap/]")
+        .unwrap();
+    let got: Vec<_> = shapes(&out.canvas)
+        .iter()
+        .map(|s| (s.kind, s.border, s.label.as_str()))
+        .collect();
+    assert_eq!(
+        got,
+        [
+            (ShapeKind::Rect, Border::Rounded, "Circle"),
+            (ShapeKind::Rect, Border::Double, "Sub"),
+            (ShapeKind::Rect, Border::Single, "Flag"),
+            (ShapeKind::Parallelogram, Border::Single, "Trap"),
+        ]
+    );
+    assert_eq!(lines(&out.canvas).len(), 1);
+}
+
+#[test]
 fn arrow_inside_quotes_does_not_split() {
     let out = Flowchart
         .import("flowchart TD\nA[\"a --> b\"] --> B")
