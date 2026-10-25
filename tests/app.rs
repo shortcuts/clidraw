@@ -595,6 +595,20 @@ fn colon_q_quits_and_w_saves_without_waiting() {
 }
 
 #[test]
+fn quitting_during_a_text_edit_saves_the_typed_text() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.start_edit_new((5, 5));
+    type_str(&mut app, "hello", now);
+    ctrl_key(&mut app, 'c', now);
+    assert!(app.quit);
+    app.finish();
+    let saved = std::fs::read_to_string(t.path().join("c/demo.clidraw.json")).unwrap();
+    assert!(saved.contains("hello"), "{saved}");
+}
+
+#[test]
 fn colon_wq_saves_and_quits() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());

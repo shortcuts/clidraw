@@ -155,7 +155,7 @@ fn main() -> Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(out.handle()))?;
     let result = panic::catch_unwind(AssertUnwindSafe(|| run(&mut app, &out, &mut terminal)));
     restore();
-    app.save();
+    app.finish();
     match result {
         Ok(r) => r,
         Err(payload) => panic::resume_unwind(payload),

@@ -48,7 +48,7 @@ pub struct App {
 
 impl App {
     fn switch_to(&mut self, name: &str) {
-        self.save();
+        self.finish();
         let result = self.load_into(name);
         self.report(result);
     }
@@ -58,6 +58,11 @@ impl App {
             self.dirty = true;
             self.status = Some(ui::Status::error(e.to_string()));
         }
+    }
+
+    pub fn finish(&mut self) {
+        self.session.commit_edit();
+        self.save();
     }
 
     pub fn save(&mut self) {
