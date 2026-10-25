@@ -82,6 +82,112 @@ fn chain_makes_one_line_per_arrow() {
     );
 }
 
+/// `(from label, to label, kind, stroke, line label)` per line, in order.
+fn edges(c: &clidraw::model::Canvas) -> Vec<(String, String, LineKind, Stroke, String)> {
+    use clidraw::model::End;
+    let name = |end: &End| match end {
+        End::Bound(id, _) => shapes(c)
+            .iter()
+            .find(|s| &s.id == id)
+            .unwrap()
+            .label
+            .clone(),
+        _ => unreachable!(),
+    };
+    lines(c)
+        .iter()
+        .map(|l| {
+            (
+                name(&l.from),
+                name(&l.to),
+                l.kind,
+                l.stroke,
+                l.label.clone(),
+            )
+        })
+        .collect()
+}
+
+fn edge(
+    a: &str,
+    b: &str,
+    kind: LineKind,
+    stroke: Stroke,
+    text: &str,
+) -> (String, String, LineKind, Stroke, String) {
+    (a.into(), b.into(), kind, stroke, text.into())
+}
+
+#[test]
+fn edge_text_forms_label_the_line() {
+    let out = Flowchart
+        .import("graph TD\nA -- text --> B\nA -. t .-> C\nA == u ==> D\nA -- v --- E")
+        .unwrap();
+    assert_eq!(out.skipped, 0);
+    assert_eq!(
+        edges(&out.canvas),
+        [
+            edge("A", "B", LineKind::Arrow, Stroke::Solid, "text"),
+            edge("A", "C", LineKind::Arrow, Stroke::Dotted, "t"),
+            edge("A", "D", LineKind::Arrow, Stroke::Solid, "u"),
+            edge("A", "E", LineKind::Line, Stroke::Solid, "v"),
+        ]
+    );
+}
+
+#[test]
+fn thick_arrows_import_as_solid() {
+    let out = Flowchart
+        .import("graph TD\nA ==> B\nA === C\nA <==> D")
+        .unwrap();
+    assert_eq!(out.skipped, 0);
+    assert_eq!(
+        edges(&out.canvas),
+        [
+            edge("A", "B", LineKind::Arrow, Stroke::Solid, ""),
+            edge("A", "C", LineKind::Line, Stroke::Solid, ""),
+            edge("A", "D", LineKind::ArrowBoth, Stroke::Solid, ""),
+        ]
+    );
+}
+
+#[test]
+fn ampersand_fans_out_in_mermaid_order() {
+    let out = Flowchart
+        .import("graph TD\nA & B --> C\nE --> F & G\nH & I --> J & K")
+        .unwrap();
+    assert_eq!(out.skipped, 0);
+    let pairs: Vec<_> = edges(&out.canvas).into_iter().map(|e| (e.0, e.1)).collect();
+    let want = [
+        ("A", "C"),
+        ("B", "C"),
+        ("E", "F"),
+        ("E", "G"),
+        ("H", "J"),
+        ("H", "K"),
+        ("I", "J"),
+        ("I", "K"),
+    ];
+    assert_eq!(pairs, want.map(|(a, b)| (a.to_string(), b.to_string())));
+    assert_eq!(shapes(&out.canvas).len(), 10);
+}
+
+#[test]
+fn circle_and_cross_heads_import_as_arrows() {
+    let out = Flowchart
+        .import("graph TD\nA --o B\nA --x C\nA---oD")
+        .unwrap();
+    assert_eq!(out.skipped, 0);
+    assert_eq!(
+        edges(&out.canvas),
+        [
+            edge("A", "B", LineKind::Arrow, Stroke::Solid, ""),
+            edge("A", "C", LineKind::Arrow, Stroke::Solid, ""),
+            edge("A", "oD", LineKind::Line, Stroke::Solid, ""),
+        ]
+    );
+}
+
 #[test]
 fn stadium_imports_as_rounded_rect() {
     let out = Flowchart.import("graph TD\nA([hi])").unwrap();
@@ -147,7 +253,7 @@ fn lr_lays_out_left_to_right() {
 #[test]
 fn comments_are_not_skipped_lines() {
     let out = Flowchart
-        .import("flowchart TD\n%% note\nA --> B\nA -- text --> B")
+        .import("flowchart TD\n%% note\nA --> B\nA ==>")
         .unwrap();
     assert_eq!(out.skipped, 1);
 }

@@ -50,7 +50,7 @@ pub(super) fn validate(text: &str) -> Vec<Diagnostic> {
     let mut ids = HashSet::new();
     for (line, range) in lines {
         match parse_line(line) {
-            Ok(Stmt::Chain(nodes, _)) => ids.extend(nodes.into_iter().map(|n| n.id)),
+            Ok(Stmt::Chain(groups, _)) => ids.extend(groups.into_iter().flatten().map(|n| n.id)),
             Ok(
                 Stmt::Style {
                     unmatched: true, ..

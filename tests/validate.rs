@@ -14,6 +14,7 @@ fn valid_text_is_clean() {
         "flowchart TD\nA --> B",
         "flowchart TD\nA --> B --> C;\n%% note\nA[\"é\"] -->|x| C",
         "graph LR\r\nA --> B\r\n",
+        "flowchart TD\nA -- t --> B\nA ==> B\nA & B --> C\nA --o B\nA --x B",
         "flowchart TD\nA --> B\nstyle A fill:#6ea0ff3f,stroke:#ff5f5f\nlinkStyle 0 stroke:#ff5f5f\nclick A \"https://a.test\" _blank",
     ] {
         assert!(check(text).is_empty(), "{text:?}");
@@ -35,8 +36,12 @@ fn unsupported_lines_warn() {
 #[test]
 fn unreadable_lines_error() {
     assert_eq!(
-        check("flowchart TD\nA --> B\nA -->\nA --> ["),
-        [(Severity::Error, "A -->"), (Severity::Error, "A --> [")]
+        check("flowchart TD\nA --> B\nA -->\nA --> [\nA o--o B"),
+        [
+            (Severity::Error, "A -->"),
+            (Severity::Error, "A --> ["),
+            (Severity::Error, "A o--o B")
+        ]
     );
 }
 
@@ -84,7 +89,7 @@ fn too_many_nodes_errors_on_header() {
 fn skipped_count_matches_statement_diagnostics() {
     for text in [
         "flowchart TD\nA --> B",
-        "flowchart TD\nA --> B\nsubgraph x\nend\nA -->\nB -- t --> C",
+        "flowchart TD\nA --> B\nsubgraph x\nend\nA -->\nB ==>",
         "graph LR\n%% c\nstyle A x;\nA --> [\nclass A b\nA --> B;",
     ] {
         let skipped = Flowchart.import(text).unwrap().skipped;

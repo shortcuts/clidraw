@@ -10,13 +10,31 @@ pub(super) const MAX_SHAPES: usize = 2000;
 const UNSUPPORTED: [&str; 5] = ["classDef", "class", "subgraph", "end", "direction"];
 
 // Longest first, so `<-.->` wins over `-.->`.
-const ARROWS: [(&str, LineKind, Stroke); 6] = [
+// clidraw has one stroke weight and one head glyph, so `==>` reads as `-->` and `--o` as `-->`.
+const ARROWS: [(&str, LineKind, Stroke); 11] = [
     ("<-.->", LineKind::ArrowBoth, Stroke::Dotted),
+    ("<==>", LineKind::ArrowBoth, Stroke::Solid),
     ("<-->", LineKind::ArrowBoth, Stroke::Solid),
     ("-.->", LineKind::Arrow, Stroke::Dotted),
+    ("==>", LineKind::Arrow, Stroke::Solid),
     ("-.-", LineKind::Line, Stroke::Dotted),
     ("-->", LineKind::Arrow, Stroke::Solid),
     ("---", LineKind::Line, Stroke::Solid),
+    ("===", LineKind::Line, Stroke::Solid),
+    ("--o", LineKind::Arrow, Stroke::Solid),
+    ("--x", LineKind::Arrow, Stroke::Solid),
+];
+
+// `-- text -->`: (opener, closer, kind, stroke). The first closer in the text wins.
+const TEXT_ARROWS: [(&str, &str, LineKind, Stroke); 8] = [
+    ("--", "-->", LineKind::Arrow, Stroke::Solid),
+    ("--", "---", LineKind::Line, Stroke::Solid),
+    ("--", "--o", LineKind::Arrow, Stroke::Solid),
+    ("--", "--x", LineKind::Arrow, Stroke::Solid),
+    ("-.", ".->", LineKind::Arrow, Stroke::Dotted),
+    ("-.", ".-", LineKind::Line, Stroke::Dotted),
+    ("==", "==>", LineKind::Arrow, Stroke::Solid),
+    ("==", "===", LineKind::Line, Stroke::Solid),
 ];
 
 // Longer openers come first so `([` is not read as `(`.
@@ -75,10 +93,61 @@ fn node(tok: &str) -> Option<Node> {
 
 type Edge = (LineKind, Stroke, String);
 
-/// Splits `A --> B -.->|x| C` into nodes and edges. Arrows inside quotes or brackets do not split.
-fn chain(s: &str) -> Option<(Vec<Node>, Vec<Edge>)> {
+/// `--o` and `--x` end in a letter; `A---oB` is a line to node `oB`, so they need a boundary after.
+fn token_at(s: &str, i: usize, tok: &str) -> bool {
+    let rest = &s[i..];
+    rest.starts_with(tok)
+        && (!tok.ends_with(|c: char| c.is_ascii_alphabetic())
+            || rest[tok.len()..]
+                .chars()
+                .next()
+                .is_none_or(|c| c.is_whitespace() || c == '|'))
+}
+
+/// The arrow at `i`: where it ends and its edge. `None` when no well-formed arrow starts there.
+fn arrow_at(s: &str, i: usize) -> Option<(usize, Edge)> {
+    if let Some(&(tok, kind, stroke)) = ARROWS.iter().find(|a| token_at(s, i, a.0)) {
+        let end = i + tok.len();
+        let rest = s[end..].trim_start();
+        let Some(after) = rest.strip_prefix('|') else {
+            return Some((end, (kind, stroke, String::new())));
+        };
+        let mut q = false;
+        let close = after.bytes().position(|c| {
+            q ^= c == b'"';
+            c == b'|' && !q
+        })?;
+        let end = s.len() - after.len() + close + 1;
+        return Some((end, (kind, stroke, label(&after[..close]))));
+    }
+    let open = TEXT_ARROWS.iter().find(|t| {
+        s[i..]
+            .strip_prefix(t.0)
+            .is_some_and(|r| r.starts_with(char::is_whitespace))
+    })?;
+    let from = i + open.0.len();
+    let mut q = false;
+    for (j, c) in s[from..].char_indices() {
+        q ^= c == '"';
+        if q {
+            continue;
+        }
+        let at = from + j;
+        let closer = TEXT_ARROWS
+            .iter()
+            .find(|t| t.0 == open.0 && token_at(s, at, t.1));
+        if let Some(&(_, tok, kind, stroke)) = closer {
+            return Some((at + tok.len(), (kind, stroke, label(&s[from..at]))));
+        }
+    }
+    None
+}
+
+/// Splits `A & B --> C -.->|x| D` into node groups and the edge between each pair of groups.
+/// Arrows and `&` inside quotes or brackets do not split.
+fn chain(s: &str) -> Option<(Vec<Vec<Node>>, Vec<Edge>)> {
     let b = s.as_bytes();
-    let (mut nodes, mut edges) = (vec![], vec![]);
+    let (mut groups, mut edges, mut group) = (vec![], vec![], vec![]);
     let (mut start, mut i, mut depth, mut in_quote) = (0, 0, 0i32, false);
     while i < b.len() {
         match b[i] {
@@ -93,25 +162,16 @@ fn chain(s: &str) -> Option<(Vec<Node>, Vec<Edge>)> {
                 depth += 1
             }
             b']' | b')' | b'}' if !in_quote => depth -= 1,
+            b'&' if !in_quote && depth == 0 => {
+                group.push(node(&s[start..i])?);
+                start = i + 1;
+            }
             _ if !in_quote && depth == 0 => {
-                if let Some(&(arrow, kind, stroke)) =
-                    ARROWS.iter().find(|a| s[i..].starts_with(a.0))
-                {
-                    nodes.push(node(&s[start..i])?);
-                    i += arrow.len();
-                    let mut text = String::new();
-                    let rest = s[i..].trim_start();
-                    if let Some(after) = rest.strip_prefix('|') {
-                        let mut q = false;
-                        let close = after.bytes().position(|c| {
-                            q ^= c == b'"';
-                            c == b'|' && !q
-                        })?;
-                        text = label(&after[..close]);
-                        i = s.len() - after.len() + close + 1;
-                    }
-                    edges.push((kind, stroke, text));
-                    start = i;
+                if let Some((end, edge)) = arrow_at(s, i) {
+                    group.push(node(&s[start..i])?);
+                    groups.push(std::mem::take(&mut group));
+                    edges.push(edge);
+                    (start, i) = (end, end);
                     continue;
                 }
             }
@@ -119,8 +179,9 @@ fn chain(s: &str) -> Option<(Vec<Node>, Vec<Edge>)> {
         }
         i += 1;
     }
-    nodes.push(node(&s[start..])?);
-    Some((nodes, edges))
+    group.push(node(&s[start..])?);
+    groups.push(group);
+    Some((groups, edges))
 }
 
 pub(super) fn header(line: &str) -> Result<Dir, String> {
@@ -138,7 +199,7 @@ pub(super) enum Rejected {
 }
 
 pub(super) enum Stmt {
-    Chain(Vec<Node>, Vec<Edge>),
+    Chain(Vec<Vec<Node>>, Vec<Edge>),
     /// `unmatched` is set when a key or color has no clidraw equivalent.
     Style {
         id: String,
@@ -227,7 +288,7 @@ pub(super) fn parse_line(line: &str) -> Result<Stmt, Rejected> {
         return Err(Rejected::Unsupported(word));
     }
     chain(line)
-        .map(|(nodes, edges)| Stmt::Chain(nodes, edges))
+        .map(|(groups, edges)| Stmt::Chain(groups, edges))
         .ok_or(Rejected::Unparsable)
 }
 
@@ -244,8 +305,8 @@ pub(super) fn import(text: &str) -> Result<Imported, String> {
     let mut skipped = 0;
     let mut deferred = vec![];
     for line in lines {
-        let (nodes, links) = match parse_line(line) {
-            Ok(Stmt::Chain(nodes, links)) => (nodes, links),
+        let (groups, links) = match parse_line(line) {
+            Ok(Stmt::Chain(groups, links)) => (groups, links),
             Ok(stmt) => {
                 deferred.push(stmt);
                 continue;
@@ -255,21 +316,29 @@ pub(super) fn import(text: &str) -> Result<Imported, String> {
                 continue;
             }
         };
-        let slots: Vec<usize> = nodes
+        let slots: Vec<Vec<usize>> = groups
             .into_iter()
-            .map(|n| {
-                let at = *index.entry(n.id.clone()).or_insert_with(|| {
-                    shapes.push((n.id.clone(), ShapeKind::Rect, Border::Single, n.id));
-                    shapes.len() - 1
-                });
-                if let Some((kind, border, label)) = n.def {
-                    shapes[at] = (shapes[at].0.clone(), kind, border, label);
-                }
-                at
+            .map(|g| {
+                g.into_iter()
+                    .map(|n| {
+                        let at = *index.entry(n.id.clone()).or_insert_with(|| {
+                            shapes.push((n.id.clone(), ShapeKind::Rect, Border::Single, n.id));
+                            shapes.len() - 1
+                        });
+                        if let Some((kind, border, label)) = n.def {
+                            shapes[at] = (shapes[at].0.clone(), kind, border, label);
+                        }
+                        at
+                    })
+                    .collect()
             })
             .collect();
         for (pair, edge) in slots.windows(2).zip(links) {
-            edges.push((pair[0], pair[1], edge));
+            for &a in &pair[0] {
+                for &b in &pair[1] {
+                    edges.push((a, b, edge.clone()));
+                }
+            }
         }
     }
     if shapes.is_empty() {
