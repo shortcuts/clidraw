@@ -4,7 +4,7 @@ use super::{
     Anchor, Command, Element, End, Id, Line, Router, Shape, ShapeKind, Side, Text, VERSION,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 type Stop = ((i32, i32), Option<Axis>);
 
@@ -383,6 +383,7 @@ impl Canvas {
     }
 
     fn clone_mapped(&self, ids: &[Id], dx: i32, dy: i32) -> (Vec<Element>, HashMap<Id, Id>) {
+        let ids: HashSet<&Id> = ids.iter().collect();
         let bound_in = |end: &End| matches!(end, End::Bound(id, _) if ids.contains(id));
         let picked: Vec<&Element> = self
             .elements
@@ -513,7 +514,7 @@ impl Canvas {
             let (x, y, w, h) = self.extent_with(e, &find, &router);
             x >= ax && y >= ay && x + w <= ax + aw && y + h <= ay + ah
         };
-        let shapes_in: Vec<&Id> = self
+        let shapes_in: HashSet<&Id> = self
             .elements
             .iter()
             .filter(|e| !matches!(e, Element::Line(_)) && inside(e))
@@ -532,7 +533,8 @@ impl Canvas {
             })
             .cloned()
             .collect::<Vec<Element>>();
-        let groups = prune(self.groups.iter(), |m| kept.iter().any(|e| e.id() == m));
+        let kept_ids: HashSet<&Id> = kept.iter().map(|e| e.id()).collect();
+        let groups = prune(self.groups.iter(), |m| kept_ids.contains(m));
         Canvas {
             version: self.version,
             elements: kept,

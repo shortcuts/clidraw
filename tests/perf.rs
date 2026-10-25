@@ -888,6 +888,49 @@ fn mermaid_export_fits_the_budget_on_5000_elements() {
 
 #[test]
 #[ignore = "needs a release build: run `make perf`"]
+fn area_export_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let app = busy_app(t.path());
+    let area = (-10, -10, 1000, 1000);
+    assert_eq!(app.session.canvas.within(area).elements.len(), 5000);
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            std::hint::black_box(app.session.canvas.within(area));
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(
+        m < EXPORT_BUDGET,
+        "median area selection {m:?} exceeds {EXPORT_BUDGET:?}"
+    );
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn selection_clone_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let app = busy_app(t.path());
+    let canvas = &app.session.canvas;
+    let ids: Vec<Id> = canvas.elements.iter().map(|e| e.id().clone()).collect();
+    assert_eq!(canvas.clone_canvas(&ids, 2, 1).elements.len(), 5000);
+    let times = (0..FRAMES)
+        .map(|_| {
+            let t0 = Instant::now();
+            std::hint::black_box(canvas.clone_canvas(&ids, 2, 1));
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(
+        m < EXPORT_BUDGET,
+        "median selection clone {m:?} exceeds {EXPORT_BUDGET:?}"
+    );
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
 fn startup_fits_the_budget_on_5000_elements() {
     let t = tempfile::tempdir().unwrap();
     let app = busy_app(t.path());

@@ -74,11 +74,12 @@ impl App {
     /// Moves the rectangle down past every element it overlaps; each step raises `y`, so it ends.
     fn free_spot(&self, x: i32, mut y: i32, w: i32, h: i32) -> (i32, i32) {
         let canvas = &self.session.canvas;
+        let find = canvas.shape_lookup();
         loop {
             let bottom = canvas
                 .elements
                 .iter()
-                .map(|e| canvas.bounds(e))
+                .map(|e| canvas.bounds_with(e, &find))
                 .filter(|b| b.0 < x + w && x < b.0 + b.2 && b.1 < y + h && y < b.1 + b.3)
                 .map(|b| b.1 + b.3)
                 .max();
