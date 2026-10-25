@@ -1,4 +1,4 @@
-use crate::model::{Canvas, Command, VERSION};
+use crate::model::{Canvas, Command, ModelError, VERSION};
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
@@ -24,6 +24,7 @@ pub enum StoreError {
     TooNew(u32),
     Io(io::Error),
     Json(serde_json::Error),
+    Invalid(ModelError),
 }
 
 impl fmt::Display for StoreError {
@@ -34,6 +35,7 @@ impl fmt::Display for StoreError {
             StoreError::TooNew(v) => write!(f, "canvas file has version {v}, newer than {VERSION}"),
             StoreError::Io(e) => write!(f, "{e}"),
             StoreError::Json(e) => write!(f, "{e}"),
+            StoreError::Invalid(e) => write!(f, "invalid canvas: {e}"),
         }
     }
 }
@@ -170,7 +172,9 @@ impl Store {
         if v.version > VERSION {
             return Err(StoreError::TooNew(v.version));
         }
-        Ok(serde_json::from_slice(&bytes)?)
+        let canvas: Canvas = serde_json::from_slice(&bytes)?;
+        canvas.validate().map_err(StoreError::Invalid)?;
+        Ok(canvas)
     }
 
     /// Writes atomically. Returns false when the bytes on disk already match.

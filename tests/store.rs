@@ -261,3 +261,26 @@ fn bends_round_trip_and_an_empty_list_writes_no_key() {
     assert!(!serde_json::to_string(&sample()).unwrap().contains("bends"));
     assert!(serde_json::to_string(&c).unwrap().contains("bends"));
 }
+
+#[test]
+fn load_rejects_invalid_elements_and_names_them() {
+    let (t, s) = store();
+    let mut small = sample();
+    let Element::Shape(sh) = &mut small.elements[0] else {
+        unreachable!()
+    };
+    sh.w = -2;
+    let mut dangling = sample();
+    dangling.elements.remove(0);
+    for (bad, id) in [(small, "aaaaaaaa"), (dangling, "aaaaaaaa")] {
+        std::fs::create_dir_all(t.path().join("c")).unwrap();
+        std::fs::write(
+            t.path().join("c/bad.clidraw.json"),
+            serde_json::to_string(&bad).unwrap(),
+        )
+        .unwrap();
+        let err = s.load("bad").unwrap_err();
+        assert!(matches!(err, StoreError::Invalid(_)), "{err}");
+        assert!(err.to_string().contains(id), "{err}");
+    }
+}

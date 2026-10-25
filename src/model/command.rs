@@ -310,16 +310,10 @@ impl Canvas {
         match cmd {
             Command::Insert(i, e) => {
                 let id = e.id().clone();
-                if matches!(&e, Element::Shape(s) if s.w < MIN_SIZE || s.h < MIN_SIZE) {
-                    return Err(ModelError::TooSmall(id));
-                }
                 if self.index_of(&id).is_some() {
                     return Err(ModelError::Duplicate(id));
                 }
-                if let Element::Line(l) = &e {
-                    self.check_bound(&l.from, index)?;
-                    self.check_bound(&l.to, index)?;
-                }
+                self.check_element(&e, index)?;
                 self.elements.insert(i.min(self.elements.len()), e);
                 *index = None;
                 Ok(Command::Remove(id))
@@ -359,6 +353,27 @@ impl Canvas {
             }
             other => self.edit(other, index),
         }
+    }
+
+    fn check_element(&self, e: &Element, index: &Option<Index>) -> Result<(), ModelError> {
+        match e {
+            Element::Shape(s) if s.w < MIN_SIZE || s.h < MIN_SIZE => {
+                Err(ModelError::TooSmall(s.id.clone()))
+            }
+            Element::Line(l) => {
+                self.check_bound(&l.from, index)?;
+                self.check_bound(&l.to, index)
+            }
+            _ => Ok(()),
+        }
+    }
+
+    /// Runs the checks `Insert` runs on every element, for a canvas that skipped it.
+    pub fn validate(&self) -> Result<(), ModelError> {
+        let index = Some(self.index_map());
+        self.elements
+            .iter()
+            .try_for_each(|e| self.check_element(e, &index))
     }
 
     fn check_bound(&self, end: &End, index: &Option<Index>) -> Result<(), ModelError> {
