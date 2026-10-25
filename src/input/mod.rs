@@ -237,7 +237,7 @@ impl Session {
     }
 
     pub fn undo(&mut self) -> Option<String> {
-        if !self.idle() {
+        if !matches!(self.gesture, Gesture::Idle) {
             return None;
         }
         let label = self.history.undo(&mut self.canvas).ok()??;
@@ -247,7 +247,7 @@ impl Session {
     }
 
     pub fn redo(&mut self) -> Option<String> {
-        if !self.idle() {
+        if !matches!(self.gesture, Gesture::Idle) {
             return None;
         }
         let label = self.history.redo(&mut self.canvas).ok()??;
@@ -438,7 +438,7 @@ impl Session {
     }
 
     pub fn select_all(&mut self) {
-        if !self.idle() {
+        if !matches!(self.gesture, Gesture::Idle) {
             return;
         }
         self.selection = self
@@ -450,7 +450,7 @@ impl Session {
     }
 
     pub fn delete_selection(&mut self) {
-        if !self.idle() {
+        if !matches!(self.gesture, Gesture::Idle) {
             return;
         }
         let cmds = self
