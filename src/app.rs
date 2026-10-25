@@ -33,6 +33,7 @@ pub struct App {
     pub dirty: bool,
     pointer: &'static str,
     pointer_sent: &'static str,
+    copy: Option<String>,
     pick: Option<export::Pick>,
     store: Store,
     state: State,
@@ -228,6 +229,11 @@ impl App {
             .then_some(self.pointer)
     }
 
+    /// The OSC 52 sequence that copies the pending text, sent once.
+    pub fn take_copy(&mut self) -> Option<String> {
+        self.copy.take().map(|t| export::osc52(&t))
+    }
+
     fn dispatch(&mut self, ev: Event, now: Instant) {
         self.dirty |= !matches!(&ev, Event::Mouse(m) if m.kind == MouseEventKind::Moved);
         match ev {
@@ -390,6 +396,7 @@ impl App {
             MenuItem::ExportSvg => self.pick_scope(ExportFormat::Svg),
             MenuItem::ExportMermaid => self.pick_scope(ExportFormat::Mermaid),
             MenuItem::ExportClidraw => self.pick_scope(ExportFormat::Clidraw),
+            MenuItem::CopyClidraw => self.copy_clidraw(),
             MenuItem::Quit => self.quit = true,
         }
     }

@@ -10,6 +10,7 @@ pub enum MenuItem {
     ExportSvg,
     ExportMermaid,
     ExportClidraw,
+    CopyClidraw,
     Quit,
 }
 

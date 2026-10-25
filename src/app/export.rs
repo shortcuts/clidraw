@@ -114,6 +114,17 @@ impl App {
         }
     }
 
+    /// Copies the whole canvas as clidraw JSON, for an issue report or a prompt.
+    pub(super) fn copy_clidraw(&mut self) {
+        let (text, _) = export::render(
+            &self.session.canvas,
+            ExportFormat::Clidraw,
+            self.export_padding,
+        );
+        self.copy = Some(text);
+        self.status = Some(Status::notice("Copied clidraw JSON to the clipboard"));
+    }
+
     pub(super) fn write_export(&mut self, path: &str, format: ExportFormat, extent: Extent) {
         let canvas = match extent {
             Extent::Whole => self.session.canvas.clone(),
@@ -143,4 +154,22 @@ fn expand_home(path: &str) -> String {
         Some(dirs) => format!("{}{rest}", dirs.home_dir().display()),
         None => path.to_string(),
     }
+}
+
+/// Terminals that ignore OSC 52 drop it silently, so the copy then does nothing.
+pub(super) fn osc52(text: &str) -> String {
+    const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::from("\x1b]52;c;");
+    for c in text.as_bytes().chunks(3) {
+        let n = c.iter().fold(0u32, |n, b| n << 8 | u32::from(*b)) << (8 * (3 - c.len()));
+        for i in 0..4 {
+            out.push(if i <= c.len() {
+                B64[(n >> (18 - 6 * i) & 63) as usize] as char
+            } else {
+                '='
+            });
+        }
+    }
+    out.push_str("\x1b\\");
+    out
 }

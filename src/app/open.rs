@@ -41,6 +41,7 @@ impl App {
             dirty: true,
             pointer: "default",
             pointer_sent: "default",
+            copy: None,
             pick: None,
             store,
             state,

@@ -516,6 +516,13 @@ pub const BINDINGS: &[Binding] = &[
         Scope::Palette,
         Some(Action::Menu(MenuItem::ExportClidraw)),
     ),
+    Binding::new(
+        "copy_clidraw",
+        &[],
+        "Copy clidraw",
+        Scope::Palette,
+        Some(Action::Menu(MenuItem::CopyClidraw)),
+    ),
     ex("save", ":w", "Save", Some(Action::Ex("w"))),
     ex(
         "layout_td",

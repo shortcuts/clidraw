@@ -2908,3 +2908,18 @@ fn export_expands_a_leading_tilde() {
     type_path(&mut app, "~/tilde.svg", now);
     assert!(home.path().join("tilde.svg").exists());
 }
+
+#[test]
+fn palette_copy_clidraw_queues_the_canvas_as_osc52() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "copy clidraw", now);
+    assert_eq!(palette_labels(&app)[0], "File: Copy clidraw");
+    app.on_event(key(KeyCode::Enter), now);
+    let seq = app.take_copy().expect("copy queued");
+    assert!(seq.starts_with("\x1b]52;c;ewog") && seq.ends_with("\x1b\\"));
+    assert!(app.take_copy().is_none());
+}

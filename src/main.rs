@@ -52,6 +52,9 @@ fn draw_frame(
     if let Some(shape) = app.take_pointer() {
         write!(terminal.backend_mut(), "\x1b]22;={shape}\x1b\\")?;
     }
+    if let Some(seq) = app.take_copy() {
+        write!(terminal.backend_mut(), "{seq}")?;
+    }
     terminal.draw(|f| {
         let area = f.area();
         app.render(f.buffer_mut(), area)
