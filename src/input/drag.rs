@@ -654,6 +654,19 @@ mod tests {
     }
 
     #[test]
+    fn a_down_after_a_lost_up_records_the_drag() {
+        let mut s = Session::new(Canvas::default(), View::default(), (400, 40));
+        s.tool = Tool::Rect;
+        mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 20, 5);
+        mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 30, 9);
+        mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 60, 20);
+        mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 60, 20);
+        assert_eq!(s.canvas.elements.len(), 1);
+        assert!(s.undo().is_some());
+        assert!(s.canvas.elements.is_empty());
+    }
+
+    #[test]
     fn middle_drag_pans_over_an_element_in_any_tool() {
         let mut s = with_shape();
         s.tool = Tool::Rect;

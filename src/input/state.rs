@@ -305,6 +305,9 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         .last_down
         .is_some_and(|(c, r, t)| (c, r) == screen && now.duration_since(t) <= s.double_click);
     s.last_down = (!double).then_some((screen.0, screen.1, now));
+    if s.dragging() {
+        up(s, s.view.to_world(s.cursor.0, s.cursor.1));
+    }
     s.gesture = Gesture::Idle;
     if let Some(h) = palette::hit(s, screen.0, screen.1) {
         return palette_down(s, h);
