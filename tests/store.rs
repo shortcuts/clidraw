@@ -299,3 +299,11 @@ fn rename_moves_the_history_and_delete_removes_it() {
     s.delete("b").unwrap();
     assert!(!t.path().join("state/history/b.json").exists());
 }
+
+#[test]
+fn canvas_hash_is_fnv1a_so_saved_history_survives_toolchain_upgrades() {
+    let (t, s) = store();
+    std::fs::create_dir_all(t.path().join("c")).unwrap();
+    std::fs::write(t.path().join("c/h.clidraw.json"), "a").unwrap();
+    assert_eq!(s.canvas_hash("h"), Some(0xaf63dc4c8601ec8c));
+}

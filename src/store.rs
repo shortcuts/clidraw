@@ -1,10 +1,8 @@
 use crate::model::{Canvas, Command, ModelError, VERSION};
 use serde::{Deserialize, Serialize};
-use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::fs;
-use std::hash::{Hash, Hasher};
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -240,13 +238,13 @@ impl Store {
         Ok(self.state_dir.join("history").join(format!("{name}.json")))
     }
 
-    /// Hashes the canvas file on disk: the saved inverses only fit those exact bytes,
+    /// Hashes the canvas file on disk with FNV-1a, since std hashers change across releases: the saved inverses only fit those exact bytes,
     /// and the UI compares it to spot another process rewriting the file.
     pub fn canvas_hash(&self, name: &str) -> Option<u64> {
         let bytes = fs::read(self.path(name).ok()?).ok()?;
-        let mut h = DefaultHasher::new();
-        bytes.hash(&mut h);
-        Some(h.finish())
+        Some(bytes.iter().fold(0xcbf29ce484222325, |h, &b| {
+            (h ^ u64::from(b)).wrapping_mul(0x100000001b3)
+        }))
     }
 
     /// Call after `save`. An empty stack removes the file.
