@@ -372,6 +372,7 @@ impl Session {
             x: from.x + dx * (from.w + 4),
             y: from.y + dy * (from.h + 2),
             label: String::new(),
+            link: None,
             ..from.clone()
         };
         let line = Line {

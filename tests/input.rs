@@ -269,6 +269,20 @@ fn shift_l_adds_a_linked_shape_like_shift_right() {
 }
 
 #[test]
+fn shift_arrow_connect_does_not_copy_the_source_link() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    let Element::Shape(src) = &mut s.canvas.elements[0] else {
+        panic!("shape expected");
+    };
+    src.link = Some("https://x.test".into());
+    s.selection = vec![Id::from("aaaaaaaa")];
+    key(&mut s, KeyCode::Char('L'));
+    let sh = shapes(&s);
+    assert_eq!(sh[0].link.as_deref(), Some("https://x.test"));
+    assert_eq!(sh[1].link, None);
+}
+
+#[test]
 fn hjkl_without_a_selection_keep_the_tool() {
     let mut s = session();
     for c in ['h', 'j', 'k', 'l'] {
