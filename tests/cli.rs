@@ -291,3 +291,25 @@ fn edit_rejects_empty_ids_and_multiline_line_and_text_labels() {
         assert_eq!(show(t.path()), before);
     }
 }
+
+#[test]
+fn edit_move_repins_the_bends_of_lines_bound_to_the_shape() {
+    let t = seeded_empty();
+    assert!(run_stdin(t.path(), &["edit", "demo"], TWO_AND_AN_ARROW)
+        .status
+        .success());
+    let before = show(t.path())["elements"][2]["bends"].clone();
+    let r = run_stdin(
+        t.path(),
+        &["edit", "demo"],
+        r#"[{"op":"move","id":"b","dx":0,"dy":10}]"#,
+    );
+    assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
+    let after = show(t.path())["elements"][2]["bends"].clone();
+    assert_ne!(after, before);
+    assert_eq!(
+        after,
+        serde_json::json!([[12, 1], [12, 11]]),
+        "before: {before}"
+    );
+}

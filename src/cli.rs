@@ -245,7 +245,10 @@ fn edit(name: &str, store: &Store, stdin: &mut impl Read, out: &mut impl Write) 
     let mut created = vec![];
     let cmds = commands(ops, &mut created)?;
     let applied = cmds.len();
-    canvas.apply(Command::Batch(cmds))?;
+    let batch = Command::Batch(cmds);
+    let moved = batch.rerouting();
+    canvas.apply(batch)?;
+    canvas.apply(Command::Batch(canvas.pin_cmds(&moved)))?;
     store.save(name, &canvas)?;
     let ids: Vec<&str> = created.iter().map(|i| i.0.as_str()).collect();
     writeln!(
