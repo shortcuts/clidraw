@@ -125,32 +125,42 @@ pub fn parse_osc11(reply: &[u8]) -> Option<Theme> {
 #[cfg(unix)]
 pub fn detect() -> Option<Theme> {
     use std::io::Write;
-    use std::time::{Duration, Instant};
     let mut out = std::io::stdout();
     out.write_all(b"\x1b]11;?\x07\x1b[c").ok()?;
     out.flush().ok()?;
-    let deadline = Instant::now() + Duration::from_millis(100);
+    parse_osc11(&read_reply(0, REPLY_TIMEOUT))
+}
+
+/// Over SSH the reply arrives late, and crossterm would read the leftover bytes as keys.
+#[cfg(unix)]
+const REPLY_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(500);
+
+#[cfg(unix)]
+fn read_reply(fd: i32, timeout: std::time::Duration) -> Vec<u8> {
+    let deadline = std::time::Instant::now() + timeout;
     let mut reply = Vec::new();
     while !answered_da1(&reply) {
-        let left = deadline.checked_duration_since(Instant::now())?;
-        let mut fd = libc::pollfd {
-            fd: 0,
+        let Some(left) = deadline.checked_duration_since(std::time::Instant::now()) else {
+            break;
+        };
+        let mut pfd = libc::pollfd {
+            fd,
             events: libc::POLLIN,
             revents: 0,
         };
-        // SAFETY: `fd` is one valid pollfd and the count says 1.
-        if unsafe { libc::poll(&mut fd, 1, left.as_millis() as i32 + 1) } <= 0 {
+        // SAFETY: `pfd` is one valid pollfd and the count says 1.
+        if unsafe { libc::poll(&mut pfd, 1, left.as_millis() as i32 + 1) } <= 0 {
             break;
         }
         let mut chunk = [0u8; 128];
         // SAFETY: `chunk` is writable for its whole length.
-        let n = unsafe { libc::read(0, chunk.as_mut_ptr().cast(), chunk.len()) };
+        let n = unsafe { libc::read(fd, chunk.as_mut_ptr().cast(), chunk.len()) };
         if n <= 0 {
             break;
         }
         reply.extend_from_slice(&chunk[..n as usize]);
     }
-    parse_osc11(&reply)
+    reply
 }
 
 #[cfg(unix)]
@@ -263,6 +273,25 @@ mod tests {
         assert_eq!(p("\x1b]11;rgb:1e/1e/1e\x07\x1b[?62;c"), Some(Theme::Dark));
         assert_eq!(p("\x1b[?62;c"), None);
         assert_eq!(p("\x1b]11;rgb:zz/ff/ff\x07"), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_reply_after_150ms_is_read_before_the_event_loop_can_see_it() {
+        let mut fds = [0i32; 2];
+        // SAFETY: `fds` holds the two ints `pipe` fills.
+        assert_eq!(unsafe { libc::pipe(fds.as_mut_ptr()) }, 0);
+        let w = fds[1];
+        let writer = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            let reply = b"\x1b]11;rgb:ffff/ffff/ffff\x07\x1b[?62;c";
+            // SAFETY: `reply` is readable for its length and `w` is the open write end.
+            unsafe { libc::write(w, reply.as_ptr().cast(), reply.len()) };
+        });
+        let reply = read_reply(fds[0], REPLY_TIMEOUT);
+        writer.join().unwrap();
+        assert_eq!(parse_osc11(&reply), Some(Theme::Light));
+        assert!(answered_da1(&reply));
     }
 
     #[test]
