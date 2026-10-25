@@ -57,7 +57,7 @@ Run these commands from the repo root.
 - A perf fix starts with a perf test that fails against the budget.
 - The budgets are in the [Performance table](README.md#performance) of the README.
 
-`tests/golden.rs:142-149` compares the whole export with its golden file. `UPDATE_GOLDEN` rewrites the file.
+`check` in `tests/golden.rs` compares the whole export with its golden file. `UPDATE_GOLDEN` rewrites the file.
 
 ```rust
 fn check(name: &str, actual: &str) {
@@ -71,14 +71,14 @@ fn check(name: &str, actual: &str) {
 ```
 
 - Good: the `check` helper above.
-- Bad: `tests/golden.rs:165` asserts only that the output contains `<svg`. That line is fine for the empty canvas. A full export needs a golden file.
+- Bad: `empty_canvas_exports_without_panicking` in `tests/golden.rs` asserts only that the output contains `<svg`. That line is fine for the empty canvas. A full export needs a golden file.
 
 ## Diagram kinds
 
 A diagram kind reads and writes one text format. Each kind implements the `DiagramKind` trait in `src/diagram/mod.rs`. Flowchart is the only kind now.
 
 - Add a kind in its own module under `src/diagram/`. Implement `keywords`, `import`, `export` and `validate`.
-- Register the kind in `KINDS` (`src/diagram/mod.rs:48`, private to that module). The first word of the header picks the kind.
+- Register the kind in `KINDS` (in `src/diagram/mod.rs`, private to that module). The first word of the header picks the kind.
 - Callers outside `src/diagram/` name no kind. Use `diagram::validate` for live checks.
 - Validation returns each problem with a byte `range` into the text. `import_failure` turns that range into a line number.
 - `Error` marks a line the kind cannot read. `Warning` marks an unsupported construct or an empty diagram.
@@ -86,16 +86,16 @@ A diagram kind reads and writes one text format. Each kind implements the `Diagr
 - A fix ships only when its fixed text still parses.
 - Add a validation test in `tests/validate.rs` and an import test in `tests/import.rs`.
 
-`src/diagram/mod.rs:62` picks the kind by header word, so the UI calls one function.
+`validate` in `src/diagram/mod.rs` picks the kind by header word, so the UI calls one function.
 
 ```rust
 pub fn validate(text: &str) -> Vec<Diagnostic> {
 ```
 
 - Good: `validate` above. A new kind joins `KINDS`, and the UI does not change.
-- Bad: `src/export/mod.rs:17`, `src/app/import.rs:15` and `src/cli.rs:251` name `Flowchart` directly. A second kind needs changes in each. Add a dispatch function in `src/diagram/mod.rs` before you add a second kind.
+- Bad: `render` in `src/export/mod.rs`, `App::import_text` in `src/app/import.rs` and `import` in `src/cli.rs` name `Flowchart` directly. A second kind needs changes in each. Add a dispatch function in `src/diagram/mod.rs` before you add a second kind.
 
-A fix must change only the broken part. `src/diagram/flowchart/validate.rs:37` keeps a candidate only when `parse_line` accepts the fixed line.
+A fix must change only the broken part. `arrow_fix` in `src/diagram/flowchart/validate.rs` keeps a candidate only when `parse_line` accepts the fixed line.
 
 ```rust
 .find(|(.., fixed)| parse_line(fixed).is_ok())
@@ -110,7 +110,7 @@ A fix must change only the broken part. `src/diagram/flowchart/validate.rs:37` k
 
 The budgets are in the [Performance table](README.md#performance).
 
-`tests/perf.rs:177-185` reads `CLIDRAW_PERF_SLACK` and divides the median by it.
+`median` in `tests/perf.rs` reads `CLIDRAW_PERF_SLACK` and divides the median by it.
 
 ```rust
 fn median(mut v: Vec<Duration>) -> Duration {
@@ -179,7 +179,7 @@ last row    bottom bar    [Undo] [Redo]  MODE  key action  key action …   12x4
 - An open overlay dims everything under it.
 - Every action that the mouse can reach is also reachable by keyboard: a shortcut, a palette entry, or both.
 
-`src/ui/mod.rs:150` defines the box helper that every overlay uses.
+`boxed` in `src/ui/mod.rs` defines the box helper that every overlay uses.
 
 ```rust
 pub(crate) fn boxed(grid: &mut Grid, (x, y, w, h): (i32, i32, i32, i32), title: &str) {
@@ -206,7 +206,7 @@ Chrome code uses the named styles in the UI style module, never raw `BOLD`, `DIM
 
 The tokens live in `src/ui/style.rs`.
 
-- Good: `src/ui/list.rs:199` passes the `MUTED` token for the key column:
+- Good: `List::draw` in `src/ui/list.rs` passes the `MUTED` token for the key column:
 
   ```rust
   if on { ACTIVE } else { MUTED },
@@ -220,7 +220,7 @@ The tokens live in `src/ui/style.rs`.
 - Clickable cells: 1 column of padding on each side.
 - Measure every width with `unicode-width`, never with `str::len` or `chars().count()`.
 
-- Good: `src/ui/infobar.rs:7` names the gap, and `src/ui/infobar.rs:106` uses it.
+- Good: `GAP` in `src/ui/infobar.rs` names the gap, and `layout` uses it.
 
   ```rust
   const GAP: i32 = 2;
@@ -230,22 +230,22 @@ The tokens live in `src/ui/style.rs`.
   x -= width(&t) + GAP;
   ```
 
-- Bad: `src/ui/prompt.rs:65` measures the button with `len`, which counts bytes, not cells:
+- Bad: `hit` in `src/ui/prompt.rs` measures the button with `len`, which counts bytes, not cells:
 
   ```rust
   let ok = x + 2..x + 2 + OK.len() as i32;
   ```
 
-- Good width: `src/model/geom.rs:147` asks `unicode-width` for the cell width of a char.
+- Good width: `wrap` in `src/model/geom.rs` asks `unicode-width` for the cell width of a char.
 
   ```rust
   let cw = c.width().unwrap_or(0);
   ```
 
-- Bad width: `src/ui/perf.rs:43` counts code points, and a wide glyph takes two cells.
+- Bad width: `chars().count()` counts code points, and a wide glyph takes two cells.
 
   ```rust
-  let x = (grid.w - text.chars().count() as i32).max(0);
+  let w = name.chars().count() as i32 + 2;
   ```
 
 ### Copy
@@ -265,13 +265,13 @@ The tokens live in `src/ui/style.rs`.
 
 - Key notation, bad: n/a: no violation in the code.
 
-- Error status, good: `src/app/command.rs:24` names the usage.
+- Error status, good: `App::run_command` in `src/app/command.rs` names the usage.
 
   ```rust
   "e" if arg.trim().is_empty() => self.status = Some(Status::error("Usage: :e <name>")),
   ```
 
-- Error status, bad: `src/app/export.rs:20` starts with a lowercase word and gives no recovery step.
+- Error status, bad: a message that starts with a lowercase word and gives no recovery step.
 
   ```rust
   self.status = Some(Status::error("nothing selected"))
@@ -282,7 +282,7 @@ The tokens live in `src/ui/style.rs`.
 - A chrome change gets a render test: render the screen into a buffer and assert the row text.
 - Test each changed bar at 40, 60 and 120 columns.
 
-`tests/render.rs:69-81` renders the screen into a `TestBackend`, and `row` reads the text of one row.
+`render` in `tests/render.rs` renders the screen into a `TestBackend`, and `row` reads the text of one row.
 
 ```rust
 fn render(s: &Session, overlay: &Overlay) -> Buffer {

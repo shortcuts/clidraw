@@ -2,6 +2,7 @@ use super::grid::Grid;
 use super::style::ACTIVE;
 use std::collections::VecDeque;
 use std::time::Duration;
+use unicode_width::UnicodeWidthStr;
 
 const WINDOW: usize = 120;
 
@@ -40,7 +41,7 @@ impl Perf {
             self.last_bytes,
             elements
         );
-        let x = (grid.w - text.chars().count() as i32).max(0);
+        let x = (grid.w - text.width() as i32).max(0);
         grid.text(x, y, &text, ACTIVE);
     }
 }

@@ -95,7 +95,7 @@ clidraw takes its core model from [excalidraw](https://excalidraw.com) and [tldr
 - Auto layout, and Mermaid flowchart import.
 - A library of reusable snippets.
 - Shape links, exported to SVG and Mermaid.
-- Export to SVG, Mermaid and plain text.
+- Export to SVG, Mermaid and the clidraw save format.
 
 ### Not covered
 

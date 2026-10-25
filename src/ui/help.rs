@@ -1,6 +1,7 @@
 use super::registry::{Scope, BINDINGS};
 use super::style::{ACTIVE, MUTED};
 use super::{boxed, centered, Grid};
+use unicode_width::UnicodeWidthStr;
 
 pub const SCOPES: [&str; 6] = [
     "Canvas",
@@ -91,7 +92,7 @@ fn rect(screen: (u16, u16)) -> (i32, i32, i32, i32) {
 /// Column offset from the box edge and width of each tab, drawn as " name ".
 fn tabs() -> impl Iterator<Item = (usize, i32, i32)> {
     SCOPES.iter().enumerate().scan(2, |at, (i, name)| {
-        let w = name.chars().count() as i32 + 2;
+        let w = name.width() as i32 + 2;
         let start = *at;
         *at += w + 1;
         Some((i, start, w))
