@@ -2713,3 +2713,24 @@ fn change_shape_preview_is_not_saved() {
     assert!(saved.contains("\"kind\": \"Rect\""), "{saved}");
     assert!(!saved.contains("Diamond"), "{saved}");
 }
+
+#[test]
+fn failed_save_keeps_the_canvas_unsaved_and_retries() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let dir = t.path().join("c");
+    std::fs::remove_dir_all(&dir).unwrap();
+    std::fs::write(&dir, "").unwrap();
+    let t0 = Instant::now();
+    app.on_event(key(KeyCode::Char('r')), t0);
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 30, 9), t0);
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 30, 9), t0);
+
+    app.save();
+    assert!(last_row(&app).ends_with("demo ●"), "{}", last_row(&app));
+
+    std::fs::remove_file(&dir).unwrap();
+    app.tick(Instant::now() + Duration::from_secs(10));
+    assert!(last_row(&app).ends_with("demo"), "{}", last_row(&app));
+}
