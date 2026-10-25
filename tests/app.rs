@@ -2731,6 +2731,7 @@ fn failed_save_keeps_the_canvas_unsaved_and_retries() {
     assert!(last_row(&app).ends_with("demo ●"), "{}", last_row(&app));
 
     std::fs::remove_file(&dir).unwrap();
-    app.tick(Instant::now() + Duration::from_secs(10));
+    app.tick(t0);
+    app.tick(t0 + Duration::from_secs(10));
     assert!(last_row(&app).ends_with("demo"), "{}", last_row(&app));
 }

@@ -71,7 +71,6 @@ impl App {
         if self.saved_rev == self.session.rev {
             return;
         }
-        self.saved_rev = self.session.rev;
         let r = self
             .store
             .save(&self.name, &self.session.canvas)
@@ -79,6 +78,12 @@ impl App {
                 let undo = self.session.history.commands();
                 self.store.save_history(&self.name, undo)
             });
+        if r.is_ok() {
+            self.saved_rev = self.session.rev;
+        } else {
+            // Without this, next_wake returns zero and the loop spins on a failing save.
+            self.last_edit = Instant::now();
+        }
         self.report(r);
     }
 
