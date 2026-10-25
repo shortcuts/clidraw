@@ -1,4 +1,6 @@
-use clidraw::model::{Anchor, Canvas, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind};
+use clidraw::model::{
+    Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
+};
 use clidraw::store::{resolve_dir, validate_name, Store, StoreError};
 use std::path::PathBuf;
 
@@ -283,4 +285,17 @@ fn load_rejects_invalid_elements_and_names_them() {
         assert!(matches!(err, StoreError::Invalid(_)), "{err}");
         assert!(err.to_string().contains(id), "{err}");
     }
+}
+
+#[test]
+fn rename_moves_the_history_and_delete_removes_it() {
+    let (t, s) = store();
+    s.save("a", &sample()).unwrap();
+    s.save_history("a", vec![Command::Remove(Id::from("x"))])
+        .unwrap();
+    s.rename("a", "b").unwrap();
+    assert_eq!(s.load_history("b").len(), 1);
+    assert!(!t.path().join("state/history/a.json").exists());
+    s.delete("b").unwrap();
+    assert!(!t.path().join("state/history/b.json").exists());
 }

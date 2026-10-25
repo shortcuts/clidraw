@@ -2223,6 +2223,27 @@ fn switcher_renames_and_deletes_the_highlighted_canvas_from_the_keyboard() {
 }
 
 #[test]
+fn rename_and_delete_move_and_drop_the_saved_viewport() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let mut seed = clidraw::store::State::default();
+    seed.offsets.insert("demo".into(), (7, 9));
+    store.save_state(&seed).unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    open_canvases(&mut app, now);
+    app.on_event(key(KeyCode::Char('r')), now);
+    type_str(&mut app, "2", now);
+    app.on_event(key(KeyCode::Enter), now);
+    let state = store.load_state();
+    assert_eq!(state.offsets.get("demo2"), Some(&(7, 9)));
+    assert!(!state.offsets.contains_key("demo"));
+    app.on_event(key(KeyCode::Char('x')), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(!store.load_state().offsets.contains_key("demo2"));
+}
+
+#[test]
 fn switcher_moves_with_j_k_and_enter_on_the_current_canvas_closes() {
     use clidraw::ui::prompt::PromptKind;
     let t = tempfile::tempdir().unwrap();

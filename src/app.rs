@@ -500,11 +500,20 @@ impl App {
                     self.state.last = Some(buf.clone());
                     self.session.rev += 1;
                 }
+                if r.is_ok() {
+                    if let Some(o) = self.state.offsets.remove(&old) {
+                        self.state.offsets.insert(buf.clone(), o);
+                        let _ = self.store.save_state(&self.state);
+                    }
+                }
                 self.report(r);
                 self.open_switcher();
             }
             PromptKind::ConfirmDelete(name) => {
                 let r = self.store.delete(&name);
+                if r.is_ok() && self.state.offsets.remove(&name).is_some() {
+                    let _ = self.store.save_state(&self.state);
+                }
                 if r.is_ok() && name == self.name {
                     self.saved_rev = self.session.rev;
                     let next = self.store.list().ok().and_then(|l| l.into_iter().next());

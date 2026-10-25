@@ -209,11 +209,15 @@ impl Store {
         if b.exists() {
             return Err(StoreError::Exists(to.to_string()));
         }
-        Ok(fs::rename(a, b)?)
+        fs::rename(a, b)?;
+        let _ = fs::rename(self.history_path(from)?, self.history_path(to)?);
+        Ok(())
     }
 
     pub fn delete(&self, name: &str) -> Result<(), StoreError> {
-        Ok(fs::remove_file(self.path(name)?)?)
+        fs::remove_file(self.path(name)?)?;
+        let _ = fs::remove_file(self.history_path(name)?);
+        Ok(())
     }
 
     pub fn load_state(&self) -> State {
