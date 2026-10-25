@@ -903,6 +903,27 @@ fn an_elbow_goes_around_a_shape_in_its_way() {
     assert!(!cells.iter().any(|&p| inside(p, O)));
 }
 
+#[test]
+fn an_elbow_to_a_free_end_goes_around_a_shape_in_its_way() {
+    for end in [(19, 5), (19, 12), (19, 0), (64, 17)] {
+        let line = elbow("arrow000", bound("aaaaaaaa"), End::Free(end.0, end.1));
+        let c = Canvas {
+            elements: vec![
+                rect("aaaaaaaa", ShapeKind::Rect, (0, 4, 3, 3)),
+                rect("oooooooo", ShapeKind::Rect, O),
+                rect("pppppppp", ShapeKind::Rect, (30, 4, 10, 8)),
+                Element::Line(line.clone()),
+            ],
+            ..Canvas::default()
+        };
+        let cells = c.route(&line);
+        assert_eq!(cells[cells.len() - 1], end);
+        assert!(!cells.iter().any(|&p| inside(p, (30, 4, 10, 8))), "{end:?}");
+        walks(&cells);
+        assert!(!cells.iter().any(|&p| inside(p, O)), "{end:?}: {cells:?}");
+    }
+}
+
 fn diagonal(extra: Vec<Element>) -> (Canvas, Line) {
     let line = elbow("arrow000", bound("aaaaaaaa"), bound("bbbbbbbb"));
     let mut c = Canvas {
