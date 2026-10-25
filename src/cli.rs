@@ -91,7 +91,7 @@ fn fit(kind: ShapeKind, label: &str) -> (i32, i32) {
     Shape::snap_size(kind, w.max(6), h)
 }
 
-/// Rejects what the renderers cannot draw: an empty id, or a line break in a one-line label.
+/// Rejects what the renderers cannot draw: an empty id, a set with no field, or a line break in a one-line label.
 fn check(op: &Op) -> Result<()> {
     let (name, id, one_line) = match op {
         Op::AddShape { id, .. } => ("add_shape", id.as_ref(), None),
@@ -101,6 +101,12 @@ fn check(op: &Op) -> Result<()> {
             id.as_ref(),
             label.as_deref().map(|l| ("label", l)),
         ),
+        Op::Set {
+            label: None,
+            color: None,
+            fill: None,
+            ..
+        } => bail!("set: nothing to change"),
         Op::Set { id, .. } => ("set", Some(id), None),
         Op::Move { id, .. } => ("move", Some(id), None),
         Op::Delete { id } => ("delete", Some(id), None),
@@ -243,8 +249,8 @@ fn edit(name: &str, store: &Store, stdin: &mut impl Read, out: &mut impl Write) 
     stdin.read_to_string(&mut text)?;
     let ops: Vec<Op> = serde_json::from_str(&text)?;
     let mut created = vec![];
+    let applied = ops.len();
     let cmds = commands(ops, &mut created)?;
-    let applied = cmds.len();
     let batch = Command::Batch(cmds);
     let moved = batch.rerouting();
     canvas.apply(batch)?;

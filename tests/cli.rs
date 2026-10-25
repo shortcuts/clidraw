@@ -293,6 +293,25 @@ fn edit_rejects_empty_ids_and_multiline_line_and_text_labels() {
 }
 
 #[test]
+fn edit_counts_ops_and_rejects_a_set_that_changes_nothing() {
+    let t = seeded_empty();
+    let seed = r#"[{"op":"add_shape","id":"a","x":0,"y":0}]"#;
+    assert!(run_stdin(t.path(), &["edit", "demo"], seed)
+        .status
+        .success());
+    let ok = r#"[{"op":"set","id":"a","label":"x","color":"red","fill":"blue"},{"op":"move","id":"a","dx":1,"dy":0}]"#;
+    let r = run_stdin(t.path(), &["edit", "demo"], ok);
+    assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
+    let v: serde_json::Value = serde_json::from_str(&out(&r)).unwrap();
+    assert_eq!(v["applied"], 2);
+    let before = show(t.path());
+    let r = run_stdin(t.path(), &["edit", "demo"], r#"[{"op":"set","id":"a"}]"#);
+    assert!(!r.status.success());
+    assert!(String::from_utf8_lossy(&r.stderr).contains("set: nothing to change"));
+    assert_eq!(show(t.path()), before);
+}
+
+#[test]
 fn edit_move_repins_the_bends_of_lines_bound_to_the_shape() {
     let t = seeded_empty();
     assert!(run_stdin(t.path(), &["edit", "demo"], TWO_AND_AN_ARROW)
