@@ -2804,3 +2804,47 @@ fn reloads_an_external_edit_instead_of_overwriting_it() {
     app.on_event(key(KeyCode::Char('u')), t0);
     assert_eq!(app.session.canvas.elements.len(), 1, "history is cleared");
 }
+
+#[test]
+fn export_asks_before_overwriting_an_existing_file() {
+    use clidraw::ui::prompt::PromptKind;
+    let t = tempfile::tempdir().unwrap();
+    let (mut app, now) = area_app(t.path());
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 0, 2), now);
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 40, 8), now);
+    let out = t.path().join("keep.svg");
+    std::fs::write(&out, "old").unwrap();
+    type_path(&mut app, out.to_str().unwrap(), now);
+    assert!(matches!(
+        prompt_kind(&app),
+        Some(PromptKind::ConfirmOverwrite(..))
+    ));
+    assert_eq!(std::fs::read_to_string(&out).unwrap(), "old");
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(std::fs::read_to_string(&out).unwrap().contains("Alpha"));
+}
+
+#[test]
+fn export_cancelled_overwrite_keeps_the_file() {
+    let t = tempfile::tempdir().unwrap();
+    let (mut app, now) = area_app(t.path());
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 0, 2), now);
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 40, 8), now);
+    let out = t.path().join("keep.svg");
+    std::fs::write(&out, "old").unwrap();
+    type_path(&mut app, out.to_str().unwrap(), now);
+    app.on_event(key(KeyCode::Esc), now);
+    assert_eq!(std::fs::read_to_string(&out).unwrap(), "old");
+}
+
+#[test]
+fn export_expands_a_leading_tilde() {
+    let t = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let (mut app, now) = area_app(t.path());
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 0, 2), now);
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 40, 8), now);
+    std::env::set_var("HOME", home.path());
+    type_path(&mut app, "~/tilde.svg", now);
+    assert!(home.path().join("tilde.svg").exists());
+}

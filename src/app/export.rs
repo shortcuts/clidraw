@@ -105,6 +105,16 @@ impl App {
     }
 
     pub(super) fn export(&mut self, path: &str, format: ExportFormat, extent: Extent) {
+        let path = expand_home(path);
+        if std::path::Path::new(&path).exists() {
+            let kind = PromptKind::ConfirmOverwrite(path, format, extent);
+            self.overlay = Overlay::Prompt(Prompt::new(kind, String::new()));
+        } else {
+            self.write_export(&path, format, extent);
+        }
+    }
+
+    pub(super) fn write_export(&mut self, path: &str, format: ExportFormat, extent: Extent) {
         let canvas = match extent {
             Extent::Whole => self.session.canvas.clone(),
             Extent::Area(a) => self.session.canvas.within(a),
@@ -121,5 +131,16 @@ impl App {
             Ok(()) => Status::notice(format!("Exported {path}")),
             Err(e) => Status::error(format!("Export failed: {e}")),
         });
+    }
+}
+
+fn expand_home(path: &str) -> String {
+    let rest = match path.strip_prefix('~') {
+        Some(rest) if rest.is_empty() || rest.starts_with('/') => rest,
+        _ => return path.to_string(),
+    };
+    match directories::BaseDirs::new() {
+        Some(dirs) => format!("{}{rest}", dirs.home_dir().display()),
+        None => path.to_string(),
     }
 }

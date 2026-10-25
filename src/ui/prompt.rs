@@ -1,6 +1,7 @@
 use super::grid::REVERSE;
 use super::list::{Anchor, List, Row};
 use super::registry::{self, Binding};
+use super::scope::ExportFormat;
 use super::style::{ACTIVE, ERROR, MUTED};
 use super::{boxed, centered, Grid};
 use crate::diagram::{self, Severity};
@@ -20,6 +21,7 @@ pub enum PromptKind {
     ExportSvg(Extent),
     ExportMermaid(Extent),
     ExportClidraw(Extent),
+    ConfirmOverwrite(String, ExportFormat, Extent),
     NewCanvas,
     Rename(String),
     ConfirmDelete(String),
@@ -112,6 +114,7 @@ impl Prompt {
             PromptKind::NewCanvas => "New canvas name",
             PromptKind::Rename(_) => "Rename canvas to",
             PromptKind::ConfirmDelete(_) => "Delete canvas",
+            PromptKind::ConfirmOverwrite(..) => "Overwrite file",
             PromptKind::Command | PromptKind::Mermaid(_) => "",
         }
     }
@@ -139,6 +142,9 @@ pub fn draw(grid: &mut Grid, p: &Prompt) {
     match &p.kind {
         PromptKind::ConfirmDelete(name) => {
             grid.text(r.0 + 2, r.1 + 1, &format!("Delete \"{name}\"?"), 0)
+        }
+        PromptKind::ConfirmOverwrite(path, ..) => {
+            grid.text(r.0 + 2, r.1 + 1, &format!("Overwrite \"{path}\"?"), 0)
         }
         _ => caret_line(grid, r.0 + 2, r.1 + 1, r.2 - 4, "", p),
     }

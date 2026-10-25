@@ -487,6 +487,7 @@ impl App {
             PromptKind::ExportSvg(x) => self.export(&buf, ExportFormat::Svg, x),
             PromptKind::ExportMermaid(x) => self.export(&buf, ExportFormat::Mermaid, x),
             PromptKind::ExportClidraw(x) => self.export(&buf, ExportFormat::Clidraw, x),
+            PromptKind::ConfirmOverwrite(path, format, x) => self.write_export(&path, format, x),
             PromptKind::NewCanvas => match self.store.create(&buf) {
                 Ok(()) => self.switch_to(&buf),
                 Err(e) => self.status = Some(ui::Status::error(e.to_string())),
