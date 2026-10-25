@@ -265,6 +265,21 @@ fn export_padding_comes_from_the_config() {
     assert!(svg.contains("viewBox=\"0 0 "), "{svg}");
 }
 
+#[test]
+fn chrome_accent_survives_opening_a_canvas() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let cfg = Config {
+        chrome_accent: Some(ratatui::style::Color::Rgb(1, 2, 3)),
+        ..Config::default()
+    };
+    let app = App::open_with(store, Some("demo".into()), (80, 24), cfg, vec![]).unwrap();
+    assert_eq!(
+        app.session.chrome_accent,
+        Some(ratatui::style::Color::Rgb(1, 2, 3))
+    );
+}
+
 fn status_row_reversed(app: &App) -> bool {
     let area = Rect::new(0, 0, 80, 24);
     let mut buf = Buffer::empty(area);

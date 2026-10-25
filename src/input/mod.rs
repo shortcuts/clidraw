@@ -565,6 +565,7 @@ impl Session {
         *self = Session {
             double_click: self.double_click,
             grid: self.grid,
+            chrome_accent: self.chrome_accent,
             motion: self.motion,
             scroll_speed: self.scroll_speed,
             theme: self.theme,
