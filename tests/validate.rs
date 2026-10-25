@@ -14,6 +14,7 @@ fn valid_text_is_clean() {
         "flowchart TD\nA --> B",
         "flowchart TD\nA --> B --> C;\n%% note\nA[\"é\"] -->|x| C",
         "graph LR\r\nA --> B\r\n",
+        "flowchart TD\nA --> B\nstyle A fill:#6ea0ff3f,stroke:#ff5f5f\nlinkStyle 0 stroke:#ff5f5f\nclick A \"https://a.test\" _blank",
     ] {
         assert!(check(text).is_empty(), "{text:?}");
     }

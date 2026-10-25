@@ -1,5 +1,5 @@
 use clidraw::diagram::{DiagramKind, Flowchart};
-use clidraw::model::{Border, Element, LineKind, Shape, ShapeKind, Stroke};
+use clidraw::model::{Border, Element, LineKind, Paint, Shape, ShapeKind, Stroke};
 
 fn shapes(c: &clidraw::model::Canvas) -> Vec<&Shape> {
     c.elements
@@ -53,7 +53,24 @@ fn sample_round_trip() {
     assert_eq!(l[0].label, "go");
     assert_eq!((l[1].kind, l[1].stroke), (LineKind::Line, Stroke::Dotted));
     assert_eq!(l[3].kind, LineKind::ArrowBoth);
-    assert_eq!(out.skipped, 4);
+    assert_eq!(out.skipped, 0);
+    assert_eq!(
+        (s[0].fill, s[0].color),
+        (Some(Paint::Blue), Some(Paint::Red))
+    );
+    assert_eq!((s[6].fill, s[6].color), (Some(Paint::Yellow), None));
+    assert_eq!(s[0].link.as_deref(), Some("https://example.com/a?x=1&y=2"));
+    assert_eq!(l[0].color, Some(Paint::Red));
+}
+
+#[test]
+fn off_palette_style_keeps_the_match_and_counts_skipped() {
+    let out = Flowchart
+        .import("flowchart TD\nA --> B\nstyle A fill:#123456,stroke:#ff5f5f\nstyle Z fill:#ff5f5f")
+        .unwrap();
+    let s = shapes(&out.canvas);
+    assert_eq!((s[0].fill, s[0].color), (None, Some(Paint::Red)));
+    assert_eq!(out.skipped, 2);
 }
 
 #[test]

@@ -1,21 +1,12 @@
 use super::super::Imported;
 use crate::model::{
-    Anchor, Border, Canvas, Dir, Element, End, Id, Line, LineKind, Shape, ShapeKind, Stroke,
+    Anchor, Border, Canvas, Dir, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind, Stroke,
 };
 use std::collections::HashMap;
 
 pub(super) const MAX_SHAPES: usize = 2000;
 
-const UNSUPPORTED: [&str; 8] = [
-    "style",
-    "linkStyle",
-    "classDef",
-    "class",
-    "subgraph",
-    "end",
-    "click",
-    "direction",
-];
+const UNSUPPORTED: [&str; 5] = ["classDef", "class", "subgraph", "end", "direction"];
 
 // Longest first, so `<-.->` wins over `-.->`.
 const ARROWS: [(&str, LineKind, Stroke); 6] = [
@@ -133,14 +124,98 @@ pub(super) enum Rejected {
     Unparsable,
 }
 
+pub(super) enum Stmt {
+    Chain(Vec<Node>, Vec<Edge>),
+    /// `unmatched` is set when a key or color has no clidraw equivalent.
+    Style {
+        id: String,
+        fill: Option<Paint>,
+        color: Option<Paint>,
+        unmatched: bool,
+    },
+    LinkStyle {
+        index: usize,
+        color: Option<Paint>,
+        unmatched: bool,
+    },
+    Click {
+        id: String,
+        url: String,
+    },
+}
+
+/// The palette color whose RGB equals `#rrggbb`, ignoring an alpha suffix.
+fn paint(value: &str) -> Option<Paint> {
+    let hex = value.strip_prefix('#')?;
+    let rgb = u32::from_str_radix(hex.get(..6)?, 16).ok()?;
+    let rgb = ((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8);
+    Paint::ALL.into_iter().find(|p| p.rgb() == rgb)
+}
+
+/// Reads `fill:..,stroke:..,color:..`. Stroke and color both feed the one clidraw color.
+fn style_keys(keys: &str) -> (Option<Paint>, Option<Paint>, bool) {
+    let (mut fill, mut color, mut unmatched) = (None, None, false);
+    for (key, value) in keys.split(',').filter_map(|kv| kv.trim().split_once(':')) {
+        let found = paint(value.trim());
+        match key.trim() {
+            "fill" if found.is_some() => fill = found,
+            "stroke" | "color" if found.is_some() => color = found,
+            _ => unmatched = true,
+        }
+    }
+    (fill, color, unmatched)
+}
+
+fn style_stmt(word: &str, rest: &str) -> Option<Stmt> {
+    let (target, keys) = rest.split_once(char::is_whitespace)?;
+    let (fill, color, unmatched) = style_keys(keys);
+    if word == "style" {
+        return Some(Stmt::Style {
+            id: target.into(),
+            fill,
+            color,
+            unmatched,
+        });
+    }
+    Some(Stmt::LinkStyle {
+        index: target.parse().ok()?,
+        color,
+        unmatched,
+    })
+}
+
+fn click_stmt(rest: &str) -> Option<Stmt> {
+    let (id, rest) = rest.split_once(char::is_whitespace)?;
+    let url = rest.trim_start().strip_prefix('"')?;
+    Some(Stmt::Click {
+        id: id.into(),
+        url: url[..url.find('"')?].into(),
+    })
+}
+
 /// Reads one trimmed statement line. `import` and `validate` share it so they never disagree.
-pub(super) fn parse_line(line: &str) -> Result<(Vec<Node>, Vec<Edge>), Rejected> {
+pub(super) fn parse_line(line: &str) -> Result<Stmt, Rejected> {
     let line = line.strip_suffix(';').unwrap_or(line);
-    let first = line.split_whitespace().next().unwrap_or("");
-    if let Some(word) = UNSUPPORTED.iter().find(|&&w| w == first) {
+    let (first, rest) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
+    let rest = rest.trim();
+    let read = match first {
+        "style" | "linkStyle" => style_stmt(first, rest),
+        "click" => click_stmt(rest),
+        _ => None,
+    };
+    if let Some(stmt) = read {
+        return Ok(stmt);
+    }
+    if let Some(word) = ["style", "linkStyle", "click"]
+        .iter()
+        .chain(&UNSUPPORTED)
+        .find(|&&w| w == first)
+    {
         return Err(Rejected::Unsupported(word));
     }
-    chain(line).ok_or(Rejected::Unparsable)
+    chain(line)
+        .map(|(nodes, edges)| Stmt::Chain(nodes, edges))
+        .ok_or(Rejected::Unparsable)
 }
 
 pub(super) fn import(text: &str) -> Result<Imported, String> {
@@ -154,10 +229,18 @@ pub(super) fn import(text: &str) -> Result<Imported, String> {
     let mut index: HashMap<String, usize> = HashMap::new();
     let mut edges: Vec<(usize, usize, Edge)> = vec![];
     let mut skipped = 0;
+    let mut deferred = vec![];
     for line in lines {
-        let Ok((nodes, links)) = parse_line(line) else {
-            skipped += 1;
-            continue;
+        let (nodes, links) = match parse_line(line) {
+            Ok(Stmt::Chain(nodes, links)) => (nodes, links),
+            Ok(stmt) => {
+                deferred.push(stmt);
+                continue;
+            }
+            Err(_) => {
+                skipped += 1;
+                continue;
+            }
         };
         let slots: Vec<usize> = nodes
             .into_iter()
@@ -227,6 +310,42 @@ pub(super) fn import(text: &str) -> Result<Imported, String> {
             bends: vec![],
             color: None,
         }));
+    }
+    let shape_count = index.len();
+    for stmt in deferred {
+        match stmt {
+            Stmt::Style {
+                id,
+                fill,
+                color,
+                unmatched,
+            } => {
+                skipped += usize::from(unmatched);
+                match index.get(&id).map(|&i| &mut canvas.elements[i]) {
+                    Some(Element::Shape(s)) => {
+                        s.fill = fill.or(s.fill);
+                        s.color = color.or(s.color);
+                    }
+                    _ => skipped += 1,
+                }
+            }
+            Stmt::LinkStyle {
+                index: n,
+                color,
+                unmatched,
+            } => {
+                skipped += usize::from(unmatched);
+                match canvas.elements.get_mut(shape_count + n) {
+                    Some(Element::Line(l)) => l.color = color.or(l.color),
+                    _ => skipped += 1,
+                }
+            }
+            Stmt::Click { id, url } => match index.get(&id).map(|&i| &mut canvas.elements[i]) {
+                Some(Element::Shape(s)) => s.link = Some(url),
+                _ => skipped += 1,
+            },
+            Stmt::Chain(..) => unreachable!(),
+        }
     }
     // shortcut: `layout` finds each endpoint by linear scan, so the node cap bounds its cost.
     for cmd in canvas.layout(&ids, dir) {

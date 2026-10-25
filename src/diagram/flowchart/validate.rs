@@ -1,4 +1,4 @@
-use super::import::{header, parse_line, Rejected, MAX_SHAPES};
+use super::import::{header, parse_line, Rejected, Stmt, MAX_SHAPES};
 use crate::diagram::{statements, Diagnostic, Fix, Severity};
 use std::collections::HashSet;
 use std::ops::Range;
@@ -50,7 +50,20 @@ pub(super) fn validate(text: &str) -> Vec<Diagnostic> {
     let mut ids = HashSet::new();
     for (line, range) in lines {
         match parse_line(line) {
-            Ok((nodes, _)) => ids.extend(nodes.into_iter().map(|n| n.id)),
+            Ok(Stmt::Chain(nodes, _)) => ids.extend(nodes.into_iter().map(|n| n.id)),
+            Ok(
+                Stmt::Style {
+                    unmatched: true, ..
+                }
+                | Stmt::LinkStyle {
+                    unmatched: true, ..
+                },
+            ) => out.push(diagnostic(
+                Severity::Warning,
+                "Only fill, stroke and color set to a clidraw palette color are imported".into(),
+                range,
+            )),
+            Ok(_) => {}
             Err(Rejected::Unsupported(word)) => out.push(diagnostic(
                 Severity::Warning,
                 format!("`{word}` is not supported and is skipped on import"),
