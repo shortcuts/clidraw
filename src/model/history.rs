@@ -63,7 +63,15 @@ impl History {
         let Some((cmd, label)) = from.pop() else {
             return Ok(None);
         };
-        to.push((c.apply(cmd)?, label.clone()));
-        Ok(Some(label))
+        match c.apply(cmd.clone()) {
+            Ok(inverse) => {
+                to.push((inverse, label.clone()));
+                Ok(Some(label))
+            }
+            Err(e) => {
+                from.push((cmd, label));
+                Err(e)
+            }
+        }
     }
 }

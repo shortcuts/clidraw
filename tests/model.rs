@@ -422,6 +422,19 @@ fn history_keeps_only_the_newest_entries_up_to_its_limit() {
     assert_eq!(c.elements.len(), 2);
 }
 
+#[test]
+fn a_failed_undo_keeps_its_entry() {
+    let mut c = Canvas::default();
+    let mut h = History::default();
+    h.exec(&mut c, Command::Insert(0, shape("shape000", 0)))
+        .unwrap();
+    c.elements.clear();
+    assert!(h.undo(&mut c).is_err());
+    c.elements.push(shape("shape000", 0));
+    assert!(h.undo(&mut c).unwrap().is_some());
+    assert!(c.elements.is_empty());
+}
+
 fn framed(id: &str, x: i32, w: i32) -> Element {
     let Element::Shape(s) = shape(id, x) else {
         unreachable!()

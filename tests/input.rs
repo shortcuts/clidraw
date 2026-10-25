@@ -1171,6 +1171,25 @@ fn diagram() -> Session {
 }
 
 #[test]
+fn undo_redo_delete_and_select_all_keys_do_nothing_mid_drag() {
+    let mut s = diagram();
+    let t = Instant::now();
+    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 8, 7, t);
+    mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 10, 7, t);
+    assert!(s.dragging());
+    let (elements, selection) = (s.canvas.elements.clone(), s.selection.clone());
+    key(&mut s, KeyCode::Char('u'));
+    key(&mut s, KeyCode::Delete);
+    key(&mut s, KeyCode::Backspace);
+    ctrl(&mut s, 'r');
+    ctrl(&mut s, 'a');
+    assert_eq!(
+        (s.canvas.elements.clone(), s.selection.clone()),
+        (elements, selection)
+    );
+}
+
+#[test]
 fn copy_paste_adds_offset_copies_in_one_undo_step() {
     let mut s = diagram();
     ctrl(&mut s, 'a');

@@ -237,6 +237,9 @@ impl Session {
     }
 
     pub fn undo(&mut self) -> Option<String> {
+        if !self.idle() {
+            return None;
+        }
         let label = self.history.undo(&mut self.canvas).ok()??;
         self.rev += 1;
         self.prune_selection();
@@ -244,6 +247,9 @@ impl Session {
     }
 
     pub fn redo(&mut self) -> Option<String> {
+        if !self.idle() {
+            return None;
+        }
         let label = self.history.redo(&mut self.canvas).ok()??;
         self.rev += 1;
         self.prune_selection();
@@ -432,6 +438,9 @@ impl Session {
     }
 
     pub fn select_all(&mut self) {
+        if !self.idle() {
+            return;
+        }
         self.selection = self
             .canvas
             .elements
@@ -441,6 +450,9 @@ impl Session {
     }
 
     pub fn delete_selection(&mut self) {
+        if !self.idle() {
+            return;
+        }
         let cmds = self
             .selection
             .iter()
