@@ -1409,6 +1409,26 @@ fn a_straight_stub_still_wins_when_free() {
     );
 }
 
+#[test]
+fn a_start_beside_the_end_cell_makes_no_parallel_hairpin() {
+    let line = elbow(
+        "arrow001",
+        anchored("aaaaaaaa", Anchor::Left(1)),
+        anchored("bbbbbbbb", Anchor::Top(12)),
+    );
+    let c = Canvas {
+        elements: vec![
+            rect("aaaaaaaa", ShapeKind::Rect, (59, 6, 5, 3)),
+            rect("bbbbbbbb", ShapeKind::Rect, (45, 8, 13, 4)),
+            Element::Line(line.clone()),
+        ],
+        ..Canvas::default()
+    };
+    let cells = c.route(&line);
+    walks(&cells);
+    assert_eq!(cells, [(58, 7), (57, 7), (57, 6), (56, 6), (56, 7)]);
+}
+
 fn anchored(id: &str, a: Anchor) -> End {
     End::Bound(Id::from(id), a)
 }

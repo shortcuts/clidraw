@@ -310,11 +310,15 @@ impl Router {
                 has(i.rect, p) && !is_end(i)
             })
         };
+        // A start beside the end cell cannot clear a long stub without a parallel U.
+        let close = (a.0 - b.0).abs().max((a.1 - b.1).abs()) <= LANE;
         // The cells before the end cell run straight away from the shape, so the head points at it.
         // Arrows sharing a side get a longer run, so they look merged while keeping their own end cells.
         let stub: Option<Vec<Pt>> = ax_b.and_then(|_| {
             let out = DIRS.iter().find(|d| has(held[1], (b.0 + d.0, b.1 + d.1)))?;
-            let len = if self.lane_sibling(canvas, find, own, held[1], b, *out) {
+            let len = if close {
+                1
+            } else if self.lane_sibling(canvas, find, own, held[1], b, *out) {
                 LANE
             } else {
                 STUB
@@ -424,7 +428,11 @@ impl Router {
         let enter = |c: usize, turn: bool, d: usize| {
             let v = grid[c];
             STEP + u64::from(turn) * BEND
-                + if c == goal && !last(d) { LINE } else { 0 }
+                + if c == goal && !close && !last(d) {
+                    LINE
+                } else {
+                    0
+                }
                 + if v & 2 != 0 { LINE } else { 0 }
                 + if v & 1 != 0 { SOLID } else { 0 }
         };
