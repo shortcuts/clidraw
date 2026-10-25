@@ -1557,3 +1557,26 @@ fn two_detouring_arrows_in_one_corridor_share_no_segment() {
     s.x += 1;
     assert_eq!(shared_segments(&c), vec![]);
 }
+
+#[test]
+fn shapes_below_min_size_are_rejected() {
+    let mut c = Canvas::default();
+    let err = c.apply(Command::Insert(0, at("aaaaaaaa", 0, 0, -5, 4)));
+    assert_eq!(
+        err.unwrap_err().to_string(),
+        "element aaaaaaaa is smaller than 3x3"
+    );
+    assert!(c.elements.is_empty());
+    c.apply(Command::Insert(0, at("aaaaaaaa", 0, 0, 3, 3)))
+        .unwrap();
+    let set = |w, h| Command::SetRect {
+        id: Id::from("aaaaaaaa"),
+        x: 0,
+        y: 0,
+        w,
+        h,
+    };
+    assert!(c.apply(set(2, 3)).is_err());
+    assert!(c.apply(set(3, 0)).is_err());
+    assert!(c.apply(set(4, 3)).is_ok());
+}

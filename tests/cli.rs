@@ -243,3 +243,14 @@ fn export_clidraw_to_stdout_is_the_saved_canvas() {
     let store = Store::at(t.path().join("c"), t.path().join("state"));
     assert_eq!(exported, store.load("demo").unwrap());
 }
+
+#[test]
+fn edit_rejects_a_shape_below_min_size() {
+    let t = seeded_empty();
+    let before = show(t.path());
+    let bad = r#"[{"op":"add_shape","id":"a","x":0,"y":0,"w":-5,"h":4,"fill":"red"}]"#;
+    let r = run_stdin(t.path(), &["edit", "demo"], bad);
+    assert!(!r.status.success());
+    assert!(String::from_utf8_lossy(&r.stderr).contains("element a is smaller than 3x3"));
+    assert_eq!(show(t.path()), before);
+}

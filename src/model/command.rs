@@ -1,6 +1,7 @@
 use super::canvas::{Index, BULK};
 use super::{
     Border, Canvas, Element, End, Id, LineKind, ModelError, Paint, ShapeKind, Stroke, TextAlign,
+    MIN_SIZE,
 };
 use serde::{Deserialize, Serialize};
 
@@ -309,6 +310,9 @@ impl Canvas {
         match cmd {
             Command::Insert(i, e) => {
                 let id = e.id().clone();
+                if matches!(&e, Element::Shape(s) if s.w < MIN_SIZE || s.h < MIN_SIZE) {
+                    return Err(ModelError::TooSmall(id));
+                }
                 if self.index_of(&id).is_some() {
                     return Err(ModelError::Duplicate(id));
                 }
@@ -417,6 +421,9 @@ impl Canvas {
                 })
             }
             Command::SetRect { id, x, y, w, h } => {
+                if w < MIN_SIZE || h < MIN_SIZE {
+                    return Err(ModelError::TooSmall(id));
+                }
                 let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
                 let Element::Shape(s) = &mut self.elements[i] else {
                     return Err(wrong(&id));
