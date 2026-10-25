@@ -298,7 +298,7 @@ impl Canvas {
         (a, b)
     }
 
-    /// Smallest box (x, y, w, h) holding the element.
+    /// Smallest box (x, y, w, h) holding the element. A line's box spans its end cells and bends, not its detour.
     pub fn bounds(&self, e: &Element) -> (i32, i32, i32, i32) {
         self.bounds_with(e, &|id| self.shape(id))
     }
@@ -323,11 +323,35 @@ impl Canvas {
         }
     }
 
+    /// Like `bounds_with`, but a line's box spans the route it takes.
+    pub fn extent_with<'a>(
+        &'a self,
+        e: &Element,
+        find: &Find<'a>,
+        router: &Router,
+    ) -> (i32, i32, i32, i32) {
+        let Element::Line(l) = e else {
+            return self.bounds_with(e, find);
+        };
+        self.route_with(l, find, router)
+            .into_iter()
+            .map(|(x, y)| (x, y, 1, 1))
+            .reduce(union)
+            .expect("a route has a cell")
+    }
+
     pub fn all_bounds(&self) -> Option<(i32, i32, i32, i32)> {
-        let find = self.shape_lookup();
+        self.all_bounds_with(&self.shape_lookup(), &self.router())
+    }
+
+    pub fn all_bounds_with<'a>(
+        &'a self,
+        find: &Find<'a>,
+        router: &Router,
+    ) -> Option<(i32, i32, i32, i32)> {
         self.elements
             .iter()
-            .map(|e| self.bounds_with(e, &find))
+            .map(|e| self.extent_with(e, find, router))
             .reduce(|a, b| {
                 let (x, y) = (a.0.min(b.0), a.1.min(b.1));
                 let (r, d) = ((a.0 + a.2).max(b.0 + b.2), (a.1 + a.3).max(b.1 + b.3));
@@ -484,8 +508,9 @@ impl Canvas {
     /// Elements whose whole box lies in the area (x, y, w, h), in order.
     /// A line also needs its bound shapes inside: its ends sit on the shape edges.
     pub fn within(&self, (ax, ay, aw, ah): (i32, i32, i32, i32)) -> Canvas {
+        let (find, router) = (self.shape_lookup(), self.router());
         let inside = |e: &Element| {
-            let (x, y, w, h) = self.bounds(e);
+            let (x, y, w, h) = self.extent_with(e, &find, &router);
             x >= ax && y >= ay && x + w <= ax + aw && y + h <= ay + ah
         };
         let shapes_in: Vec<&Id> = self

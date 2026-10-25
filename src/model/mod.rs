@@ -19,6 +19,6 @@ pub use geom::{corners, edge_anchor, label_pos, route, side_anchor, side_mid, wr
 pub use history::{History, HISTORY_LIMIT};
 pub use ids::Id;
 pub use layout::Dir;
-pub use router::{Router, MARGIN};
+pub use router::{Router, MARGIN, REACH};
 
 pub const VERSION: u32 = 1;

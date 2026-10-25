@@ -12,6 +12,8 @@ type Rect = (i32, i32, i32, i32);
 pub const MARGIN: i32 = 3;
 const STUB: i32 = 2;
 const LANE: i32 = 4;
+/// How far a route strays from the box of its end cells, walls aside.
+pub const REACH: i32 = LANE + MARGIN;
 const MAX_AREA: i32 = 2000;
 const BUCKET: i32 = 16;
 
@@ -121,7 +123,7 @@ impl Router {
             };
             // shortcut: a detour past a wall wider than the search box leaves this rect, upgrade when a test shows the overlap
             let (map, rect) = if kind == Kind::Line {
-                (&mut r.lines, grow(rect, LANE + MARGIN))
+                (&mut r.lines, grow(rect, REACH))
             } else {
                 (&mut r.solid, rect)
             };

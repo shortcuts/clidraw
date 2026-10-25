@@ -2474,6 +2474,39 @@ fn hover_picks_a_detour_cell_for_the_line_and_the_crossed_shape_elsewhere() {
     assert_eq!(s.hover, Hit::Element(Id::from("oooooooo")));
 }
 
+#[test]
+fn hover_reaches_a_detour_cell_past_the_margin_of_the_end_cells() {
+    let mut s = session();
+    put(&mut s, "aaaaaaaa", ShapeKind::Rect, (0, 4, 3, 3));
+    put(&mut s, "bbbbbbbb", ShapeKind::Rect, (6, 9, 3, 3));
+    put(&mut s, "oooooooo", ShapeKind::Rect, (3, -2, 2, 16));
+    s.canvas.elements.push(Element::Line(Line {
+        id: Id::from("arrow000"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        bends: vec![],
+        color: None,
+    }));
+    let Some(Element::Line(l)) = s.canvas.elements.last() else {
+        unreachable!()
+    };
+    let (_, y, _, h) = s.canvas.bounds(&Element::Line(l.clone()));
+    let low = s.canvas.route(l).into_iter().max_by_key(|p| p.1).unwrap();
+    assert!(low.1 >= y + h + 3, "the detour must pass the margin");
+    mouse(
+        &mut s,
+        MouseEventKind::Moved,
+        low.0 as u16,
+        low.1 as u16,
+        Instant::now(),
+    );
+    assert_eq!(s.hover, Hit::Element(Id::from("arrow000")));
+}
+
 fn free_line(id: &str, bends: Vec<(i32, i32)>) -> Element {
     Element::Line(Line {
         id: Id::from(id),

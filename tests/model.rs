@@ -294,9 +294,9 @@ fn within_keeps_only_elements_fully_inside_the_area() {
     // bbbbbbbb (x 20..26) straddles the right edge, cccccccc (x 8..14) is cut at x 12.
     let part = c.within((0, 0, 12, 3));
     assert_eq!(ids(&part), ["aaaaaaaa"]);
-    let all = c.within((0, 0, 40, 3));
+    let all = c.within((-10, -10, 60, 30));
     assert_eq!(all.elements.len(), 5);
-    let no_b = c.within((0, 0, 26, 3));
+    let no_b = c.within((0, -10, 26, 30));
     assert_eq!(ids(&no_b), ["aaaaaaaa", "bbbbbbbb", "cccccccc", "line0000"]);
     assert!(c.within((100, 100, 5, 5)).elements.is_empty());
 }
@@ -967,6 +967,47 @@ fn an_arrow_keeps_its_stub_when_it_detours() {
     walks(&cells);
     assert!(!cells.iter().any(|&p| inside(p, o)));
     assert_eq!(cells[cells.len() - 3..], [(7, 6), (7, 7), (7, 8)]);
+}
+
+fn detour() -> (Canvas, Line) {
+    diagonal(vec![rect("oooooooo", ShapeKind::Rect, (3, -2, 2, 16))])
+}
+
+#[test]
+fn all_bounds_holds_the_detour_of_a_line() {
+    let (c, l) = detour();
+    let (x, y, w, h) = c.all_bounds().unwrap();
+    assert!(c.route(&l).iter().all(|&p| inside(p, (x, y, w, h))));
+}
+
+#[test]
+fn within_drops_a_line_whose_detour_leaves_the_area() {
+    let (c, l) = detour();
+    assert!(c.within((-10, -10, 40, 24)).get(&l.id).is_none());
+    assert!(c.within((-10, -10, 40, 26)).get(&l.id).is_some());
+}
+
+#[test]
+fn the_svg_view_box_holds_the_detour_of_a_line() {
+    let (c, l) = detour();
+    let svg = clidraw::export::svg_padded(&c, 0);
+    let view = svg
+        .split("viewBox=\"")
+        .nth(1)
+        .unwrap()
+        .split('"')
+        .next()
+        .unwrap();
+    let v: Vec<i32> = view.split(' ').map(|n| n.parse().unwrap()).collect();
+    let cells = c.route(&l);
+    let (top, bottom) = (
+        cells.iter().map(|p| p.1).min().unwrap(),
+        cells.iter().map(|p| p.1).max().unwrap(),
+    );
+    assert!(
+        v[1] <= top * 16 && v[1] + v[3] >= (bottom + 1) * 16,
+        "{view}"
+    );
 }
 
 #[test]

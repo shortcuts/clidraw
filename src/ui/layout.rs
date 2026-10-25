@@ -1,4 +1,4 @@
-use crate::model::{Canvas, Element, Id, Router, Shape, ShapeKind};
+use crate::model::{Canvas, Element, Id, Router, Shape, ShapeKind, REACH};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -22,6 +22,14 @@ fn sig(e: &Element) -> u64 {
         Element::Text(_) => {}
     }
     h.finish()
+}
+
+/// The box a frame must draw for an element: a line also covers the reach of its detour.
+pub fn seen(e: &Element, (x, y, w, h): (i32, i32, i32, i32)) -> (i32, i32, i32, i32) {
+    match e {
+        Element::Line(_) => (x - REACH, y - REACH, w + 2 * REACH, h + 2 * REACH),
+        _ => (x, y, w, h),
+    }
 }
 
 impl Layout {
@@ -112,6 +120,22 @@ mod tests {
         for e in &canvas.elements {
             if let Element::Line(l) = e {
                 canvas.route_with(l, &find, &layout.router);
+            }
+        }
+    }
+
+    #[test]
+    fn seen_grows_a_line_by_the_reach_and_leaves_a_shape() {
+        let canvas = two_pairs();
+        let mut slot = None;
+        let layout = refresh(&mut slot, &canvas, 0);
+        for (e, &b) in canvas.elements.iter().zip(&layout.bounds) {
+            match e {
+                Element::Line(_) => assert_eq!(
+                    seen(e, b),
+                    (b.0 - REACH, b.1 - REACH, b.2 + 2 * REACH, b.3 + 2 * REACH)
+                ),
+                _ => assert_eq!(seen(e, b), b),
             }
         }
     }

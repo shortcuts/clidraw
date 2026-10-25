@@ -1,5 +1,5 @@
 use super::grid::{Grid, BOLD, DIM, REVERSE, UNDERLINE};
-use super::layout::refresh;
+use super::layout::{refresh, seen};
 use super::registry;
 use super::theme;
 use crate::input::{handles, EditTarget, Handle, Hit, Session};
@@ -26,11 +26,14 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     let find = layout.find(&s.canvas);
     let selected: HashSet<&Id> = s.selection.iter().collect();
     for i in s.canvas.stacking() {
-        let (e, (x, y, w, h)) = (&s.canvas.elements[i], layout.bounds[i]);
-        let (sx, sy, w, h) = view.rect(x, y, w, h);
-        if sx >= grid.w || sy >= grid.h || sx + w <= 0 || sy + h <= 0 {
+        let e = &s.canvas.elements[i];
+        let (x, y, w, h) = seen(e, layout.bounds[i]);
+        let (sx, sy, sw, sh) = view.rect(x, y, w, h);
+        if sx >= grid.w || sy >= grid.h || sx + sw <= 0 || sy + sh <= 0 {
             continue;
         }
+        let (x, y, w, h) = layout.bounds[i];
+        let (sx, sy, w, h) = view.rect(x, y, w, h);
         let is_selected = selected.contains(e.id());
         let flags = if is_selected {
             if colors {
@@ -117,7 +120,8 @@ fn blocks(grid: &mut Grid, s: &Session) {
     let mut slot = s.layout.borrow_mut();
     let layout = refresh(&mut slot, &s.canvas, s.rev);
     let find = layout.find(&s.canvas);
-    for (e, &(x, y, w, h)) in s.canvas.elements.iter().zip(&layout.bounds) {
+    for (e, &b) in s.canvas.elements.iter().zip(&layout.bounds) {
+        let (x, y, w, h) = seen(e, b);
         let (sx, sy, sw, sh) = s.view.rect(x, y, w, h);
         if sx >= grid.w || sy >= grid.h || sx + sw <= 0 || sy + sh <= 0 {
             continue;

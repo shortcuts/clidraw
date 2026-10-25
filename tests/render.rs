@@ -102,6 +102,40 @@ fn draws_palette_and_a_labelled_rect() {
 }
 
 #[test]
+fn a_line_is_drawn_when_only_its_detour_is_on_screen() {
+    let mut c = Canvas::default();
+    for (id, (x, y, w, h)) in [
+        ("aaaaaaaa", (0, 4, 3, 3)),
+        ("bbbbbbbb", (6, 9, 3, 3)),
+        ("oooooooo", (3, -2, 2, 16)),
+    ] {
+        let Element::Shape(sh) = shape(id, x, "") else {
+            unreachable!()
+        };
+        c.elements.push(Element::Shape(Shape { y, w, h, ..sh }));
+    }
+    c.elements.push(Element::Line(Line {
+        id: Id::from("arrow000"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        bends: vec![],
+        color: None,
+    }));
+    let view = View {
+        oy: 10,
+        ..View::default()
+    };
+    let (sx, sy) = view.to_screen(3, 14);
+    let s = Session::new(c, view, (80, 24));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, sy as u16, sx as u16, 2), "──");
+}
+
+#[test]
 fn a_frame_border_draws_over_a_later_shape() {
     let mut c = Canvas::default();
     c.elements.push(shape("ffffffff", 20, ""));

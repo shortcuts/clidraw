@@ -75,11 +75,13 @@ pub fn svg(canvas: &Canvas) -> String {
 
 /// `pad` is the blank margin in cells around the drawing.
 pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
-    let (bx, by, bw, bh) = canvas.all_bounds().unwrap_or((0, 0, 1, 1));
-    let (vx, vy) = ((bx - pad) * CW, (by - pad) * CH);
-    let (vw, vh) = ((bw + 2 * pad) * CW, (bh + 2 * pad) * CH);
     let find = canvas.shape_lookup();
     let router = canvas.router();
+    let (bx, by, bw, bh) = canvas
+        .all_bounds_with(&find, &router)
+        .unwrap_or((0, 0, 1, 1));
+    let (vx, vy) = ((bx - pad) * CW, (by - pad) * CH);
+    let (vw, vh) = ((bw + 2 * pad) * CW, (bh + 2 * pad) * CH);
     let mut o = String::new();
     let _ = writeln!(o, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"{vx} {vy} {vw} {vh}\" width=\"{vw}\" height=\"{vh}\" font-family=\"monospace\" font-size=\"14\">");
     o.push_str("  <defs><marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"8\" markerHeight=\"8\" orient=\"auto-start-reverse\"><path d=\"M0 0 L10 5 L0 10 z\" fill=\"context-stroke\"/></marker></defs>\n");

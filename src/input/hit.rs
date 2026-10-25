@@ -1,4 +1,4 @@
-use crate::model::{label_pos, Canvas, Element, Find, Id, Router, ShapeKind, Side, MARGIN};
+use crate::model::{label_pos, Canvas, Element, Find, Id, Router, ShapeKind, Side, REACH};
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -74,12 +74,12 @@ fn covers<'a>(
 ) -> bool {
     match e {
         Element::Line(l) => {
-            // A detour stays within MARGIN of the end cells; routing every line per hover is too slow.
+            // A detour stays within REACH of the end cells; routing every line per hover is too slow.
             let (x, y, w, h) = canvas.bounds_with(e, find);
-            p.0 >= x - MARGIN
-                && p.0 < x + w + MARGIN
-                && p.1 >= y - MARGIN
-                && p.1 < y + h + MARGIN
+            p.0 >= x - REACH
+                && p.0 < x + w + REACH
+                && p.1 >= y - REACH
+                && p.1 < y + h + REACH
                 && canvas.route_with(l, find, router).contains(&p)
         }
         _ => {
