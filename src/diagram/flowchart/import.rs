@@ -3,6 +3,7 @@ use crate::model::{
     Anchor, Border, Canvas, Dir, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind, Stroke,
 };
 use std::collections::HashMap;
+use unicode_width::UnicodeWidthStr;
 
 pub(super) const MAX_SHAPES: usize = 2000;
 
@@ -283,7 +284,7 @@ pub(super) fn import(text: &str) -> Result<Imported, String> {
     let mut pos = 0;
     for (i, (_, kind, border, label)) in shapes.into_iter().enumerate() {
         let rows: Vec<&str> = label.split('\n').collect();
-        let widest = rows.iter().map(|r| r.chars().count()).max().unwrap_or(0) as i32;
+        let widest = rows.iter().map(|r| r.width()).max().unwrap_or(0) as i32;
         let w = (widest + 6).max(8);
         let h = (rows.len() as i32 + 2).max(3);
         let (x, y) = if dir == Dir::LeftRight {

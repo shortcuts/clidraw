@@ -204,3 +204,11 @@ fn flowchart_arrow_fix_replaces_the_range_into_clean_text() {
     assert_eq!(fixed, "flowchart TD\r\n  A --> B\r\n");
     assert!(Flowchart.validate(&fixed).is_empty());
 }
+
+#[test]
+fn wide_label_sizes_shape_by_cell_width() {
+    let out = Flowchart
+        .import("flowchart LR\n  A[日本語ラベル]\n")
+        .unwrap();
+    assert_eq!(shapes(&out.canvas)[0].w, 18);
+}
