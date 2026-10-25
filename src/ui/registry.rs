@@ -770,7 +770,7 @@ pub const BINDINGS: &[Binding] = &[
     ),
     ex(
         "lib",
-        ":lib save|insert <name>",
+        ":lib list|save|insert|delete [name]",
         "Use library",
         Some(Action::Prefill("lib ")),
     ),

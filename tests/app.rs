@@ -1634,13 +1634,35 @@ fn lib_save_then_insert_adds_fresh_selected_copies_in_one_undo_step() {
 }
 
 #[test]
+fn lib_list_delete_and_save_refuses_to_overwrite() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    run(&mut app, "lib list");
+    assert_eq!(status(&app), "Library is empty");
+    insert_shape(&mut app);
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    run(&mut app, "lib save one");
+    run(&mut app, "lib save one");
+    assert_eq!(status(&app), "one is in the library: :lib delete one first");
+    run(&mut app, "lib list");
+    assert_eq!(status(&app), "Library: one");
+    run(&mut app, "lib delete one");
+    assert_eq!(status(&app), "Deleted one from the library");
+    assert!(!t.path().join("c/library/one.clidraw.json").exists());
+    run(&mut app, "lib delete one");
+    assert!(status(&app).starts_with("Library failed"));
+    run(&mut app, "lib delete");
+    assert_eq!(status(&app), "Usage: :lib list|save|insert|delete [name]");
+}
+
+#[test]
 fn lib_errors_write_nothing() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     run(&mut app, "lib");
-    assert_eq!(status(&app), "Usage: :lib save|insert <name>");
+    assert_eq!(status(&app), "Usage: :lib list|save|insert|delete [name]");
     run(&mut app, "lib save");
-    assert_eq!(status(&app), "Usage: :lib save|insert <name>");
+    assert_eq!(status(&app), "Usage: :lib list|save|insert|delete [name]");
     run(&mut app, "lib save box");
     assert_eq!(status(&app), "Select shapes to save first");
     assert!(!t.path().join("c/library").exists());

@@ -7,10 +7,18 @@ impl App {
         let name = name.trim();
         let store = self.store.library();
         self.status = Some(match sub {
-            "save" | "insert" if name.is_empty() => usage(),
+            "list" => match store.list() {
+                Ok(names) if names.is_empty() => Status::notice("Library is empty"),
+                Ok(names) => Status::notice(format!("Library: {}", names.join(", "))),
+                Err(e) => failed(e),
+            },
+            "save" | "insert" | "delete" if name.is_empty() => usage(),
             "save" if self.session.selection.is_empty() => {
                 Status::error("Select shapes to save first")
             }
+            "save" if store.exists(name) => Status::error(format!(
+                "{name} is in the library: :lib delete {name} first"
+            )),
             "save" => {
                 let snippet = self
                     .session
@@ -33,13 +41,17 @@ impl App {
                 }
                 Err(e) => failed(e),
             },
+            "delete" => match store.delete(name) {
+                Ok(()) => Status::notice(format!("Deleted {name} from the library")),
+                Err(e) => failed(e),
+            },
             _ => usage(),
         });
     }
 }
 
 fn usage() -> Status {
-    Status::error("Usage: :lib save|insert <name>")
+    Status::error("Usage: :lib list|save|insert|delete [name]")
 }
 
 fn failed(e: crate::store::StoreError) -> Status {

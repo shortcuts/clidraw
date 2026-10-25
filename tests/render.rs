@@ -1762,7 +1762,7 @@ fn empty_command_line_lists_every_verb() {
         ":redo",
         ":u",
         ":import <path>",
-        ":lib save|insert <name>",
+        ":lib list|save|insert|delete [name]",
     ] {
         assert!(all.contains(verb), "{verb}");
     }
