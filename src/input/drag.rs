@@ -22,9 +22,12 @@ fn run(s: &mut Session, inv: &mut Vec<Command>, cmd: Command) {
 /// Keeps `inv` constant-size per drag: the first `SetRect`/`SetEnd` inverse already holds the start value.
 fn fold(inv: &mut Vec<Command>, undo: Command) {
     let redundant = match &undo {
-        Command::SetRect { id, .. } | Command::SetLabelAt { id, .. } => inv
+        Command::SetRect { id, .. } => inv
             .iter()
             .any(|c| matches!(c, Command::SetRect { id: i, .. } if i == id)),
+        Command::SetLabelAt { id, .. } => inv
+            .iter()
+            .any(|c| matches!(c, Command::SetLabelAt { id: i, .. } if i == id)),
         Command::SetEnd { id, side, .. } => inv
             .iter()
             .any(|c| matches!(c, Command::SetEnd { id: i, side: d, .. } if i == id && d == side)),
@@ -711,6 +714,26 @@ mod tests {
             dy: 0,
         }]);
         assert_eq!(inv(&s), [want]);
+    }
+
+    #[test]
+    fn label_drag_keeps_the_first_label_at() {
+        let mut s = Session::new(Canvas::default(), View::default(), (400, 40));
+        let id = Id::from("cccccccc");
+        s.canvas.elements.push(Element::Line(Line {
+            id: id.clone(),
+            kind: LineKind::Arrow,
+            from: End::Free(10, 16),
+            to: End::Free(110, 16),
+            label: "hi".into(),
+            label_at: None,
+            stroke: Default::default(),
+            bends: vec![],
+            color: None,
+        }));
+        s.selection = vec![id.clone()];
+        press_and_drag(&mut s, (60, 16), |i| (60 + i % 20, 16));
+        assert_eq!(inv(&s), [Command::SetLabelAt { id, at: None }]);
     }
 
     #[test]
