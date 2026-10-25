@@ -163,6 +163,17 @@ fn mermaid_matches_golden_and_counts_skipped() {
 }
 
 #[test]
+fn mermaid_click_url_cannot_break_out_of_its_quotes() {
+    let mut c = sample();
+    let Element::Shape(s) = &mut c.elements[0] else {
+        unreachable!()
+    };
+    s.link = Some("https://a.test/\"x\ny".into());
+    let text = Flowchart.export(&c).text;
+    assert!(text.contains("  click n0 \"https://a.test/%22xy\" _blank\n"));
+}
+
+#[test]
 fn empty_canvas_exports_without_panicking() {
     assert!(svg(&Canvas::default()).contains("<svg"));
     assert_eq!(Flowchart.export(&Canvas::default()).text, "flowchart TD\n");

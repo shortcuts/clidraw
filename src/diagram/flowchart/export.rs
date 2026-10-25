@@ -65,6 +65,7 @@ pub(super) fn export(canvas: &Canvas) -> Exported {
                     let _ = writeln!(styles, "  style n{n} {}", keys.join(","));
                 }
                 if let Some(url) = &s.link {
+                    let url = url.replace('"', "%22").replace(['\n', '\r'], "");
                     let _ = writeln!(clicks, "  click n{n} \"{url}\" _blank");
                 }
                 n += 1;
