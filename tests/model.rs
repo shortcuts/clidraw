@@ -1580,3 +1580,26 @@ fn shapes_below_min_size_are_rejected() {
     assert!(c.apply(set(3, 0)).is_err());
     assert!(c.apply(set(4, 3)).is_ok());
 }
+
+#[test]
+fn insert_rejects_a_line_bound_to_a_missing_or_text_element() {
+    let mut c = Canvas::default();
+    c.apply(Command::Insert(0, shape("aaaaaaaa", 0))).unwrap();
+    c.apply(Command::Insert(
+        1,
+        Element::Text(Text {
+            id: Id::from("textttt0"),
+            x: 3,
+            y: 3,
+            text: "hi".into(),
+            color: None,
+        }),
+    ))
+    .unwrap();
+    let before = c.clone();
+    for target in ["ghost000", "textttt0"] {
+        let line = arrow(bound("aaaaaaaa"), bound(target));
+        assert!(c.apply(Command::Insert(2, line)).is_err());
+    }
+    assert_eq!(c, before);
+}

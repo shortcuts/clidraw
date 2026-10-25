@@ -316,6 +316,10 @@ impl Canvas {
                 if self.index_of(&id).is_some() {
                     return Err(ModelError::Duplicate(id));
                 }
+                if let Element::Line(l) = &e {
+                    self.check_bound(&l.from, index)?;
+                    self.check_bound(&l.to, index)?;
+                }
                 self.elements.insert(i.min(self.elements.len()), e);
                 *index = None;
                 Ok(Command::Remove(id))
@@ -354,6 +358,17 @@ impl Canvas {
                 Ok(Command::Batch(undo))
             }
             other => self.edit(other, index),
+        }
+    }
+
+    fn check_bound(&self, end: &End, index: &Option<Index>) -> Result<(), ModelError> {
+        let End::Bound(sid, _) = end else {
+            return Ok(());
+        };
+        let bound = self.position(sid, index).map(|i| &self.elements[i]);
+        match bound {
+            Some(Element::Shape(_)) => Ok(()),
+            _ => Err(ModelError::NotFound(sid.clone())),
         }
     }
 
@@ -457,12 +472,7 @@ impl Canvas {
                 Ok(Command::SetLabelAt { id, at: old })
             }
             Command::SetEnd { id, side, end } => {
-                if let End::Bound(sid, _) = &end {
-                    let bound = self.position(sid, index).map(|i| &self.elements[i]);
-                    if !matches!(bound, Some(Element::Shape(_))) {
-                        return Err(missing(sid));
-                    }
-                }
+                self.check_bound(&end, index)?;
                 let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
                 let Element::Line(l) = &mut self.elements[i] else {
                     return Err(wrong(&id));
