@@ -104,8 +104,20 @@ pub fn resolve_state_dir(
     home.map(|h| h.join(".local").join("state").join("clidraw"))
 }
 
+// Canvases sync through dotfile repos, so every OS rejects what Windows cannot store.
+const RESERVED: [&str; 22] = [
+    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+    "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+];
+
 pub fn validate_name(name: &str) -> Result<(), StoreError> {
-    let bad = name.is_empty() || name.starts_with(['.', '-']) || name.contains(['/', '\\', '\0']);
+    let stem = name.split('.').next().unwrap_or(name);
+    let bad = name.is_empty()
+        || name.starts_with(['.', '-'])
+        || name.ends_with(['.', ' '])
+        || name.contains(['/', '\\', ':', '*', '?', '<', '>', '|', '"'])
+        || name.chars().any(char::is_control)
+        || RESERVED.iter().any(|r| stem.eq_ignore_ascii_case(r));
     if bad {
         Err(StoreError::BadName(name.to_string()))
     } else {

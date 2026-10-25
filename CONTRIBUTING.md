@@ -6,6 +6,8 @@ This file holds the rules for contributors and agents. The code is the source of
 
 The tool must be minimal, fast, effective and work on any OS.
 
+Canvas names must store on every OS. Good: `flow-v2`, `console`. Bad: `CON`, `a:b`, `x.`, because Windows rejects them.
+
 `Makefile:34-36` uses only POSIX shell and `$HOME`, so the clean target runs on macOS and Linux.
 
 ```make

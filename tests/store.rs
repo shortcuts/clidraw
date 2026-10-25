@@ -146,8 +146,14 @@ fn refuses_higher_version_and_keeps_the_file() {
 
 #[test]
 fn rejects_bad_names() {
-    for n in ["", ".hidden", "a/b", "a\\b", "-x", "--help"] {
+    for n in [
+        "", ".hidden", "a/b", "a\\b", "-x", "--help", "a:b", "a*", "a?", "a<", "a>", "a|", "a\"",
+        "a\tb", "x.", "x ", "CON", "con", "nul.txt", "Com1", "LPT9.a.b",
+    ] {
         assert!(validate_name(n).is_err(), "{n:?}");
+    }
+    for n in ["flow-v2", "console", "com10", "a.b"] {
+        assert!(validate_name(n).is_ok(), "{n:?}");
     }
     let (_t, s) = store();
     assert!(matches!(
