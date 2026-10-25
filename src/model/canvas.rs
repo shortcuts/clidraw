@@ -139,10 +139,10 @@ impl Canvas {
     }
 
     pub fn route_with<'a>(&'a self, l: &Line, find: &Find<'a>, router: &Router) -> Vec<(i32, i32)> {
-        if let Some(path) = router.cached(&l.id) {
+        if let Some(path) = router.settled(self, find, &l.id, <[_]>::to_vec) {
             return path;
         }
-        let (path, foot) = if l.bends.is_empty() {
+        let (path, foot, deps) = if l.bends.is_empty() {
             router.around(
                 self,
                 find,
@@ -158,9 +158,9 @@ impl Canvas {
                 .reduce(union)
                 .map(|r| grow(r, 1))
                 .expect("a route has a cell");
-            (path, foot)
+            (path, foot, vec![])
         };
-        router.store(l.id.clone(), path.clone(), foot);
+        router.store(l.id.clone(), path.clone(), foot, deps);
         path
     }
 

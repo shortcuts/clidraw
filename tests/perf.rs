@@ -20,6 +20,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 const BUDGET: Duration = Duration::from_millis(16);
+const DRAG_FRAME_BUDGET: Duration = Duration::from_millis(30);
 const FRAMES: usize = 30;
 const LOAD_SAVE_BUDGET: Duration = Duration::from_millis(50);
 const STARTUP_BUDGET: Duration = Duration::from_millis(50);
@@ -1367,6 +1368,34 @@ fn drag_step_with_free_ends_fits_the_budget_on_5000_elements() {
         .collect();
     let m = median(times);
     assert!(m < BUDGET, "median drag step {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn frame_after_a_drag_with_free_ends_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = free_ends_app(t.path());
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let now = Instant::now();
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left)), now);
+    assert!(!app.session.selection.is_empty(), "press missed the shape");
+    let times = (0..FRAMES)
+        .map(|i| {
+            let col = if i % 2 == 0 { 103 } else { 101 };
+            app.on_event(
+                mouse_at(MouseEventKind::Drag(MouseButton::Left), col, 26),
+                now,
+            );
+            let t0 = Instant::now();
+            frame(&app, &mut term);
+            t0.elapsed()
+        })
+        .collect::<Vec<_>>();
+    let m = median(times);
+    assert!(
+        m < DRAG_FRAME_BUDGET,
+        "median frame after drag {m:?} exceeds {DRAG_FRAME_BUDGET:?}"
+    );
 }
 
 #[test]
