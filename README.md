@@ -6,6 +6,7 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
 
 - `make run` opens the last canvas, or creates `untitled`.
 - `cargo run -- <name>` opens or creates the canvas `<name>`.
+- `cargo run -- --help` prints the usage. `--version` prints the version. A canvas name cannot start with `-`.
 - `cargo run -- config` prints the default `config.toml`. A canvas named `config` opens from the canvas switcher (Ctrl-p, Canvases), not by argument.
 - `cargo run -- list|new|show|edit|import|export` run without the UI, for scripts and agents. Each prints JSON on stdout, or the export text, and exits 1 with `Error: <msg>` on stderr. A canvas named like one of these commands opens from the canvas switcher (Ctrl-p, Canvases), not by argument.
   - `list` prints the canvas names as a JSON array. `new <name>` creates an empty canvas. `show <name>` prints the canvas file.

@@ -146,7 +146,7 @@ fn refuses_higher_version_and_keeps_the_file() {
 
 #[test]
 fn rejects_bad_names() {
-    for n in ["", ".hidden", "a/b", "a\\b"] {
+    for n in ["", ".hidden", "a/b", "a\\b", "-x", "--help"] {
         assert!(validate_name(n).is_err(), "{n:?}");
     }
     let (_t, s) = store();

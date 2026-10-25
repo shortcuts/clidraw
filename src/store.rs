@@ -105,7 +105,7 @@ pub fn resolve_state_dir(
 }
 
 pub fn validate_name(name: &str) -> Result<(), StoreError> {
-    let bad = name.is_empty() || name.starts_with('.') || name.contains(['/', '\\', '\0']);
+    let bad = name.is_empty() || name.starts_with(['.', '-']) || name.contains(['/', '\\', '\0']);
     if bad {
         Err(StoreError::BadName(name.to_string()))
     } else {

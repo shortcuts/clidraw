@@ -95,8 +95,24 @@ fn run(
     Ok(())
 }
 
+const USAGE: &str = "Usage: clidraw [<name>]
+       clidraw list|new|show|edit|import|export ...
+       clidraw mcp|config|probe|bench
+       clidraw --help|-h|--version|-V";
+
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    match args.first().map(String::as_str) {
+        Some("--help" | "-h") => {
+            println!("{USAGE}");
+            return Ok(());
+        }
+        Some("--version" | "-V") => {
+            println!("clidraw {}", env!("CARGO_PKG_VERSION"));
+            return Ok(());
+        }
+        _ => {}
+    }
     if args.first().map(String::as_str) == Some("probe") {
         return probe::run();
     }
