@@ -89,6 +89,22 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
     app
 }
 
+/// `busy_app` with every second line ending on a free cell in the gap right of the next shape; every 100th ends under `target`.
+fn free_ends_app(dir: &std::path::Path) -> App {
+    let mut app = busy_app(dir);
+    for e in &mut app.session.canvas.elements {
+        if let Element::Line(l) = e {
+            let i: usize = l.id.0[1..].parse().unwrap();
+            if i.is_multiple_of(100) {
+                l.to = End::Free(101, 26);
+            } else if i.is_multiple_of(2) {
+                l.to = End::Free(((i + 1) % 50) as i32 * 4 + 3, ((i + 1) / 50) as i32 * 3 + 1);
+            }
+        }
+    }
+    app
+}
+
 /// `busy_app` with every 8th line aimed one shape further, so its plain route runs through the shape between.
 fn blocked_app(dir: &std::path::Path) -> App {
     let mut app = busy_app(dir);
@@ -1267,6 +1283,55 @@ fn median_divides_by_perf_slack() {
 fn hover_step_fits_the_budget_on_5000_elements() {
     let t = tempfile::tempdir().unwrap();
     let mut app = busy_app(t.path());
+    let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
+    let now = Instant::now();
+    let (on, off) = (
+        mouse(MouseEventKind::Moved),
+        mouse_at(MouseEventKind::Moved, 199, 49),
+    );
+    let times = (0..FRAMES)
+        .map(|i| {
+            let t0 = Instant::now();
+            app.on_event(if i % 2 == 0 { on.clone() } else { off.clone() }, now);
+            assert!(app.dirty, "hover target did not change");
+            frame(&app, &mut term);
+            app.dirty = false;
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median hover step {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn drag_step_with_free_ends_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = free_ends_app(t.path());
+    let now = Instant::now();
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left)), now);
+    assert!(!app.session.selection.is_empty(), "press missed the shape");
+    let times = (0..FRAMES)
+        .map(|i| {
+            let t0 = Instant::now();
+            let col = if i % 2 == 0 { 103 } else { 101 };
+            app.on_event(
+                mouse_at(MouseEventKind::Drag(MouseButton::Left), col, 26),
+                now,
+            );
+            t0.elapsed()
+        })
+        .collect();
+    let m = median(times);
+    assert!(m < BUDGET, "median drag step {m:?} exceeds {BUDGET:?}");
+}
+
+#[test]
+#[ignore = "needs a release build: run `make perf`"]
+fn hover_step_with_a_selected_line_fits_the_budget_on_5000_elements() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = busy_app(t.path());
+    app.session.selection = vec![Id::from("l0000001")];
     let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
     let now = Instant::now();
     let (on, off) = (

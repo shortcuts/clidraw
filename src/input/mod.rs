@@ -520,7 +520,7 @@ impl Session {
             return None;
         }
         let world = self.view.to_world(col, row);
-        let id = match hit::test(&self.canvas, &self.selection, world) {
+        let id = match hit::test(self, &self.selection, world) {
             Hit::Element(id) | Hit::Handle(_, id) => id,
             Hit::Empty => return Some(false),
         };

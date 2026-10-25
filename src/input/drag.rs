@@ -564,6 +564,17 @@ fn bind(s: &mut Session, inv: &mut Vec<Command>, id: &Id, side: Side, world: P) 
 /// Free ends of lines outside the selection that sit under a selected shape.
 fn dropped_ends(s: &Session) -> Vec<(Id, Side, P)> {
     let selected: HashSet<&Id> = s.selection.iter().collect();
+    let boxes: Vec<_> = s
+        .selection
+        .iter()
+        .filter_map(|id| s.canvas.shape(id))
+        .map(|sh| (sh.x, sh.y, sh.w, sh.h))
+        .collect();
+    let inside = |&(x, y): &(i32, i32)| {
+        boxes
+            .iter()
+            .any(|&(bx, by, w, h)| x >= bx && x < bx + w && y >= by && y < by + h)
+    };
     let mut found = vec![];
     for e in &s.canvas.elements {
         let Element::Line(l) = e else { continue };
@@ -572,7 +583,9 @@ fn dropped_ends(s: &Session) -> Vec<(Id, Side, P)> {
         }
         for (side, end) in [(Side::From, &l.from), (Side::To, &l.to)] {
             let End::Free(x, y) = end else { continue };
-            if hit::shape_at(&s.canvas, (*x, *y)).is_some_and(|sid| selected.contains(&sid)) {
+            if inside(&(*x, *y))
+                && hit::shape_at(&s.canvas, (*x, *y)).is_some_and(|sid| selected.contains(&sid))
+            {
                 found.push((l.id.clone(), side, (*x, *y)));
             }
         }

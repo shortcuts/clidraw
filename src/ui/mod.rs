@@ -21,7 +21,7 @@ pub mod theme;
 use crate::input::Session;
 use grid::Grid;
 pub use infobar::{hit as button_at, Button};
-pub use layout::Layout;
+pub use layout::{refresh, Layout};
 pub use perf::Perf;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;

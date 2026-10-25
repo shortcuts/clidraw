@@ -281,11 +281,11 @@ fn hover(s: &mut Session, screen: P, world: P) {
         && s.in_viewport(screen.0, screen.1)
         && palette::hit(s, screen.0, screen.1).is_none()
     {
-        hit::test(&s.canvas, &s.selection, world)
+        hit::test(s, &s.selection, world)
     } else {
         Hit::Empty
     };
-    s.label_hover = idle && hit::label_hit(&s.canvas, &s.selection, world).is_some();
+    s.label_hover = idle && hit::label_hit(s, &s.selection, world).is_some();
     s.palette_hover = if matches!(s.gesture, Gesture::Idle) {
         palette::hit(s, screen.0, screen.1)
     } else {
@@ -315,7 +315,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     if !s.in_viewport(screen.0, screen.1) {
         return;
     }
-    let hit = hit::test(&s.canvas, &s.selection, world);
+    let hit = hit::test(s, &s.selection, world);
     if double {
         return match hit {
             Hit::Element(id) | Hit::Handle(_, id) => s.start_edit_existing(id),
@@ -323,7 +323,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         };
     }
     if let (Some(id), Tool::Select, false) = (
-        hit::label_hit(&s.canvas, &s.selection, world),
+        hit::label_hit(s, &s.selection, world),
         s.tool,
         matches!(hit, Hit::Handle(..)),
     ) {
@@ -542,7 +542,7 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
             s.start_edit_new(world);
             s.tool = Tool::Select;
         }
-        Target::Draw(_) | Target::Empty => match hit::test(&s.canvas, &[], world) {
+        Target::Draw(_) | Target::Empty => match hit::test(s, &[], world) {
             Hit::Element(id) => s.select_group_of(id),
             _ => s.selection.clear(),
         },

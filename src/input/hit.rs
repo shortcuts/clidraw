@@ -1,4 +1,6 @@
-use crate::model::{label_pos, Canvas, Element, Find, Id, Router, ShapeKind, Side, REACH};
+use super::Session;
+use crate::model::{label_pos, Canvas, Element, Find, Id, ShapeKind, Side, REACH};
+use crate::ui::{refresh, Layout};
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -65,68 +67,72 @@ fn frame_unit(canvas: &Canvas, id: &Id, selection: &[Id]) -> bool {
     unit.len() == selection.len() && unit.iter().all(|u| selection.contains(u))
 }
 
-fn covers<'a>(
-    canvas: &'a Canvas,
-    find: &Find<'a>,
-    router: &Router,
-    e: &Element,
-    p: (i32, i32),
-) -> bool {
-    match e {
-        Element::Line(l) => {
-            // A detour stays within REACH of the end cells; routing every line per hover is too slow.
-            let (x, y, w, h) = canvas.bounds_with(e, find);
-            p.0 >= x - REACH
-                && p.0 < x + w + REACH
-                && p.1 >= y - REACH
-                && p.1 < y + h + REACH
-                && canvas.route_with(l, find, router).contains(&p)
-        }
-        _ => {
-            let (x, y, w, h) = canvas.bounds_with(e, find);
-            let frame = matches!(e, Element::Shape(s) if s.kind == ShapeKind::Frame);
-            if frame && p.0 > x && p.0 < x + w - 1 && p.1 > y && p.1 < y + h - 1 {
-                return false;
-            }
-            p.0 >= x && p.0 < x + w && p.1 >= y && p.1 < y + h
-        }
+fn covers(canvas: &Canvas, layout: &Layout, i: usize, p: (i32, i32)) -> bool {
+    let e = &canvas.elements[i];
+    let Element::Line(l) = e else {
+        return box_covers(e, p);
+    };
+    // A detour stays within REACH of the end cells; routing every line per hover is too slow.
+    let (x, y, w, h) = layout.bounds[i];
+    p.0 >= x - REACH
+        && p.0 < x + w + REACH
+        && p.1 >= y - REACH
+        && p.1 < y + h + REACH
+        && canvas
+            .route_with(l, &layout.find(canvas), &layout.router)
+            .contains(&p)
+}
+
+fn box_covers(e: &Element, p: (i32, i32)) -> bool {
+    let (x, y, w, h, frame) = match e {
+        Element::Shape(s) => (s.x, s.y, s.w, s.h, s.kind == ShapeKind::Frame),
+        _ => return false,
+    };
+    if frame && p.0 > x && p.0 < x + w - 1 && p.1 > y && p.1 < y + h - 1 {
+        return false;
     }
+    p.0 >= x && p.0 < x + w && p.1 >= y && p.1 < y + h
 }
 
 /// The line whose label sits under `p`; only a lone selected line offers it, like its handles.
-pub fn label_hit(canvas: &Canvas, selection: &[Id], p: (i32, i32)) -> Option<Id> {
+pub fn label_hit(s: &Session, selection: &[Id], p: (i32, i32)) -> Option<Id> {
     let [id] = selection else { return None };
-    let Some(Element::Line(l)) = canvas.get(id) else {
+    let Some(Element::Line(l)) = s.canvas.get(id) else {
         return None;
     };
-    let (lx, ly) = label_pos(&canvas.route(l), l.label_at);
+    let mut slot = s.layout.borrow_mut();
+    let layout = refresh(&mut slot, &s.canvas, s.rev);
+    let route = s
+        .canvas
+        .route_with(l, &layout.find(&s.canvas), &layout.router);
+    let (lx, ly) = label_pos(&route, l.label_at);
     let left = lx - l.label.width() as i32 / 2;
     let inside = p.1 == ly && p.0 >= left && p.0 < left + l.label.width() as i32;
     inside.then(|| id.clone())
 }
 
-pub fn test(canvas: &Canvas, selection: &[Id], p: (i32, i32)) -> Hit {
+pub fn test(s: &Session, selection: &[Id], p: (i32, i32)) -> Hit {
+    let canvas = &s.canvas;
     if let Some((h, id, _)) = handles(canvas, selection).into_iter().find(|h| h.2 == p) {
         return Hit::Handle(h, id);
     }
-    let find = canvas.shape_lookup();
-    let router = canvas.router();
+    let mut slot = s.layout.borrow_mut();
+    let layout = refresh(&mut slot, canvas, s.rev);
     canvas
         .stacking()
         .rev()
-        .map(|i| &canvas.elements[i])
-        .find(|e| covers(canvas, &find, &router, e, p))
-        .map_or(Hit::Empty, |e| Hit::Element(e.id().clone()))
+        .find(|&i| covers(canvas, layout, i, p))
+        .map_or(Hit::Empty, |i| {
+            Hit::Element(canvas.elements[i].id().clone())
+        })
 }
 
 pub fn shape_at(canvas: &Canvas, p: (i32, i32)) -> Option<Id> {
-    let find = canvas.shape_lookup();
-    let router = canvas.router();
     canvas
         .stacking()
         .rev()
         .map(|i| &canvas.elements[i])
-        .find(|e| matches!(e, Element::Shape(_)) && covers(canvas, &find, &router, e, p))
+        .find(|e| box_covers(e, p))
         .map(|e| e.id().clone())
 }
 
