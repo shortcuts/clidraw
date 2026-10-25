@@ -91,6 +91,31 @@ fn fit(kind: ShapeKind, label: &str) -> (i32, i32) {
     Shape::snap_size(kind, w.max(6), h)
 }
 
+/// Rejects what the renderers cannot draw: an empty id, or a line break in a one-line label.
+fn check(op: &Op) -> Result<()> {
+    let (name, id, one_line) = match op {
+        Op::AddShape { id, .. } => ("add_shape", id.as_ref(), None),
+        Op::AddText { id, text, .. } => ("add_text", id.as_ref(), Some(("text", text.as_str()))),
+        Op::Connect { id, label, .. } => (
+            "connect",
+            id.as_ref(),
+            label.as_deref().map(|l| ("label", l)),
+        ),
+        Op::Set { id, .. } => ("set", Some(id), None),
+        Op::Move { id, .. } => ("move", Some(id), None),
+        Op::Delete { id } => ("delete", Some(id), None),
+    };
+    if id.is_some_and(|id| id.0.is_empty()) {
+        bail!("{name}: empty id");
+    }
+    if let Some((field, value)) = one_line {
+        if value.contains('\n') {
+            bail!("{name}: {field} must be one line");
+        }
+    }
+    Ok(())
+}
+
 /// Turns ops into one command each. Pushes the id of each created element onto `created`.
 fn commands(ops: Vec<Op>, created: &mut Vec<Id>) -> Result<Vec<Command>> {
     let mut cmds = vec![];
@@ -100,6 +125,7 @@ fn commands(ops: Vec<Op>, created: &mut Vec<Id>) -> Result<Vec<Command>> {
         Command::Insert(usize::MAX, build(id))
     };
     for op in ops {
+        check(&op)?;
         match op {
             Op::AddShape {
                 id,

@@ -254,3 +254,40 @@ fn edit_rejects_a_shape_below_min_size() {
     assert!(String::from_utf8_lossy(&r.stderr).contains("element a is smaller than 3x3"));
     assert_eq!(show(t.path()), before);
 }
+
+#[test]
+fn edit_rejects_empty_ids_and_multiline_line_and_text_labels() {
+    let t = seeded_empty();
+    let before = show(t.path());
+    for (bad, want) in [
+        (
+            r#"[{"op":"add_shape","id":"","x":0,"y":0}]"#,
+            "add_shape: empty id",
+        ),
+        (
+            r#"[{"op":"add_text","id":"","x":0,"y":0,"text":"a"}]"#,
+            "add_text: empty id",
+        ),
+        (
+            r#"[{"op":"connect","id":"","from":[0,0],"to":[5,5]}]"#,
+            "connect: empty id",
+        ),
+        (r#"[{"op":"move","id":"","dx":1,"dy":0}]"#, "move: empty id"),
+        (r#"[{"op":"set","id":"","color":"red"}]"#, "set: empty id"),
+        (r#"[{"op":"delete","id":""}]"#, "delete: empty id"),
+        (
+            r#"[{"op":"add_text","x":0,"y":0,"text":"a\nb"}]"#,
+            "add_text: text must be one line",
+        ),
+        (
+            r#"[{"op":"connect","from":[0,0],"to":[5,5],"label":"a\nb"}]"#,
+            "connect: label must be one line",
+        ),
+    ] {
+        let r = run_stdin(t.path(), &["edit", "demo"], bad);
+        assert!(!r.status.success(), "{bad}");
+        let err = String::from_utf8_lossy(&r.stderr);
+        assert!(err.contains(want), "{bad}: {err}");
+        assert_eq!(show(t.path()), before);
+    }
+}
