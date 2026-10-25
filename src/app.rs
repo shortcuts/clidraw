@@ -38,6 +38,7 @@ pub struct App {
     state: State,
     saved_rev: u64,
     seen_rev: u64,
+    disk: Option<u64>,
     last_edit: Instant,
     autosave: Duration,
     default_canvas: String,
@@ -76,6 +77,24 @@ impl App {
         if self.saved_rev == self.session.rev {
             return;
         }
+        // shortcut: check and write are not atomic, add a lock if two writers collide in practice
+        let on_disk = self.store.canvas_hash(&self.name);
+        if on_disk.is_some() && on_disk != self.disk {
+            match self.reload() {
+                Ok(()) => {
+                    self.overlay = Overlay::None;
+                    self.status = Some(ui::Status::error(
+                        "Reloaded the canvas from disk: another process changed it, so your unsaved edits are lost",
+                    ));
+                }
+                Err(e) => {
+                    self.last_edit = Instant::now();
+                    self.report(Err(e));
+                }
+            }
+            self.dirty = true;
+            return;
+        }
         let r = self
             .store
             .save(&self.name, &self.session.canvas)
@@ -85,6 +104,7 @@ impl App {
             });
         if r.is_ok() {
             self.saved_rev = self.session.rev;
+            self.disk = self.store.canvas_hash(&self.name);
         } else {
             // Without this, next_wake returns zero and the loop spins on a failing save.
             self.last_edit = Instant::now();

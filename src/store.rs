@@ -236,8 +236,9 @@ impl Store {
         Ok(self.state_dir.join("history").join(format!("{name}.json")))
     }
 
-    /// Hashes the canvas file on disk: the saved inverses only fit those exact bytes.
-    fn canvas_hash(&self, name: &str) -> Option<u64> {
+    /// Hashes the canvas file on disk: the saved inverses only fit those exact bytes,
+    /// and the UI compares it to spot another process rewriting the file.
+    pub fn canvas_hash(&self, name: &str) -> Option<u64> {
         let bytes = fs::read(self.path(name).ok()?).ok()?;
         let mut h = DefaultHasher::new();
         bytes.hash(&mut h);

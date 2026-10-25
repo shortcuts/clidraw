@@ -46,6 +46,7 @@ impl App {
             state,
             saved_rev: 0,
             seen_rev: 0,
+            disk: None,
             last_edit: Instant::now(),
             autosave: config.autosave,
             default_canvas: config.default_canvas,
@@ -65,7 +66,8 @@ impl App {
             Canvas::default()
         };
         let (ox, oy) = self.state.offsets.get(name).copied().unwrap_or_default();
-        self.session.replace_canvas(
+        self.install(
+            name,
             canvas,
             View {
                 ox,
@@ -73,11 +75,23 @@ impl App {
                 ..View::default()
             },
         );
+        self.state.last = Some(name.to_string());
+        self.store.save_state(&self.state)
+    }
+
+    pub(super) fn reload(&mut self) -> Result<(), StoreError> {
+        let canvas = self.store.load(&self.name)?;
+        let name = self.name.clone();
+        self.install(&name, canvas, self.session.view);
+        Ok(())
+    }
+
+    fn install(&mut self, name: &str, canvas: Canvas, view: View) {
+        self.session.replace_canvas(canvas, view);
         self.session.history.restore(self.store.load_history(name));
         self.name = name.to_string();
         self.saved_rev = 0;
         self.seen_rev = 0;
-        self.state.last = Some(name.to_string());
-        self.store.save_state(&self.state)
+        self.disk = self.store.canvas_hash(name);
     }
 }
