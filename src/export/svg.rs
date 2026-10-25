@@ -82,7 +82,7 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
     let router = canvas.router();
     let mut o = String::new();
     let _ = writeln!(o, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"{vx} {vy} {vw} {vh}\" width=\"{vw}\" height=\"{vh}\" font-family=\"monospace\" font-size=\"14\">");
-    o.push_str("  <defs><marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"8\" markerHeight=\"8\" orient=\"auto-start-reverse\"><path d=\"M0 0 L10 5 L0 10 z\"/></marker></defs>\n");
+    o.push_str("  <defs><marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"8\" markerHeight=\"8\" orient=\"auto-start-reverse\"><path d=\"M0 0 L10 5 L0 10 z\" fill=\"context-stroke\"/></marker></defs>\n");
     let style = |s: Stroke, ink: Option<Paint>, fill: Option<Paint>| {
         let fill = fill.map_or("none".to_string(), hex);
         let opacity = if fill == "none" {
