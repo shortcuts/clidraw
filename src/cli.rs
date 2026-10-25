@@ -283,13 +283,13 @@ fn import(
 fn export(args: &[String], store: &Store, out: &mut impl Write) -> Result<()> {
     let (name, flag, path) = match args {
         [name, flag, path] => (name, flag.as_str(), path),
-        _ => bail!("usage: clidraw export <name> --svg|--mermaid|--text <path|->"),
+        _ => bail!("usage: clidraw export <name> --svg|--mermaid|--clidraw <path|->"),
     };
     let format = match flag {
         "--svg" => ExportFormat::Svg,
         "--mermaid" => ExportFormat::Mermaid,
-        "--text" => ExportFormat::Text,
-        _ => bail!("unknown format {flag:?}, use --svg, --mermaid or --text"),
+        "--clidraw" => ExportFormat::Clidraw,
+        _ => bail!("unknown format {flag:?}, use --svg, --mermaid or --clidraw"),
     };
     let canvas = store.load(name)?;
     let (config, _) = Config::load(store.dir());

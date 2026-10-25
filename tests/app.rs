@@ -167,7 +167,7 @@ fn area_app(dir: &std::path::Path) -> (App, Instant) {
 }
 
 fn type_path(app: &mut App, path: &str, t: Instant) {
-    for _ in 0..16 {
+    for _ in 0..32 {
         app.on_event(key(KeyCode::Backspace), t);
     }
     for c in path.chars() {
@@ -205,6 +205,22 @@ fn exports_only_the_selection() {
     let svg = std::fs::read_to_string(out).unwrap();
     assert!(svg.contains("Beta"), "{svg}");
     assert!(!svg.contains("Alpha") && !svg.contains("Gamma"), "{svg}");
+}
+
+#[test]
+fn exports_the_selection_as_a_loadable_clidraw_file() {
+    let t = tempfile::tempdir().unwrap();
+    let (mut app, now) = area_app(t.path());
+    app.on_event(key(KeyCode::Esc), now);
+    app.session.selection = vec![Id::from("bbbbbbbb")];
+    run(&mut app, "export clidraw");
+    click(&mut app, 34, 12, now);
+    let out = t.path().join("sel.clidraw.json");
+    type_path(&mut app, out.to_str().unwrap(), now);
+    let text = std::fs::read_to_string(out).unwrap();
+    let canvas: clidraw::model::Canvas = serde_json::from_str(&text).unwrap();
+    assert_eq!(canvas.elements.len(), 1);
+    assert!(text.contains("Beta") && !text.contains("Alpha"), "{text}");
 }
 
 #[test]
@@ -2374,7 +2390,7 @@ fn export_command_takes_a_format_or_lists_them() {
     for (arg, format) in [
         ("svg", ExportFormat::Svg),
         ("mmd", ExportFormat::Mermaid),
-        ("txt", ExportFormat::Text),
+        ("clidraw", ExportFormat::Clidraw),
     ] {
         run(&mut app, &format!("export {arg}"));
         assert!(matches!(app.overlay, Overlay::Scope(f, _) if f == format));
@@ -2389,7 +2405,7 @@ fn export_command_takes_a_format_or_lists_them() {
     run(&mut app, "export png");
     assert_eq!(
         app.status.as_ref().map(|s| s.text.as_str()),
-        Some("Usage: :export [svg|mmd|txt]")
+        Some("Usage: :export [svg|mmd|clidraw]")
     );
 }
 

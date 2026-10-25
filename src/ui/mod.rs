@@ -19,8 +19,6 @@ pub mod switcher;
 pub mod theme;
 
 use crate::input::Session;
-use crate::model::Canvas;
-use crate::view::View;
 use grid::Grid;
 pub use infobar::{hit as button_at, Button};
 pub use layout::Layout;
@@ -135,28 +133,6 @@ pub fn render(
         p.draw(&mut grid, s.canvas.elements.len(), s.viewport().1);
     }
     grid.copy_to(buf, area);
-}
-
-/// The canvas as the screen draws it, cropped to its bounds. Empty canvas gives an empty string.
-pub fn text(canvas: &Canvas) -> String {
-    let Some((x, y, w, h)) = canvas.all_bounds() else {
-        return String::new();
-    };
-    let clamp = |n: i32| u16::try_from(n).unwrap_or(u16::MAX);
-    let screen = (clamp(w), clamp(h));
-    let mut s = Session::new(
-        canvas.clone(),
-        View {
-            ox: x,
-            oy: y,
-            ..View::default()
-        },
-        screen,
-    );
-    s.present = true;
-    let mut grid = Grid::new(screen.0, screen.1);
-    canvas_view::draw(&mut grid, &s, None, false);
-    grid.to_text()
 }
 
 /// Centered box (x, y, w, h) clamped to the screen; shared by the overlays.

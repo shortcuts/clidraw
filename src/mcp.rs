@@ -38,7 +38,7 @@ fn tools() -> Value {
              "mermaid": {"type": "string", "description": "Mermaid flowchart text"}}), &["name", "mermaid"])},
         {"name": "export", "description": "Render a saved canvas and return the text.",
          "inputSchema": schema(json!({"name": name,
-             "format": {"type": "string", "enum": ["svg", "mermaid", "text"]}}), &["name", "format"])},
+             "format": {"type": "string", "enum": ["svg", "mermaid", "clidraw"]}}), &["name", "format"])},
     ])
 }
 

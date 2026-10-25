@@ -78,8 +78,8 @@ impl App {
                 "" => self.overlay = Overlay::Formats(scope::formats()),
                 "svg" => self.pick_scope(ExportFormat::Svg),
                 "mmd" => self.pick_scope(ExportFormat::Mermaid),
-                "txt" => self.pick_scope(ExportFormat::Text),
-                _ => self.status = Some(Status::error("Usage: :export [svg|mmd|txt]")),
+                "clidraw" => self.pick_scope(ExportFormat::Clidraw),
+                _ => self.status = Some(Status::error("Usage: :export [svg|mmd|clidraw]")),
             },
             "link" if !self.session.set_link(arg.trim()) => {
                 self.status = Some(Status::error("Usage: :link <http(s) or mailto url>"))

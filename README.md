@@ -11,7 +11,7 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
   - `list` prints the canvas names as a JSON array. `new <name>` creates an empty canvas. `show <name>` prints the canvas file.
   - `edit <name>` reads a JSON array of ops on stdin and applies them all or none. It prints `{"applied":N,"ids":[...]}` with the ids of the created elements. The canvas must exist.
   - `import <name> <path|->` adds a Mermaid flowchart below the existing content and creates the canvas if missing. A failed import exits 1 and names each problem with its line.
-  - `export <name> --svg|--mermaid|--text <path|->` writes a saved canvas to a file, or to stdout for `-`.
+  - `export <name> --svg|--mermaid|--clidraw <path|->` writes a saved canvas to a file, or to stdout for `-`.
   - Ops: `add_shape` (`x`, `y`, optional `kind`, `w`, `h`, `label`, `color`, `fill`, `id`), `add_text` (`x`, `y`, `text`, optional `color`, `id`), `connect` (`from`, `to`, optional `kind`, `label`, `id`), `set` (`id`, optional `label`, `color`, `fill`), `move` (`id`, `dx`, `dy`), `delete` (`id`). Shape `kind` is `Rect`, `Diamond`, `Cylinder`, `Parallelogram`, `Hexagon` or `Frame`. Line `kind` is `Line`, `Arrow`, `ArrowStart` or `ArrowBoth`. Colors are `red`, `orange`, `yellow`, `green`, `blue`, `violet`, or `none` in `set`. A `connect` end is a shape id or an `[x, y]` cell.
 
     ```sh
@@ -71,7 +71,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 
 The command palette (`Ctrl-p`) lists every action with its key, including Canvases, Fit all, the exports and Quit. Saving is automatic. The Minimap action shows the whole canvas. Press Tab to switch between the canvas, the selection and its frame. Click a frame or shape to jump to it.
 
-Export asks what to write: the whole canvas, a dragged area or the selection. `:export` lists the formats; `:export svg`, `:export mmd` and `:export txt` skip the list. Text writes the canvas as plain text, as the screen draws it. Set `export_padding` in `config.toml` for the SVG margin in cells.
+Export asks what to write: the whole canvas, a dragged area or the selection. `:export` lists the formats; `:export svg`, `:export mmd` and `:export clidraw` skip the list. Clidraw writes the save format. Copy the `.clidraw.json` file into the canvas directory to open it. Set `export_padding` in `config.toml` for the SVG margin in cells.
 
 Mouse capture disables the terminal's own text selection. Hold Shift (Option on macOS) to select text.
 

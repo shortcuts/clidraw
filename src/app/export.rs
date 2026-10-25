@@ -99,7 +99,7 @@ impl App {
         let (kind, ext) = match format {
             ExportFormat::Svg => (PromptKind::ExportSvg(extent), "svg"),
             ExportFormat::Mermaid => (PromptKind::ExportMermaid(extent), "mmd"),
-            ExportFormat::Text => (PromptKind::ExportText(extent), "txt"),
+            ExportFormat::Clidraw => (PromptKind::ExportClidraw(extent), "clidraw.json"),
         };
         self.overlay = Overlay::Prompt(Prompt::new(kind, format!("{}.{ext}", self.name)));
     }

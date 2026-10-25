@@ -122,18 +122,6 @@ impl Grid {
         }
     }
 
-    /// The glyphs row by row, without trailing blanks or double-width placeholders.
-    pub fn to_text(&self) -> String {
-        let rows = self.cells.chunks(self.w.max(1) as usize);
-        let lines: Vec<String> = rows
-            .map(|r| {
-                let line: String = r.iter().map(|c| c.ch).filter(|&c| c != '\0').collect();
-                line.trim_end().to_string()
-            })
-            .collect();
-        lines.join("\n") + "\n"
-    }
-
     pub fn dim_all(&mut self) {
         for c in &mut self.cells {
             c.flags |= DIM;

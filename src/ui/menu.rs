@@ -9,7 +9,7 @@ pub enum MenuItem {
     FitAll,
     ExportSvg,
     ExportMermaid,
-    ExportText,
+    ExportClidraw,
     Quit,
 }
 

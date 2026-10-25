@@ -109,7 +109,7 @@ fn new_edit_show_export_round_trip() {
             tool(1, "new", json!({"name": "demo"})),
             tool(2, "edit", json!({"name": "demo", "ops": ops})),
             tool(3, "show", json!({"name": "demo"})),
-            tool(4, "export", json!({"name": "demo", "format": "text"})),
+            tool(4, "export", json!({"name": "demo", "format": "clidraw"})),
             tool(5, "list", json!({})),
         ],
     );

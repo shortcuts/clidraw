@@ -359,7 +359,7 @@ impl App {
             MenuItem::FitAll => self.fit_all(),
             MenuItem::ExportSvg => self.pick_scope(ExportFormat::Svg),
             MenuItem::ExportMermaid => self.pick_scope(ExportFormat::Mermaid),
-            MenuItem::ExportText => self.pick_scope(ExportFormat::Text),
+            MenuItem::ExportClidraw => self.pick_scope(ExportFormat::Clidraw),
             MenuItem::Quit => self.quit = true,
         }
     }
@@ -456,7 +456,7 @@ impl App {
             }
             PromptKind::ExportSvg(x) => self.export(&buf, ExportFormat::Svg, x),
             PromptKind::ExportMermaid(x) => self.export(&buf, ExportFormat::Mermaid, x),
-            PromptKind::ExportText(x) => self.export(&buf, ExportFormat::Text, x),
+            PromptKind::ExportClidraw(x) => self.export(&buf, ExportFormat::Clidraw, x),
             PromptKind::NewCanvas => match self.store.create(&buf) {
                 Ok(()) => self.switch_to(&buf),
                 Err(e) => self.status = Some(ui::Status::error(e.to_string())),

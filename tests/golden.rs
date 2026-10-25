@@ -1,9 +1,10 @@
 use clidraw::diagram::{DiagramKind, Flowchart};
-use clidraw::export::{svg, svg_padded, text};
+use clidraw::export::{svg, svg_padded};
 use clidraw::model::{
     Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind, Stroke,
     Text, TextAlign,
 };
+use clidraw::store::encode;
 
 fn sample() -> Canvas {
     let shape = |id: &str, kind, x, y, w, h, label: &str| {
@@ -184,9 +185,8 @@ fn svg_padding_widens_the_view_box() {
 }
 
 #[test]
-fn text_matches_golden() {
-    check("sample.txt", &text(&sample()));
-    assert_eq!(text(&Canvas::default()), "");
+fn clidraw_matches_golden() {
+    check("sample.clidraw.json", &encode(&sample()).unwrap());
 }
 
 #[test]

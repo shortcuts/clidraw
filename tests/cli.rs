@@ -235,10 +235,11 @@ fn failed_import_lists_diagnostics() {
 }
 
 #[test]
-fn export_text_to_stdout() {
+fn export_clidraw_to_stdout_is_the_saved_canvas() {
     let t = seeded();
-    let r = run(t.path(), &["export", "demo", "--text", "-"]);
+    let r = run(t.path(), &["export", "demo", "--clidraw", "-"]);
     assert!(r.status.success());
-    let text = out(&r);
-    assert!(text.contains("Hi") && text.contains('┌'), "{text}");
+    let exported: Canvas = serde_json::from_str(&out(&r)).unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    assert_eq!(exported, store.load("demo").unwrap());
 }

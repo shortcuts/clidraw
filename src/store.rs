@@ -10,6 +10,13 @@ use std::path::{Path, PathBuf};
 
 const EXT: &str = ".clidraw.json";
 
+/// The save-file text; export writes the same bytes.
+pub fn encode(canvas: &Canvas) -> Result<String, StoreError> {
+    let mut text = serde_json::to_string_pretty(canvas)?;
+    text.push('\n');
+    Ok(text)
+}
+
 #[derive(Debug)]
 pub enum StoreError {
     BadName(String),
@@ -169,8 +176,7 @@ impl Store {
     /// Writes atomically. Returns false when the bytes on disk already match.
     pub fn save(&self, name: &str, canvas: &Canvas) -> Result<bool, StoreError> {
         let path = self.path(name)?;
-        let mut text = serde_json::to_string_pretty(canvas)?;
-        text.push('\n');
+        let text = encode(canvas)?;
         if let Ok(old) = fs::read(&path) {
             if old == text.as_bytes() {
                 return Ok(false);

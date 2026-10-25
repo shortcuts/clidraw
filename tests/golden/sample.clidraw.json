@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "elements": [
+    {
+      "type": "shape",
+      "id": "aaaaaaaa",
+      "kind": "Rect",
+      "x": 0,
+      "y": 0,
+      "w": 12,
+      "h": 5,
+      "label": "Start",
+      "border": "heavy",
+      "color": "red",
+      "fill": "blue",
+      "link": "https://example.com/a?x=1&y=2"
+    },
+    {
+      "type": "shape",
+      "id": "bbbbbbbb",
+      "kind": "Diamond",
+      "x": 30,
+      "y": 0,
+      "w": 12,
+      "h": 5,
+      "label": "OK?"
+    },
+    {
+      "type": "shape",
+      "id": "cccccccc",
+      "kind": "Rect",
+      "x": 30,
+      "y": 12,
+      "w": 12,
+      "h": 5,
+      "label": "Done & \"dusted\"",
+      "border": "double",
+      "align": "right",
+      "bold": true
+    },
+    {
+      "type": "shape",
+      "id": "jjjjjjjj",
+      "kind": "Rect",
+      "x": 0,
+      "y": 20,
+      "w": 12,
+      "h": 5,
+      "label": "alpha beta gamma\ndelta",
+      "stroke": "dashed",
+      "border": "rounded"
+    },
+    {
+      "type": "shape",
+      "id": "kkkkkkkk",
+      "kind": "Cylinder",
+      "x": 16,
+      "y": 20,
+      "w": 12,
+      "h": 5,
+      "label": "DB"
+    },
+    {
+      "type": "shape",
+      "id": "llllllll",
+      "kind": "Parallelogram",
+      "x": 30,
+      "y": 20,
+      "w": 12,
+      "h": 5,
+      "label": "In"
+    },
+    {
+      "type": "shape",
+      "id": "mmmmmmmm",
+      "kind": "Hexagon",
+      "x": 16,
+      "y": 12,
+      "w": 12,
+      "h": 5,
+      "label": "Prep",
+      "fill": "yellow"
+    },
+    {
+      "type": "shape",
+      "id": "nnnnnnnn",
+      "kind": "Frame",
+      "x": -1,
+      "y": 18,
+      "w": 44,
+      "h": 9,
+      "label": "Group"
+    },
+    {
+      "type": "line",
+      "id": "dddddddd",
+      "kind": "Arrow",
+      "from": {
+        "bound": "aaaaaaaa"
+      },
+      "to": {
+        "bound": "bbbbbbbb"
+      },
+      "label": "go",
+      "color": "red"
+    },
+    {
+      "type": "line",
+      "id": "eeeeeeee",
+      "kind": "Line",
+      "from": {
+        "bound": "bbbbbbbb"
+      },
+      "to": {
+        "bound": "cccccccc"
+      },
+      "label": "",
+      "stroke": "dashed"
+    },
+    {
+      "type": "line",
+      "id": "ffffffff",
+      "kind": "Arrow",
+      "from": {
+        "free": [
+          -6,
+          8
+        ]
+      },
+      "to": {
+        "free": [
+          -6,
+          14
+        ]
+      },
+      "label": ""
+    },
+    {
+      "type": "line",
+      "id": "hhhhhhhh",
+      "kind": "ArrowStart",
+      "from": {
+        "bound": "aaaaaaaa"
+      },
+      "to": {
+        "bound": "cccccccc"
+      },
+      "label": "",
+      "stroke": "dotted",
+      "bends": [
+        [
+          20,
+          9
+        ]
+      ]
+    },
+    {
+      "type": "line",
+      "id": "iiiiiiii",
+      "kind": "ArrowBoth",
+      "from": {
+        "bound": "cccccccc"
+      },
+      "to": {
+        "bound": "aaaaaaaa"
+      },
+      "label": "",
+      "bends": [
+        [
+          26,
+          8
+        ]
+      ]
+    },
+    {
+      "type": "text",
+      "id": "gggggggg",
+      "x": -8,
+      "y": -3,
+      "text": "note <1>",
+      "color": "green"
+    }
+  ]
+}

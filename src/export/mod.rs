@@ -1,7 +1,5 @@
 mod svg;
 
-pub use crate::ui::text;
-
 pub use svg::{svg, svg_padded};
 
 use crate::diagram::{DiagramKind, Flowchart};
@@ -12,7 +10,7 @@ use crate::ui::scope::ExportFormat;
 pub fn render(canvas: &Canvas, format: ExportFormat, padding: i32) -> (String, usize) {
     match format {
         ExportFormat::Svg => (svg_padded(canvas, padding), 0),
-        ExportFormat::Text => (text(canvas), 0),
+        ExportFormat::Clidraw => (crate::store::encode(canvas).expect("canvas serializes"), 0),
         ExportFormat::Mermaid => {
             let out = Flowchart.export(canvas);
             (out.text, out.skipped)

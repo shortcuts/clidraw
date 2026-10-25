@@ -4,7 +4,7 @@ use super::list::{List, Row};
 pub enum ExportFormat {
     Svg,
     Mermaid,
-    Text,
+    Clidraw,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -28,7 +28,7 @@ pub fn formats() -> List<ExportFormat> {
         vec![
             row(ExportFormat::Svg, "SVG"),
             row(ExportFormat::Mermaid, "Mermaid"),
-            row(ExportFormat::Text, "Text"),
+            row(ExportFormat::Clidraw, "Clidraw"),
         ],
     )
 }
@@ -38,7 +38,7 @@ pub fn list(format: ExportFormat) -> List<ScopeItem> {
         match format {
             ExportFormat::Svg => "Export SVG",
             ExportFormat::Mermaid => "Export Mermaid",
-            ExportFormat::Text => "Export Text",
+            ExportFormat::Clidraw => "Export Clidraw",
         },
         vec![
             row(ScopeItem::Whole, "Whole canvas"),

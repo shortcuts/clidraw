@@ -510,11 +510,11 @@ pub const BINDINGS: &[Binding] = &[
         Some(Action::Menu(MenuItem::ExportMermaid)),
     ),
     Binding::new(
-        "export_text",
+        "export_clidraw",
         &[],
-        "Export text",
+        "Export clidraw",
         Scope::Palette,
-        Some(Action::Menu(MenuItem::ExportText)),
+        Some(Action::Menu(MenuItem::ExportClidraw)),
     ),
     ex("save", ":w", "Save", Some(Action::Ex("w"))),
     ex(
@@ -756,7 +756,12 @@ pub const BINDINGS: &[Binding] = &[
         Some(Action::Prefill("import ")),
     ),
     ex("mermaid", ":mermaid", "Edit a Mermaid line", None),
-    ex("export", ":export [svg|mmd|txt]", "Export the canvas", None),
+    ex(
+        "export",
+        ":export [svg|mmd|clidraw]",
+        "Export the canvas",
+        None,
+    ),
     ex(
         "link",
         ":link <url>",
