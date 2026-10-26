@@ -71,6 +71,31 @@ fn export_svg_from_the_palette() {
     assert!(std::fs::read_to_string(out).unwrap().starts_with("<svg"));
 }
 
+fn signal_saves_pending_edits(sig: i32) {
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(tmp.path().join("c")).unwrap();
+    std::fs::write(tmp.path().join("c/config.toml"), "autosave_ms = 60000\n").unwrap();
+    let mut t = Term::spawn(tmp.path(), &["scratch"]);
+    t.draw_rect();
+    t.signal_and_wait(sig);
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_clidraw"))
+        .args(["show", "scratch"])
+        .env("CLIDRAW_HOME", tmp.path().join("c"))
+        .output()
+        .unwrap();
+    assert!(String::from_utf8_lossy(&out.stdout).contains("\"Rect"));
+}
+
+#[test]
+fn sigterm_saves_pending_edits() {
+    signal_saves_pending_edits(libc::SIGTERM);
+}
+
+#[test]
+fn sighup_saves_pending_edits() {
+    signal_saves_pending_edits(libc::SIGHUP);
+}
+
 #[test]
 fn label_caret_editing() {
     let tmp = tempfile::tempdir().unwrap();
