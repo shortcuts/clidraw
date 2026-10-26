@@ -42,9 +42,18 @@ pub fn edge_anchor(s: &Shape, (x, y): Pt) -> Anchor {
     }
 }
 
-/// Anchor on the side of `s` that the outside cell `c` touches, at the offset of `c` along it.
+/// Whether `p` lies strictly inside the drawn outline of `s`.
+pub fn inside(s: &Shape, p: Pt) -> bool {
+    let (lo, hi) = s.row_span(p.1);
+    s.y < p.1 && p.1 < s.y + s.h - 1 && lo < p.0 && p.0 < hi
+}
+
+/// Anchor on the side of `s` that the cell `c` touches, at the offset of `c` along it.
+/// A cell inside the outline snaps to the nearest side.
 pub fn side_anchor(s: &Shape, c: Pt) -> Anchor {
-    if c.1 < s.y {
+    if inside(s, c) {
+        edge_anchor(s, c)
+    } else if c.1 < s.y {
         Anchor::Top(c.0 - s.x)
     } else if c.1 >= s.y + s.h {
         Anchor::Bottom(c.0 - s.x)
@@ -55,26 +64,61 @@ pub fn side_anchor(s: &Shape, c: Pt) -> Anchor {
     }
 }
 
-/// The cell just outside the drawn outline of `s` on the side the anchor names, at its offset
+/// The cell next to the drawn outline of `s` on the side the anchor names, at its offset
 /// along it, or at the midpoint of the side that faces `toward` for `Auto`, and the axis a line
-/// leaves it on.
-// shortcut: shapes under 2 cells apart overlap the end cells, clamp if it matters
+/// leaves it on. The cell is outside the outline, or inside when `toward` lies in the box of `s`.
 pub fn side_mid(s: &Shape, anchor: Anchor, toward: Pt) -> (Pt, Axis) {
+    side_cell(s, anchor, toward, toward)
+}
+
+/// `side_mid` where `face` decides outer or inner and `toward` picks the side of an `Auto` anchor.
+// shortcut: shapes under 2 cells apart overlap the end cells, clamp if it matters
+pub(super) fn side_cell(s: &Shape, anchor: Anchor, toward: Pt, face: Pt) -> (Pt, Axis) {
     let (cx, cy) = center(s);
+    let inner = s.w >= 3
+        && s.h >= 3
+        && (s.x..s.x + s.w).contains(&face.0)
+        && (s.y..s.y + s.h).contains(&face.1);
+    let roomy = |row: i32| {
+        let (lo, hi) = s.row_span(row);
+        inner && hi - lo >= 2
+    };
     // A corner has no side to land on, so an offset stays off it.
     let along = |o: i32, len: i32| o.clamp((len > 2) as i32, (len - 1 - (len > 2) as i32).max(0));
     let oy = |o: i32| s.y + along(o, s.h);
-    let left = |row: i32| ((s.row_span(row).0 - 1, row), Axis::Horizontal);
-    let right = |row: i32| ((s.row_span(row).1 + 1, row), Axis::Horizontal);
-    let edge = |x: i32, row: i32, y: i32| {
+    let side = |row: i32, dir: i32| {
+        let inset = if inner {
+            row.clamp(s.y + 1, s.y + s.h - 2)
+        } else {
+            row
+        };
+        let (row, o) = if roomy(inset) {
+            (inset, -dir)
+        } else {
+            (row, dir)
+        };
+        let (lo, hi) = s.row_span(row);
+        (((if dir < 0 { lo } else { hi }) + o, row), Axis::Horizontal)
+    };
+    let (left, right) = (|row| side(row, -1), |row| side(row, 1));
+    let edge = |x: i32, border: i32, out_y: i32, in_row: i32| {
+        let (row, y) = if roomy(in_row) {
+            (in_row, in_row)
+        } else {
+            (border, out_y)
+        };
         let (lo, hi) = s.row_span(row);
         let pad = (hi - lo > 2) as i32;
         ((x.clamp(lo + pad, hi - pad), y), Axis::Vertical)
     };
     let (top, bottom) = (s.y, s.y + s.h - 1);
+    let (up, down) = (
+        |x| edge(x, top, s.y - 1, s.y + 1),
+        |x| edge(x, bottom, s.y + s.h, s.y + s.h - 2),
+    );
     match anchor {
-        Anchor::Top(o) => return edge(s.x + o, top, s.y - 1),
-        Anchor::Bottom(o) => return edge(s.x + o, bottom, s.y + s.h),
+        Anchor::Top(o) => return up(s.x + o),
+        Anchor::Bottom(o) => return down(s.x + o),
         Anchor::Left(o) => return left(oy(o)),
         Anchor::Right(o) => return right(oy(o)),
         Anchor::Auto => {}
@@ -88,9 +132,9 @@ pub fn side_mid(s: &Shape, anchor: Anchor, toward: Pt) -> (Pt, Axis) {
             right(cy)
         }
     } else if dy < 0 {
-        edge(cx, top, s.y - 1)
+        up(cx)
     } else {
-        edge(cx, bottom, s.y + s.h)
+        down(cx)
     }
 }
 

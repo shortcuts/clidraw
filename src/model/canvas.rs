@@ -1,4 +1,4 @@
-use super::geom::{center, corners, route, side_anchor, side_mid, Axis};
+use super::geom::{center, corners, route, side_anchor, side_cell, Axis};
 use super::router::{grow, union};
 use super::{
     Anchor, Command, Element, End, Id, Line, Router, Shape, ShapeKind, Side, Text, VERSION,
@@ -110,27 +110,49 @@ impl Canvas {
     }
 
     fn anchors<'a>(&'a self, l: &Line, find: &Find<'a>) -> [((i32, i32), Option<Axis>); 2] {
-        let raw = |end: &End| match end {
-            End::Free(x, y) => (*x, *y),
-            End::Bound(id, _) => find(id).map_or((0, 0), center),
-        };
-        let (from, to) = (raw(&l.from), raw(&l.to));
-        let (face_from, face_to) = (
-            l.bends.first().copied().unwrap_or(to),
-            l.bends.last().copied().unwrap_or(from),
-        );
         let shape_of = |end: &End| match end {
             End::Bound(id, a) => find(id).map(|s| (s, *a)),
             End::Free(..) => None,
         };
-        let anchor = |end: &End, own, toward| match shape_of(end) {
+        let shapes = [shape_of(&l.from), shape_of(&l.to)];
+        let raw = |end: &End, found: Option<(&Shape, Anchor)>| match (end, found) {
+            (End::Free(x, y), _) => (*x, *y),
+            (End::Bound(..), found) => found.map_or((0, 0), |(s, _)| center(s)),
+        };
+        let (from, to) = (raw(&l.from, shapes[0]), raw(&l.to, shapes[1]));
+        let (face_from, face_to) = (
+            l.bends.first().copied().unwrap_or(to),
+            l.bends.last().copied().unwrap_or(from),
+        );
+        // A pinned far end counts by its outer cell, so a shape inside the other still leaves outward.
+        let face = |bend: Option<(i32, i32)>, far: Option<(&Shape, Anchor)>, toward, other| {
+            bend.or_else(|| {
+                let (s, a) = far.filter(|&(_, a)| a != Anchor::Auto)?;
+                Some(side_cell(s, a, other, (i32::MIN, i32::MIN)).0)
+            })
+            .unwrap_or(toward)
+        };
+        let anchor = |found: Option<(&Shape, Anchor)>, own, toward, face| match found {
             Some((s, a)) => {
-                let (p, ax) = side_mid(s, a, toward);
+                let (p, ax) = side_cell(s, a, toward, face);
                 (p, Some(ax))
             }
             None => (own, None),
         };
-        [anchor(&l.from, from, face_from), anchor(&l.to, to, face_to)]
+        [
+            anchor(
+                shapes[0],
+                from,
+                face_from,
+                face(l.bends.first().copied(), shapes[1], face_from, from),
+            ),
+            anchor(
+                shapes[1],
+                to,
+                face_to,
+                face(l.bends.last().copied(), shapes[0], face_to, to),
+            ),
+        ]
     }
 
     /// Cells of the line from start to end. A line with bends routes plain; one without goes around obstacles.
