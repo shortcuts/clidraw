@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt;
 use std::fs;
-use std::io;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 const EXT: &str = ".clidraw.json";
@@ -73,6 +73,20 @@ struct HistoryFile {
 #[derive(Deserialize)]
 struct VersionOnly {
     version: u32,
+}
+
+/// Syncs the bytes before the rename: a crash must not keep the name with empty data.
+fn write_durable(tmp: &Path, path: &Path, bytes: &[u8]) -> io::Result<()> {
+    let mut file = fs::File::create(tmp)?;
+    file.write_all(bytes)?;
+    file.sync_all()?;
+    drop(file);
+    fs::rename(tmp, path)?;
+    #[cfg(unix)]
+    if let Some(dir) = path.parent() {
+        fs::File::open(dir)?.sync_all()?;
+    }
+    Ok(())
 }
 
 /// Picks the canvas directory. macOS uses ~/.config because dotfile repos manage it.
@@ -202,8 +216,7 @@ impl Store {
         }
         fs::create_dir_all(&self.dir)?;
         let tmp = self.dir.join(format!(".{name}{EXT}.tmp"));
-        fs::write(&tmp, text)?;
-        fs::rename(&tmp, &path)?;
+        write_durable(&tmp, &path, text.as_bytes())?;
         Ok(true)
     }
 
