@@ -144,10 +144,24 @@ fn median(mut v: Vec<Duration>) -> Duration {
 
 | Terminal | drag median | drag p99 | drag worst | pan median | pan p99 | pan worst | B/frame |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| kitty | not run yet | | | | | | |
-| Alacritty | not run yet | | | | | | |
-| Ghostty | not run yet | | | | | | |
-| Rex | not run yet | | | | | | |
+| kitty | not run: not installed | | | | | | |
+| Alacritty | not run: not installed | | | | | | |
+| Ghostty | not run: not installed | | | | | | |
+| Rex | 13.8 to 14.6 | 30.1 to 54.0 | 30.8 to 59.4 | 1.0 | 8.2 to 12.5 | 11.0 to 15.2 | 420 drag, 837 pan |
+
+The Rex row spans 3 runs at 80x24. The drag median sits near the 16 ms budget at that size.
+
+### Startup
+
+Time from process start to the first frame, in a pty that answers like a terminal (3 runs each, 80x24):
+
+| Terminal reply | First frame |
+| --- | --- |
+| OSC 11, DA1 and the keyboard query | 17 to 31 ms |
+| DA1 and the keyboard query, no OSC 11 | 17 to 20 ms |
+| none (silent link) | 2.52 s |
+
+A silent link waits `REPLY_TIMEOUT` (500 ms) for `theme::detect`, then 2 s for crossterm's `supports_keyboard_enhancement`.
 
 ### Profile
 
@@ -155,7 +169,7 @@ Install the profiler once. It is a dev tool, not a project dependency: `cargo in
 
 Run `make profile`. It builds the perf test with debug symbols in release, then records the drag scenario (`busy_app`, 5000 elements) with samply. samply opens the Firefox Profiler view in a browser. Use that view as the flamegraph.
 
-The samply step is not verified yet: the cargo build runs, but `make profile` was not run to completion.
+`make profile` was run to completion with samply 0.13.1: it records, then serves the profile at `http://127.0.0.1:3000` until Ctrl+C.
 
 ## UI design system
 
