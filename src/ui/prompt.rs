@@ -1,5 +1,6 @@
 use super::grid::REVERSE;
 use super::list::{Anchor, List, Row};
+use super::paths;
 use super::registry::{self, Binding};
 use super::scope::ExportFormat;
 use super::style::{ACTIVE, ERROR, MUTED};
@@ -36,6 +37,8 @@ pub struct Prompt {
     pub sel: usize,
     /// Offer and apply the first diagnostic's fix.
     pub fixes: bool,
+    /// Highlighted file of the `import` path drawer; `None` until the user navigates.
+    pub path_sel: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,6 +65,7 @@ impl Prompt {
             edit,
             sel: 0,
             fixes: false,
+            path_sel: None,
         }
     }
 
@@ -72,6 +76,26 @@ impl Prompt {
     /// Find mode starts with `/` and has no completions.
     pub fn completing(&self) -> bool {
         self.kind == PromptKind::Command && !self.buf().starts_with('/')
+    }
+
+    /// The path typed after `import `, while the command line shows the file drawer.
+    pub fn path_arg(&self) -> Option<&str> {
+        self.buf()
+            .strip_prefix("import ")
+            .filter(|_| self.kind == PromptKind::Command)
+    }
+
+    /// Fills the buffer with the `index`th file of the drawer; a directory keeps the drawer open inside it.
+    pub fn accept_path(&mut self, index: usize) {
+        let Some(arg) = self.path_arg() else {
+            return;
+        };
+        let entries = paths::complete(arg);
+        let Some(entry) = entries.get(index) else {
+            return;
+        };
+        let buf = format!("import {}", paths::accepted(arg, entry));
+        *self = Prompt::new(PromptKind::Command, buf);
     }
 
     /// The first diagnostic of the session header plus the typed line.
@@ -188,7 +212,9 @@ pub fn command_list(p: &Prompt, bar: i32) -> List<&'static Binding> {
 pub fn draw_command(grid: &mut Grid, p: &Prompt) {
     let row = grid.h - 1;
     grid.fill(0, row, grid.w, 1);
-    if p.completing() {
+    if let Some(arg) = p.path_arg() {
+        paths::drawer(arg, p.path_sel, row).draw(grid);
+    } else if p.completing() {
         command_list(p, row).draw(grid);
     }
     let prefix = match &p.kind {

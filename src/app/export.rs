@@ -145,7 +145,7 @@ impl App {
     }
 }
 
-fn expand_home(path: &str) -> String {
+pub(crate) fn expand_home(path: &str) -> String {
     let rest = match path.strip_prefix('~') {
         Some(rest) if rest.is_empty() || rest.starts_with('/') => rest,
         _ => return path.to_string(),

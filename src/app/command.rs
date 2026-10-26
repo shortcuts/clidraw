@@ -1,6 +1,7 @@
 use super::App;
 use crate::input::edit_key;
 use crate::model::Dir;
+use crate::ui::paths;
 use crate::ui::prompt::{self, Prompt, PromptKind};
 use crate::ui::registry::{self, Binding};
 use crate::ui::scope::{self, ExportFormat};
@@ -14,9 +15,31 @@ impl App {
         };
         if edit_key(&mut p.edit, &k) {
             p.sel = 0;
+            p.path_sel = None;
             return;
         }
         let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
+        let files = p.path_arg().map_or(0, |a| paths::complete(a).len());
+        if files > 0 {
+            let step = match k.code {
+                KeyCode::Up => Some(-1),
+                KeyCode::Down => Some(1),
+                KeyCode::Char('p') if ctrl => Some(-1),
+                KeyCode::Char('n') if ctrl => Some(1),
+                _ => None,
+            };
+            if let Some(step) = step {
+                let at = p
+                    .path_sel
+                    .map_or(0, |i| i.saturating_add_signed(step).min(files - 1));
+                return p.path_sel = Some(at);
+            }
+            match (k.code, p.path_sel) {
+                (KeyCode::Tab, i) => return p.accept_path(i.unwrap_or(0)),
+                (KeyCode::Enter, Some(i)) => return p.accept_path(i),
+                _ => {}
+            }
+        }
         let by = match k.code {
             KeyCode::Up => -1,
             KeyCode::Down => 1,

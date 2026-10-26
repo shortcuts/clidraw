@@ -17,6 +17,7 @@ use std::time::{Duration, Instant};
 mod actions;
 mod command;
 mod export;
+pub(crate) use export::expand_home;
 mod help;
 mod import;
 mod library;
@@ -364,6 +365,19 @@ impl App {
             | Overlay::Kinds(..)
             | Overlay::Switcher(_)
             | Overlay::Actions(_) => self.list_click(col, row),
+            Overlay::Prompt(p) if p.path_arg().is_some() => {
+                let bar = i32::from(screen.1) - 1;
+                let list = ui::paths::drawer(p.path_arg().unwrap_or(""), p.path_sel, bar);
+                match list.click(screen, col, row) {
+                    Click::Row(i, _) => {
+                        if let Overlay::Prompt(p) = &mut self.overlay {
+                            p.accept_path(i);
+                        }
+                    }
+                    Click::Outside if row != bar => self.overlay = Overlay::None,
+                    _ => {}
+                }
+            }
             Overlay::Prompt(p)
                 if matches!(p.kind, PromptKind::Command | PromptKind::Mermaid(_)) =>
             {
