@@ -1886,3 +1886,25 @@ fn a_branch_off_a_line_draws_a_junction_glyph() {
     assert_eq!(cols(&b, 10, 19, 3), "─┬─");
     assert_eq!(cols(&b, 14, 20, 2), "╰─");
 }
+
+#[test]
+fn import_drawer_lists_three_files_with_directories_first() {
+    let t = tempfile::tempdir().unwrap();
+    for f in ["a.mmd", "b.mmd", "c.mmd"] {
+        std::fs::write(t.path().join(f), "").unwrap();
+    }
+    std::fs::create_dir(t.path().join("sub")).unwrap();
+    let d = t.path().display().to_string();
+    for w in [40, 60, 120] {
+        let b = command_prompt_at(&format!("import {d}/"), w, 24);
+        assert!(line_at(&b, 18).contains("Files"), "{w}");
+        assert!(line_at(&b, 19).contains("sub/"), "{w}");
+        assert!(line_at(&b, 20).contains("a.mmd"), "{w}");
+        assert!(line_at(&b, 21).contains("b.mmd"), "{w}");
+        assert!(line_at(&b, 22).starts_with("└─"), "{w}");
+        assert!(!line_at(&b, 21).contains("c.mmd"), "{w}");
+        let b = command_prompt_at(&format!("import {d}/zz"), w, 24);
+        let all: String = (0..23).map(|y| line_at(&b, y)).collect();
+        assert!(!all.contains("Files"), "{w}");
+    }
+}

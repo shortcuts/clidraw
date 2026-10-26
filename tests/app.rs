@@ -2923,3 +2923,70 @@ fn palette_copy_clidraw_queues_the_canvas_as_osc52() {
     assert!(seq.starts_with("\x1b]52;c;ewog") && seq.ends_with("\x1b\\"));
     assert!(app.take_copy().is_none());
 }
+
+// `directories` reads the Windows known-folder API, not HOME.
+#[cfg(unix)]
+#[test]
+fn import_expands_a_leading_tilde() {
+    let t = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    std::fs::write(home.path().join("x.mmd"), "flowchart TD\nA --> B\n").unwrap();
+    let mut app = app_in(t.path());
+    std::env::set_var("HOME", home.path());
+    run(&mut app, "import ~/x.mmd");
+    assert!(app
+        .status
+        .as_ref()
+        .unwrap()
+        .text
+        .starts_with("Imported 2 shapes"));
+}
+
+fn command_buf(app: &App) -> &str {
+    match &app.overlay {
+        clidraw::ui::Overlay::Prompt(p) => p.buf(),
+        _ => panic!("no prompt"),
+    }
+}
+
+#[test]
+fn import_drawer_navigates_fills_and_descends() {
+    let t = tempfile::tempdir().unwrap();
+    let files = t.path().join("files");
+    std::fs::create_dir(&files).unwrap();
+    let d = files.display().to_string();
+    std::fs::write(files.join("a.mmd"), "flowchart TD\nA --> B\n").unwrap();
+    std::fs::write(files.join("b.mmd"), "").unwrap();
+    std::fs::write(files.join(".hid"), "").unwrap();
+    std::fs::create_dir(files.join("sub")).unwrap();
+    std::fs::write(files.join("sub").join("c.mmd"), "").unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    type_str(&mut app, &format!(":import {d}/"), now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Up), now);
+    ctrl_key(&mut app, 'n', now);
+    ctrl_key(&mut app, 'n', now);
+    app.on_event(key(KeyCode::Tab), now);
+    assert_eq!(command_buf(&app), format!("import {d}/b.mmd"));
+
+    let mut app = app_in(t.path());
+    type_str(&mut app, &format!(":import {d}/"), now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(command_buf(&app), format!("import {d}/sub/"));
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(command_buf(&app), format!("import {d}/sub/c.mmd"));
+
+    let mut app = app_in(t.path());
+    type_str(&mut app, &format!(":import {d}/a.mmd"), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(app
+        .status
+        .as_ref()
+        .unwrap()
+        .text
+        .starts_with("Imported 2 shapes"));
+}

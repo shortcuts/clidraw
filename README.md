@@ -36,7 +36,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Double-click a shape or line to edit its label. Double-click empty canvas to place text.
 - In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap, and the shape grows to fit.
 - Select shapes and run `:layout` (top-down) or `:layout lr` to arrange them by their connecting lines.
-- Run `:import <path>` to add a Mermaid flowchart to the canvas. It reads nodes, edges and labels, and arranges them with `:layout`. A failed import shows each problem with its line.
+- Run `:import <path>` to add a Mermaid flowchart to the canvas. It reads nodes, edges and labels, and arranges them with `:layout`. A failed import shows each problem with its line. A file list under the prompt shows 3 matches: move with Up, Down, Ctrl-p or Ctrl-n, then Tab or Enter fills the path. Enter on a folder opens it. Enter runs the import when nothing is highlighted.
 - Run `:mermaid` to type one flowchart line. It flags mistakes as you type. A fixable mistake shows a fix that Tab applies. Enter adds the diagram.
 - Select shapes and run `:lib save <name>` to keep them in the library. Run `:lib insert <name>` to add them to any canvas, `:lib list` to see the names and `:lib delete <name>` to remove one. `:lib save` refuses to overwrite a name.
 - Group elements to select and move them as one.

@@ -1,11 +1,11 @@
-use super::App;
+use super::{expand_home, App};
 use crate::diagram::{import_failure, DiagramKind, Flowchart};
 use crate::model::{Element, Id, Shape, ShapeKind};
 use crate::ui::Status;
 
 impl App {
     pub(super) fn import(&mut self, path: &str) {
-        match std::fs::read_to_string(path) {
+        match std::fs::read_to_string(expand_home(path)) {
             Ok(text) => self.import_text(&text),
             Err(e) => self.status = Some(Status::error(format!("Import failed: {e}"))),
         }

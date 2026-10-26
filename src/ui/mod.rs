@@ -10,6 +10,7 @@ pub mod list;
 pub mod menu;
 pub mod minimap;
 pub mod palette;
+pub mod paths;
 mod perf;
 pub mod prompt;
 pub mod registry;
