@@ -25,8 +25,8 @@ perf:
 	cargo test --release --test perf -- --ignored --nocapture --test-threads=1
 
 profile:
-	CARGO_PROFILE_RELEASE_DEBUG=1 cargo test --release --test perf --no-run
-	samply record $$(CARGO_PROFILE_RELEASE_DEBUG=1 cargo test --release --test perf --no-run --message-format=json | grep -o '"executable":"[^"]*deps/perf-[^"]*"' | cut -d'"' -f4) drag_step_fits_the_budget_on_5000_elements --ignored --nocapture --test-threads=1
+	CARGO_PROFILE_RELEASE_DEBUG=1 CARGO_PROFILE_RELEASE_STRIP=false cargo test --release --test perf --no-run
+	samply record $$(CARGO_PROFILE_RELEASE_DEBUG=1 CARGO_PROFILE_RELEASE_STRIP=false cargo test --release --test perf --no-run --message-format=json | grep -o '"executable":"[^"]*deps/perf-[^"]*"' | cut -d'"' -f4) drag_step_fits_the_budget_on_5000_elements --ignored --nocapture --test-threads=1
 
 check: fmt-check lint test perf
 
