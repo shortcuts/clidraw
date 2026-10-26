@@ -28,3 +28,9 @@ libc = "0.2"
 tempfile = "3"
 portable-pty = "0.9"
 vt100 = "0.18"
+
+[profile.release]
+strip = true
+lto = "fat"
+codegen-units = 1
+panic = "abort"
