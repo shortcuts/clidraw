@@ -154,7 +154,7 @@ impl Store {
     }
 
     pub fn from_env() -> Result<Store, StoreError> {
-        let home = directories::BaseDirs::new().map(|b| b.home_dir().to_path_buf());
+        let home = std::env::home_dir();
         let env = |k: &str| std::env::var(k).ok();
         let missing = || io::Error::other("cannot find a home directory");
         let dir = resolve_dir(env, home.clone()).ok_or_else(missing)?;

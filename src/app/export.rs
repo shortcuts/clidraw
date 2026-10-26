@@ -150,8 +150,8 @@ pub(crate) fn expand_home(path: &str) -> String {
         Some(rest) if rest.is_empty() || rest.starts_with('/') => rest,
         _ => return path.to_string(),
     };
-    match directories::BaseDirs::new() {
-        Some(dirs) => format!("{}{rest}", dirs.home_dir().display()),
+    match std::env::home_dir() {
+        Some(home) => format!("{}{rest}", home.display()),
         None => path.to_string(),
     }
 }
