@@ -245,7 +245,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
             Action::BendDrag { id, at }
         }
         Target::Handle(Handle::Bend(at), id) => Action::BendDrag { id, at },
-        Target::Empty if s.shift => Action::Band(w0),
+        Target::Empty if s.shift || s.tool == Tool::Select => Action::Band(w0),
         Target::Empty => Action::Pan(origin),
         Target::Handle(Handle::End(side), id) => Action::EndDrag { id, side },
         Target::Handle(Handle::Resize, id) => {
@@ -509,9 +509,9 @@ pub(super) fn up(s: &mut Session, world: P) {
                 }
                 Action::CreateLine(id) => {
                     bind(s, &mut inv, id, Side::To, world);
-                    s.tool = Tool::Select;
+                    s.tool = Tool::Pointer;
                 }
-                Action::Create { .. } => s.tool = Tool::Select,
+                Action::Create { .. } => s.tool = Tool::Pointer,
                 Action::BendDrag { id, .. } => drop_spikes(s, &mut inv, id),
                 _ => {}
             }

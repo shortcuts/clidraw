@@ -24,6 +24,7 @@ use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Tool {
+    Pointer,
     Select,
     Rect,
     Diamond,
@@ -50,6 +51,7 @@ impl Tool {
 
     pub fn label(self) -> &'static str {
         match self {
+            Tool::Pointer => "Pointer",
             Tool::Select => "Select",
             Tool::Rect => "Rect",
             Tool::Diamond => "Diamond",
@@ -60,6 +62,10 @@ impl Tool {
             Tool::Arrow => "Arrow",
             Tool::Text => "Text",
         }
+    }
+
+    pub fn is_pointer(self) -> bool {
+        matches!(self, Tool::Pointer | Tool::Select)
     }
 
     pub fn key(self) -> Option<char> {
@@ -128,7 +134,7 @@ impl Session {
             canvas,
             history: History::default(),
             view,
-            tool: Tool::Select,
+            tool: Tool::Pointer,
             theme: Theme::Dark,
             chrome_accent: None,
             selection: vec![],
@@ -185,11 +191,13 @@ impl Session {
         }
         match (self.tool, &self.hover) {
             (Tool::Text, _) => "text",
-            (Tool::Select, Hit::Handle(Handle::Resize, _)) => "nwse-resize",
-            (Tool::Select, Hit::Handle(Handle::End(_) | Handle::Bend(_), _)) => "crosshair",
-            (Tool::Select, _) if self.label_hover => "text",
-            (Tool::Select, Hit::Element(_)) => "grab",
-            (Tool::Select, Hit::Empty) => "default",
+            (Tool::Pointer | Tool::Select, Hit::Handle(Handle::Resize, _)) => "nwse-resize",
+            (Tool::Pointer | Tool::Select, Hit::Handle(Handle::End(_) | Handle::Bend(_), _)) => {
+                "crosshair"
+            }
+            (Tool::Pointer | Tool::Select, _) if self.label_hover => "text",
+            (Tool::Pointer | Tool::Select, Hit::Element(_)) => "grab",
+            (Tool::Pointer, Hit::Empty) => "default",
             _ => "crosshair",
         }
     }

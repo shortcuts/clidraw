@@ -147,7 +147,7 @@ fn rect_tool_draws_one_undo_step_and_returns_to_select() {
     drag(&mut s, (20, 5), (30, 10));
     let sh = shapes(&s);
     assert_eq!((sh[0].x, sh[0].y, sh[0].w, sh[0].h), (20, 5, 11, 6));
-    assert_eq!(s.tool, Tool::Select);
+    assert_eq!(s.tool, Tool::Pointer);
     key(&mut s, KeyCode::Char('u'));
     assert!(s.canvas.elements.is_empty());
     ctrl(&mut s, 'r');
@@ -288,7 +288,7 @@ fn hjkl_without_a_selection_keep_the_tool() {
     for c in ['h', 'j', 'k', 'l'] {
         key(&mut s, KeyCode::Char(c));
     }
-    assert_eq!(s.tool, Tool::Select);
+    assert_eq!(s.tool, Tool::Pointer);
 }
 
 #[test]
@@ -323,7 +323,7 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
     };
     assert_eq!(l.from, End::Bound(Id::from("aaaaaaaa"), Anchor::Bottom(4)));
     assert_eq!(l.to, End::Bound(Id::from("bbbbbbbb"), Anchor::Bottom(4)));
-    assert_eq!(s.tool, Tool::Select);
+    assert_eq!(s.tool, Tool::Pointer);
     assert_eq!(s.canvas.line_ends(&l), ((19, 7), (44, 7)));
 
     drag(&mut s, (40, 4), (40, 9));
@@ -650,7 +650,7 @@ fn text_tool_click_places_text_and_esc_cancels_edit() {
     key(&mut s, KeyCode::Char('x'));
     key(&mut s, KeyCode::Esc);
     assert!(s.canvas.elements.is_empty());
-    assert_eq!(s.tool, Tool::Select);
+    assert_eq!(s.tool, Tool::Pointer);
 }
 
 #[test]
@@ -672,6 +672,34 @@ fn esc_clears_the_selection() {
     assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::None);
     assert!(s.selection.is_empty());
     assert_eq!(key(&mut s, KeyCode::Esc), KeyOutcome::None);
+}
+
+#[test]
+fn select_tool_drag_on_empty_draws_a_band() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.tool = Tool::Select;
+    drag(&mut s, (10, 2), (60, 16));
+    assert_eq!((s.view.ox, s.view.oy), (0, 0));
+    assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
+    assert_eq!(s.tool, Tool::Select);
+}
+
+#[test]
+fn select_tool_moves_a_selected_shape_like_the_pointer() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.tool = Tool::Select;
+    drag(&mut s, (20, 6), (24, 6));
+    assert_eq!(shapes(&s)[0].x, 24);
+}
+
+#[test]
+fn esc_leaves_the_select_tool_and_clears_the_selection() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.tool = Tool::Select;
+    s.selection = vec![Id::from("aaaaaaaa")];
+    key(&mut s, KeyCode::Esc);
+    assert!(s.selection.is_empty());
+    assert_eq!(s.tool, Tool::Pointer);
 }
 
 #[test]
@@ -742,7 +770,7 @@ fn palette_option_sets_the_head_of_a_selected_line() {
     assert_eq!(kind(&s), LineKind::ArrowBoth);
     option(&mut s, 0);
     assert_eq!(kind(&s), LineKind::Line);
-    assert_eq!(s.tool, Tool::Select);
+    assert_eq!(s.tool, Tool::Pointer);
     s.undo();
     assert_eq!(kind(&s), LineKind::ArrowBoth);
 }
@@ -1575,7 +1603,7 @@ fn half_zoom_is_read_only_and_esc_returns_to_one() {
     assert!(s.selection.is_empty());
     key(&mut s, KeyCode::Delete);
     key(&mut s, KeyCode::Char('r'));
-    assert_eq!(s.tool, Tool::Select);
+    assert_eq!(s.tool, Tool::Pointer);
     assert_eq!(s.canvas.elements.len(), 1);
     let at = s.view.to_screen(21, 6);
     click(&mut s, (at.0 as u16, at.1 as u16), Instant::now());
@@ -1662,7 +1690,7 @@ fn present_blocks_edits_and_esc_returns() {
     key(&mut s, KeyCode::Char('r'));
     click(&mut s, (20, 6), Instant::now());
     assert!(s.selection.is_empty());
-    assert_eq!(s.tool, Tool::Select);
+    assert_eq!(s.tool, Tool::Pointer);
     key(&mut s, KeyCode::Esc);
     assert!(!s.present);
 }
@@ -2265,7 +2293,7 @@ fn set_link_sets_clears_undoes_and_rejects_unsafe_urls() {
 
 fn two_selected() -> Session {
     let mut s = two_shapes_and_arrow_tool();
-    s.tool = Tool::Select;
+    s.tool = Tool::Pointer;
     s.selection = vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")];
     s
 }

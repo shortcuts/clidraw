@@ -1758,6 +1758,8 @@ fn pointer_shape_follows_tool_hover_and_drag() {
     app.on_event(key(KeyCode::Char('r')), t0);
     assert_eq!(app.take_pointer(), Some("crosshair"));
     app.on_event(key(KeyCode::Char('v')), t0);
+    assert_eq!(app.take_pointer(), None);
+    app.on_event(key(KeyCode::Esc), t0);
     assert_eq!(app.take_pointer(), Some("default"));
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 30, 10), t0);
     app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 34, 10), t0);
