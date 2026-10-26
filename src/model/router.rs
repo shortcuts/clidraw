@@ -326,8 +326,8 @@ impl Router {
     }
 
     /// `plain` when no cell of it lies in an obstacle and it crosses no earlier line, else the
-    /// cheapest path in the box of the end cells plus `MARGIN`. Obstacles are the other shapes and
-    /// texts, minus the two end shapes. A frame is no obstacle.
+    /// cheapest path in the box of the end cells plus `MARGIN`. Obstacles are the shapes and
+    /// texts, the two end shapes included. A frame is no obstacle.
     /// Also returns a box: an obstacle change outside it leaves the path as is, and the earlier routes it read.
     // shortcut: a later line is read by its plain route, only earlier lines count by their actual route
     pub fn around<'a>(
@@ -370,7 +370,7 @@ impl Router {
             let items = self.solid.get(&at).map_or(&[][..], |v| v);
             items.iter().any(|&i| {
                 let i = &self.items[i as usize];
-                has(i.rect, p) && !is_end(i)
+                has(i.rect, p)
             })
         };
         // A start beside the end cell cannot clear a long stub without a parallel U.
