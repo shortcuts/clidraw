@@ -416,7 +416,7 @@ pub fn jump(s: &mut Session, strip: Strip, dir: i32) {
 pub fn rows(s: &Session) -> i32 {
     if s.present {
         0
-    } else if s.zoomed_out() || choices(&selected(s), &s.canvas.groups).is_empty() {
+    } else if s.zoomed_out() || !s.selection.iter().any(|id| s.canvas.get(id).is_some()) {
         1
     } else {
         2
