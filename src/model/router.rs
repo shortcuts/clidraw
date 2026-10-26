@@ -74,11 +74,13 @@ pub struct Dep {
 
 /// A routed line, the box outside which no obstacle can alter it, and the earlier routes it read.
 /// `stale` marks a route whose `deps` need a check before it is reused.
+/// `cross` is what the route paid for crossing shapes and lines, in the units of the search cost.
 struct Cached {
     path: Vec<Pt>,
     foot: Rect,
     deps: Vec<Dep>,
     stale: bool,
+    cross: u64,
 }
 
 /// Spatial index of the elements a routed line avoids, built once per canvas state.
@@ -88,6 +90,8 @@ pub struct Router {
     solid: Buckets,
     lines: Buckets,
     routes: RefCell<HashMap<Id, Cached>>,
+    /// Routes dropped by `carry` or `settled`, kept so a line that moved as a whole can reuse one shifted.
+    prior: RefCell<HashMap<Id, Cached>>,
 }
 
 fn buckets((x, y, w, h): Rect) -> impl Iterator<Item = Pt> {
@@ -154,25 +158,32 @@ impl Router {
         self.routes.borrow().get(id).map(|c| c.path.clone())
     }
 
-    pub fn store(&self, id: Id, path: Vec<Pt>, foot: Rect, deps: Vec<Dep>) {
+    pub fn store(&self, id: Id, path: Vec<Pt>, foot: Rect, deps: Vec<Dep>, cross: u64) {
         let cached = Cached {
             path,
             foot,
             deps,
             stale: false,
+            cross,
         };
+        self.prior.borrow_mut().remove(&id);
         self.routes.borrow_mut().insert(id, cached);
     }
 
     /// Takes the routes of `old` that no `dirty` rect touches. A route that read an earlier line
     /// stays until `settled` finds that line took other cells where it looked.
     pub fn carry(&mut self, old: &mut Router, dirty: &[Rect]) {
-        let mut routes = std::mem::take(old.routes.get_mut());
-        routes.retain(|_, c| !dirty.iter().any(|&d| meets(c.foot, d)));
+        let (dropped, mut routes): (HashMap<_, _>, HashMap<_, _>) =
+            std::mem::take(old.routes.get_mut())
+                .into_iter()
+                .partition(|(_, c)| dirty.iter().any(|&d| meets(c.foot, d)));
         for c in routes.values_mut() {
             c.stale = !c.deps.is_empty();
         }
         *self.routes.get_mut() = routes;
+        let prior = self.prior.get_mut();
+        *prior = std::mem::take(old.prior.get_mut());
+        prior.extend(dropped);
     }
 
     /// Reads the cached route of `id` with `read`, or returns `None` when an earlier line it read has moved on.
@@ -199,7 +210,9 @@ impl Router {
         });
         let mut routes = self.routes.borrow_mut();
         if !holds {
-            routes.remove(id);
+            if let Some(c) = routes.remove(id) {
+                self.prior.borrow_mut().insert(id.clone(), c);
+            }
             return None;
         }
         let c = routes.get_mut(id)?;
@@ -253,8 +266,8 @@ impl Router {
             .collect()
     }
 
-    /// Whether `plain`, bar its end cells `a` and `b`, meets the route of an earlier line.
-    fn crosses_line<'a>(
+    /// How many cells of `plain`, bar its end cells `a` and `b`, lie on the route of an earlier line.
+    fn line_hits<'a>(
         &self,
         canvas: &'a Canvas,
         find: &Find<'a>,
@@ -262,7 +275,7 @@ impl Router {
         plain: &[Pt],
         me: usize,
         deps: &mut Vec<Dep>,
-    ) -> bool {
+    ) -> u64 {
         let xs = plain.iter().map(|p| p.0);
         let ys = plain.iter().map(|p| p.1);
         let (x0, y0) = (xs.clone().min().unwrap_or(0), ys.clone().min().unwrap_or(0));
@@ -277,12 +290,14 @@ impl Router {
                 Element::Line(l) => Some((i, l)),
                 _ => None,
             })
-            .any(|(i, l)| {
+            .map(|(i, l)| {
                 let theirs = self.earlier(canvas, find, (i, l), region, deps);
                 plain
                     .iter()
-                    .any(|&p| p != a && p != b && theirs.contains(&p))
+                    .filter(|&&p| p != a && p != b && theirs.contains(&p))
+                    .count() as u64
             })
+            .sum()
     }
 
     /// Whether another line ends on the same side of the same shape as `own` does at `b`.
@@ -322,7 +337,7 @@ impl Router {
         own: &Line,
         ends: [(Pt, Option<Axis>); 2],
         plain: Vec<Pt>,
-    ) -> (Vec<Pt>, Rect, Vec<Dep>) {
+    ) -> (Vec<Pt>, Rect, Vec<Dep>, u64) {
         let [(a, ax_a), (b, ax_b)] = ends;
         let end_rect = |e: &End, at: Pt| match e {
             End::Bound(id, _) => find(id).map_or((at.0, at.1, 1, 1), |s| (s.x, s.y, s.w, s.h)),
@@ -388,13 +403,36 @@ impl Router {
         let mut deps = vec![];
         let ok = straight
             && !plain.iter().any(|&p| blocked(p))
-            && !self.crosses_line(canvas, find, (a, b), &plain, me, &mut deps);
+            && self.line_hits(canvas, find, (a, b), &plain, me, &mut deps) == 0;
         if ok {
             let area = plain_foot();
-            return (plain, area, deps);
+            return (plain, area, deps, 0);
         }
         if a == b {
-            return (vec![a], plain_foot(), deps);
+            return (vec![a], plain_foot(), deps, 0);
+        }
+        let prior = self.prior.borrow().get(&own.id).and_then(|c| {
+            let (p, q) = (c.path.first()?, c.path.last()?);
+            let d = (a.0 - p.0, a.1 - p.1);
+            (d != (0, 0) && (b.0 - q.0, b.1 - q.1) == d)
+                .then(|| (d, c.path.clone(), c.foot, c.cross))
+        });
+        // shortcut: the end stub keeps its old length, upgrade when a test shows a lane mismatch after a move
+        if let Some(((dx, dy), old, foot, cross)) = prior {
+            let moved: Vec<Pt> = old.iter().map(|p| (p.0 + dx, p.1 + dy)).collect();
+            let solid = moved.iter().filter(|&&p| blocked(p)).count() as u64 * SOLID;
+            // A route that already crossed shapes keeps its crossings: only a worse one reroutes.
+            if solid <= cross {
+                let lines = self.line_hits(canvas, find, (a, b), &moved, me, &mut deps) * LINE;
+                if solid + lines <= cross {
+                    return (
+                        moved,
+                        (foot.0 + dx, foot.1 + dy, foot.2, foot.3),
+                        deps,
+                        solid + lines,
+                    );
+                }
+            }
         }
         let t = stub.as_ref().map_or(b, |s| s[s.len() - 1]);
         let base = (
@@ -423,7 +461,7 @@ impl Router {
         let (w, h) = (x1 - x0 + 1, y1 - y0 + 1);
         if i64::from(w) * i64::from(h) > i64::from(MAX_AREA) {
             let area = plain_foot();
-            return (plain, area, deps);
+            return (plain, area, deps, 0);
         }
         let area = (x0, y0, w, h);
         let cell = |p: Pt| ((p.1 - y0) * w + p.0 - x0) as usize;
@@ -526,12 +564,17 @@ impl Router {
                     path.push(((c as i32 % w) + x0, (c as i32 / w) + y0));
                     at = from[at as usize];
                 }
+                let cross = path
+                    .iter()
+                    .map(|&(x, y)| grid[cell((x, y))])
+                    .map(|v| u64::from(v & 1) * SOLID + u64::from(v >> 1 & 1) * LINE)
+                    .sum();
                 path.push(a);
                 path.reverse();
                 if let Some(s) = &stub {
                     path.extend(s.iter().rev().skip(1).chain([&b]));
                 }
-                return (path, foot(area), deps);
+                return (path, foot(area), deps, cross);
             }
             for nd in (0..4).filter(|&nd| nd != d ^ 1) {
                 let Some(n) = step(c, nd) else { continue };
@@ -547,6 +590,6 @@ impl Router {
                 }
             }
         }
-        (plain, foot(area), deps)
+        (plain, foot(area), deps, 0)
     }
 }

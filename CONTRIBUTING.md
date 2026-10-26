@@ -37,6 +37,15 @@ self.earlier(canvas, find, l, &mut deps)
 - Good: `Router::around` reads an earlier line through `earlier`, so a second line that detours a shape takes another lane.
 - Bad: reading an earlier line with `plain_with`, so two lines that both detour a shape share the detour row.
 
+A line whose ends moved by one delta reuses its previous route shifted by that delta, never unchecked. The shift counts the shape cells and earlier-line cells it meets and is refused when that costs more than the old route did.
+
+```rust
+let lines = self.line_hits(canvas, find, (a, b), &moved, me, &mut deps) * LINE;
+```
+
+- Good: `Router::around` shifts the dropped route and runs the search only when the shifted cells cross more than the old ones.
+- Bad: shifting the route without the check, so a line runs through a shape the drag passed.
+
 ## Workflow
 
 Run these commands from the repo root.

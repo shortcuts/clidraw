@@ -191,4 +191,81 @@ mod tests {
         refresh(&mut slot, &canvas, 1);
         assert!(!cached(&slot, "near0000") && !cached(&slot, "far00000"));
     }
+
+    fn route_of(slot: &mut Option<Layout>, canvas: &Canvas, rev: u64, id: &str) -> Vec<(i32, i32)> {
+        let layout = refresh(slot, canvas, rev);
+        let find = layout.find(canvas);
+        let Some(Element::Line(l)) = canvas.elements.iter().find(|e| e.id() == &Id::from(id))
+        else {
+            unreachable!()
+        };
+        canvas.route_with(l, &find, &layout.router)
+    }
+
+    fn shift(canvas: &mut Canvas, ids: &[&str], (dx, dy): (i32, i32)) {
+        for e in &mut canvas.elements {
+            if let Element::Shape(s) = e {
+                if ids.contains(&&*s.id.to_string()) {
+                    s.x += dx;
+                    s.y += dy;
+                }
+            }
+        }
+    }
+
+    /// Two end shapes joined around a wall; `rows` is the wall's y span.
+    fn walled(rows: (i32, i32)) -> Canvas {
+        Canvas {
+            elements: vec![
+                shape("a0000000", 0, 4),
+                shape("b0000000", 20, 4),
+                Element::Shape(Shape {
+                    h: rows.1,
+                    ..match shape("w0000000", 10, rows.0) {
+                        Element::Shape(s) => s,
+                        _ => unreachable!(),
+                    }
+                }),
+                arrow("l0000000", "a0000000", "b0000000"),
+            ],
+            ..Canvas::default()
+        }
+    }
+
+    /// The route of the wall scene before and after `ids` move by `by`, and a fresh route of the moved scene.
+    fn moved_route(ids: &[&str], by: (i32, i32)) -> [Vec<(i32, i32)>; 3] {
+        let mut canvas = walled((0, 12));
+        let mut slot = None;
+        let before = route_of(&mut slot, &canvas, 0, "l0000000");
+        shift(&mut canvas, ids, by);
+        let after = route_of(&mut slot, &canvas, 1, "l0000000");
+        let fresh = route_of(&mut None, &canvas, 1, "l0000000");
+        [before, after, fresh]
+    }
+
+    #[test]
+    fn a_line_moved_with_both_ends_keeps_its_detour_shifted() {
+        let [before, after, fresh] = moved_route(&["a0000000", "b0000000"], (0, -3));
+        assert_eq!(
+            after,
+            before.iter().map(|p| (p.0, p.1 - 3)).collect::<Vec<_>>()
+        );
+        assert_ne!(after, fresh);
+    }
+
+    #[test]
+    fn a_shifted_detour_that_meets_a_shape_reroutes() {
+        let [before, after, fresh] = moved_route(&["a0000000", "b0000000"], (0, 3));
+        assert_ne!(
+            after,
+            before.iter().map(|p| (p.0, p.1 + 3)).collect::<Vec<_>>()
+        );
+        assert_eq!(after, fresh);
+    }
+
+    #[test]
+    fn a_line_with_one_end_moved_reroutes() {
+        let [_, after, fresh] = moved_route(&["a0000000"], (0, -3));
+        assert_eq!(after, fresh);
+    }
 }

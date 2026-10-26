@@ -142,7 +142,7 @@ impl Canvas {
         if let Some(path) = router.settled(self, find, &l.id, <[_]>::to_vec) {
             return path;
         }
-        let (path, foot, deps) = if l.bends.is_empty() {
+        let (path, foot, deps, cross) = if l.bends.is_empty() {
             router.around(
                 self,
                 find,
@@ -158,9 +158,9 @@ impl Canvas {
                 .reduce(union)
                 .map(|r| grow(r, 1))
                 .expect("a route has a cell");
-            (path, foot, vec![])
+            (path, foot, vec![], 0)
         };
-        router.store(l.id.clone(), path.clone(), foot, deps);
+        router.store(l.id.clone(), path.clone(), foot, deps, cross);
         path
     }
 
