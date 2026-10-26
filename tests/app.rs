@@ -2895,7 +2895,7 @@ fn export_cancelled_overwrite_keeps_the_file() {
     assert_eq!(std::fs::read_to_string(&out).unwrap(), "old");
 }
 
-// `directories` reads the Windows known-folder API, not HOME.
+// `home_dir` reads USERPROFILE on Windows, not HOME.
 #[cfg(unix)]
 #[test]
 fn export_expands_a_leading_tilde() {
