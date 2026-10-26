@@ -155,6 +155,17 @@ fn rect_tool_draws_one_undo_step_and_returns_to_select() {
 }
 
 #[test]
+fn rect_tool_draws_inside_another_shape() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    pick(&mut s, Tool::Rect);
+    drag(&mut s, (23, 6), (26, 8));
+    let sh = shapes(&s);
+    assert_eq!(sh.len(), 2);
+    assert_eq!((sh[0].x, sh[0].y, sh[0].w, sh[0].h), (20, 5, 8, 4));
+    assert_eq!((sh[1].x, sh[1].y, sh[1].w, sh[1].h), (23, 6, 4, 3));
+}
+
+#[test]
 fn dragging_a_shape_moves_it_and_undo_restores() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     drag(&mut s, (20, 6), (25, 9));
