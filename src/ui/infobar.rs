@@ -126,7 +126,8 @@ fn hints(s: &Session, doc: &Doc, overlay: &Overlay) -> Vec<(String, &'static str
         Overlay::None if s.edit.is_some() => &["commit_edit", "discard_edit", "newline"],
         Overlay::None if s.zoomed_out() => &["reset_zoom", "zoom_wheel", "help"],
         Overlay::None if s.dragging() => &["cancel"],
-        Overlay::None if s.tool != Tool::Select => &["draw", "cancel", "tool_select"],
+        Overlay::None if s.tool == Tool::Select => &["cancel"],
+        Overlay::None if s.tool != Tool::Pointer => &["draw", "cancel", "tool_select"],
         Overlay::None if !s.selection.is_empty() => &["delete", "connect", "copy", "group"],
         Overlay::None => &["help", "command", "find", "fit"],
         Overlay::Context(_)

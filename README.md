@@ -26,10 +26,11 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 
 ## Use
 
-- Pick a tool in the top bar: Select, Rect, Diamond, Cylinder, Slant, Hexagon, Frame (`f`), Arrow, Text.
+- Pick a tool in the top bar: Select (band), Rect, Diamond, Cylinder, Slant, Hexagon, Frame (`f`), Arrow, Text.
 - Draw a frame around shapes, then click its border to move them together.
 - Click a shape's border to select it. A click inside a shape selects nothing, so you can draw a new shape there.
 - Drag on empty canvas to pan, or to draw with a shape tool. Drag a selected element to move it.
+- Press `v` for the Select tool: a drag on empty canvas draws a band and selects what it touches. `Esc` returns to the pointer. Shift+drag draws a band from the pointer too.
 - Moving shapes snaps to other shapes' edges and centers within 1 cell and shows dotted guides. Hold Shift to turn guides off. Guides override `grid`.
 - Drag a selected line to bend it. Drag a bend handle to move it. To return to the automatic route, right-click the line and choose Reset route, or click `~ arrange` in the option strip.
 - Drag the `⤡` handle at the bottom-right corner to resize. Drag a line end onto a shape to bind it. The shape turns bold, and `◆` marks the cell where the end attaches.
@@ -52,7 +53,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 
 | Key | Action |
 |---|---|
-| `Esc` | Cancel the gesture, else clear the selection |
+| `Esc` | Cancel the gesture, else clear the selection and return to the pointer |
 | `Delete` / `Backspace` | Delete the selection |
 | `<` `|` `>` `^` `-` `_` | Align the selection left, center, right, top, middle, bottom |
 | `=` / `#` | Distribute the selection evenly, horizontally / vertically |
@@ -87,7 +88,7 @@ clidraw takes its core model from [excalidraw](https://excalidraw.com) and [tldr
 - Shapes: rectangle, diamond, slant, hexagon, cylinder and frame.
 - Lines and arrows that bind to shapes. A bound end follows its shape when the shape moves.
 - Frames that move their content together.
-- Marquee select (Shift+drag on empty canvas), multi-select drag, group and ungroup.
+- Marquee select (Select tool, or Shift+drag on empty canvas), multi-select drag, group and ungroup.
 - Align, distribute and z-order commands.
 - Snapping to shape edges and centers, and a grid.
 - Labels with line breaks, word wrap, bold and alignment.

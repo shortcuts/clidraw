@@ -89,7 +89,8 @@ fn cols(b: &Buffer, y: u16, x: u16, n: u16) -> String {
 fn draws_palette_and_a_labelled_rect() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 20, "box"));
-    let s = Session::new(c, View::default(), (80, 24));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.tool = Tool::Select;
     let b = draw(&s, &Overlay::None);
     assert!(row(&b, 0).starts_with(" Select"));
     assert!(
@@ -1042,7 +1043,7 @@ fn info_bar_idle_reads_buttons_badge_hints_then_view_cluster_and_name() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let r = bar(&s, 120, true);
     assert!(
-        r.starts_with("[Undo] [Redo]   SELECT   ? help  : command  / find  z fit"),
+        r.starts_with("[Undo] [Redo]   POINTER   ? help  : command  / find  z fit"),
         "{r}"
     );
     assert!(r.ends_with("[-] 100% [+] [Fit]  demo"), "{r}");
@@ -1050,11 +1051,24 @@ fn info_bar_idle_reads_buttons_badge_hints_then_view_cluster_and_name() {
 }
 
 #[test]
+fn select_tool_bottom_bar_shows_cancel_at_40_60_120_columns() {
+    let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
+    s.tool = Tool::Select;
+    for w in [40u16, 60, 120] {
+        let r = bar(&s, w, true);
+        assert!(!r.contains("draw"), "{w}: {r}");
+        if w >= 60 {
+            assert!(r.contains("SELECT") && r.contains("Esc"), "{w}: {r}");
+        }
+    }
+}
+
+#[test]
 fn info_bar_badge_follows_the_mode() {
     let mut s = Session::new(Canvas::default(), View::default(), (80, 24));
     s.tool = Tool::Rect;
     assert!(bar(&s, 120, true).contains(" RECT "));
-    s.tool = Tool::Select;
+    s.tool = Tool::Pointer;
     s.start_edit_new((5, 5));
     assert!(bar(&s, 120, true).contains(" EDIT "));
     let mut z = Session::new(Canvas::default(), View::default(), (80, 24));
@@ -1116,7 +1130,7 @@ fn info_bar_buttons_are_hit_where_the_layout_draws_them() {
         assert_eq!(hit(at("[+]")), Some(ui::Button::ZoomIn));
         assert_eq!(hit(at("[Fit]")), Some(ui::Button::Fit));
         assert_eq!(hit(at("100%")), None);
-        assert_eq!(hit(at("SELECT")), None);
+        assert_eq!(hit(at("POINTER")), None);
     }
 }
 
@@ -1141,7 +1155,7 @@ fn info_bar_status_replaces_only_the_hints() {
     let b = t.backend().buffer();
     let r: String = (0..100).map(|x| b[(x, 23)].symbol().to_string()).collect();
     assert!(
-        r.starts_with("[Undo] [Redo]   SELECT   saved to disk"),
+        r.starts_with("[Undo] [Redo]   POINTER   saved to disk"),
         "{r}"
     );
     assert!(r.ends_with("demo") && !r.contains("? help"), "{r}");
@@ -1182,7 +1196,7 @@ fn info_bar_hints_follow_the_state() {
     assert!(r.contains("2 sel"), "{r}");
     s.tool = Tool::Rect;
     assert!(bar(&s, 80, true).contains("drag draw"));
-    s.tool = Tool::Select;
+    s.tool = Tool::Pointer;
     s.start_edit_new((5, 5));
     assert!(bar(&s, 80, true).contains("Enter commit"));
 }

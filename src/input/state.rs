@@ -276,7 +276,7 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
 }
 
 fn hover(s: &mut Session, screen: P, world: P) {
-    let idle = s.tool == Tool::Select && s.edit.is_none() && matches!(s.gesture, Gesture::Idle);
+    let idle = s.tool.is_pointer() && s.edit.is_none() && matches!(s.gesture, Gesture::Idle);
     s.hover = if idle
         && s.in_viewport(screen.0, screen.1)
         && palette::hit(s, screen.0, screen.1).is_none()
@@ -325,9 +325,9 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
             },
         };
     }
-    if let (Some(id), Tool::Select, false) = (
+    if let (Some(id), true, false) = (
         hit::label_hit(s, &s.selection, world),
-        s.tool,
+        s.tool.is_pointer(),
         matches!(hit, Hit::Handle(..)),
     ) {
         s.gesture = Gesture::Pressed {
@@ -525,7 +525,7 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
         Target::Element(id) if !s.shift => s.select_group_of(id),
         Target::Empty if s.tool == Tool::Text => {
             s.start_edit_new(world);
-            s.tool = Tool::Select;
+            s.tool = Tool::Pointer;
         }
         Target::Draw(_) | Target::Empty => match hit::test(s, &[], world) {
             Hit::Element(id) => s.select_group_of(id),
