@@ -885,14 +885,14 @@ fn moved_redraws_only_when_the_hovered_target_changes() {
         }));
     let t0 = Instant::now();
     app.dirty = false;
-    app.on_events(vec![mouse(MouseEventKind::Moved, 22, 5)], t0);
+    app.on_events(vec![mouse(MouseEventKind::Moved, 22, 4)], t0);
     assert!(app.dirty, "entering the shape");
     app.dirty = false;
-    app.on_events(vec![mouse(MouseEventKind::Moved, 23, 5)], t0);
+    app.on_events(vec![mouse(MouseEventKind::Moved, 23, 4)], t0);
     assert!(!app.dirty, "same target");
     app.on_events(
         vec![
-            mouse(MouseEventKind::Moved, 22, 5),
+            mouse(MouseEventKind::Moved, 22, 4),
             mouse(MouseEventKind::Moved, 60, 15),
         ],
         t0,
@@ -1145,7 +1145,7 @@ fn right_click_menu_runs_element_entries() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     app.session.exec(shape_at("aaaaaaaa", 20, 5));
-    right_click(&mut app, 22, 6, now);
+    right_click(&mut app, 20, 6, now);
     assert!(context_open(&app));
     assert_eq!(app.session.selection, vec![Id::from("aaaaaaaa")]);
     click(&mut app, 24, 8, now);
@@ -1154,7 +1154,7 @@ fn right_click_menu_runs_element_entries() {
     app.on_event(key(KeyCode::Char('u')), now);
     assert_eq!(app.session.canvas.elements.len(), 1);
 
-    right_click(&mut app, 22, 6, now);
+    right_click(&mut app, 20, 6, now);
     click(&mut app, 24, 9, now);
     assert!(app.session.canvas.elements.is_empty());
 }
@@ -1167,7 +1167,7 @@ fn right_click_menu_brings_a_shape_to_front() {
     app.session.exec(shape_at("bbbbbbbb", 40, 5));
     app.session.exec(shape_at("aaaaaaaa", 20, 5));
     assert_eq!(shape_ids(&app), ["aaaaaaaa", "bbbbbbbb"]);
-    right_click(&mut app, 22, 6, now);
+    right_click(&mut app, 20, 6, now);
     click(&mut app, 24, 10, now);
     assert_eq!(shape_ids(&app), ["bbbbbbbb", "aaaaaaaa"]);
 }
@@ -1180,14 +1180,14 @@ fn right_click_menu_raises_and_lowers_a_shape() {
     app.session.exec(shape_at("bbbbbbbb", 40, 5));
     app.session.exec(shape_at("aaaaaaaa", 20, 5));
     assert_eq!(shape_ids(&app), ["aaaaaaaa", "bbbbbbbb"]);
-    right_click(&mut app, 22, 6, now);
+    right_click(&mut app, 20, 6, now);
     let clidraw::ui::Overlay::Context(menu) = &app.overlay else {
         panic!("no context menu");
     };
     assert!(menu.labels().contains(&"Raise") && menu.labels().contains(&"Lower"));
     click(&mut app, 24, 11, now);
     assert_eq!(shape_ids(&app), ["bbbbbbbb", "aaaaaaaa"]);
-    right_click(&mut app, 22, 6, now);
+    right_click(&mut app, 20, 6, now);
     click(&mut app, 24, 12, now);
     assert_eq!(shape_ids(&app), ["aaaaaaaa", "bbbbbbbb"]);
 }
@@ -1235,10 +1235,10 @@ fn right_click_menu_closes_and_moves() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     app.session.exec(shape_at("aaaaaaaa", 20, 5));
-    right_click(&mut app, 22, 6, now);
+    right_click(&mut app, 20, 6, now);
     click(&mut app, 70, 20, now);
     assert!(!context_open(&app));
-    right_click(&mut app, 22, 6, now);
+    right_click(&mut app, 20, 6, now);
     right_click(&mut app, 60, 15, now);
     let clidraw::ui::Overlay::Context(c) = &app.overlay else {
         panic!("no menu")
@@ -1255,7 +1255,7 @@ fn right_click_while_editing_opens_nothing() {
     click(&mut app, 22, 6, now);
     click(&mut app, 22, 6, now);
     assert!(app.session.edit.is_some());
-    right_click(&mut app, 22, 6, now);
+    right_click(&mut app, 20, 6, now);
     assert!(!context_open(&app));
 }
 
@@ -2218,13 +2218,13 @@ fn context_menu_runs_the_highlighted_row_from_the_keyboard() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     app.session.exec(shape_at("aaaaaaaa", 20, 5));
-    right_click(&mut app, 22, 6, now);
+    right_click(&mut app, 20, 6, now);
     app.on_event(key(KeyCode::Down), now);
     app.on_event(key(KeyCode::Enter), now);
     assert!(matches!(app.overlay, Overlay::None));
     assert_eq!(app.session.canvas.elements.len(), 2);
 
-    right_click(&mut app, 22, 6, now);
+    right_click(&mut app, 20, 6, now);
     app.on_event(key(KeyCode::Esc), now);
     assert!(!context_open(&app));
 }

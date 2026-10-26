@@ -217,7 +217,7 @@ fn shift_mouse_at(kind: MouseEventKind, column: u16, row: u16) -> Event {
 }
 
 fn mouse(kind: MouseEventKind) -> Event {
-    mouse_at(kind, 101, 26)
+    mouse_at(kind, 100, 26)
 }
 
 fn ctrl(c: char) -> Event {
@@ -546,7 +546,7 @@ fn drag_step_fits_the_budget_with_crossing_lines() {
     let now = Instant::now();
     let row = (26 - CROSSING_PAN) as u16;
     app.on_event(
-        mouse_at(MouseEventKind::Down(MouseButton::Left), 101, row),
+        mouse_at(MouseEventKind::Down(MouseButton::Left), 100, row),
         now,
     );
     assert!(!app.session.selection.is_empty(), "press missed the shape");
@@ -554,7 +554,7 @@ fn drag_step_fits_the_budget_with_crossing_lines() {
         .map(|_| {
             let t0 = Instant::now();
             app.on_event(
-                mouse_at(MouseEventKind::Drag(MouseButton::Left), 101, row),
+                mouse_at(MouseEventKind::Drag(MouseButton::Left), 100, row),
                 now,
             );
             frame(&app, &mut term);
@@ -758,7 +758,7 @@ fn click_fits_the_budget_on_5000_elements() {
 fn move_target_in_100_steps(app: &mut App, now: Instant) {
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left)), now);
     for k in 1..=100 {
-        let drag = mouse_at(MouseEventKind::Drag(MouseButton::Left), 101 + k, 26);
+        let drag = mouse_at(MouseEventKind::Drag(MouseButton::Left), 100 + k, 26);
         app.on_event(drag, now);
     }
     app.on_event(mouse(MouseEventKind::Up(MouseButton::Left)), now);
@@ -1008,7 +1008,7 @@ fn drag_selection_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Ve
         .map(|i| {
             let drag = mouse_at(
                 MouseEventKind::Drag(MouseButton::Left),
-                102 + (i % 2) as u16,
+                101 + (i % 2) as u16,
                 26,
             );
             let t0 = Instant::now();

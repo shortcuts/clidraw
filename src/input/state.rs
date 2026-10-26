@@ -319,7 +319,10 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     if double {
         return match hit {
             Hit::Element(id) | Hit::Handle(_, id) => s.start_edit_existing(id),
-            Hit::Empty => s.start_edit_new(world),
+            Hit::Empty => match hit::shape_at(&s.canvas, world) {
+                Some(id) => s.start_edit_existing(id),
+                None => s.start_edit_new(world),
+            },
         };
     }
     if let (Some(id), Tool::Select, false) = (

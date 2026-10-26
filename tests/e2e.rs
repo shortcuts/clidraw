@@ -91,7 +91,7 @@ fn right_click_menu_items() {
     t.draw_rect();
     let bars = |t: &Term| t.screen().matches('│').count();
     let one = bars(&t);
-    t.right_click(16, 10);
+    t.right_click(10, 10);
     t.wait_for("Duplicate");
     for item in ["Delete", "Bring to front", "Raise", "Lower", "Send to back"] {
         assert!(t.screen().contains(item), "{item}\n{}", t.screen());

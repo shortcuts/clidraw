@@ -28,6 +28,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 
 - Pick a tool in the top bar: Select, Rect, Diamond, Cylinder, Slant, Hexagon, Frame (`f`), Arrow, Text.
 - Draw a frame around shapes, then click its border to move them together.
+- Click a shape's border to select it. A click inside a shape selects nothing, so you can draw a new shape there.
 - Drag on empty canvas to pan, or to draw with a shape tool. Drag a selected element to move it.
 - Moving shapes snaps to other shapes' edges and centers within 1 cell and shows dotted guides. Hold Shift to turn guides off. Guides override `grid`.
 - Drag a selected line to bend it. Drag a bend handle to move it. To return to the automatic route, right-click the line and choose Reset route, or click `~ arrange` in the option strip.

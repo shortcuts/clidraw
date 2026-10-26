@@ -157,7 +157,7 @@ fn rect_tool_draws_one_undo_step_and_returns_to_select() {
 #[test]
 fn dragging_a_shape_moves_it_and_undo_restores() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    drag(&mut s, (22, 6), (27, 9));
+    drag(&mut s, (20, 6), (25, 9));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (25, 8));
     key(&mut s, KeyCode::Char('u'));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
@@ -167,17 +167,17 @@ fn dragging_a_shape_moves_it_and_undo_restores() {
 fn a_long_shape_drag_undoes_and_redoes_in_one_step() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     let t = Instant::now();
-    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 22, 6, t);
+    mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 20, 6, t);
     for i in 1..=200 {
         mouse(
             &mut s,
             MouseEventKind::Drag(MouseButton::Left),
-            22 + i,
+            20 + i,
             6,
             t,
         );
     }
-    mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 222, 6, t);
+    mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 220, 6, t);
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (220, 5));
     key(&mut s, KeyCode::Char('u'));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
@@ -188,7 +188,7 @@ fn a_long_shape_drag_undoes_and_redoes_in_one_step() {
 #[test]
 fn corner_handle_resizes() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now());
     drag(&mut s, (27, 8), (32, 12));
     let sh = shapes(&s)[0];
     assert_eq!((sh.x, sh.y, sh.w, sh.h), (20, 5, 13, 8));
@@ -197,7 +197,7 @@ fn corner_handle_resizes() {
 #[test]
 fn delete_key_removes_the_selection() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now());
     key(&mut s, KeyCode::Delete);
     assert!(s.canvas.elements.is_empty());
     key(&mut s, KeyCode::Char('u'));
@@ -233,7 +233,7 @@ fn ctrl_a_selects_everything() {
 #[test]
 fn arrow_keys_nudge_the_selection_one_undo_step_per_press() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now());
     key(&mut s, KeyCode::Right);
     key(&mut s, KeyCode::Down);
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (21, 6));
@@ -247,7 +247,7 @@ fn arrow_keys_nudge_the_selection_one_undo_step_per_press() {
 #[test]
 fn hjkl_nudge_the_selection_like_the_arrows() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now());
     key(&mut s, KeyCode::Char('l'));
     key(&mut s, KeyCode::Char('j'));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (21, 6));
@@ -326,13 +326,13 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
     assert_eq!(s.tool, Tool::Select);
     assert_eq!(s.canvas.line_ends(&l), ((19, 7), (44, 7)));
 
-    drag(&mut s, (42, 4), (42, 9));
+    drag(&mut s, (40, 4), (40, 9));
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
     };
     assert_eq!(s.canvas.line_ends(&l).1, (44, 12));
 
-    click(&mut s, (46, 9), Instant::now());
+    click(&mut s, (47, 9), Instant::now());
     key(&mut s, KeyCode::Delete);
     let Element::Line(l) = s.canvas.elements.last().unwrap().clone() else {
         panic!("no line")
@@ -552,13 +552,13 @@ fn shift_click_toggles_an_element_in_the_selection() {
         bold: false,
         link: None,
     }));
-    click(&mut s, (22, 6), Instant::now());
-    shift_drag(&mut s, (42, 10), (42, 10));
+    click(&mut s, (20, 6), Instant::now());
+    shift_drag(&mut s, (40, 10), (40, 10));
     assert_eq!(
         s.selection,
         vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")]
     );
-    shift_drag(&mut s, (22, 6), (22, 6));
+    shift_drag(&mut s, (20, 6), (20, 6));
     assert_eq!(s.selection, vec![Id::from("bbbbbbbb")]);
 }
 
@@ -574,16 +574,45 @@ fn shift_drag_draws_a_square() {
 #[test]
 fn shift_drag_moves_along_one_axis() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    shift_drag(&mut s, (22, 6), (30, 8));
+    shift_drag(&mut s, (20, 6), (28, 8));
     assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (28, 5));
+}
+
+#[test]
+fn only_the_border_selects_a_shape() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    click(&mut s, (22, 6), Instant::now());
+    assert!(s.selection.is_empty());
+    click(&mut s, (20, 6), Instant::now());
+    assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
+}
+
+#[test]
+fn shape_tool_drag_inside_a_shape_draws_a_second_one() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    pick(&mut s, Tool::Rect);
+    drag(&mut s, (22, 6), (24, 7));
+    assert_eq!(shapes(&s).len(), 2);
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
+}
+
+#[test]
+fn double_click_inside_a_shape_edits_its_label() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    let t = Instant::now();
+    click(&mut s, (22, 6), t);
+    click(&mut s, (22, 6), t + Duration::from_millis(100));
+    assert!(
+        matches!(&s.edit, Some(e) if matches!(&e.target, EditTarget::Existing(i) if *i == Id::from("aaaaaaaa")))
+    );
 }
 
 #[test]
 fn double_click_edits_a_label_within_400ms_only() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     let t = Instant::now();
-    click(&mut s, (22, 6), t);
-    click(&mut s, (22, 6), t + Duration::from_millis(100));
+    click(&mut s, (20, 6), t);
+    click(&mut s, (20, 6), t + Duration::from_millis(100));
     assert!(s.edit.is_some());
     for c in "hi".chars() {
         key(&mut s, KeyCode::Char(c));
@@ -592,8 +621,8 @@ fn double_click_edits_a_label_within_400ms_only() {
     assert_eq!(shapes(&s)[0].label, "hi");
 
     let mut slow = with_shape("aaaaaaaa", 20, 5);
-    click(&mut slow, (22, 6), t);
-    click(&mut slow, (22, 6), t + Duration::from_millis(900));
+    click(&mut slow, (20, 6), t);
+    click(&mut slow, (20, 6), t + Duration::from_millis(900));
     assert!(slow.edit.is_none());
 }
 
@@ -649,7 +678,7 @@ fn esc_clears_the_selection() {
 fn palette_shape_tool_keeps_the_selected_shape_and_arms_the_tool() {
     for tool in [Tool::Diamond, Tool::Hexagon] {
         let mut s = with_shape("aaaaaaaa", 20, 5);
-        click(&mut s, (22, 6), Instant::now());
+        click(&mut s, (20, 6), Instant::now());
         pick(&mut s, tool);
         assert_eq!(shapes(&s)[0].kind, ShapeKind::Rect);
         assert!(s.selection.is_empty());
@@ -907,8 +936,8 @@ fn configured_double_click_window_applies() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     s.double_click = Duration::from_millis(50);
     let t = Instant::now();
-    click(&mut s, (22, 6), t);
-    click(&mut s, (22, 6), t + Duration::from_millis(100));
+    click(&mut s, (20, 6), t);
+    click(&mut s, (20, 6), t + Duration::from_millis(100));
     assert!(s.edit.is_none());
 }
 
@@ -917,8 +946,8 @@ fn colon_opens_the_command_line_but_types_into_a_label_edit() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     assert_eq!(key(&mut s, KeyCode::Char(':')), KeyOutcome::Command);
     let t = Instant::now();
-    click(&mut s, (22, 6), t);
-    click(&mut s, (22, 6), t + Duration::from_millis(100));
+    click(&mut s, (20, 6), t);
+    click(&mut s, (20, 6), t + Duration::from_millis(100));
     assert_eq!(key(&mut s, KeyCode::Char(':')), KeyOutcome::None);
     assert_eq!(s.edit.as_ref().unwrap().buf, ":");
 }
@@ -935,8 +964,8 @@ fn slash_opens_find_but_types_into_a_label_edit_and_ctrl_f_is_unbound() {
     );
     assert_eq!(key(&mut s, KeyCode::Char('/')), KeyOutcome::Find);
     let t = Instant::now();
-    click(&mut s, (22, 6), t);
-    click(&mut s, (22, 6), t + Duration::from_millis(100));
+    click(&mut s, (20, 6), t);
+    click(&mut s, (20, 6), t + Duration::from_millis(100));
     assert_eq!(key(&mut s, KeyCode::Char('/')), KeyOutcome::None);
     assert_eq!(s.edit.as_ref().unwrap().buf, "/");
 }
@@ -956,7 +985,7 @@ fn hold(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
 #[test]
 fn holding_a_shape_at_the_edge_pans_each_tick_and_undoes_in_one_step() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    hold(&mut s, (22, 6), (79, 6));
+    hold(&mut s, (20, 6), (79, 6));
     let x0 = shapes(&s)[0].x;
     let t0 = Instant::now();
     assert!(s.edge_pan(t0));
@@ -989,7 +1018,7 @@ fn edge_pan_speed_follows_depth_and_direction() {
         ((77, 12), (0, 0)),
     ] {
         let mut s = with_shape("aaaaaaaa", 20, 5);
-        hold(&mut s, (22, 6), (col, row));
+        hold(&mut s, (20, 6), (col, row));
         assert_eq!(s.edge_pan(t0), pan != (0, 0), "{col},{row}");
         assert_eq!((s.view.ox, s.view.oy), pan, "{col},{row}");
     }
@@ -1026,7 +1055,7 @@ fn pan_and_idle_never_edge_pan() {
 fn hover_tracks_shape_handle_and_empty_space() {
     let mut s = with_shape("aaaaaaaa", 20, 4);
     let t = Instant::now();
-    mouse(&mut s, MouseEventKind::Moved, 22, 5, t);
+    mouse(&mut s, MouseEventKind::Moved, 22, 4, t);
     assert_eq!(s.hover, Hit::Element(Id::from("aaaaaaaa")));
     mouse(&mut s, MouseEventKind::Moved, 60, 15, t);
     assert_eq!(s.hover, Hit::Empty);
@@ -1145,8 +1174,8 @@ fn bracket_keys_reorder_the_selection_one_undo_step_per_press() {
 #[test]
 fn bracket_keys_type_into_a_label_edit() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (22, 6), Instant::now());
-    click(&mut s, (22, 6), Instant::now() + Duration::from_millis(100));
+    click(&mut s, (20, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now() + Duration::from_millis(100));
     assert!(s.edit.is_some());
     key(&mut s, KeyCode::Char(']'));
     assert_eq!(s.edit.as_ref().unwrap().buf, "]");
@@ -1263,7 +1292,7 @@ fn clipboard_keys_do_nothing_without_input_or_while_editing() {
 #[test]
 fn removed_keys_do_nothing() {
     let mut s = with_shape("aaaaaaaa", 5, 5);
-    click(&mut s, (7, 6), Instant::now());
+    click(&mut s, (5, 6), Instant::now());
     for c in ['x', 'v', 'd'] {
         ctrl(&mut s, c);
     }
@@ -1449,8 +1478,8 @@ fn click_on_a_label_places_the_caret_and_elsewhere_commits() {
 fn z_types_into_a_label_edit_instead_of_fitting() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     let t = Instant::now();
-    click(&mut s, (22, 6), t);
-    click(&mut s, (22, 6), t + Duration::from_millis(100));
+    click(&mut s, (20, 6), t);
+    click(&mut s, (20, 6), t + Duration::from_millis(100));
     let before = s.view;
     key(&mut s, KeyCode::Char('z'));
     assert_eq!(s.view, before);
@@ -1540,7 +1569,7 @@ fn zoom_waits_for_an_edit_or_a_gesture_to_end() {
 #[test]
 fn half_zoom_is_read_only_and_esc_returns_to_one() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now());
     wheel(&mut s, false, (40, 12));
     assert_eq!(s.view.zoom, Zoom::Half);
     assert!(s.selection.is_empty());
@@ -1595,7 +1624,7 @@ fn click_at_triple_zoom_selects_the_shape_under_the_stretched_cell() {
         oy: 5,
         zoom: Zoom::Three,
     };
-    click(&mut s, (5, 5), Instant::now());
+    click(&mut s, (2, 5), Instant::now());
     assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
     s.selection.clear();
     click(&mut s, (60, 14), Instant::now());
@@ -1609,9 +1638,9 @@ fn move_drag_at_double_zoom_moves_by_whole_world_cells() {
         zoom: Zoom::Two,
         ..View::default()
     };
-    drag(&mut s, (42, 12), (47, 14));
+    drag(&mut s, (40, 12), (41, 14));
     let sh = s.canvas.shape(&Id::from("aaaaaaaa")).unwrap();
-    assert_eq!((sh.x, sh.y), (22, 6));
+    assert_eq!((sh.x, sh.y), (20, 6));
 }
 
 #[test]
@@ -1631,7 +1660,7 @@ fn present_blocks_edits_and_esc_returns() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     s.present = true;
     key(&mut s, KeyCode::Char('r'));
-    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now());
     assert!(s.selection.is_empty());
     assert_eq!(s.tool, Tool::Select);
     key(&mut s, KeyCode::Esc);
@@ -1794,8 +1823,8 @@ fn three_shapes() -> Session {
 
 fn grouped_ab() -> Session {
     let mut s = three_shapes();
-    click(&mut s, (22, 6), Instant::now());
-    shift_drag(&mut s, (42, 6), (42, 6));
+    click(&mut s, (20, 6), Instant::now());
+    shift_drag(&mut s, (40, 6), (40, 6));
     key(&mut s, KeyCode::Char('g'));
     click(&mut s, (70, 20), Instant::now());
     assert!(s.selection.is_empty());
@@ -1809,11 +1838,11 @@ fn ab() -> Vec<Id> {
 #[test]
 fn clicking_a_group_member_selects_the_group_and_shift_click_toggles_it() {
     let mut s = grouped_ab();
-    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now());
     assert_eq!(s.selection, ab());
-    shift_drag(&mut s, (62, 6), (62, 6));
+    shift_drag(&mut s, (60, 6), (60, 6));
     assert_eq!(s.selection.len(), 3);
-    shift_drag(&mut s, (42, 6), (42, 6));
+    shift_drag(&mut s, (40, 6), (40, 6));
     assert_eq!(s.selection, vec![Id::from("cccccccc")]);
 }
 
@@ -1830,7 +1859,7 @@ fn a_band_over_one_member_selects_the_group() {
 #[test]
 fn a_group_moves_together() {
     let mut s = grouped_ab();
-    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now());
     key(&mut s, KeyCode::Right);
     assert_eq!(
         shapes(&s).iter().map(|s| s.x).collect::<Vec<_>>(),
@@ -1841,20 +1870,20 @@ fn a_group_moves_together() {
 #[test]
 fn capital_g_ungroups_and_one_undo_regroups() {
     let mut s = grouped_ab();
-    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now());
     key(&mut s, KeyCode::Char('G'));
     click(&mut s, (70, 20), Instant::now());
-    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now());
     assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
     key(&mut s, KeyCode::Char('u'));
-    click(&mut s, (22, 6), Instant::now() + Duration::from_secs(1));
+    click(&mut s, (20, 6), Instant::now() + Duration::from_secs(1));
     assert_eq!(s.selection, ab());
 }
 
 #[test]
 fn copy_paste_makes_a_second_group_and_one_undo_removes_it() {
     let mut s = grouped_ab();
-    click(&mut s, (22, 6), Instant::now());
+    click(&mut s, (20, 6), Instant::now());
     key(&mut s, KeyCode::Char('y'));
     key(&mut s, KeyCode::Char('p'));
     assert_eq!(s.canvas.groups.len(), 2);
@@ -2028,13 +2057,13 @@ fn right_down_selects_unselected_keeps_selected_and_ignores_empty() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     assert_eq!(s.right_down(70, 20), Some(false));
     assert!(s.selection.is_empty());
-    assert_eq!(s.right_down(22, 6), Some(true));
+    assert_eq!(s.right_down(20, 6), Some(true));
     assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
     s.selection = vec![Id::from("zzzzzzzz"), Id::from("aaaaaaaa")];
-    assert_eq!(s.right_down(22, 6), Some(true));
+    assert_eq!(s.right_down(20, 6), Some(true));
     assert_eq!(s.selection.len(), 2);
     s.view.zoom = Zoom::Half;
-    assert_eq!(s.right_down(22, 6), None);
+    assert_eq!(s.right_down(20, 6), None);
 }
 
 #[test]
@@ -2093,7 +2122,7 @@ fn frame_border_click_selects_contents_and_drag_moves_all_with_one_undo() {
 #[test]
 fn frame_interior_click_selects_the_content_under_it_or_starts_a_band() {
     let mut s = framed();
-    click(&mut s, (24, 8), Instant::now());
+    click(&mut s, (22, 8), Instant::now());
     assert_eq!(s.selection, vec![Id::from("inner000")]);
     click(&mut s, (35, 12), Instant::now());
     assert!(s.selection.is_empty());
@@ -2470,7 +2499,7 @@ fn hover_picks_a_detour_cell_for_the_line_and_the_crossed_shape_elsewhere() {
         t,
     );
     assert_eq!(s.hover, Hit::Element(Id::from("arrow000")));
-    mouse(&mut s, MouseEventKind::Moved, 11, 5, t);
+    mouse(&mut s, MouseEventKind::Moved, 10, 5, t);
     assert_eq!(s.hover, Hit::Element(Id::from("oooooooo")));
 }
 
@@ -2663,7 +2692,7 @@ fn drawing_a_shape_over_a_drawn_arrow_keeps_its_route() {
 fn moving_an_unrelated_shape_across_an_arrow_keeps_its_route() {
     let mut s = drawn_arrow();
     let before = route_of(&s);
-    drag(&mut s, (26, 21), (26, 16));
+    drag(&mut s, (24, 21), (24, 16));
     assert_eq!(shape_y(&s, "cccccccc"), 15);
     assert_eq!(route_of(&s), before);
 }
@@ -2672,7 +2701,7 @@ fn moving_an_unrelated_shape_across_an_arrow_keeps_its_route() {
 fn moving_an_end_shape_reroutes_the_arrow_and_one_undo_restores_both() {
     let mut s = drawn_arrow();
     let (before, bends) = (route_of(&s), bends_of(&s));
-    drag(&mut s, (43, 11), (43, 17));
+    drag(&mut s, (40, 11), (40, 17));
     assert_ne!(shape_y(&s, "bbbbbbbb"), 10);
     assert_ne!(route_of(&s), before);
     assert_eq!(route_of(&s), fresh_route_of(&s));

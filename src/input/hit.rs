@@ -70,7 +70,7 @@ fn frame_unit(canvas: &Canvas, id: &Id, selection: &[Id]) -> bool {
 fn covers(canvas: &Canvas, layout: &Layout, i: usize, p: (i32, i32)) -> bool {
     let e = &canvas.elements[i];
     let Element::Line(l) = e else {
-        return box_covers(e, p);
+        return border_covers(e, p);
     };
     // A detour stays within REACH of the end cells; routing every line per hover is too slow.
     let (x, y, w, h) = layout.bounds[i];
@@ -81,6 +81,12 @@ fn covers(canvas: &Canvas, layout: &Layout, i: usize, p: (i32, i32)) -> bool {
         && canvas
             .route_with(l, &layout.find(canvas), &layout.router)
             .contains(&p)
+}
+
+fn border_covers(e: &Element, p: (i32, i32)) -> bool {
+    let Element::Shape(s) = e else { return false };
+    let inside = p.0 > s.x && p.0 < s.x + s.w - 1 && p.1 > s.y && p.1 < s.y + s.h - 1;
+    box_covers(e, p) && !inside
 }
 
 fn box_covers(e: &Element, p: (i32, i32)) -> bool {

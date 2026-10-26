@@ -706,7 +706,7 @@ mod tests {
     #[test]
     fn one_cell_jitter_does_not_move() {
         let mut s = with_shape();
-        jitter(&mut s, (32, 16));
+        jitter(&mut s, (30, 16));
         assert_eq!(s.canvas.shape(&Id::from("aaaaaaaa")).map(|e| e.x), Some(30));
         assert_eq!(s.rev, 0);
         assert_eq!(s.selection, [Id::from("aaaaaaaa")]);
@@ -723,7 +723,7 @@ mod tests {
     #[test]
     fn move_drag_keeps_one_summed_batch() {
         let mut s = with_shape();
-        press_and_drag(&mut s, (32, 16), |i| (32 + i, 16));
+        press_and_drag(&mut s, (30, 16), |i| (30 + i, 16));
         let id = Id::from("aaaaaaaa");
         let want = Command::Batch(vec![Command::Move {
             id,
@@ -793,7 +793,7 @@ mod tests {
     fn grid_snaps_a_moved_shape() {
         let mut s = with_shape();
         s.grid = 4;
-        drag_to(&mut s, (32, 16), (40, 22));
+        drag_to(&mut s, (30, 16), (38, 22));
         assert_eq!(rect(&s, "aaaaaaaa"), (40, 20, 8, 4));
     }
 
@@ -851,11 +851,11 @@ mod tests {
             bends: vec![],
             color: None,
         }));
-        mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 32, 16);
-        mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 62, 16);
+        mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 30, 16);
+        mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 60, 16);
         assert_eq!(s.snap, Some(Id::from("aaaaaaaa")));
         assert!(s.snap_at.is_some());
-        mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 62, 16);
+        mouse(&mut s, MouseEventKind::Up(MouseButton::Left), 60, 16);
         let Some(Element::Line(l)) = s.canvas.get(&Id::from("cccccccc")) else {
             panic!("no line");
         };
@@ -906,7 +906,7 @@ mod tests {
     #[test]
     fn guide_snaps_a_moved_shape_to_a_neighbour_edge() {
         let mut s = with_neighbour();
-        hold(&mut s, (32, 16), (61, 30), KeyModifiers::NONE);
+        hold(&mut s, (30, 16), (59, 30), KeyModifiers::NONE);
         assert_eq!(rect(&s, "aaaaaaaa"), (60, 29, 8, 4));
         assert_eq!(s.guides.len(), 2);
     }
@@ -914,14 +914,14 @@ mod tests {
     #[test]
     fn guide_ignores_a_neighbour_beyond_one_cell() {
         let mut s = with_neighbour();
-        hold(&mut s, (32, 16), (51, 30), KeyModifiers::NONE);
+        hold(&mut s, (30, 16), (49, 30), KeyModifiers::NONE);
         assert_eq!(rect(&s, "aaaaaaaa").0, 49);
     }
 
     #[test]
     fn guide_is_off_with_shift() {
         let mut s = with_neighbour();
-        hold(&mut s, (32, 16), (61, 30), KeyModifiers::SHIFT);
+        hold(&mut s, (30, 16), (59, 30), KeyModifiers::SHIFT);
         assert_eq!(rect(&s, "aaaaaaaa").0, 59);
         assert!(s.guides.is_empty());
     }
@@ -929,10 +929,10 @@ mod tests {
     #[test]
     fn guides_clear_on_release_and_cancel() {
         let mut s = with_neighbour();
-        drag_to(&mut s, (32, 16), (61, 30));
+        drag_to(&mut s, (30, 16), (59, 30));
         assert!(s.guides.is_empty());
         let mut s = with_neighbour();
-        hold(&mut s, (32, 16), (61, 30), KeyModifiers::NONE);
+        hold(&mut s, (30, 16), (59, 30), KeyModifiers::NONE);
         assert!(!s.guides.is_empty());
         assert!(s.cancel_gesture());
         assert!(s.guides.is_empty());
