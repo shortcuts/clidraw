@@ -55,29 +55,42 @@ pub fn side_anchor(s: &Shape, c: Pt) -> Anchor {
     }
 }
 
-/// The cell just outside the side of `s` the anchor names, at its offset along it, or at the
-/// midpoint of the side that faces `toward` for `Auto`, and the axis a line leaves it on.
+/// The cell just outside the drawn outline of `s` on the side the anchor names, at its offset
+/// along it, or at the midpoint of the side that faces `toward` for `Auto`, and the axis a line
+/// leaves it on.
 // shortcut: shapes under 2 cells apart overlap the end cells, clamp if it matters
 pub fn side_mid(s: &Shape, anchor: Anchor, toward: Pt) -> (Pt, Axis) {
     let (cx, cy) = center(s);
     // A corner has no side to land on, so an offset stays off it.
     let along = |o: i32, len: i32| o.clamp((len > 2) as i32, (len - 1 - (len > 2) as i32).max(0));
-    let (ox, oy) = (|o: i32| s.x + along(o, s.w), |o: i32| s.y + along(o, s.h));
+    let oy = |o: i32| s.y + along(o, s.h);
+    let left = |row: i32| ((s.row_span(row).0 - 1, row), Axis::Horizontal);
+    let right = |row: i32| ((s.row_span(row).1 + 1, row), Axis::Horizontal);
+    let edge = |x: i32, row: i32, y: i32| {
+        let (lo, hi) = s.row_span(row);
+        let pad = (hi - lo > 2) as i32;
+        ((x.clamp(lo + pad, hi - pad), y), Axis::Vertical)
+    };
+    let (top, bottom) = (s.y, s.y + s.h - 1);
     match anchor {
-        Anchor::Top(o) => return ((ox(o), s.y - 1), Axis::Vertical),
-        Anchor::Bottom(o) => return ((ox(o), s.y + s.h), Axis::Vertical),
-        Anchor::Left(o) => return ((s.x - 1, oy(o)), Axis::Horizontal),
-        Anchor::Right(o) => return ((s.x + s.w, oy(o)), Axis::Horizontal),
+        Anchor::Top(o) => return edge(s.x + o, top, s.y - 1),
+        Anchor::Bottom(o) => return edge(s.x + o, bottom, s.y + s.h),
+        Anchor::Left(o) => return left(oy(o)),
+        Anchor::Right(o) => return right(oy(o)),
         Anchor::Auto => {}
     }
     let (dx, dy) = (toward.0 - cx, toward.1 - cy);
     // A cell is about twice as tall as wide, so a horizontal gap counts half.
     if dx.abs() >= 2 * dy.abs() {
-        let x = if dx < 0 { s.x - 1 } else { s.x + s.w };
-        ((x, cy), Axis::Horizontal)
+        if dx < 0 {
+            left(cy)
+        } else {
+            right(cy)
+        }
+    } else if dy < 0 {
+        edge(cx, top, s.y - 1)
     } else {
-        let y = if dy < 0 { s.y - 1 } else { s.y + s.h };
-        ((cx, y), Axis::Vertical)
+        edge(cx, bottom, s.y + s.h)
     }
 }
 

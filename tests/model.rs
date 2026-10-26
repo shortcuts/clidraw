@@ -1657,3 +1657,28 @@ fn insert_rejects_a_line_bound_to_a_missing_or_text_element() {
     }
     assert_eq!(c, before);
 }
+
+#[test]
+fn side_mid_follows_the_slanted_outline() {
+    let Element::Shape(s) = rect("p", ShapeKind::Parallelogram, (72, 39, 32, 16)) else {
+        panic!()
+    };
+    let at = |a| side_mid(&s, a, (0, 0)).0;
+    assert_eq!(at(Anchor::Bottom(21)), (87, 55));
+    assert_eq!(at(Anchor::Bottom(9)), (81, 55));
+    assert_eq!(at(Anchor::Top(0)), (88, 38));
+    assert_eq!(at(Anchor::Left(0)), (85, 40));
+    assert_eq!(at(Anchor::Left(15)), (72, 53));
+    assert_eq!(at(Anchor::Right(0)), (103, 40));
+    assert_eq!(at(Anchor::Right(15)), (90, 53));
+
+    let Element::Shape(h) = rect("h", ShapeKind::Hexagon, (10, 0, 12, 5)) else {
+        panic!()
+    };
+    let at = |a| side_mid(&h, a, (0, 0)).0;
+    assert_eq!(at(Anchor::Left(2)), (9, 2));
+    assert_eq!(at(Anchor::Left(0)), (10, 1));
+    assert_eq!(at(Anchor::Right(2)), (22, 2));
+    assert_eq!(at(Anchor::Right(0)), (21, 1));
+    assert_eq!(at(Anchor::Top(0)), (13, -1));
+}
