@@ -1,7 +1,7 @@
 use clidraw::model::{
     Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
 };
-use clidraw::store::{resolve_dir, validate_name, Store, StoreError};
+use clidraw::store::{resolve_dir, validate_name, State, Store, StoreError};
 use std::path::PathBuf;
 
 fn store() -> (tempfile::TempDir, Store) {
@@ -304,6 +304,38 @@ fn rename_moves_the_history_and_delete_removes_it() {
     assert!(!t.path().join("state/history/a.json").exists());
     s.delete("b").unwrap();
     assert!(!t.path().join("state/history/b.json").exists());
+}
+
+#[test]
+fn a_failed_state_write_keeps_the_previous_state() {
+    let (t, s) = store();
+    let old = State {
+        last: Some("a".into()),
+        ..Default::default()
+    };
+    s.save_state(&old).unwrap();
+    std::fs::create_dir(t.path().join("state/.state.json.tmp")).unwrap();
+    let new = State {
+        last: Some("b".into()),
+        ..Default::default()
+    };
+    assert!(s.save_state(&new).is_err());
+    assert_eq!(s.load_state().last.as_deref(), Some("a"));
+}
+
+#[test]
+fn a_failed_history_write_keeps_the_previous_history() {
+    let (t, s) = store();
+    s.save("a", &sample()).unwrap();
+    s.save_history("a", vec![Command::Remove(Id::from("x"))])
+        .unwrap();
+    std::fs::create_dir(t.path().join("state/history/.a.json.tmp")).unwrap();
+    let undo = vec![
+        Command::Remove(Id::from("y")),
+        Command::Remove(Id::from("z")),
+    ];
+    assert!(s.save_history("a", undo).is_err());
+    assert_eq!(s.load_history("a").len(), 1);
 }
 
 #[test]

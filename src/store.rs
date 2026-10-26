@@ -252,9 +252,12 @@ impl Store {
 
     pub fn save_state(&self, state: &State) -> Result<(), StoreError> {
         fs::create_dir_all(&self.state_dir)?;
-        Ok(fs::write(
-            self.state_dir.join("state.json"),
-            serde_json::to_vec_pretty(state)?,
+        let path = self.state_dir.join("state.json");
+        let tmp = self.state_dir.join(".state.json.tmp");
+        Ok(write_durable(
+            &tmp,
+            &path,
+            &serde_json::to_vec_pretty(state)?,
         )?)
     }
 
@@ -280,9 +283,11 @@ impl Store {
             return Ok(());
         };
         fs::create_dir_all(self.state_dir.join("history"))?;
-        Ok(fs::write(
-            path,
-            serde_json::to_vec(&HistoryFile { canvas_hash, undo })?,
+        let tmp = path.with_file_name(format!(".{name}.json.tmp"));
+        Ok(write_durable(
+            &tmp,
+            &path,
+            &serde_json::to_vec(&HistoryFile { canvas_hash, undo })?,
         )?)
     }
 
