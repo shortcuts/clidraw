@@ -23,6 +23,29 @@ mod bench;
 mod probe;
 
 static KEYBOARD_ENHANCED: AtomicBool = AtomicBool::new(false);
+static SHUTDOWN: AtomicBool = AtomicBool::new(false);
+
+#[cfg(unix)]
+extern "C" fn on_signal(_: libc::c_int) {
+    SHUTDOWN.store(true, Ordering::SeqCst);
+    // crossterm's poll retries on EINTR but wakes on its SIGWINCH handler.
+    unsafe { libc::kill(libc::getpid(), libc::SIGWINCH) };
+}
+
+#[cfg(unix)]
+fn install_signal_handlers() {
+    unsafe {
+        let mut act: libc::sigaction = std::mem::zeroed();
+        act.sa_sigaction = on_signal as extern "C" fn(libc::c_int) as usize;
+        libc::sigemptyset(&mut act.sa_mask);
+        for sig in [libc::SIGHUP, libc::SIGTERM] {
+            libc::sigaction(sig, &act, std::ptr::null_mut());
+        }
+    }
+}
+
+#[cfg(not(unix))]
+fn install_signal_handlers() {}
 
 fn restore() {
     let _ = disable_raw_mode();
@@ -70,7 +93,7 @@ fn run(
     out: &FrameWriter<Stdout>,
     terminal: &mut Terminal<CrosstermBackend<FrameWriter<Stdout>>>,
 ) -> Result<()> {
-    while !app.quit {
+    while !app.quit && !SHUTDOWN.load(Ordering::SeqCst) {
         if app.dirty {
             let t0 = app.perf.is_some().then(Instant::now);
             let bytes = draw_frame(app, out, terminal)?;
@@ -144,6 +167,7 @@ fn main() -> Result<()> {
     let mut app = App::open_with(store, args.into_iter().next(), (w, h), config, warnings)?;
 
     enable_raw_mode()?;
+    install_signal_handlers();
     execute!(
         stdout(),
         EnterAlternateScreen,
