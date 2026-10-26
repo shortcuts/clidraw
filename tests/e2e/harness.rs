@@ -58,6 +58,7 @@ impl Term {
             ),
             total: 0,
         };
+        t.wait_for("Select");
         t.quiet();
         t
     }
@@ -141,11 +142,19 @@ impl Term {
     }
 
     pub fn wait_for(&mut self, text: &str) {
-        let end = Instant::now() + Duration::from_secs(3);
-        while !self.screen().contains(text) {
+        self.wait_until(|s| s.contains(text), &format!("{text:?}"));
+    }
+
+    pub fn wait_gone(&mut self, text: &str) {
+        self.wait_until(|s| !s.contains(text), &format!("{text:?} gone"));
+    }
+
+    fn wait_until(&mut self, done: impl Fn(&str) -> bool, what: &str) {
+        let end = Instant::now() + Duration::from_secs(10);
+        while !done(&self.screen()) {
             assert!(
                 Instant::now() < end,
-                "timed out waiting for {text:?}\n{}",
+                "timed out waiting for {what}\n{}",
                 self.screen()
             );
             std::thread::sleep(Duration::from_millis(10));
@@ -177,6 +186,12 @@ impl Term {
     }
 
     pub fn quiet(&mut self) {
+        let start = Instant::now();
+        let before = self.total;
+        while self.total == before && start.elapsed() < Duration::from_secs(1) {
+            std::thread::sleep(Duration::from_millis(10));
+            self.pump();
+        }
         let mut last = Instant::now();
         while last.elapsed() < Duration::from_millis(250) {
             std::thread::sleep(Duration::from_millis(10));

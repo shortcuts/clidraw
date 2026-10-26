@@ -67,7 +67,7 @@ fn export_svg_from_the_palette() {
     t.key(&"\x7f".repeat(32));
     t.key(out.to_str().unwrap());
     t.key("\r");
-    t.quiet();
+    t.wait_for("Exported");
     assert!(std::fs::read_to_string(out).unwrap().starts_with("<svg"));
 }
 
@@ -123,11 +123,8 @@ fn right_click_menu_items() {
     }
     let (col, row) = t.find("Duplicate");
     t.click(col, row);
-    assert!(
-        bars(&t) > one && !t.screen().contains("Duplicate"),
-        "{}",
-        t.screen()
-    );
+    t.wait_gone("Duplicate");
+    assert!(bars(&t) > one, "{}", t.screen());
 }
 
 #[test]
@@ -162,7 +159,7 @@ fn drag_a_line_to_bend_it_and_reset_the_route() {
     t.wait_for("Reset route");
     let (c, r) = t.find("Reset route");
     t.click(c, r);
-    t.quiet();
+    t.wait_gone("Reset route");
     assert_eq!(t.canvas().trim_end(), straight.trim_end());
 }
 
