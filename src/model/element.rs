@@ -1,5 +1,6 @@
 use super::Id;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -297,6 +298,25 @@ impl Shape {
             ShapeKind::Hexagon => ((self.h - 1) / 2).min((self.w - 1) / 2),
             _ => 0,
         }
+    }
+
+    /// First and last column the outline occupies on absolute row `row`.
+    pub fn row_span(&self, row: i32) -> (i32, i32) {
+        let (m, j) = (self.inset(), row - self.y);
+        let (l, r) = match self.kind {
+            ShapeKind::Parallelogram => (m - j.min(m), -j.min(m)),
+            ShapeKind::Hexagon => {
+                let mid = (self.h - 1) / 2;
+                let d = match j.cmp(&mid) {
+                    Ordering::Equal => 0,
+                    Ordering::Less => (m - j).max(0),
+                    Ordering::Greater => (j - (self.h - 1 - m)).max(0),
+                };
+                (d, -d)
+            }
+            _ => (0, 0),
+        };
+        (self.x + l, self.x + self.w - 1 + r)
     }
 }
 
