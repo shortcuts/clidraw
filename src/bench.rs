@@ -71,7 +71,7 @@ fn generated_canvas(elements: usize, target: (i32, i32)) -> Vec<Element> {
     els
 }
 
-/// A press inside the target, 120 drag steps around a rectangle, then a release.
+/// A press on the target's left border, 120 drag steps around a rectangle, then a release.
 fn script_drag(w: u16, h: u16) -> Vec<Event> {
     let (cx, cy) = (i32::from(w / 2 + 1), i32::from(h / 2 + 1));
     let at = |x: i32, y: i32| {
@@ -82,7 +82,7 @@ fn script_drag(w: u16, h: u16) -> Vec<Event> {
     let corners = [(16, -6), (16, 6), (-16, 6), (-16, -6)];
     let mut events = vec![mouse(
         MouseEventKind::Down(MouseButton::Left),
-        cx as u16,
+        cx as u16 - 1,
         cy as u16,
     )];
     let mut from = (0, 0);
@@ -154,7 +154,10 @@ fn measure(dir: &std::path::Path) -> Result<Vec<String>> {
     }
     let store = Store::at(dir.join("c"), dir.join("state"));
     let mut app = App::open(store, Some("bench".into()), (w, h))?;
-    let target = (i32::from(w / 2), i32::from(h / 2));
+    let target = app
+        .session
+        .view
+        .to_world(i32::from(w / 2), i32::from(h / 2));
     app.session
         .canvas
         .elements
@@ -221,7 +224,7 @@ mod tests {
         assert!(
             matches!(&ev[0], Event::Mouse(m) if m.kind == MouseEventKind::Down(MouseButton::Left))
         );
-        assert_eq!(pos(&ev[0]), (101, 26));
+        assert_eq!(pos(&ev[0]), (100, 26));
         assert!(
             matches!(&ev[121], Event::Mouse(m) if m.kind == MouseEventKind::Up(MouseButton::Left))
         );
