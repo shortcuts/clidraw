@@ -318,7 +318,10 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     let hit = hit::test(s, &s.selection, world);
     if double {
         return match hit {
-            Hit::Element(id) | Hit::Handle(_, id) => s.start_edit_existing(id),
+            Hit::Element(id) | Hit::Handle(_, id) => {
+                s.place_line_label(&id, world);
+                s.start_edit_existing(id)
+            }
             Hit::Empty => match hit::shape_at(&s.canvas, world) {
                 Some(id) => s.start_edit_existing(id),
                 None => s.start_edit_new(world),

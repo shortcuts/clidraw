@@ -2,8 +2,8 @@ use super::hit::{self, swept, Handle};
 use super::state::{click, Action, Gesture, Target, P};
 use super::{Session, Tool};
 use crate::model::{
-    edge_anchor, side_mid, Anchor, Canvas, Command, Element, End, Id, Line, LineKind, Shape,
-    ShapeKind, Side, MIN_SIZE,
+    edge_anchor, label_at_nearest, side_mid, Anchor, Canvas, Command, Element, End, Id, Line,
+    LineKind, Shape, ShapeKind, Side, MIN_SIZE,
 };
 use std::collections::HashSet;
 
@@ -425,15 +425,7 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
             let Some(Element::Line(l)) = s.canvas.get(id) else {
                 return;
             };
-            let cells = s.canvas.route(l);
-            let near = |c: &P| (c.0 - world.0).abs() + (c.1 - world.1).abs();
-            let at = cells
-                .iter()
-                .enumerate()
-                .min_by_key(|(_, c)| near(c))
-                .map(|(i, _)| i);
-            let last = cells.len().saturating_sub(1).max(1);
-            let at = at.map(|i| ((i * 1000 + last / 2) / last) as u16);
+            let at = label_at_nearest(&s.canvas.route(l), world);
             let cmd = Command::SetLabelAt { id: id.clone(), at };
             run(s, inv, cmd);
         }

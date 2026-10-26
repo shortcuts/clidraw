@@ -10,8 +10,8 @@ pub use keys::{edit_key, handle_key, handle_paste, KeyOutcome};
 pub use state::{handle_mouse, scroll_step, Origin};
 
 use crate::model::{
-    wrap, Align, Anchor, Canvas, Command, Dir, Element, End, History, Id, Line, LineKind, Shape,
-    Stroke, Text, Z,
+    label_at_nearest, wrap, Align, Anchor, Canvas, Command, Dir, Element, End, History, Id, Line,
+    LineKind, Shape, Stroke, Text, Z,
 };
 use crate::ui::palette::{self, PaletteHit};
 use crate::ui::theme::Theme;
@@ -606,6 +606,17 @@ impl Session {
         self.selection = vec![els[i].id().clone()];
         self.fit(Some(b));
         true
+    }
+
+    pub(super) fn place_line_label(&mut self, id: &Id, p: (i32, i32)) {
+        let Some(Element::Line(l)) = self.canvas.get(id) else {
+            return;
+        };
+        if !l.label.is_empty() {
+            return;
+        }
+        let at = label_at_nearest(&self.canvas.route(l), p);
+        self.exec(Command::SetLabelAt { id: id.clone(), at });
     }
 
     pub fn start_edit_existing(&mut self, id: Id) {

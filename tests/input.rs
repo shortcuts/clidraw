@@ -654,6 +654,40 @@ fn double_click_on_empty_canvas_places_free_text() {
 }
 
 #[test]
+fn double_click_on_an_unlabeled_arrow_puts_its_label_at_the_click() {
+    let mut s = session();
+    s.canvas
+        .push(Element::Line(Line {
+            id: Id::from("llllllll"),
+            kind: LineKind::Arrow,
+            from: End::Free(5, 5),
+            to: End::Free(25, 5),
+            label: String::new(),
+            label_at: None,
+            stroke: Default::default(),
+            bends: vec![],
+            color: None,
+        }))
+        .unwrap();
+    let t = Instant::now();
+    click(&mut s, (10, 5), t);
+    click(&mut s, (10, 5), t + Duration::from_millis(50));
+    let Some(Element::Line(l)) = s.canvas.get(&Id::from("llllllll")) else {
+        panic!("no line")
+    };
+    assert_eq!(l.label_at, Some(250));
+    assert_eq!(s.edit_boxes()[0].x, 10);
+    key(&mut s, KeyCode::Char('h'));
+    key(&mut s, KeyCode::Char('i'));
+    key(&mut s, KeyCode::Enter);
+    drag(&mut s, (10, 5), (20, 5));
+    let Some(Element::Line(l)) = s.canvas.get(&Id::from("llllllll")) else {
+        panic!("no line")
+    };
+    assert_eq!(l.label_at, Some(750));
+}
+
+#[test]
 fn text_tool_click_places_text_and_esc_cancels_edit() {
     let mut s = session();
     pick(&mut s, Tool::Text);

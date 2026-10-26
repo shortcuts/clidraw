@@ -138,6 +138,18 @@ pub fn corners(cells: &[Pt]) -> Vec<Pt> {
     out
 }
 
+/// The `at` value that puts the label on the route cell nearest `p`.
+pub fn label_at_nearest(cells: &[Pt], p: Pt) -> Option<u16> {
+    let near = |c: &Pt| (c.0 - p.0).abs() + (c.1 - p.1).abs();
+    let i = cells
+        .iter()
+        .enumerate()
+        .min_by_key(|(_, c)| near(c))
+        .map(|(i, _)| i)?;
+    let last = cells.len().saturating_sub(1).max(1);
+    Some(((i * 1000 + last / 2) / last) as u16)
+}
+
 /// The route cell at `at` thousandths of the way along; the middle of the longest straight segment for `None`.
 pub fn label_pos(cells: &[Pt], at: Option<u16>) -> Pt {
     if let Some(at) = at {
