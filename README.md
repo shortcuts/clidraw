@@ -2,6 +2,14 @@
 
 A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
 
+## Install
+
+- Shell: `curl --proto '=https' --tlsv1.2 -LsSf https://github.com/shortcuts/clidraw/releases/latest/download/clidraw-installer.sh | sh`
+- PowerShell: `powershell -ExecutionPolicy Bypass -c "irm https://github.com/shortcuts/clidraw/releases/latest/download/clidraw-installer.ps1 | iex"`
+- Homebrew: `brew install shortcuts/tap/clidraw`
+- mise: `mise use -g github:shortcuts/clidraw`
+- Cargo: `cargo install clidraw`
+
 ## Run
 
 - `make run` opens the last canvas, or creates `untitled`.

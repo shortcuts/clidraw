@@ -347,4 +347,7 @@ Run `make check` before you open a pull request. CI runs the same check.
 - Write commit messages in Conventional Commits form. release-please reads them to pick the version.
 - release-please keeps one release PR open. It edits `CHANGELOG.md`, `Cargo.toml` and `Cargo.lock`.
 - Merging the release PR tags `v<version>`, creates a GitHub release and publishes to crates.io.
+- The tag starts `.github/workflows/release.yml`. [dist](https://axodotdev.github.io/cargo-dist/) builds the binaries and installers, attaches them to the release and pushes the formula to `shortcuts/homebrew-tap`.
+- `release.yml` is generated. Edit `dist-workspace.toml`, then run `dist generate`.
+- A tag created with `GITHUB_TOKEN` does not start other workflows. The secret `RELEASE_PLEASE_TOKEN` (a fine-grained PAT) lets the release-please tag start `release.yml`. The secret `HOMEBREW_TAP_TOKEN` (the same PAT) lets dist push to the tap. The PAT needs Contents and Pull requests read/write on `clidraw` and `homebrew-tap`.
 - Do not edit `CHANGELOG.md`, `.release-please-manifest.json` or the `version` in `Cargo.toml` by hand.

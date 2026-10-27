@@ -41,3 +41,6 @@ strip = true
 lto = "fat"
 codegen-units = 1
 panic = "abort"
+
+[profile.dist]
+inherits = "release"
