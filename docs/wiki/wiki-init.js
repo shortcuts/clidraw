@@ -3,6 +3,9 @@
     { group: 'Start', items: [
       { href: 'index.html', label: 'Getting Started' },
     ] },
+    { group: 'Reference', items: [
+      { href: 'config.html', label: 'Configuration' },
+    ] },
   ];
 
   var EXT_ITEMS = [

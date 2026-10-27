@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration | clidraw</title>
+  <meta name="description" content="Every clidraw setting in config.toml, with its default.">
+  <link rel="canonical" href="https://clidraw.shrtcts.fr/config.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="clidraw">
+  <meta property="og:title" content="Configuration | clidraw">
+  <meta property="og:description" content="Every clidraw setting in config.toml, with its default.">
+  <meta property="og:url" content="https://clidraw.shrtcts.fr/config.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Configuration | clidraw">
+  <meta name="twitter:description" content="Every clidraw setting in config.toml, with its default.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "clidraw",
+    "operatingSystem": "Linux, macOS, Windows",
+    "applicationCategory": "DeveloperApplication",
+    "description": "Every clidraw setting in config.toml, with its default.",
+    "url": "https://clidraw.shrtcts.fr/config.html",
+    "downloadUrl": "https://github.com/shortcuts/clidraw/releases",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="configuration">Configuration</h1>
+    <p>clidraw reads <code>config.toml</code> from its config directory. The first run writes the file with every key commented. Run <code>clidraw config</code> to print the default file. A bad or unknown key shows a status line and keeps its default.</p>
+
+    <h2 id="file-location">File location</h2>
+    <p>clidraw uses the first of these directories that is set:</p>
+    <ul>
+      <li><code>$CLIDRAW_HOME</code></li>
+      <li><code>$XDG_CONFIG_HOME/clidraw</code></li>
+      <li><code>%APPDATA%\clidraw</code> on Windows</li>
+      <li><code>~/.config/clidraw</code> on macOS and Linux</li>
+    </ul>
+
+    <h2 id="keys">Keys</h2>
+<h3 id="autosave_ms">autosave_ms</h3>
+<p>Idle milliseconds after an edit before the canvas saves.</p>
+<p>Default: <code>500</code></p>
+<h3 id="double_click_ms">double_click_ms</h3>
+<p>Longest gap in milliseconds between two clicks that make a double click.</p>
+<p>Default: <code>400</code></p>
+<h3 id="default_canvas">default_canvas</h3>
+<p>Canvas to create when none exists and no name is given.</p>
+<p>Default: <code>&quot;untitled&quot;</code></p>
+<h3 id="grid">grid</h3>
+<p>Cells between snap lines for drawing, moving and resizing shapes. 1 turns snapping off.</p>
+<p>Default: <code>1</code></p>
+<h3 id="history_limit">history_limit</h3>
+<p>Most undo steps kept; the oldest drop first.</p>
+<p>Default: <code>1000</code></p>
+<h3 id="export_padding">export_padding</h3>
+<p>Blank cells around the drawing in an SVG export.</p>
+<p>Default: <code>2</code></p>
+<h3 id="motion">motion</h3>
+<p>Glide the view for Fit all and search jumps. false snaps instantly.</p>
+<p>Default: <code>true</code></p>
+<h3 id="quick_fixes">quick_fixes</h3>
+<p>Offer a fix for a mistake in the :mermaid editor and apply it with Tab. false turns it off.</p>
+<p>Default: <code>true</code></p>
+<h3 id="scroll_speed">scroll_speed</h3>
+<p>Percent of the default distance that wheel and trackpad scrolling pans. 50 halves it.</p>
+<p>Default: <code>100</code></p>
+<h3 id="chrome_accent">chrome_accent</h3>
+<p>Color of the active tool, selected row and mode badge, as &quot;#rrggbb&quot;. Unset uses the theme accent.</p>
+<p>Default: <code>unset</code></p>
+<h3 id="theme">theme</h3>
+<p>Color palette: auto asks the terminal for its background, or force dark or light.</p>
+<p>Default: <code>&quot;auto&quot;</code></p>
+
+    <h2 id="default-file">Default file</h2>
+    <pre><code># clidraw settings. Uncomment a line to override its default.
+
+# Idle milliseconds after an edit before the canvas saves.
+# autosave_ms = 500
+
+# Longest gap in milliseconds between two clicks that make a double click.
+# double_click_ms = 400
+
+# Canvas to create when none exists and no name is given.
+# default_canvas = &quot;untitled&quot;
+
+# Cells between snap lines for drawing, moving and resizing shapes. 1 turns snapping off.
+# grid = 1
+
+# Most undo steps kept; the oldest drop first.
+# history_limit = 1000
+
+# Blank cells around the drawing in an SVG export.
+# export_padding = 2
+
+# Glide the view for Fit all and search jumps. false snaps instantly.
+# motion = true
+
+# Offer a fix for a mistake in the :mermaid editor and apply it with Tab. false turns it off.
+# quick_fixes = true
+
+# Percent of the default distance that wheel and trackpad scrolling pans. 50 halves it.
+# scroll_speed = 100
+
+# Color of the active tool, selected row and mode badge, as &quot;#rrggbb&quot;. Unset uses the theme accent.
+# chrome_accent = &quot;#5fd7ff&quot;
+
+# Color palette: auto asks the terminal for its background, or force dark or light.
+# theme = &quot;auto&quot;
+</code></pre>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>
