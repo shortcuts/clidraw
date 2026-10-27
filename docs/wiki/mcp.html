@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP tools | clidraw</title>
+  <meta name="description" content="Every clidraw MCP tool, its parameters and how errors come back.">
+  <link rel="canonical" href="https://clidraw.shrtcts.fr/mcp.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="clidraw">
+  <meta property="og:title" content="MCP tools | clidraw">
+  <meta property="og:description" content="Every clidraw MCP tool, its parameters and how errors come back.">
+  <meta property="og:url" content="https://clidraw.shrtcts.fr/mcp.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="MCP tools | clidraw">
+  <meta name="twitter:description" content="Every clidraw MCP tool, its parameters and how errors come back.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "clidraw",
+    "operatingSystem": "Linux, macOS, Windows",
+    "applicationCategory": "DeveloperApplication",
+    "description": "Every clidraw MCP tool, its parameters and how errors come back.",
+    "url": "https://clidraw.shrtcts.fr/mcp.html",
+    "downloadUrl": "https://github.com/shortcuts/clidraw/releases",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="mcp-tools">MCP tools</h1>
+    <p><code>clidraw mcp</code> serves the commands on the command line page as MCP tools over stdio, for agent clients. It reads one JSON-RPC message per line.</p>
+
+    <h2 id="setup">Setup</h2>
+    <p>Add this server to the MCP config of your client:</p>
+    <pre><code>{
+  "mcpServers": {
+    "clidraw": {
+      "command": "clidraw",
+      "args": ["mcp"]
+    }
+  }
+}</code></pre>
+    <p>A running UI drops its unsaved edits when an agent edits the canvas it has open. Close the canvas in the UI first. See <a href="where-files-live.html#edits-from-scripts-and-agents">Where files live</a>.</p>
+
+    <h2 id="tools">Tools</h2>
+    <h3 class="item" id="tools-list">list</h3>
+    <p>List canvas names as a JSON array.</p>
+    <p>No parameters.</p>
+    <h3 class="item" id="tools-new">new</h3>
+    <p>Create an empty canvas.</p>
+    <ul>
+      <li><code>name</code> (required, string): Canvas name</li>
+    </ul>
+    <h3 class="item" id="tools-show">show</h3>
+    <p>Print a canvas as JSON.</p>
+    <ul>
+      <li><code>name</code> (required, string): Canvas name</li>
+    </ul>
+    <h3 class="item" id="tools-edit">edit</h3>
+    <p>Edit an existing canvas. Applies all ops or none and returns {&quot;applied&quot;:N,&quot;ids&quot;:[...]}. Ops: add_shape (x, y, optional kind, w, h, label, color, fill, id), add_text (x, y, text, optional color, id), connect (from, to, optional kind, label, id), set (id, optional label, color, fill, stroke, border, align, bold, link, kind, head), resize (id, w, h), move (id, dx, dy), delete (id), group (ids), ungroup (ids), order (ids, z), layout (optional ids, dir). Shape kind: Rect, Diamond, Cylinder, Parallelogram, Hexagon, Frame. Line kind: Line, Arrow, ArrowStart, ArrowBoth. In set, kind changes a shape kind and head changes a line kind. Colors: red, orange, yellow, green, blue, violet, or none in set. stroke: solid, dashed, dotted. border: single, rounded, double, heavy. align: left, center, right. bold: true or false. link: a URL, or an empty string to clear it. z: front, back, forward, backward. dir: td (default) or lr; layout without ids arranges every shape. A connect end is a shape id or an [x, y] cell.</p>
+    <ul>
+      <li><code>name</code> (required, string): Canvas name</li>
+      <li><code>ops</code> (required, array): Each item is an object whose <code>op</code> field names the op. See the <a href="cli.html#ops">edit ops</a>.</li>
+    </ul>
+    <h3 class="item" id="tools-import">import</h3>
+    <p>Add a Mermaid flowchart below the existing content. Creates the canvas if missing.</p>
+    <ul>
+      <li><code>mermaid</code> (required, string): Mermaid flowchart text</li>
+      <li><code>name</code> (required, string): Canvas name</li>
+    </ul>
+    <h3 class="item" id="tools-export">export</h3>
+    <p>Render a saved canvas and return the text.</p>
+    <ul>
+      <li><code>format</code> (required, string): One of <code>svg</code>, <code>mermaid</code> or <code>clidraw</code>.</li>
+      <li><code>name</code> (required, string): Canvas name</li>
+    </ul>
+    <h3 class="item" id="tools-rename">rename</h3>
+    <p>Rename a canvas.</p>
+    <ul>
+      <li><code>name</code> (required, string): Canvas name</li>
+      <li><code>to</code> (required, string): New canvas name</li>
+    </ul>
+    <h3 class="item" id="tools-delete">delete</h3>
+    <p>Delete a canvas and its undo history.</p>
+    <ul>
+      <li><code>name</code> (required, string): Canvas name</li>
+    </ul>
+
+    <h2 id="errors">Errors</h2>
+    <p>A failed tool call returns a normal result with <code>isError</code> set to <code>true</code>. Its text is <code>Error: &lt;msg&gt;</code>.</p>
+    <p>A call to a tool name that does not exist returns a JSON-RPC error with code <code>-32602</code>.</p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

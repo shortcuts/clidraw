@@ -26,7 +26,8 @@ fn schema(props: Value, required: &[&str]) -> Value {
     json!({"type": "object", "properties": props, "required": required, "additionalProperties": false})
 }
 
-fn tools() -> Value {
+/// The `tools/list` result. The MCP reference page is generated from it.
+pub fn tools() -> Value {
     let name = json!({"type": "string", "description": "Canvas name"});
     json!([
         {"name": "list", "description": "List canvas names as a JSON array.",

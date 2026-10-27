@@ -1,6 +1,8 @@
 use clidraw::cli::{FieldDoc, COMMAND_DOCS, OPS};
 use clidraw::config::DEFAULT_TOML;
+use clidraw::mcp::tools;
 use clidraw::ui::help::{self, SCOPES};
+use serde_json::Value;
 
 fn check_page(file: &str, actual: &str) {
     let path = format!("{}/docs/wiki/{file}", env!("CARGO_MANIFEST_DIR"));
@@ -206,7 +208,7 @@ fn cli_page() -> String {
     body += "\n    <h2 id=\"other-commands\">Other commands</h2>\n";
     body += "    <h3 class=\"item\" id=\"other-commands-config\">config</h3>\n    <p><strong>Usage:</strong> <code>clidraw config</code></p>\n    <p>Prints the default <code>config.toml</code>.</p>\n";
     body += "    <h3 class=\"item\" id=\"other-commands-probe\">probe</h3>\n    <p><strong>Usage:</strong> <code>clidraw probe</code></p>\n    <p>Prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.</p>\n";
-    body += "    <h3 class=\"item\" id=\"other-commands-mcp\">mcp</h3>\n    <p><strong>Usage:</strong> <code>clidraw mcp</code></p>\n    <p>Serves the eight commands above as MCP tools over stdio, for agent clients.</p>\n";
+    body += "    <h3 class=\"item\" id=\"other-commands-mcp\">mcp</h3>\n    <p><strong>Usage:</strong> <code>clidraw mcp</code></p>\n    <p>Serves the eight commands above as MCP tools over stdio, for agent clients. See the <a href=\"mcp.html\">MCP tools</a> page.</p>\n";
     page(
         "cli.html",
         "Command line",
@@ -215,9 +217,74 @@ fn cli_page() -> String {
     )
 }
 
+fn param_item(key: &str, prop: &Value, required: bool) -> String {
+    let req = if required { "required" } else { "optional" };
+    let kind = prop["type"].as_str().unwrap();
+    let mut text = vec![];
+    if key == "ops" {
+        text.push("Each item is an object whose <code>op</code> field names the op. See the <a href=\"cli.html#ops\">edit ops</a>.".to_string());
+    } else if let Some(description) = prop["description"].as_str() {
+        text.push(esc(description));
+    }
+    if let Some(values) = prop["enum"].as_array() {
+        let values: Vec<String> = values
+            .iter()
+            .map(|v| format!("<code>{}</code>", esc(v.as_str().unwrap())))
+            .collect();
+        text.push(format!("One of {}.", join_or(&values)));
+    }
+    let sep = if text.is_empty() { "" } else { ": " };
+    format!(
+        "      <li><code>{key}</code> ({req}, {kind}){sep}{}</li>\n",
+        text.join(" ")
+    )
+}
+
+fn mcp_page() -> String {
+    let mut body = String::from(
+        "    <h1 id=\"mcp-tools\">MCP tools</h1>\n    <p><code>clidraw mcp</code> serves the commands on the command line page as MCP tools over stdio, for agent clients. It reads one JSON-RPC message per line.</p>\n\n    <h2 id=\"setup\">Setup</h2>\n    <p>Add this server to the MCP config of your client:</p>\n    <pre><code>{\n  \"mcpServers\": {\n    \"clidraw\": {\n      \"command\": \"clidraw\",\n      \"args\": [\"mcp\"]\n    }\n  }\n}</code></pre>\n    <p>A running UI drops its unsaved edits when an agent edits the canvas it has open. Close the canvas in the UI first. See <a href=\"where-files-live.html#edits-from-scripts-and-agents\">Where files live</a>.</p>\n\n    <h2 id=\"tools\">Tools</h2>\n",
+    );
+    for tool in tools().as_array().unwrap() {
+        let name = tool["name"].as_str().unwrap();
+        let schema = &tool["inputSchema"];
+        let props = schema["properties"].as_object().unwrap();
+        let required: Vec<&str> = schema["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r.as_str().unwrap())
+            .collect();
+        body += &format!(
+            "    <h3 class=\"item\" id=\"tools-{name}\">{name}</h3>\n    <p>{}</p>\n",
+            esc(tool["description"].as_str().unwrap())
+        );
+        if props.is_empty() {
+            body += "    <p>No parameters.</p>\n";
+            continue;
+        }
+        body += "    <ul>\n";
+        for (key, prop) in props {
+            body += &param_item(key, prop, required.contains(&key.as_str()));
+        }
+        body += "    </ul>\n";
+    }
+    body += "\n    <h2 id=\"errors\">Errors</h2>\n    <p>A failed tool call returns a normal result with <code>isError</code> set to <code>true</code>. Its text is <code>Error: &lt;msg&gt;</code>.</p>\n    <p>A call to a tool name that does not exist returns a JSON-RPC error with code <code>-32602</code>.</p>\n";
+    page(
+        "mcp.html",
+        "MCP tools",
+        "Every clidraw MCP tool, its parameters and how errors come back.",
+        &body,
+    )
+}
+
 #[test]
 fn cli_page_matches_committed() {
     check_page("cli.html", &cli_page());
+}
+
+#[test]
+fn mcp_page_matches_committed() {
+    check_page("mcp.html", &mcp_page());
 }
 
 #[test]

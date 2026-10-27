@@ -7,6 +7,7 @@
       { href: 'config.html', label: 'Configuration' },
       { href: 'keys.html', label: 'Key bindings' },
       { href: 'cli.html', label: 'Command line' },
+      { href: 'mcp.html', label: 'MCP tools' },
     ] },
     { group: 'How-to', items: [
       { href: 'draw-a-flowchart.html', label: 'Draw a flowchart' },
