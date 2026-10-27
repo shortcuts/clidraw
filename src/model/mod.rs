@@ -16,7 +16,8 @@ pub use element::{
 };
 pub use error::ModelError;
 pub use geom::{
-    corners, edge_anchor, label_at_nearest, label_pos, route, side_anchor, side_mid, wrap, Axis,
+    corners, edge_anchor, inside, label_at_nearest, label_pos, route, side_anchor, side_mid, wrap,
+    Axis,
 };
 pub use history::{History, HISTORY_LIMIT};
 pub use ids::Id;

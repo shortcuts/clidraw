@@ -1,5 +1,5 @@
-use super::geom::Axis;
-use super::{Canvas, Element, End, Find, Id, Line, ShapeKind};
+use super::geom::{inside, Axis};
+use super::{Canvas, Element, End, Find, Id, Line, Shape, ShapeKind};
 use std::cell::RefCell;
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
@@ -362,6 +362,15 @@ impl Router {
                 .any(|e| matches!(e, End::Bound(id, _) if *id == s.id)),
             _ => false,
         };
+        // An end cell inside its shape opens that interior to the route.
+        let interior: [Option<&Shape>; 2] = [(&own.from, a), (&own.to, b)].map(|(e, at)| match e {
+            End::Bound(id, _) => find(id).filter(|s| inside(s, at)),
+            End::Free(..) => None,
+        });
+        let open = |i: &Item, p: Pt| {
+            matches!(&canvas.elements[i.at], Element::Shape(s)
+                if interior.iter().flatten().any(|o| o.id == s.id) && inside(s, p))
+        };
         let blocked = |p: Pt| {
             if p == a || p == b {
                 return false;
@@ -378,7 +387,12 @@ impl Router {
         // The cells before the end cell run straight away from the shape, so the head points at it.
         // Arrows sharing a side get a longer run, so they look merged while keeping their own end cells.
         let stub: Option<Vec<Pt>> = ax_b.and_then(|_| {
-            let out = DIRS.iter().find(|d| has(held[1], (b.0 + d.0, b.1 + d.1)))?;
+            let out = DIRS.iter().find(|d| {
+                let n = (b.0 + d.0, b.1 + d.1);
+                interior[1].map_or(has(held[1], n), |s| {
+                    (d.1 == 0) == (ax_b == Some(Axis::Horizontal)) && !inside(s, n)
+                })
+            })?;
             let len = if close {
                 1
             } else if self.lane_sibling(canvas, find, own, held[1], b, *out) {
@@ -389,7 +403,8 @@ impl Router {
             let cells: Vec<Pt> = (1..=len)
                 .map(|k| (b.0 - out.0 * k, b.1 - out.1 * k))
                 .collect();
-            (!cells.iter().any(|&p| blocked(p) || p == a) && a != b).then_some(cells)
+            let inward = interior[1].is_none_or(|s| cells.iter().all(|&p| inside(s, p)));
+            (inward && !cells.iter().any(|&p| blocked(p) || p == a) && a != b).then_some(cells)
         });
         let straight = stub.as_ref().is_none_or(|s| {
             let tail: Vec<Pt> = s.iter().rev().copied().chain([b]).collect();
@@ -475,8 +490,17 @@ impl Router {
             }
         };
         for i in self.near(&self.solid, area) {
-            if is_end(i) {
+            if is_end(i) && interior.iter().all(Option::is_none) {
                 stamp(i.rect, 4);
+            } else if is_end(i) {
+                let (x, y, w, h) = i.rect;
+                for cy in y..y + h {
+                    for cx in x..x + w {
+                        if !open(i, (cx, cy)) {
+                            stamp((cx, cy, 1, 1), 4);
+                        }
+                    }
+                }
             } else {
                 stamp(i.rect, 1);
             }

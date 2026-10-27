@@ -1,6 +1,6 @@
 use clidraw::model::{
-    corners, edge_anchor, label_pos, route, side_mid, wrap, Anchor, Axis, Canvas, Command, Element,
-    End, History, Id, Line, LineKind, Shape, ShapeKind, Side, Stroke, Text, Z,
+    corners, edge_anchor, label_pos, route, side_anchor, side_mid, wrap, Anchor, Axis, Canvas,
+    Command, Element, End, History, Id, Line, LineKind, Shape, ShapeKind, Side, Stroke, Text, Z,
 };
 use std::collections::HashSet;
 
@@ -693,6 +693,78 @@ fn side_mid_lands_one_cell_outside_the_border() {
     assert_eq!(at(Anchor::Right(0), (0, 0)), (9, 2));
     assert_eq!(at(Anchor::Auto, (50, 2)), (9, 2));
     assert_eq!(at(Anchor::Auto, (5, 40)), (5, 4));
+}
+
+#[test]
+fn side_mid_lands_one_cell_inside_when_the_far_point_is_inside() {
+    let s = shape_at(0, 0, 11, 7);
+    let at = |a, t| side_mid(&s, a, t).0;
+    assert_eq!(at(Anchor::Bottom(5), (5, 3)), (5, 5));
+    assert_eq!(at(Anchor::Top(5), (5, 3)), (5, 1));
+    assert_eq!(at(Anchor::Left(3), (5, 3)), (1, 3));
+    assert_eq!(at(Anchor::Right(3), (5, 3)), (9, 3));
+    assert_eq!(at(Anchor::Auto, (5, 2)), (5, 1));
+    assert_eq!(at(Anchor::Bottom(5), (5, 20)), (5, 7));
+    let flat = shape_at(0, 0, 11, 2);
+    assert_eq!(side_mid(&flat, Anchor::Bottom(5), (5, 1)).0, (5, 2));
+    assert_eq!(side_anchor(&s, (5, 5)), Anchor::Bottom(5));
+}
+
+fn shape_at(x: i32, y: i32, w: i32, h: i32) -> Shape {
+    let Element::Shape(s) = rect("sssssss0", ShapeKind::Rect, (x, y, w, h)) else {
+        unreachable!()
+    };
+    s
+}
+
+#[test]
+fn an_arrow_from_a_shape_reaches_the_inner_side_of_its_container() {
+    use Anchor::Bottom;
+    let (r, h) = ("rrrrrrrr", "hhhhhhhh");
+    let c = Canvas {
+        elements: vec![
+            rect(r, ShapeKind::Rect, (44, 8, 33, 14)),
+            rect(h, ShapeKind::Hexagon, (52, 11, 16, 8)),
+            Element::Line(elbow(
+                "arrow000",
+                anchored(h, Bottom(8)),
+                anchored(r, Bottom(16)),
+            )),
+        ],
+        ..Canvas::default()
+    };
+    let Element::Line(l) = &c.elements[2] else {
+        unreachable!()
+    };
+    assert_eq!(c.route(l), vec![(60, 19), (60, 20)]);
+    assert_eq!(c.line_ends(l).1, (60, 20));
+}
+
+#[test]
+fn an_arrow_into_its_container_detours_inside_without_touching_the_border() {
+    use Anchor::Right;
+    let c = Canvas {
+        elements: vec![
+            rect("aaaaaaaa", ShapeKind::Rect, (0, 0, 40, 20)),
+            rect("bbbbbbbb", ShapeKind::Rect, (5, 5, 6, 3)),
+            rect("cccccccc", ShapeKind::Rect, (20, 4, 4, 8)),
+            Element::Line(elbow(
+                "arrow000",
+                bound("bbbbbbbb"),
+                anchored("aaaaaaaa", Right(10)),
+            )),
+        ],
+        ..Canvas::default()
+    };
+    let Element::Line(l) = &c.elements[3] else {
+        unreachable!()
+    };
+    let path = c.route(l);
+    assert_eq!(path.last(), Some(&(38, 10)));
+    let ring = |p: &(i32, i32)| p.0 == 0 || p.0 == 39 || p.1 == 0 || p.1 == 19;
+    assert!(!path.iter().any(ring), "{path:?}");
+    let in_c = |p: &(i32, i32)| (20..24).contains(&p.0) && (4..12).contains(&p.1);
+    assert!(!path.iter().any(in_c), "{path:?}");
 }
 
 #[test]
