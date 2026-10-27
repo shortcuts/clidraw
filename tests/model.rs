@@ -791,6 +791,22 @@ fn edge_anchor_snaps_to_midpoint_clamps_corners_and_pulls_interior_to_the_border
 }
 
 #[test]
+fn slanted_side_of_a_parallelogram_anchors_to_the_left_side() {
+    let Element::Shape(s) = rect("pppppppp", ShapeKind::Parallelogram, (10, 5, 16, 8)) else {
+        unreachable!()
+    };
+    assert_eq!(side_anchor(&s, (10, 12)), Anchor::Left(7));
+    assert_eq!(side_anchor(&s, (11, 9)), Anchor::Left(4));
+    assert_eq!(side_anchor(&s, (14, 8)), Anchor::Left(3));
+    assert_eq!(edge_anchor(&s, (14, 8)), Anchor::Left(4));
+    let Element::Shape(hex) = rect("hhhhhhhh", ShapeKind::Hexagon, (0, 0, 12, 5)) else {
+        unreachable!()
+    };
+    assert_eq!(side_anchor(&hex, (0, 1)), Anchor::Left(1));
+    assert_eq!(side_anchor(&hex, (0, 3)), Anchor::Left(3));
+}
+
+#[test]
 fn undoing_a_shape_delete_restores_the_anchor() {
     let (mut c, mut h) = pinned(Anchor::Top(3));
     h.exec(&mut c, Command::Remove(Id::from("aaaaaaaa")))
@@ -1794,20 +1810,30 @@ fn side_mid_follows_the_slanted_outline() {
     assert_eq!(at(Anchor::Bottom(21)), (87, 55));
     assert_eq!(at(Anchor::Bottom(9)), (81, 55));
     assert_eq!(at(Anchor::Top(0)), (88, 38));
-    assert_eq!(at(Anchor::Left(0)), (85, 40));
-    assert_eq!(at(Anchor::Left(15)), (72, 53));
-    assert_eq!(at(Anchor::Right(0)), (103, 40));
-    assert_eq!(at(Anchor::Right(15)), (90, 53));
+    assert_eq!(at(Anchor::Left(0)), (84, 40));
+    assert_eq!(at(Anchor::Left(15)), (71, 53));
+    assert_eq!(at(Anchor::Right(0)), (104, 40));
+    assert_eq!(at(Anchor::Right(15)), (91, 53));
 
     let Element::Shape(h) = rect("h", ShapeKind::Hexagon, (10, 0, 12, 5)) else {
         panic!()
     };
     let at = |a| side_mid(&h, a, (0, 0)).0;
     assert_eq!(at(Anchor::Left(2)), (9, 2));
-    assert_eq!(at(Anchor::Left(0)), (10, 1));
+    assert_eq!(at(Anchor::Left(0)), (9, 1));
     assert_eq!(at(Anchor::Right(2)), (22, 2));
-    assert_eq!(at(Anchor::Right(0)), (21, 1));
+    assert_eq!(at(Anchor::Right(0)), (22, 1));
     assert_eq!(at(Anchor::Top(0)), (13, -1));
+}
+
+#[test]
+fn slanted_side_steps_out_when_the_first_cell_touches_the_border() {
+    let Element::Shape(s) = rect("pppppppp", ShapeKind::Parallelogram, (10, 5, 16, 8)) else {
+        unreachable!()
+    };
+    let at = |a| side_mid(&s, a, (0, 0)).0;
+    assert_eq!(at(Anchor::Left(0)), (14, 6));
+    assert_eq!(at(Anchor::Right(0)), (26, 6));
 }
 
 fn side(edge: Edge, at: Option<u16>, text: &str) -> SideLabel {

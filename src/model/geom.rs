@@ -21,7 +21,8 @@ pub fn edge_anchor(s: &Shape, (x, y): Pt) -> Anchor {
     if x < s.x || x > right || y < s.y || y > bottom {
         return Anchor::Auto;
     }
-    let d = [y - s.y, bottom - y, x - s.x, right - x];
+    let (lo, hi) = s.row_span(y);
+    let d = [y - s.y, bottom - y, x - lo, hi - x];
     let side = (0..4).min_by_key(|&i| d[i]).unwrap_or(0);
     let (off, len) = if side < 2 {
         (x - s.x, s.w)
@@ -57,7 +58,7 @@ pub fn side_anchor(s: &Shape, c: Pt) -> Anchor {
         Anchor::Top(c.0 - s.x)
     } else if c.1 >= s.y + s.h {
         Anchor::Bottom(c.0 - s.x)
-    } else if c.0 < s.x {
+    } else if c.0 <= s.row_span(c.1).0 {
         Anchor::Left(c.1 - s.y)
     } else {
         Anchor::Right(c.1 - s.y)
@@ -86,6 +87,19 @@ pub(super) fn side_cell(s: &Shape, anchor: Anchor, toward: Pt, face: Pt) -> (Pt,
     // A corner has no side to land on, so an offset stays off it.
     let along = |o: i32, len: i32| o.clamp((len > 2) as i32, (len - 1 - (len > 2) as i32).max(0));
     let oy = |o: i32| s.y + along(o, s.h);
+    // The border of the row above or below touches the outer cell, so the cell steps out one more.
+    let touches = |row: i32, x: i32, dir: i32| {
+        [row - 1, row + 1].into_iter().any(|r| {
+            (s.y..s.y + s.h).contains(&r) && {
+                let (lo, hi) = s.row_span(r);
+                if dir < 0 {
+                    lo == x
+                } else {
+                    hi == x
+                }
+            }
+        })
+    };
     let side = |row: i32, dir: i32| {
         let inset = if inner {
             row.clamp(s.y + 1, s.y + s.h - 2)
@@ -98,7 +112,13 @@ pub(super) fn side_cell(s: &Shape, anchor: Anchor, toward: Pt, face: Pt) -> (Pt,
             (row, dir)
         };
         let (lo, hi) = s.row_span(row);
-        (((if dir < 0 { lo } else { hi }) + o, row), Axis::Horizontal)
+        let x = (if dir < 0 { lo } else { hi }) + o;
+        let x = if !inner && touches(row, x, dir) {
+            x + dir
+        } else {
+            x
+        };
+        ((x, row), Axis::Horizontal)
     };
     let (left, right) = (|row| side(row, -1), |row| side(row, 1));
     let edge = |x: i32, border: i32, out_y: i32, in_row: i32| {
