@@ -8,9 +8,11 @@ clidraw is in alpha. Do not consider backward compatibility, deadcode, record a 
 
 ## Documentation
 
-The code is the source of truth, the markdown files serves a specific purpose:
-- README.md: for the users of the tool, must be straight to the point and reviewed with the `documentation` and `unslop` skill
-- CONTRIBUTING.md: for contributors and agents, must contain every implementation constraints with concrete example of good and bad implementations
+The code is the source of truth. Documentation describes the code and never replaces it.
+- README.md: short. It states what clidraw is and redirects to the site at https://clidraw.shrtcts.fr. Review it with the `documentation` and `unslop` skills.
+- docs/wiki/: the user documentation site on GitHub Pages. It holds the guides and the reference pages. Follow [docs/wiki/CONTRIBUTING.md](docs/wiki/CONTRIBUTING.md) for every page.
+- docs/wiki reference pages: generated from the code with `UPDATE_DOCS=1`. Commit the generated output.
+- CONTRIBUTING.md: contributor rules only. Put user-facing content in docs/wiki.
 
 ## Contributing
 
