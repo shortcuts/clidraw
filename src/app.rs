@@ -411,6 +411,7 @@ impl App {
             MenuItem::ExportMermaid => self.pick_scope(ExportFormat::Mermaid),
             MenuItem::ExportClidraw => self.pick_scope(ExportFormat::Clidraw),
             MenuItem::CopyClidraw => self.copy_clidraw(),
+            MenuItem::CopyShareLink => self.pick_scope(ExportFormat::Share),
             MenuItem::Quit => self.quit = true,
         }
     }

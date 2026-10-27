@@ -11,6 +11,7 @@ pub enum MenuItem {
     ExportMermaid,
     ExportClidraw,
     CopyClidraw,
+    CopyShareLink,
     Quit,
 }
 

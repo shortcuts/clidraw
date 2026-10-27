@@ -523,6 +523,13 @@ pub const BINDINGS: &[Binding] = &[
         Scope::Palette,
         Some(Action::Menu(MenuItem::CopyClidraw)),
     ),
+    Binding::new(
+        "copy_share_link",
+        &[],
+        "Copy share link",
+        Scope::Palette,
+        Some(Action::Menu(MenuItem::CopyShareLink)),
+    ),
     ex("save", ":w", "Save", Some(Action::Ex("w"))),
     ex(
         "layout_td",

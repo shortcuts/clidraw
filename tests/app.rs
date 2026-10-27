@@ -2947,6 +2947,75 @@ fn palette_copy_clidraw_queues_the_canvas_as_osc52() {
     assert!(app.take_copy().is_none());
 }
 
+#[test]
+fn palette_copy_share_link_queues_the_mermaid_url_and_shows_it() {
+    use clidraw::ui::scope::ExportFormat;
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "copy share", now);
+    assert_eq!(palette_labels(&app)[0], "File: Copy share link");
+    app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Enter), now);
+    let text = app.status.as_ref().unwrap().text.clone();
+    let url = text
+        .strip_prefix("Copied share link: ")
+        .expect("status shows the url");
+    let fragment = url
+        .strip_prefix("https://clidraw.shrtcts.fr/view.html#")
+        .expect("url targets the viewer");
+    assert!(!fragment.contains(['+', '/', '=']));
+    let (mermaid, _) = clidraw::export::render(
+        &app.session.canvas,
+        ExportFormat::Mermaid,
+        Config::default().export_padding,
+    );
+    assert_eq!(decode_url_safe(fragment), mermaid);
+    let seq = app.take_copy().expect("copy queued");
+    assert!(seq.starts_with("\x1b]52;c;") && seq.ends_with("\x1b\\"));
+}
+
+#[test]
+fn palette_copy_share_link_with_no_selection_queues_nothing() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "copy share", now);
+    app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(
+        app.status.as_ref().unwrap().text,
+        "Nothing selected: select a shape first"
+    );
+    assert!(app.take_copy().is_none());
+}
+
+fn decode_url_safe(fragment: &str) -> String {
+    let (mut bits, mut n, mut out) = (0u32, 0, Vec::new());
+    for c in fragment.bytes() {
+        let v = match c {
+            b'A'..=b'Z' => c - b'A',
+            b'a'..=b'z' => c - b'a' + 26,
+            b'0'..=b'9' => c - b'0' + 52,
+            b'-' => 62,
+            b'_' => 63,
+            _ => panic!("not base64url: {c}"),
+        };
+        bits = bits << 6 | u32::from(v);
+        n += 6;
+        if n >= 8 {
+            n -= 8;
+            out.push((bits >> n) as u8);
+        }
+    }
+    String::from_utf8(out).unwrap()
+}
+
 fn command_buf(app: &App) -> &str {
     match &app.overlay {
         clidraw::ui::Overlay::Prompt(p) => p.buf(),

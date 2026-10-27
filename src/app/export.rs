@@ -1,5 +1,6 @@
 use super::App;
 use crate::export;
+use crate::model::Canvas;
 use crate::ui::prompt::{Extent, Prompt, PromptKind};
 use crate::ui::scope::{self, ExportFormat, ScopeItem};
 use crate::ui::{Overlay, Status};
@@ -100,6 +101,7 @@ impl App {
             ExportFormat::Svg => (PromptKind::ExportSvg(extent), "svg"),
             ExportFormat::Mermaid => (PromptKind::ExportMermaid(extent), "mmd"),
             ExportFormat::Clidraw => (PromptKind::ExportClidraw(extent), "clidraw.json"),
+            ExportFormat::Share => return self.copy_share(extent),
         };
         self.overlay = Overlay::Prompt(Prompt::new(kind, format!("{}.{ext}", self.name)));
     }
@@ -125,15 +127,33 @@ impl App {
         self.status = Some(Status::notice("Copied clidraw JSON to the clipboard"));
     }
 
-    pub(super) fn write_export(&mut self, path: &str, format: ExportFormat, extent: Extent) {
-        let canvas = match extent {
+    fn extent_canvas(&self, extent: Extent) -> Canvas {
+        match extent {
             Extent::Whole => self.session.canvas.clone(),
             Extent::Area(a) => self.session.canvas.within(a),
             Extent::Selection => self
                 .session
                 .canvas
                 .clone_canvas(&self.session.selection, 0, 0),
-        };
+        }
+    }
+
+    fn copy_share(&mut self, extent: Extent) {
+        let canvas = self.extent_canvas(extent);
+        let (text, skipped) = export::render(&canvas, ExportFormat::Mermaid, self.export_padding);
+        // shortcut: OSC 52 length cap unmeasured, upgrade on truncated-copy reports
+        let url = format!("{SHARE_URL}{}", base64(text.as_bytes(), URL_SAFE, false));
+        self.copy = Some(url.clone());
+        self.status = Some(match skipped {
+            0 => Status::notice(format!("Copied share link: {url}")),
+            n => Status::notice(format!(
+                "Copied share link, skipped {n} element(s) with no Mermaid form: {url}"
+            )),
+        });
+    }
+
+    pub(super) fn write_export(&mut self, path: &str, format: ExportFormat, extent: Extent) {
+        let canvas = self.extent_canvas(extent);
         let (text, skipped) = export::render(&canvas, format, self.export_padding);
         self.status = Some(match std::fs::write(path, text) {
             Ok(()) if skipped > 0 => Status::notice(format!(
@@ -156,20 +176,29 @@ pub(crate) fn expand_home(path: &str) -> String {
     }
 }
 
-/// Terminals that ignore OSC 52 drop it silently, so the copy then does nothing.
-pub(super) fn osc52(text: &str) -> String {
-    const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = String::from("\x1b]52;c;");
-    for c in text.as_bytes().chunks(3) {
+const STANDARD: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const URL_SAFE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const SHARE_URL: &str = "https://clidraw.shrtcts.fr/view.html#";
+
+fn base64(bytes: &[u8], alphabet: &[u8; 64], pad: bool) -> String {
+    let mut out = String::new();
+    for c in bytes.chunks(3) {
         let n = c.iter().fold(0u32, |n, b| n << 8 | u32::from(*b)) << (8 * (3 - c.len()));
         for i in 0..4 {
-            out.push(if i <= c.len() {
-                B64[(n >> (18 - 6 * i) & 63) as usize] as char
-            } else {
-                '='
-            });
+            if i <= c.len() {
+                out.push(alphabet[(n >> (18 - 6 * i) & 63) as usize] as char);
+            } else if pad {
+                out.push('=');
+            }
         }
     }
-    out.push_str("\x1b\\");
     out
+}
+
+/// Terminals that ignore OSC 52 drop it silently, so the copy then does nothing.
+pub(super) fn osc52(text: &str) -> String {
+    format!(
+        "\x1b]52;c;{}\x1b\\",
+        base64(text.as_bytes(), STANDARD, true)
+    )
 }
