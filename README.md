@@ -40,19 +40,6 @@ Connect an AI agent to clidraw with the [agent guide](https://clidraw.shrtcts.fr
 ## Documentation
 
 - [clidraw.shrtcts.fr](https://clidraw.shrtcts.fr/): guides, command reference and MCP tools.
-- [Contributing](CONTRIBUTING.md): rules for contributors.
+- [Contributing](./CONTRIBUTING.md): rules for contributors.
 - [License](LICENSE): MIT.
 - [Sponsor](https://github.com/sponsors/shortcuts).
-
-## Before going public
-
-TODO: remove this section once the repo is public.
-
-- [ ] Enable GitHub Pages (source: GitHub Actions) and point the `clidraw.shrtcts.fr` CNAME in DNS at the Pages host.
-- [ ] Set the repo homepage to `https://clidraw.shrtcts.fr`.
-- [ ] Create the `shortcuts/homebrew-tap` repo.
-- [ ] Create the PATs and set the secrets `RELEASE_PLEASE_TOKEN`, `HOMEBREW_TAP_TOKEN` and `CARGO_REGISTRY_TOKEN`.
-- [ ] Enable "Allow GitHub Actions to create and approve pull requests".
-- [ ] Make the repo public.
-
-The browser live checks from the docs, release and install tasks run once `main` is pushed.
