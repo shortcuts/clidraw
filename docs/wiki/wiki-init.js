@@ -1,6 +1,7 @@
 (function () {
   var NAV_ITEMS = [
     { group: 'Start', items: [
+      { href: 'install.html', label: 'Install' },
       { href: 'index.html', label: 'Getting Started' },
     ] },
     { group: 'Reference', items: [
@@ -14,6 +15,7 @@
       { href: 'import-mermaid.html', label: 'Import Mermaid' },
       { href: 'export-svg.html', label: 'Export SVG' },
       { href: 'manage-canvases.html', label: 'Manage canvases' },
+      { href: 'agents.html', label: 'Use with agents' },
     ] },
     { group: 'Explanation', items: [
       { href: 'scope.html', label: 'Scope and design choices' },

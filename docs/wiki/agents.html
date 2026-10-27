@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Use with agents | clidraw</title>
+  <meta name="description" content="Connect clidraw to Claude Code, Codex, Cursor or another MCP client so an agent can draw.">
+  <link rel="canonical" href="https://clidraw.shrtcts.fr/agents.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="clidraw">
+  <meta property="og:title" content="Use with agents | clidraw">
+  <meta property="og:description" content="Connect clidraw to Claude Code, Codex, Cursor or another MCP client so an agent can draw.">
+  <meta property="og:url" content="https://clidraw.shrtcts.fr/agents.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Use with agents | clidraw">
+  <meta name="twitter:description" content="Connect clidraw to Claude Code, Codex, Cursor or another MCP client so an agent can draw.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "clidraw",
+    "operatingSystem": "Linux, macOS, Windows",
+    "applicationCategory": "DeveloperApplication",
+    "description": "Connect clidraw to Claude Code, Codex, Cursor or another MCP client so an agent can draw.",
+    "url": "https://clidraw.shrtcts.fr/agents.html",
+    "downloadUrl": "https://github.com/shortcuts/clidraw/releases",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="use-with-agents">Use with agents</h1>
+    <p>This guide connects clidraw to an AI agent. The agent then reads and edits your canvases through clidraw's MCP tools.</p>
+
+    <h2 id="install">Install clidraw</h2>
+    <p><a href="install.html">Install clidraw</a> first. The install page lists every method.</p>
+
+    <h2 id="clients">Add clidraw to your client</h2>
+    <h3 class="item" id="clients-claude-code">Claude Code</h3>
+    <p>Run this command once:</p>
+    <pre><code>claude mcp add clidraw -- clidraw mcp</code></pre>
+
+    <h3 class="item" id="clients-codex">Codex</h3>
+    <p>Run this command once:</p>
+    <pre><code>codex mcp add clidraw -- clidraw mcp</code></pre>
+
+    <h3 class="item" id="clients-cursor">Cursor</h3>
+    <p>Add this JSON to <code>.cursor/mcp.json</code> in your project. To add clidraw for every project, put it in <code>~/.cursor/mcp.json</code> instead:</p>
+    <pre><code>{
+  "mcpServers": {
+    "clidraw": {
+      "command": "clidraw",
+      "args": ["mcp"]
+    }
+  }
+}</code></pre>
+
+    <h3 class="item" id="clients-generic">Other MCP clients</h3>
+    <p>Add this entry to the <code>mcpServers</code> object of your client config:</p>
+    <pre><code>{
+  "mcpServers": {
+    "clidraw": {
+      "command": "clidraw",
+      "args": ["mcp"]
+    }
+  }
+}</code></pre>
+
+    <h2 id="check">Check the connection</h2>
+    <p>Ask the agent to call the <code>list</code> tool. It names your canvases. A JSON array in the reply, even <code>[]</code>, means the server works.</p>
+
+    <h2 id="caveats">Before an agent edits a canvas</h2>
+    <p>Close the canvas in the clidraw window first. A window that stays open drops its unsaved edits when an agent edits the same canvas. <a href="where-files-live.html#edits-from-scripts-and-agents">Where files live</a> explains why.</p>
+
+    <h2 id="next-steps">Next steps</h2>
+    <ul>
+      <li><a href="mcp.html">MCP tools</a> lists every tool, its parameters and its errors.</li>
+      <li><a href="cli.html">Command line</a> lists the same commands for scripts.</li>
+    </ul>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

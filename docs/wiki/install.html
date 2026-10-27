@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Install | clidraw</title>
+  <meta name="description" content="Install clidraw with a shell script, PowerShell, Homebrew, mise or Cargo.">
+  <link rel="canonical" href="https://clidraw.shrtcts.fr/install.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="clidraw">
+  <meta property="og:title" content="Install | clidraw">
+  <meta property="og:description" content="Install clidraw with a shell script, PowerShell, Homebrew, mise or Cargo.">
+  <meta property="og:url" content="https://clidraw.shrtcts.fr/install.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Install | clidraw">
+  <meta name="twitter:description" content="Install clidraw with a shell script, PowerShell, Homebrew, mise or Cargo.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "clidraw",
+    "operatingSystem": "Linux, macOS, Windows",
+    "applicationCategory": "DeveloperApplication",
+    "description": "Install clidraw with a shell script, PowerShell, Homebrew, mise or Cargo.",
+    "url": "https://clidraw.shrtcts.fr/install.html",
+    "downloadUrl": "https://github.com/shortcuts/clidraw/releases",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="install">Install</h1>
+    <p>This guide shows every way to install clidraw. Pick one method and run its command.</p>
+
+    <h2 id="methods">Install methods</h2>
+    <h3 class="item" id="methods-shell">Shell</h3>
+    <p>Works on Linux and macOS. Run this command in your shell:</p>
+    <pre><code>curl --proto '=https' --tlsv1.2 -LsSf https://github.com/shortcuts/clidraw/releases/latest/download/clidraw-installer.sh | sh</code></pre>
+
+    <h3 class="item" id="methods-powershell">PowerShell</h3>
+    <p>Works on Windows. Run this command in PowerShell:</p>
+    <pre><code>powershell -ExecutionPolicy Bypass -c "irm https://github.com/shortcuts/clidraw/releases/latest/download/clidraw-installer.ps1 | iex"</code></pre>
+
+    <h3 class="item" id="methods-homebrew">Homebrew</h3>
+    <p>Works on macOS and Linux with Homebrew installed:</p>
+    <pre><code>brew install shortcuts/tap/clidraw</code></pre>
+
+    <h3 class="item" id="methods-mise">mise</h3>
+    <p>Works with mise installed. This command installs the latest release for every project:</p>
+    <pre><code>mise use -g github:shortcuts/clidraw</code></pre>
+
+    <h3 class="item" id="methods-cargo">Cargo</h3>
+    <p>Works with a Rust toolchain installed. Run this command to build clidraw from crates.io:</p>
+    <pre><code>cargo install clidraw</code></pre>
+
+    <h2 id="terminal-requirements">Terminal requirements</h2>
+    <p>clidraw needs a terminal with these three features:</p>
+    <ul>
+      <li><strong>True color:</strong> the terminal shows 24-bit colors.</li>
+      <li><strong>Mouse reporting:</strong> the terminal sends mouse clicks and drags using SGR mouse mode.</li>
+      <li><strong>Alternate screen:</strong> the terminal switches to a separate screen when clidraw starts.</li>
+    </ul>
+    <p>Run <code>clidraw probe</code> to test your terminal. Move the mouse, click and scroll. Press <kbd>q</kbd> to quit.</p>
+
+    <h2 id="verify">Check the install</h2>
+    <p>Run this command. It prints the installed version:</p>
+    <pre><code>clidraw --version</code></pre>
+
+    <h2 id="next-steps">Next steps</h2>
+    <ul>
+      <li><a href="index.html">Getting Started</a> draws your first diagram.</li>
+      <li><a href="agents.html">Use with agents</a> connects clidraw to an AI agent.</li>
+    </ul>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://clidraw.shrtcts.fr/</loc></url>
+  <url><loc>https://clidraw.shrtcts.fr/install.html</loc></url>
+  <url><loc>https://clidraw.shrtcts.fr/agents.html</loc></url>
   <url><loc>https://clidraw.shrtcts.fr/config.html</loc></url>
   <url><loc>https://clidraw.shrtcts.fr/keys.html</loc></url>
   <url><loc>https://clidraw.shrtcts.fr/cli.html</loc></url>
