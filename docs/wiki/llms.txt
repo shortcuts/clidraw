@@ -44,7 +44,7 @@ Close the canvas in the clidraw window before an agent edits it.
 - [MCP tools](https://clidraw.shrtcts.fr/mcp.html): every MCP tool and its parameters
 - [Draw a flowchart](https://clidraw.shrtcts.fr/draw-a-flowchart.html): shapes, labels and layout
 - [Import Mermaid](https://clidraw.shrtcts.fr/import-mermaid.html): turn Mermaid text into shapes
-- [Export SVG](https://clidraw.shrtcts.fr/export-svg.html): export a drawing as SVG
+- [Export SVG](https://clidraw.shrtcts.fr/export-svg.html): export a drawing as SVG, or copy a link that draws it in the browser
 - [Manage canvases](https://clidraw.shrtcts.fr/manage-canvases.html): create, switch, rename and delete canvases
 - [Scope and design choices](https://clidraw.shrtcts.fr/scope.html): what clidraw does and does not do
 - [Where files live](https://clidraw.shrtcts.fr/where-files-live.html): where canvas files are stored

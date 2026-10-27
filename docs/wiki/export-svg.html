@@ -57,8 +57,8 @@ writeFileSync(process.argv[3], svg);</code></pre>
       <li>Choose what to share: the whole canvas, a dragged area or the selection.</li>
     </ol>
     <p>The link opens the viewer at <code>https://clidraw.shrtcts.fr/view.html#</code> and carries the Mermaid text after the <code>#</code>. The browser does not send that part to a server, so the diagram stays private.</p>
-    <p>The viewer lays out the diagram again with pele. The layout can differ from the canvas.</p>
-    <p>The status line shows the full link. Terminals that ignore OSC 52 copy nothing, so copy the link from the status line. Some terminals and tmux cap the copy length, so a large diagram can copy cut short.</p>
+    <p>The viewer lays out the diagram again with pele. The layout can differ from the canvas. Free lines and free text are dropped, the same as in Mermaid export.</p>
+    <p>The status line shows the full link. Terminals that ignore OSC 52 copy nothing, so copy the link from the status line. Some terminals and tmux cap the copy length, so a large diagram can be copied incomplete.</p>
   </main>
 
 </div>
