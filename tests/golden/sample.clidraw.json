@@ -36,7 +36,13 @@
       "label": "Done & \"dusted\"",
       "border": "double",
       "align": "right",
-      "bold": true
+      "bold": true,
+      "side_labels": [
+        {
+          "edge": "top",
+          "text": "side <a>"
+        }
+      ]
     },
     {
       "type": "shape",

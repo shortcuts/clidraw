@@ -1,6 +1,7 @@
 use clidraw::model::{
-    corners, edge_anchor, label_pos, route, side_anchor, side_mid, wrap, Anchor, Axis, Canvas,
-    Command, Element, End, History, Id, Line, LineKind, Shape, ShapeKind, Side, Stroke, Text, Z,
+    corners, edge_anchor, label_pos, route, side_anchor, side_at, side_index, side_label_at,
+    side_mid, wrap, Anchor, Axis, Canvas, Command, Edge, Element, End, History, Id, Line, LineKind,
+    Shape, ShapeKind, Side, SideLabel, Stroke, Text, Z,
 };
 use std::collections::HashSet;
 
@@ -20,6 +21,7 @@ fn shape(id: &str, x: i32) -> Element {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     })
 }
 
@@ -1753,4 +1755,128 @@ fn side_mid_follows_the_slanted_outline() {
     assert_eq!(at(Anchor::Right(2)), (22, 2));
     assert_eq!(at(Anchor::Right(0)), (21, 1));
     assert_eq!(at(Anchor::Top(0)), (13, -1));
+}
+
+fn side(edge: Edge, at: Option<u16>, text: &str) -> SideLabel {
+    SideLabel {
+        edge,
+        at,
+        text: text.into(),
+    }
+}
+
+fn rect_10x5() -> Shape {
+    let Element::Shape(mut s) = shape("aaaaaaaa", 0) else {
+        unreachable!()
+    };
+    (s.w, s.h) = (10, 5);
+    s
+}
+
+#[test]
+fn side_labels_sit_on_the_border_and_round_trip_their_position() {
+    let s = rect_10x5();
+    assert_eq!(
+        side_label_at(&s, &side(Edge::Top, None, "ab")),
+        (4, 0, "ab")
+    );
+    assert_eq!(
+        side_label_at(&s, &side(Edge::Bottom, Some(0), "abc")),
+        (1, 4, "abc")
+    );
+    assert_eq!(
+        side_label_at(&s, &side(Edge::Top, Some(1000), "abc")),
+        (6, 0, "abc")
+    );
+    assert_eq!(
+        side_label_at(&s, &side(Edge::Left, Some(1000), "abc")),
+        (0, 3, "abc")
+    );
+    assert_eq!(
+        side_label_at(&s, &side(Edge::Right, None, "abc")),
+        (7, 2, "abc")
+    );
+    assert_eq!(
+        side_label_at(&s, &side(Edge::Top, None, "abcdefghijkl")),
+        (1, 0, "abcdefgh")
+    );
+    assert_eq!((side_at(7, 7), side_index(7, 1000)), (1000, 7));
+    assert!((0..=7).all(|i| side_index(7, side_at(7, i)) == i));
+}
+
+#[test]
+fn set_side_replaces_removes_and_undoes_exactly() {
+    let mut c = Canvas::default();
+    let mut h = History::default();
+    h.exec(&mut c, Command::Insert(0, Element::Shape(rect_10x5())))
+        .unwrap();
+    let id = Id::from("aaaaaaaa");
+    let set = |edge, label| Command::SetSide {
+        id: id.clone(),
+        edge,
+        label,
+    };
+    h.exec(&mut c, set(Edge::Left, Some(side(Edge::Left, None, "l"))))
+        .unwrap();
+    h.exec(
+        &mut c,
+        set(Edge::Top, Some(side(Edge::Top, Some(100), "t"))),
+    )
+    .unwrap();
+    h.exec(
+        &mut c,
+        set(Edge::Left, Some(side(Edge::Left, Some(900), "l2"))),
+    )
+    .unwrap();
+    let Some(Element::Shape(sh)) = c.get(&id) else {
+        unreachable!()
+    };
+    assert_eq!(
+        sh.side_labels,
+        [
+            side(Edge::Top, Some(100), "t"),
+            side(Edge::Left, Some(900), "l2")
+        ]
+    );
+    h.exec(&mut c, set(Edge::Top, None)).unwrap();
+    h.undo(&mut c).unwrap();
+    h.undo(&mut c).unwrap();
+    let Some(Element::Shape(sh)) = c.get(&id) else {
+        unreachable!()
+    };
+    assert_eq!(
+        sh.side_labels,
+        [side(Edge::Top, Some(100), "t"), side(Edge::Left, None, "l")]
+    );
+}
+
+#[test]
+fn set_side_rejects_non_rects_and_lines() {
+    let mut c = Canvas::default();
+    let Element::Shape(mut d) = shape("dddddddd", 0) else {
+        unreachable!()
+    };
+    d.kind = ShapeKind::Diamond;
+    c.push(Element::Shape(d)).unwrap();
+    c.push(shape("aaaaaaaa", 20)).unwrap();
+    c.push(arrow(bound("aaaaaaaa"), End::Free(40, 0))).unwrap();
+    for id in ["dddddddd", "line0000"] {
+        let cmd = Command::SetSide {
+            id: Id::from(id),
+            edge: Edge::Top,
+            label: Some(side(Edge::Top, None, "x")),
+        };
+        assert!(c.apply(cmd).is_err(), "{id}");
+    }
+}
+
+#[test]
+fn side_labels_serialize_only_when_present() {
+    let s = rect_10x5();
+    assert!(!serde_json::to_string(&s).unwrap().contains("side_labels"));
+    let mut with = s.clone();
+    with.side_labels.push(side(Edge::Top, None, "x"));
+    let json = serde_json::to_string(&with).unwrap();
+    assert!(json.contains(r#""side_labels":[{"edge":"top","text":"x"}]"#));
+    assert_eq!(serde_json::from_str::<Shape>(&json).unwrap(), with);
 }

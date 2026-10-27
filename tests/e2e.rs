@@ -110,6 +110,35 @@ fn label_caret_editing() {
 }
 
 #[test]
+fn side_label_sits_on_the_border_drags_along_it_and_exports() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut t = Term::spawn(tmp.path(), &["scratch"]);
+    t.draw_rect();
+    t.double_click(12, 8);
+    t.key("yes");
+    t.key("\r");
+    t.wait_for("┌yes");
+    let (col, row) = t.find("yes");
+    t.drag((col, row), (col + 6, row));
+    t.wait_for("┌─────yes");
+    t.key("\x10");
+    t.key("export svg");
+    t.key("\r");
+    t.wait_for("Whole canvas");
+    let (col, row) = t.find("Whole canvas");
+    t.click(col, row);
+    t.wait_for("Export SVG to path");
+    let out = tmp.path().join("o.svg");
+    t.key(&"\x7f".repeat(32));
+    t.key(out.to_str().unwrap());
+    t.key("\r");
+    t.wait_for("Exported");
+    assert!(std::fs::read_to_string(out)
+        .unwrap()
+        .contains(">yes</text>"));
+}
+
+#[test]
 fn right_click_menu_items() {
     let tmp = tempfile::tempdir().unwrap();
     let mut t = Term::spawn(tmp.path(), &["scratch"]);

@@ -3,8 +3,8 @@ use clidraw::input::{
     Tool,
 };
 use clidraw::model::{
-    Align, Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
-    Stroke, TextAlign,
+    Align, Anchor, Border, Canvas, Edge, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
+    SideLabel, Stroke, TextAlign,
 };
 use clidraw::ui::palette::{self, Choice, PaletteHit, Strip};
 use clidraw::view::{View, Zoom};
@@ -136,6 +136,7 @@ fn with_shape(id: &str, x: i32, y: i32) -> Session {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     s
 }
@@ -233,6 +234,7 @@ fn ctrl_a_selects_everything() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     ctrl(&mut s, 'a');
     assert_eq!(
@@ -326,6 +328,7 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     pick(&mut s, Tool::Arrow);
     drag(&mut s, (18, 5), (43, 5));
@@ -400,6 +403,7 @@ fn releasing_an_arrow_on_a_border_cell_pins_that_side() {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }));
         pick(&mut s, Tool::Arrow);
         drag(&mut s, (18, 5), to);
@@ -562,6 +566,7 @@ fn shift_click_toggles_an_element_in_the_selection() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     click(&mut s, (20, 6), Instant::now());
     shift_drag(&mut s, (40, 10), (40, 10));
@@ -622,8 +627,8 @@ fn double_click_inside_a_shape_edits_its_label() {
 fn double_click_edits_a_label_within_400ms_only() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     let t = Instant::now();
-    click(&mut s, (20, 6), t);
-    click(&mut s, (20, 6), t + Duration::from_millis(100));
+    click(&mut s, (22, 6), t);
+    click(&mut s, (22, 6), t + Duration::from_millis(100));
     assert!(s.edit.is_some());
     for c in "hi".chars() {
         key(&mut s, KeyCode::Char(c));
@@ -632,8 +637,8 @@ fn double_click_edits_a_label_within_400ms_only() {
     assert_eq!(shapes(&s)[0].label, "hi");
 
     let mut slow = with_shape("aaaaaaaa", 20, 5);
-    click(&mut slow, (20, 6), t);
-    click(&mut slow, (20, 6), t + Duration::from_millis(900));
+    click(&mut slow, (22, 6), t);
+    click(&mut slow, (22, 6), t + Duration::from_millis(900));
     assert!(slow.edit.is_none());
 }
 
@@ -868,6 +873,7 @@ fn palette_option_sets_the_border_of_a_selected_rect_and_undoes() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
     let border = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
@@ -901,6 +907,7 @@ fn palette_ink_cycles_through_the_colors_and_undoes_one_click_at_a_time() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     s.canvas.elements.push(Element::Text(clidraw::model::Text {
         id: Id::from("tttttttt"),
@@ -956,6 +963,7 @@ fn two_shapes_and_arrow_tool() -> Session {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     pick(&mut s, Tool::Arrow);
     s
@@ -1222,6 +1230,7 @@ fn bracket_keys_reorder_the_selection_one_undo_step_per_press() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     let ids = |s: &Session| -> Vec<String> {
         s.canvas
@@ -1271,6 +1280,7 @@ fn diagram() -> Session {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     s.canvas.elements.push(Element::Line(Line {
         id: Id::from("line0000"),
@@ -1789,6 +1799,7 @@ fn committing_a_wrapped_label_grows_the_shape_in_one_undo_step() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     s.start_edit_existing(Id::from("aaaaaaaa"));
     typed(&mut s, "ab");
@@ -1889,6 +1900,7 @@ fn three_shapes() -> Session {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }));
     }
     s
@@ -1992,6 +2004,7 @@ fn at(id: &str, x: i32, y: i32, w: i32, h: i32) -> Element {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     })
 }
 
@@ -2106,6 +2119,7 @@ fn palette_cycles_label_align_and_ctrl_b_toggles_bold() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
     let get = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
@@ -2168,6 +2182,7 @@ fn put(s: &mut Session, id: &str, kind: ShapeKind, r: (i32, i32, i32, i32)) {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
 }
 
@@ -2319,6 +2334,7 @@ fn set_link_sets_clears_undoes_and_rejects_unsafe_urls() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
     let get = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
@@ -2530,6 +2546,7 @@ fn ratio_label_growth_widens_a_bound_shape() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     s.start_edit_existing(Id::from("aaaaaaaa"));
     for line in ["a", "b", "c"] {
@@ -2884,4 +2901,120 @@ fn fit_all_keeps_the_content_inside_the_viewport() {
     let (_, y) = s.view.to_screen(100, 100);
     let (_, y2) = s.view.to_screen(100, 103);
     assert!(y >= vy && y2 < vy + vh);
+}
+
+fn side_labels(s: &Session) -> Vec<SideLabel> {
+    shapes(s)[0].side_labels.clone()
+}
+
+fn type_text(s: &mut Session, text: &str) {
+    for c in text.chars() {
+        key(s, KeyCode::Char(c));
+    }
+    key(s, KeyCode::Enter);
+}
+
+fn double_click(s: &mut Session, at: (u16, u16)) {
+    let t = Instant::now();
+    click(s, at, t);
+    click(s, at, t + Duration::from_millis(100));
+}
+
+#[test]
+fn double_click_on_a_border_edits_that_side_at_the_clicked_cell() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    double_click(&mut s, (24, 5));
+    assert!(matches!(
+        &s.edit,
+        Some(e) if matches!(&e.target, EditTarget::Side(_, Edge::Top, Some(600)))
+    ));
+    type_text(&mut s, "yes");
+    assert_eq!(
+        side_labels(&s),
+        [SideLabel {
+            edge: Edge::Top,
+            at: Some(600),
+            text: "yes".into()
+        }]
+    );
+    assert_eq!(shapes(&s)[0].label, "");
+}
+
+#[test]
+fn double_click_on_a_left_border_cell_places_the_label_at_that_row() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    double_click(&mut s, (20, 7));
+    type_text(&mut s, "l");
+    assert_eq!(
+        side_labels(&s),
+        [SideLabel {
+            edge: Edge::Left,
+            at: Some(1000),
+            text: "l".into()
+        }]
+    );
+}
+
+#[test]
+fn double_click_on_a_corner_or_inside_keeps_editing_the_main_label() {
+    for at in [(20, 5), (27, 8), (22, 6)] {
+        let mut s = with_shape("aaaaaaaa", 20, 5);
+        double_click(&mut s, at);
+        assert!(
+            matches!(&s.edit, Some(e) if matches!(&e.target, EditTarget::Existing(_))),
+            "{at:?}"
+        );
+    }
+}
+
+#[test]
+fn double_click_on_a_side_label_keeps_its_position_and_empty_text_removes_it() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    double_click(&mut s, (24, 5));
+    type_text(&mut s, "yes");
+    key(&mut s, KeyCode::Esc);
+    double_click(&mut s, (23, 5));
+    assert!(matches!(
+        &s.edit,
+        Some(e) if e.buf == "yes" && matches!(&e.target, EditTarget::Side(_, Edge::Top, Some(600)))
+    ));
+    for _ in 0..3 {
+        key(&mut s, KeyCode::Backspace);
+    }
+    key(&mut s, KeyCode::Enter);
+    assert!(side_labels(&s).is_empty());
+    key(&mut s, KeyCode::Char('u'));
+    assert_eq!(side_labels(&s)[0].text, "yes");
+}
+
+#[test]
+fn an_empty_side_edit_on_a_fresh_edge_records_nothing() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    double_click(&mut s, (24, 5));
+    key(&mut s, KeyCode::Enter);
+    assert!(side_labels(&s).is_empty());
+    key(&mut s, KeyCode::Char('u'));
+    assert!(side_labels(&s).is_empty());
+}
+
+#[test]
+fn dragging_a_selected_rects_side_label_slides_it_along_its_side_in_one_undo_step() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    double_click(&mut s, (22, 5));
+    type_text(&mut s, "a");
+    s.selection = vec![Id::from("aaaaaaaa")];
+    let before = side_labels(&s);
+    assert_eq!(before[0].at, Some(200));
+    drag(&mut s, (22, 5), (25, 7));
+    assert_eq!(
+        side_labels(&s),
+        [SideLabel {
+            edge: Edge::Top,
+            at: Some(800),
+            text: "a".into()
+        }]
+    );
+    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
+    key(&mut s, KeyCode::Char('u'));
+    assert_eq!(side_labels(&s), before);
 }

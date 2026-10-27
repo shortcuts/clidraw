@@ -32,6 +32,7 @@ fn shape(id: &str, x: i32, label: &str) -> Element {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     })
 }
 
@@ -780,6 +781,7 @@ fn long_shape_label_wraps_inside_the_shape() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     s.rev += 1;
     let b = draw(&s, &Overlay::None);
@@ -862,6 +864,7 @@ fn half_session(x: i32, y: i32) -> Session {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     Session::new(
         c,
@@ -941,6 +944,7 @@ fn kind_session(kind: ShapeKind, w: i32, h: i32) -> Session {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     Session::new(c, View::default(), (80, 24))
 }
@@ -1921,4 +1925,33 @@ fn import_drawer_lists_three_files_with_directories_first() {
         let all: String = (0..23).map(|y| line_at(&b, y)).collect();
         assert!(!all.contains("Files"), "{w}");
     }
+}
+
+#[test]
+fn side_labels_overwrite_the_border_cells_they_sit_on() {
+    use clidraw::model::{Edge, SideLabel};
+    let mut c = Canvas::default();
+    let Element::Shape(mut sh) = shape("aaaaaaaa", 20, "box") else {
+        unreachable!()
+    };
+    sh.h = 5;
+    sh.side_labels = vec![
+        SideLabel {
+            edge: Edge::Top,
+            at: None,
+            text: "yes".into(),
+        },
+        SideLabel {
+            edge: Edge::Left,
+            at: Some(0),
+            text: "ab".into(),
+        },
+    ];
+    c.elements.push(Element::Shape(sh));
+    let s = Session::new(c, View::default(), (80, 24));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 4, 20, 8), "┌─yes──┐");
+    assert_eq!(cols(&b, 5, 20, 8), "ab     │");
+    assert_eq!(cols(&b, 6, 20, 8), "│ box  │");
+    assert_eq!(cols(&b, 8, 20, 8), "└──────┘");
 }

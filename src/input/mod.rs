@@ -10,8 +10,8 @@ pub use keys::{edit_key, handle_key, handle_paste, KeyOutcome};
 pub use state::{handle_mouse, scroll_step, Origin};
 
 use crate::model::{
-    label_at_nearest, wrap, Align, Anchor, Canvas, Command, Dir, Element, End, History, Id, Line,
-    LineKind, Shape, Stroke, Text, Z,
+    label_at_nearest, side_at, wrap, Align, Anchor, Canvas, Command, Dir, Edge, Element, End,
+    History, Id, Line, LineKind, Shape, SideLabel, Stroke, Text, Z,
 };
 use crate::ui::palette::{self, PaletteHit};
 use crate::ui::theme::Theme;
@@ -177,7 +177,7 @@ impl Session {
         }
         if let Gesture::Dragging { action, .. } = &self.gesture {
             return match action {
-                Action::Pan(_) | Action::Move { .. } | Action::LabelDrag(_) => "grabbing",
+                Action::Pan(_) | Action::Move { .. } | Action::LabelDrag(..) => "grabbing",
                 Action::Resize { .. }
                 | Action::EndDrag { .. }
                 | Action::BendDrag { .. }
@@ -381,6 +381,7 @@ impl Session {
             y: from.y + dy * (from.h + 2),
             label: String::new(),
             link: None,
+            side_labels: vec![],
             ..from.clone()
         };
         let line = Line {
@@ -634,6 +635,29 @@ impl Session {
         });
     }
 
+    /// Starts editing the side label of rect `id` under world cell `p`; false when `p` is on no side.
+    pub fn start_edit_side(&mut self, id: &Id, p: (i32, i32)) -> bool {
+        let Some(Element::Shape(sh)) = self.canvas.get(id) else {
+            return false;
+        };
+        let Some(edge) = hit::side_label_cell(sh, p).or_else(|| hit::edge_at(sh, p)) else {
+            return false;
+        };
+        let (buf, at) = match sh.side_label(edge) {
+            Some(l) => (l.text.clone(), l.at),
+            None => {
+                let (len, offset) = match edge {
+                    Edge::Top | Edge::Bottom => (sh.w, p.0 - sh.x),
+                    Edge::Left | Edge::Right => (sh.h, p.1 - sh.y),
+                };
+                (String::new(), Some(side_at(len - 3, offset - 1)))
+            }
+        };
+        self.selection = vec![id.clone()];
+        self.edit = Some(Edit::new(EditTarget::Side(id.clone(), edge, at), buf));
+        true
+    }
+
     pub fn start_edit_new(&mut self, p: (i32, i32)) {
         self.edit = Some(Edit::new(EditTarget::New(p.0, p.1), String::new()));
     }
@@ -671,6 +695,17 @@ impl Session {
                     });
                 } else {
                     self.exec(Command::SetLabel { id, label: buf });
+                }
+            }
+            EditTarget::Side(id, edge, at) => {
+                let label = (!buf.is_empty()).then_some(SideLabel {
+                    edge,
+                    at,
+                    text: buf,
+                });
+                let had = matches!(self.canvas.get(&id), Some(Element::Shape(sh)) if sh.side_label(edge).is_some());
+                if label.is_some() || had {
+                    self.exec(Command::SetSide { id, edge, label });
                 }
             }
             EditTarget::New(x, y) if !buf.is_empty() => {

@@ -2,8 +2,8 @@ use super::hit::{self, swept, Handle};
 use super::state::{click, Action, Gesture, Target, P};
 use super::{Session, Tool};
 use crate::model::{
-    edge_anchor, label_at_nearest, side_mid, Anchor, Canvas, Command, Element, End, Id, Line,
-    LineKind, Shape, ShapeKind, Side, MIN_SIZE,
+    edge_anchor, label_at_nearest, side_at, side_mid, Anchor, Canvas, Command, Edge, Element, End,
+    Id, Line, LineKind, Shape, ShapeKind, Side, SideLabel, MIN_SIZE,
 };
 use std::collections::HashSet;
 
@@ -28,6 +28,9 @@ fn fold(inv: &mut Vec<Command>, undo: Command) {
         Command::SetLabelAt { id, .. } => inv
             .iter()
             .any(|c| matches!(c, Command::SetLabelAt { id: i, .. } if i == id)),
+        Command::SetSide { id, edge, .. } => inv
+            .iter()
+            .any(|c| matches!(c, Command::SetSide { id: i, edge: e, .. } if i == id && e == edge)),
         Command::SetEnd { id, side, .. } => inv
             .iter()
             .any(|c| matches!(c, Command::SetEnd { id: i, side: d, .. } if i == id && d == side)),
@@ -226,7 +229,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
             start: w0,
             last: w0,
         },
-        Target::Label(id) => Action::LabelDrag(id),
+        Target::Label(id, edge) => Action::LabelDrag(id, edge),
         Target::Route(id) => {
             let Some(Element::Line(l)) = s.canvas.get(&id) else {
                 return Action::Band(w0);
@@ -285,6 +288,7 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
                     align: Default::default(),
                     bold: false,
                     link: None,
+                    side_labels: vec![],
                 }),
                 None => Element::Line(Line {
                     id: id.clone(),
@@ -421,7 +425,29 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
                 },
             );
         }
-        Action::LabelDrag(id) => {
+        Action::LabelDrag(id, Some(edge)) => {
+            let Some(Element::Shape(sh)) = s.canvas.get(id) else {
+                return;
+            };
+            let Some(old) = sh.side_label(*edge) else {
+                return;
+            };
+            let (len, offset) = match edge {
+                Edge::Top | Edge::Bottom => (sh.w, world.0 - sh.x),
+                Edge::Left | Edge::Right => (sh.h, world.1 - sh.y),
+            };
+            let label = SideLabel {
+                at: Some(side_at(len - 3, offset - 1)),
+                ..old.clone()
+            };
+            let cmd = Command::SetSide {
+                id: id.clone(),
+                edge: *edge,
+                label: Some(label),
+            };
+            run(s, inv, cmd);
+        }
+        Action::LabelDrag(id, None) => {
             let Some(Element::Line(l)) = s.canvas.get(id) else {
                 return;
             };
@@ -635,6 +661,7 @@ mod tests {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }));
         s
     }
@@ -876,6 +903,7 @@ mod tests {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }));
         s
     }

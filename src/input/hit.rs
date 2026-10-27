@@ -1,5 +1,7 @@
 use super::Session;
-use crate::model::{label_pos, Canvas, Element, Find, Id, ShapeKind, Side, REACH};
+use crate::model::{
+    label_pos, side_label_at, Canvas, Edge, Element, Find, Id, Shape, ShapeKind, Side, REACH,
+};
 use crate::ui::{refresh, Layout};
 use unicode_width::UnicodeWidthStr;
 
@@ -100,11 +102,39 @@ fn box_covers(e: &Element, p: (i32, i32)) -> bool {
     p.0 >= x && p.0 < x + w && p.1 >= y && p.1 < y + h
 }
 
-/// The line whose label sits under `p`; only a lone selected line offers it, like its handles.
-pub fn label_hit(s: &Session, selection: &[Id], p: (i32, i32)) -> Option<Id> {
-    let [id] = selection else { return None };
-    let Some(Element::Line(l)) = s.canvas.get(id) else {
+/// The border side `p` lies on, corners excluded; only a rect has sides.
+pub fn edge_at(s: &Shape, p: (i32, i32)) -> Option<Edge> {
+    if !s.has_border() {
         return None;
+    }
+    let (r, b) = (s.x + s.w - 1, s.y + s.h - 1);
+    let across = p.0 > s.x && p.0 < r;
+    let down = p.1 > s.y && p.1 < b;
+    match (p.0, p.1) {
+        (_, y) if y == s.y && across => Some(Edge::Top),
+        (_, y) if y == b && across => Some(Edge::Bottom),
+        (x, _) if x == s.x && down => Some(Edge::Left),
+        (x, _) if x == r && down => Some(Edge::Right),
+        _ => None,
+    }
+}
+
+/// The edge whose side label is drawn over `p`.
+pub fn side_label_cell(s: &Shape, p: (i32, i32)) -> Option<Edge> {
+    s.side_labels.iter().find_map(|l| {
+        let (x, y, text) = side_label_at(s, l);
+        (p.1 == y && p.0 >= x && p.0 < x + text.width() as i32).then_some(l.edge)
+    })
+}
+
+/// The element whose label sits under `p`, with the side for a shape's side label; only a lone
+/// selected line or rect offers it, like their handles.
+pub fn label_hit(s: &Session, selection: &[Id], p: (i32, i32)) -> Option<(Id, Option<Edge>)> {
+    let [id] = selection else { return None };
+    let l = match s.canvas.get(id) {
+        Some(Element::Line(l)) => l,
+        Some(Element::Shape(sh)) => return Some((id.clone(), Some(side_label_cell(sh, p)?))),
+        _ => return None,
     };
     let mut slot = s.layout.borrow_mut();
     let layout = refresh(&mut slot, &s.canvas, s.rev);
@@ -114,7 +144,7 @@ pub fn label_hit(s: &Session, selection: &[Id], p: (i32, i32)) -> Option<Id> {
     let (lx, ly) = label_pos(&route, l.label_at);
     let left = lx - l.label.width() as i32 / 2;
     let inside = p.1 == ly && p.0 >= left && p.0 < left + l.label.width() as i32;
-    inside.then(|| id.clone())
+    inside.then(|| (id.clone(), None))
 }
 
 pub fn test(s: &Session, selection: &[Id], p: (i32, i32)) -> Hit {

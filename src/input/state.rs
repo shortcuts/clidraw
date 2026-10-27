@@ -1,7 +1,7 @@
 use super::drag::{drag, pan_step, up};
 use super::hit::{self, Handle, Hit};
 use super::{Session, Tool};
-use crate::model::{self, Command, Element, Id, Paint, ShapeKind, Side};
+use crate::model::{self, Command, Edge, Element, Id, Paint, ShapeKind, Side};
 use crate::ui::palette::{self, paint, Choice, PaletteHit};
 use crate::view::View;
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -33,7 +33,7 @@ pub(super) struct Glide {
 pub(super) enum Target {
     Handle(Handle, Id),
     Element(Id),
-    Label(Id),
+    Label(Id, Option<Edge>),
     Route(Id),
     Empty,
     Draw(Tool),
@@ -45,7 +45,7 @@ pub(super) enum Action {
     Move { start: P, last: P },
     Resize { id: Id, fixed: P },
     EndDrag { id: Id, side: Side },
-    LabelDrag(Id),
+    LabelDrag(Id, Option<Edge>),
     BendDrag { id: Id, at: usize },
     Band(P),
     Create { id: Id, origin: P },
@@ -317,18 +317,20 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     }
     let hit = hit::test(s, &s.selection, world);
     if double {
-        return match hit {
-            Hit::Element(id) | Hit::Handle(_, id) => {
+        let id = match hit {
+            Hit::Element(id) | Hit::Handle(_, id) => Some(id),
+            Hit::Empty => hit::shape_at(&s.canvas, world),
+        };
+        return match id {
+            Some(id) if s.start_edit_side(&id, world) => {}
+            Some(id) => {
                 s.place_line_label(&id, world);
                 s.start_edit_existing(id)
             }
-            Hit::Empty => match hit::shape_at(&s.canvas, world) {
-                Some(id) => s.start_edit_existing(id),
-                None => s.start_edit_new(world),
-            },
+            None => s.start_edit_new(world),
         };
     }
-    if let (Some(id), true, false) = (
+    if let (Some((id, edge)), true, false) = (
         hit::label_hit(s, &s.selection, world),
         s.tool.is_pointer(),
         matches!(hit, Hit::Handle(..)),
@@ -336,7 +338,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         s.gesture = Gesture::Pressed {
             origin: screen,
             world,
-            target: Target::Label(id),
+            target: Target::Label(id, edge),
         };
         return;
     }
@@ -535,7 +537,7 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
             _ => s.selection.clear(),
         },
         Target::Element(_)
-        | Target::Label(_)
+        | Target::Label(..)
         | Target::Route(_)
         | Target::Pan
         | Target::Handle(..) => {}

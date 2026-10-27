@@ -1,8 +1,8 @@
 use clidraw::diagram::{DiagramKind, Flowchart};
 use clidraw::export::{svg, svg_padded};
 use clidraw::model::{
-    Anchor, Border, Canvas, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind, Stroke,
-    Text, TextAlign,
+    Anchor, Border, Canvas, Edge, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
+    SideLabel, Stroke, Text, TextAlign,
 };
 use clidraw::store::encode;
 
@@ -23,6 +23,7 @@ fn sample() -> Canvas {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         })
     };
     let line = |id: &str, kind, from, to, label: &str| {
@@ -125,6 +126,11 @@ fn sample() -> Canvas {
                 s.border = Border::Double;
                 s.align = TextAlign::Right;
                 s.bold = true;
+                s.side_labels = vec![SideLabel {
+                    edge: Edge::Top,
+                    at: None,
+                    text: "side <a>".into(),
+                }];
             }
             Element::Line(l) if l.id == Id::from("eeeeeeee") => l.stroke = Stroke::Dashed,
             Element::Line(l) if l.id == Id::from("dddddddd") => l.color = Some(Paint::Red),
@@ -159,7 +165,7 @@ fn svg_matches_golden() {
 fn mermaid_matches_golden_and_counts_skipped() {
     let out = Flowchart.export(&sample());
     check("sample.mmd", &out.text);
-    assert_eq!(out.skipped, 3);
+    assert_eq!(out.skipped, 4);
 }
 
 #[test]
@@ -218,6 +224,7 @@ fn svg_follows_the_free_anchor_cell() {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         })
     };
     let with = |a| Canvas {

@@ -41,6 +41,7 @@ pub(super) fn export(canvas: &Canvas) -> Exported {
         match e {
             Element::Shape(s) if s.kind == ShapeKind::Frame => skipped += 1,
             Element::Shape(s) => {
+                skipped += s.side_labels.len();
                 let l = label(&s.label);
                 let _ = match s.kind {
                     ShapeKind::Rect if s.border == Border::Rounded => writeln!(text, "  n{n}({l})"),

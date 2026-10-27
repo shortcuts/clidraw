@@ -95,6 +95,7 @@ mod tests {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         })
     }
 

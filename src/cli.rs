@@ -206,6 +206,7 @@ fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result<Vec<Comman
                     align: Default::default(),
                     bold: false,
                     link: None,
+                    side_labels: vec![],
                 })
             }));
         }

@@ -1,9 +1,13 @@
 use super::Session;
-use crate::model::{label_pos, wrap, Element, Id, ShapeKind};
+use crate::model::{
+    label_pos, side_label_at, wrap, Edge, Element, Id, Shape, ShapeKind, SideLabel,
+};
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub enum EditTarget {
     Existing(Id),
+    /// A side label of a rect, with the position along the side kept from the label or the click.
+    Side(Id, Edge, Option<u16>),
     New(i32, i32),
 }
 
@@ -172,6 +176,26 @@ impl Session {
         };
         let id = match &edit.target {
             EditTarget::Existing(id) => id,
+            EditTarget::Side(id, edge, at) => {
+                let Some(Element::Shape(sh)) = self.canvas.get(id) else {
+                    return vec![];
+                };
+                let (sx, sy, w, h) = view.rect(sh.x, sh.y, sh.w, sh.h);
+                let screen = Shape {
+                    x: sx,
+                    y: sy,
+                    w,
+                    h,
+                    ..sh.clone()
+                };
+                let label = SideLabel {
+                    edge: *edge,
+                    at: *at,
+                    text: edit.buf.clone(),
+                };
+                let (x, y, _) = side_label_at(&screen, &label);
+                return whole((x, y));
+            }
             EditTarget::New(x, y) => return whole(view.to_screen(*x, *y)),
         };
         match self.canvas.get(id) {

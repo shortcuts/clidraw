@@ -1,7 +1,7 @@
 use super::canvas::{Index, BULK};
 use super::{
-    Border, Canvas, Element, End, Id, LineKind, ModelError, Paint, Shape, ShapeKind, Stroke,
-    TextAlign, MIN_SIZE,
+    Border, Canvas, Edge, Element, End, Id, LineKind, ModelError, Paint, Shape, ShapeKind,
+    SideLabel, Stroke, TextAlign, MIN_SIZE,
 };
 use serde::{Deserialize, Serialize};
 
@@ -60,6 +60,11 @@ pub enum Command {
     SetLabelAt {
         id: Id,
         at: Option<u16>,
+    },
+    SetSide {
+        id: Id,
+        edge: Edge,
+        label: Option<SideLabel>,
     },
     SetEnd {
         id: Id,
@@ -199,6 +204,7 @@ impl Command {
             Command::SetRect { .. } => "resize",
             Command::SetLabel { .. } => "relabel",
             Command::SetLabelAt { .. } => "reposition label of",
+            Command::SetSide { .. } => "relabel side of",
             Command::SetBends { .. } => "reshape",
             Command::SetEnd { .. } => "reconnect",
             Command::SetKind { .. }
@@ -518,6 +524,27 @@ impl Canvas {
                 };
                 let old = std::mem::replace(&mut l.label_at, at);
                 Ok(Command::SetLabelAt { id, at: old })
+            }
+            Command::SetSide { id, edge, label } => {
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
+                let Element::Shape(s) = &mut self.elements[i] else {
+                    return Err(wrong(&id));
+                };
+                if !s.has_border() {
+                    return Err(wrong(&id));
+                }
+                let old = s
+                    .side_labels
+                    .iter()
+                    .position(|l| l.edge == edge)
+                    .map(|at| s.side_labels.remove(at));
+                s.side_labels.extend(label);
+                s.side_labels.sort_by_key(|l| l.edge);
+                Ok(Command::SetSide {
+                    id,
+                    edge,
+                    label: old,
+                })
             }
             Command::SetEnd { id, side, end } => {
                 self.check_bound(&end, index)?;

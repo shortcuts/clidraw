@@ -35,6 +35,7 @@ The terminal needs true color, SGR mouse reporting and the alternate screen.
 - Drag a selected line to bend it. Drag a bend handle to move it. To return to the automatic route, right-click the line and choose Reset route, or click `~ arrange` in the option strip.
 - Drag the `⤡` handle at the bottom-right corner to resize. Drag a line end onto a shape to bind it. The shape turns bold, and `◆` marks the cell where the end attaches.
 - Double-click a shape or line to edit its label. Double-click empty canvas to place text.
+- Double-click the border of a rectangle to label that side. Select the rectangle and drag the label along the side to move it. Mermaid export skips side labels.
 - In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap, and the shape grows to fit.
 - Select shapes and run `:layout` (top-down) or `:layout lr` to arrange them by their connecting lines.
 - Run `:import <path>` to add a Mermaid flowchart to the canvas. It reads nodes, edges and labels, and arranges them with `:layout`. A failed import shows each problem with its line. A file list under the prompt shows 3 matches: move with Up, Down, Ctrl-p or Ctrl-n, then Tab or Enter fills the path. Enter on a folder opens it. Enter runs the import when nothing is highlighted.

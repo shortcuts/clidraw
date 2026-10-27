@@ -1,6 +1,6 @@
 use crate::model::{
-    corners, label_pos, wrap, Border, Canvas, Element, LineKind, Paint, ShapeKind, Stroke,
-    TextAlign, FILL_ALPHA,
+    corners, label_pos, side_label_at, wrap, Border, Canvas, Element, LineKind, Paint, ShapeKind,
+    Stroke, TextAlign, FILL_ALPHA,
 };
 use std::fmt::Write;
 
@@ -204,6 +204,11 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                     TextAlign::Right => (x + w - CW, "end"),
                 };
                 text(&mut o, (tx, y + h / 2), anchor, &lines, (s.color, s.bold));
+                for l in &s.side_labels {
+                    let (lx, ly, shown) = side_label_at(s, l);
+                    let at = (lx * CW, ly * CH + CH / 2);
+                    text(&mut o, at, "start", &[shown], (s.color, false));
+                }
                 linked(&mut o, start, &s.link);
             }
             Element::Line(l) => {
