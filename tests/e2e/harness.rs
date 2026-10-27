@@ -211,6 +211,7 @@ impl Term {
         self.total - before
     }
 
+    #[cfg(unix)]
     pub fn signal_and_wait(&mut self, sig: i32) {
         unsafe { libc::kill(self.child.process_id().unwrap() as i32, sig) };
         self.child.wait().unwrap();

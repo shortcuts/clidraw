@@ -71,6 +71,7 @@ fn export_svg_from_the_palette() {
     assert!(std::fs::read_to_string(out).unwrap().starts_with("<svg"));
 }
 
+#[cfg(unix)]
 fn signal_saves_pending_edits(sig: i32) {
     let tmp = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(tmp.path().join("c")).unwrap();
@@ -86,11 +87,13 @@ fn signal_saves_pending_edits(sig: i32) {
     assert!(String::from_utf8_lossy(&out.stdout).contains("\"Rect"));
 }
 
+#[cfg(unix)]
 #[test]
 fn sigterm_saves_pending_edits() {
     signal_saves_pending_edits(libc::SIGTERM);
 }
 
+#[cfg(unix)]
 #[test]
 fn sighup_saves_pending_edits() {
     signal_saves_pending_edits(libc::SIGHUP);
