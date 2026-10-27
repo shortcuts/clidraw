@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scope and design choices | clidraw</title>
+  <meta name="description" content="What clidraw covers, what it does not cover and what it leaves out on purpose.">
+  <link rel="canonical" href="https://clidraw.shrtcts.fr/scope.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="clidraw">
+  <meta property="og:title" content="Scope and design choices | clidraw">
+  <meta property="og:description" content="What clidraw covers, what it does not cover and what it leaves out on purpose.">
+  <meta property="og:url" content="https://clidraw.shrtcts.fr/scope.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Scope and design choices | clidraw">
+  <meta name="twitter:description" content="What clidraw covers, what it does not cover and what it leaves out on purpose.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="scope-and-design-choices">Scope and design choices</h1>
+    <p>clidraw takes its core model from <a href="https://excalidraw.com">excalidraw</a> and <a href="https://tldraw.com">tldraw</a>. It does not match either one feature for feature.</p>
+    <p>This page lists what clidraw does and does not do, and why some features are missing.</p>
+
+    <h2 id="covered">Covered</h2>
+    <ul>
+      <li>Shapes: rectangle, diamond, slant, hexagon, cylinder and frame.</li>
+      <li>Lines and arrows that bind to shapes. A bound end follows its shape when the shape moves.</li>
+      <li>Frames that move their content together.</li>
+      <li>Marquee select (Select tool, or Shift+drag on empty canvas), multi-select drag, group and ungroup.</li>
+      <li>Align, distribute and z-order commands.</li>
+      <li>Snapping to shape edges and centers, and a grid.</li>
+      <li>Labels with line breaks, word wrap, bold and alignment.</li>
+      <li>Undo and redo, kept across sessions.</li>
+      <li>Find by label, a command palette and a full-screen minimap.</li>
+      <li>Auto layout, and Mermaid flowchart import.</li>
+      <li>A library of reusable snippets.</li>
+      <li>Shape links, exported to SVG and Mermaid.</li>
+      <li>Export to SVG, Mermaid and the clidraw save format.</li>
+    </ul>
+
+    <h2 id="not-covered">Not covered</h2>
+    <ul>
+      <li>Images, freehand drawing, sticky notes, video and embeds.</li>
+    </ul>
+
+    <h2 id="left-out-on-purpose">Left out on purpose</h2>
+    <ul>
+      <li>Live collaboration and shared canvases. Each canvas is one local file, so there is nothing to sync.</li>
+      <li>Accounts and cloud storage. Your drawings stay on your disk, and you share them with any tool that copies files.</li>
+    </ul>
+    <p>The same choice makes canvases easy to back up and review. See <a href="where-files-live.html">Where files live</a>.</p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

@@ -6,6 +6,16 @@
     { group: 'Reference', items: [
       { href: 'config.html', label: 'Configuration' },
     ] },
+    { group: 'How-to', items: [
+      { href: 'draw-a-flowchart.html', label: 'Draw a flowchart' },
+      { href: 'import-mermaid.html', label: 'Import Mermaid' },
+      { href: 'export-svg.html', label: 'Export SVG' },
+      { href: 'manage-canvases.html', label: 'Manage canvases' },
+    ] },
+    { group: 'Explanation', items: [
+      { href: 'scope.html', label: 'Scope and design choices' },
+      { href: 'where-files-live.html', label: 'Where files live' },
+    ] },
   ];
 
   var EXT_ITEMS = [

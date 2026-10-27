@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Export SVG | clidraw</title>
+  <meta name="description" content="Export a clidraw canvas as SVG or Mermaid, and render Mermaid with a library.">
+  <link rel="canonical" href="https://clidraw.shrtcts.fr/export-svg.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="clidraw">
+  <meta property="og:title" content="Export SVG | clidraw">
+  <meta property="og:description" content="Export a clidraw canvas as SVG or Mermaid, and render Mermaid with a library.">
+  <meta property="og:url" content="https://clidraw.shrtcts.fr/export-svg.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Export SVG | clidraw">
+  <meta name="twitter:description" content="Export a clidraw canvas as SVG or Mermaid, and render Mermaid with a library.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="export-svg">Export SVG</h1>
+    <p>This guide shows how to export a drawing as SVG, and how to get a styled Mermaid render. It assumes you have a canvas open.</p>
+
+    <h2 id="export-from-the-ui">Export from the UI</h2>
+    <ol>
+      <li>Type <code>:export svg</code> and press <kbd>Enter</kbd>. The command palette (<kbd>Ctrl-p</kbd>) also lists the exports.</li>
+      <li>Choose what to write: the whole canvas, a dragged area or the selection.</li>
+      <li>Enter a file path, such as <code>diagram.svg</code>.</li>
+    </ol>
+    <p>Type <code>:export</code> alone to list the formats. <code>:export mmd</code> writes Mermaid. <code>:export clidraw</code> writes the save format.</p>
+    <p>Set <code>export_padding</code> in <a href="config.html">the configuration</a> to change the margin around the drawing, in cells.</p>
+
+    <h2 id="export-from-the-command-line">Export from the command line</h2>
+    <p>Run <code>clidraw export demo --svg diagram.svg</code>. Use <code>--mermaid</code> or <code>--clidraw</code> for the other formats. Use <code>-</code> as the path to print to standard output.</p>
+
+    <h2 id="render-mermaid-as-svg">Render Mermaid as SVG</h2>
+    <p>The built-in SVG export draws plain shapes. For a Mermaid render, export Mermaid and render it with <a href="https://pele.run">pele</a>. pele needs Node.</p>
+    <ol>
+      <li>Choose Export Mermaid in the command palette and enter a file path, such as <code>diagram.mmd</code>.</li>
+      <li>Install pele in a folder of your choice: <code>npm install pele</code></li>
+      <li>Save this script as <code>render.mjs</code> in the same folder:
+<pre><code>import { readFileSync, writeFileSync } from 'node:fs';
+import { render } from 'pele';
+
+const { svg } = render(readFileSync(process.argv[2], 'utf8'));
+writeFileSync(process.argv[3], svg);</code></pre>
+      </li>
+      <li>Render the diagram: <code>node render.mjs diagram.mmd diagram.svg</code></li>
+    </ol>
+    <p>pele has no command-line tool. The script calls its <code>render()</code> function.</p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

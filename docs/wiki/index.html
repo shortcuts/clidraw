@@ -36,7 +36,35 @@
     <h1 id="getting-started">Getting Started</h1>
     <p>clidraw is a full-screen whiteboard for the terminal. You draw with the mouse on an infinite canvas.</p>
 
-    <p>The install steps and your first drawing arrive in the next guides.</p>
+    <p>In this tutorial, you draw two connected shapes, label them and export the drawing as an SVG file. No prior experience is needed.</p>
+
+    <h2 id="before-you-start">Before you start</h2>
+    <ul>
+      <li><a href="install.html">Install clidraw</a> first.</li>
+      <li>Use a terminal with true color, mouse reporting and an alternate screen. Most modern terminals have all three.</li>
+    </ul>
+
+    <h2 id="first-drawing">Draw your first diagram</h2>
+    <ol>
+      <li><strong>Start clidraw.</strong> Run <code>clidraw first</code>. The terminal clears and shows an empty canvas with a tool bar at the top.</li>
+      <li><strong>Draw a shape.</strong> Click <em>Rect</em> in the tool bar. Drag on the canvas to draw a rectangle. The rectangle appears where you release the mouse.</li>
+      <li><strong>Draw a second shape.</strong> Click <em>Rect</em> again. Drag to the right of the first rectangle.</li>
+      <li><strong>Label the shapes.</strong> Double-click the first rectangle and type <code>Start</code>. Press <kbd>Enter</kbd>. Do the same in the second rectangle with <code>End</code>. Each shape shows its text.</li>
+      <li><strong>Connect them.</strong> Click <em>Arrow</em>. Drag from <code>Start</code> to <code>End</code>. Drop the end of the arrow on a shape. The shape turns bold when the end binds to it.</li>
+      <li><strong>Move a shape.</strong> Click the border of <code>End</code>. Drag it somewhere else. The arrow follows.</li>
+      <li><strong>Export the drawing.</strong> Type <code>:export svg</code> and press <kbd>Enter</kbd>. Choose what to export, then enter a file path such as <code>first.svg</code>. clidraw writes the file.</li>
+      <li><strong>Quit.</strong> Press <kbd>Ctrl-c</kbd>. clidraw saves on its own, so nothing is lost.</li>
+    </ol>
+
+    <h2 id="reopen">Open the drawing again</h2>
+    <p>Run <code>clidraw first</code>. The same canvas opens with your two shapes.</p>
+
+    <h2 id="next-steps">Next steps</h2>
+    <ul>
+      <li><a href="draw-a-flowchart.html">Draw a flowchart</a> covers every shape kind, labels and layout.</li>
+      <li><a href="import-mermaid.html">Import Mermaid</a> turns a text flowchart into shapes.</li>
+      <li><a href="manage-canvases.html">Manage canvases</a> shows how to switch, rename and delete drawings.</li>
+    </ul>
   </main>
 
 </div>

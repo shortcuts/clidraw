@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import Mermaid | clidraw</title>
+  <meta name="description" content="Add a Mermaid flowchart to a clidraw canvas from a file, a single line or the command line.">
+  <link rel="canonical" href="https://clidraw.shrtcts.fr/import-mermaid.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="clidraw">
+  <meta property="og:title" content="Import Mermaid | clidraw">
+  <meta property="og:description" content="Add a Mermaid flowchart to a clidraw canvas from a file, a single line or the command line.">
+  <meta property="og:url" content="https://clidraw.shrtcts.fr/import-mermaid.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Import Mermaid | clidraw">
+  <meta name="twitter:description" content="Add a Mermaid flowchart to a clidraw canvas from a file, a single line or the command line.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="import-mermaid">Import Mermaid</h1>
+    <p>This guide shows how to turn a Mermaid flowchart into shapes. It reads nodes, edges and labels, then arranges them with <code>:layout</code>.</p>
+
+    <h2 id="import-a-file">Import a file</h2>
+    <ol>
+      <li>Open the canvas in clidraw.</li>
+      <li>Type <code>:import</code> followed by a space and the file path.</li>
+      <li>Pick the file from the list under the prompt. <kbd>Up</kbd>, <kbd>Down</kbd>, <kbd>Ctrl-p</kbd> and <kbd>Ctrl-n</kbd> move the highlight. <kbd>Tab</kbd> or <kbd>Enter</kbd> fills the path.</li>
+      <li>Press <kbd>Enter</kbd> on a folder to open it.</li>
+      <li>Press <kbd>Enter</kbd> with nothing highlighted to run the import.</li>
+    </ol>
+    <p>The flowchart appears on the canvas. If the import fails, clidraw shows each problem with its line number.</p>
+
+    <h2 id="type-a-flowchart">Type a flowchart line</h2>
+    <ol>
+      <li>Type <code>:mermaid</code>.</li>
+      <li>Type one flowchart line, for example <code>A --&gt; B</code>. clidraw flags mistakes as you type.</li>
+      <li>Press <kbd>Tab</kbd> when a fix is shown. This applies it.</li>
+      <li>Press <kbd>Enter</kbd> to add the diagram.</li>
+    </ol>
+    <p>To turn the fixes off, set <code>quick_fixes</code> to <code>false</code> in <a href="config.html">the configuration</a>.</p>
+
+    <h2 id="import-from-the-command-line">Import from the command line</h2>
+    <p>Run <code>clidraw import demo flow.mmd</code>. clidraw adds the flowchart below the existing content of <code>demo</code> and creates the canvas if it is missing. Use <code>-</code> as the path to read standard input.</p>
+    <p>A failed import exits with code 1 and names each problem with its line.</p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

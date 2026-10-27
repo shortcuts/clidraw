@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage canvases | clidraw</title>
+  <meta name="description" content="Create, open, switch, rename, delete, back up and reuse clidraw canvases.">
+  <link rel="canonical" href="https://clidraw.shrtcts.fr/manage-canvases.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="clidraw">
+  <meta property="og:title" content="Manage canvases | clidraw">
+  <meta property="og:description" content="Create, open, switch, rename, delete, back up and reuse clidraw canvases.">
+  <meta property="og:url" content="https://clidraw.shrtcts.fr/manage-canvases.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Manage canvases | clidraw">
+  <meta name="twitter:description" content="Create, open, switch, rename, delete, back up and reuse clidraw canvases.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="manage-canvases">Manage canvases</h1>
+    <p>This guide shows how to work with several drawings. Each drawing is a canvas with a name.</p>
+
+    <h2 id="open-or-create">Open or create a canvas</h2>
+    <p>Run <code>clidraw notes</code>. clidraw opens the canvas <code>notes</code>, or creates it. Run <code>clidraw</code> alone to open the last canvas.</p>
+    <p>A canvas name cannot start with <code>-</code>.</p>
+
+    <h2 id="switch-canvases">Switch canvases</h2>
+    <ol>
+      <li>Press <kbd>Ctrl-p</kbd>.</li>
+      <li>Choose Canvases.</li>
+      <li>Pick a canvas from the list.</li>
+    </ol>
+    <p>A canvas named like a command, such as <code>list</code> or <code>config</code>, opens from this switcher and not from the command line.</p>
+
+    <h2 id="list-rename-delete">List, rename and delete</h2>
+    <ul>
+      <li><code>clidraw list</code> prints the canvas names.</li>
+      <li><code>clidraw rename notes ideas</code> renames a canvas. Its undo history follows.</li>
+      <li><code>clidraw delete ideas</code> deletes a canvas and its undo history.</li>
+    </ul>
+
+    <h2 id="reuse-shapes">Reuse shapes in the library</h2>
+    <ol>
+      <li>Select the shapes.</li>
+      <li>Type <code>:lib save parts</code>. clidraw refuses to overwrite an existing name.</li>
+      <li>In any canvas, type <code>:lib insert parts</code>.</li>
+    </ol>
+    <p>Type <code>:lib list</code> to see the names. Type <code>:lib delete parts</code> to remove one.</p>
+
+    <h2 id="back-up-or-move">Back up or move a canvas</h2>
+    <p>Copy the <code>.clidraw.json</code> file of the canvas. To open a copy, put it in the canvas directory. <a href="where-files-live.html">Where files live</a> explains where that directory is.</p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

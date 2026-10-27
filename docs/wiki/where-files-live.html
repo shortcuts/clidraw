@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Where files live | clidraw</title>
+  <meta name="description" content="Where clidraw stores canvases, settings, the last view and undo history.">
+  <link rel="canonical" href="https://clidraw.shrtcts.fr/where-files-live.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="clidraw">
+  <meta property="og:title" content="Where files live | clidraw">
+  <meta property="og:description" content="Where clidraw stores canvases, settings, the last view and undo history.">
+  <meta property="og:url" content="https://clidraw.shrtcts.fr/where-files-live.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Where files live | clidraw">
+  <meta name="twitter:description" content="Where clidraw stores canvases, settings, the last view and undo history.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="where-files-live">Where files live</h1>
+    <p>clidraw keeps everything in plain files on your disk. This page explains where each file lives and why.</p>
+
+    <h2 id="canvases">Canvases</h2>
+    <p>clidraw picks the first directory that applies:</p>
+    <ul>
+      <li><code>$CLIDRAW_HOME</code></li>
+      <li><code>$XDG_CONFIG_HOME/clidraw</code></li>
+      <li><code>~/.config/clidraw</code></li>
+    </ul>
+    <p>Each canvas is one <code>&lt;name&gt;.clidraw.json</code> file. The output is stable, so the files diff cleanly in git.</p>
+
+    <h2 id="settings">Settings</h2>
+    <p>The file <code>config.toml</code> sits in the canvas directory. The first run writes it with every key commented out. See <a href="config.html">the configuration reference</a> for the keys.</p>
+
+    <h2 id="view-and-last-canvas">View and last canvas</h2>
+    <p>clidraw remembers the viewport and the last canvas in <code>state.json</code>. It lives in <code>$XDG_STATE_HOME/clidraw</code>, else in <code>~/.local/state/clidraw</code>.</p>
+
+    <h2 id="undo-history">Undo history</h2>
+    <p>Each canvas has a history file at <code>history/&lt;name&gt;.json</code>, next to <code>state.json</code>. Three rules apply:</p>
+    <ul>
+      <li>It holds at most <code>history_limit</code> steps.</li>
+      <li>clidraw drops it when the canvas file changes outside clidraw, because the steps no longer match.</li>
+      <li>Redo does not persist.</li>
+    </ul>
+
+    <h2 id="edits-from-scripts-and-agents">Edits from scripts and agents</h2>
+    <p>A command-line or MCP edit to the canvas that the UI has open does not appear at once. The UI reloads the file at its next save. It then shows an error status and drops its own unsaved edits and the undo history.</p>
+    <p>Close the canvas in the UI before an agent edits it.</p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>
