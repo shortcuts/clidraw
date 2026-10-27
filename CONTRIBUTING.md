@@ -50,7 +50,7 @@ let lines = self.line_hits(canvas, find, (a, b), &moved, me, &mut deps) * LINE;
 
 Run these commands from the repo root.
 
-- `make check` runs `fmt-check`, `lint`, `test` and `perf`. CI runs it on Ubuntu and macOS.
+- `make check` runs `fmt-check`, `lint`, `test` and `perf`. CI runs it on Ubuntu, macOS and Windows.
 - `make test` runs `cargo test`.
 - `make lint` runs clippy with `-D warnings`.
 - `make fmt` formats the code. `make fmt-check` only reports the differences.
