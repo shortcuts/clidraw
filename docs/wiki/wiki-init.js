@@ -5,6 +5,7 @@
     ] },
     { group: 'Reference', items: [
       { href: 'config.html', label: 'Configuration' },
+      { href: 'keys.html', label: 'Key bindings' },
     ] },
     { group: 'How-to', items: [
       { href: 'draw-a-flowchart.html', label: 'Draw a flowchart' },

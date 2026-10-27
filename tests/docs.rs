@@ -1,4 +1,5 @@
 use clidraw::config::DEFAULT_TOML;
+use clidraw::ui::help::{self, SCOPES};
 
 fn check_page(file: &str, actual: &str) {
     let path = format!("{}/docs/wiki/{file}", env!("CARGO_MANIFEST_DIR"));
@@ -44,24 +45,24 @@ fn config_keys() -> String {
     out
 }
 
-fn config_page() -> String {
+fn page(file: &str, title: &str, description: &str, body: &str) -> String {
     format!(
         r#"<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Configuration | clidraw</title>
-  <meta name="description" content="Every clidraw setting in config.toml, with its default.">
-  <link rel="canonical" href="https://clidraw.shrtcts.fr/config.html">
+  <title>{title} | clidraw</title>
+  <meta name="description" content="{description}">
+  <link rel="canonical" href="https://clidraw.shrtcts.fr/{file}">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="clidraw">
-  <meta property="og:title" content="Configuration | clidraw">
-  <meta property="og:description" content="Every clidraw setting in config.toml, with its default.">
-  <meta property="og:url" content="https://clidraw.shrtcts.fr/config.html">
+  <meta property="og:title" content="{title} | clidraw">
+  <meta property="og:description" content="{description}">
+  <meta property="og:url" content="https://clidraw.shrtcts.fr/{file}">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Configuration | clidraw">
-  <meta name="twitter:description" content="Every clidraw setting in config.toml, with its default.">
+  <meta name="twitter:title" content="{title} | clidraw">
+  <meta name="twitter:description" content="{description}">
   <script type="application/ld+json">
   {{
     "@context": "https://schema.org",
@@ -69,8 +70,8 @@ fn config_page() -> String {
     "name": "clidraw",
     "operatingSystem": "Linux, macOS, Windows",
     "applicationCategory": "DeveloperApplication",
-    "description": "Every clidraw setting in config.toml, with its default.",
-    "url": "https://clidraw.shrtcts.fr/config.html",
+    "description": "{description}",
+    "url": "https://clidraw.shrtcts.fr/{file}",
     "downloadUrl": "https://github.com/shortcuts/clidraw/releases",
     "offers": {{ "@type": "Offer", "price": "0", "priceCurrency": "USD" }}
   }}
@@ -81,7 +82,19 @@ fn config_page() -> String {
 <div class="layout">
 
   <main>
-    <h1 id="configuration">Configuration</h1>
+{body}  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>
+"#
+    )
+}
+
+fn config_page() -> String {
+    let body = format!(
+        r#"    <h1 id="configuration">Configuration</h1>
     <p>clidraw reads <code>config.toml</code> from its config directory. The first run writes the file with every key commented. Run <code>clidraw config</code> to print the default file. A bad or unknown key shows a status line and keeps its default.</p>
 
     <h2 id="file-location">File location</h2>
@@ -97,19 +110,50 @@ fn config_page() -> String {
 {keys}
     <h2 id="default-file">Default file</h2>
     <pre><code>{default}</code></pre>
-  </main>
-
-</div>
-<script src="wiki-init.js"></script>
-</body>
-</html>
 "#,
         keys = config_keys(),
         default = esc(DEFAULT_TOML),
+    );
+    page(
+        "config.html",
+        "Configuration",
+        "Every clidraw setting in config.toml, with its default.",
+        &body,
+    )
+}
+
+fn keys_page() -> String {
+    let mut body = String::from(
+        "    <h1 id=\"key-bindings\">Key bindings</h1>\n    <p>Press <code>?</code> in clidraw to see the same list. Type to filter it.</p>\n",
+    );
+    for (i, scope) in SCOPES.iter().enumerate().take(5) {
+        let slug = scope.to_lowercase().replace(' ', "-");
+        body += &format!(
+            "\n    <h2 id=\"{slug}\">{scope}</h2>\n    <table>\n      <tr><th>Keys</th><th>Action</th></tr>\n"
+        );
+        for (keys, action) in help::rows(i) {
+            body += &format!(
+                "      <tr><td><code>{}</code></td><td>{}</td></tr>\n",
+                esc(&keys),
+                esc(&action)
+            );
+        }
+        body += "    </table>\n";
+    }
+    page(
+        "keys.html",
+        "Key bindings",
+        "Every clidraw key binding, grouped by scope.",
+        &body,
     )
 }
 
 #[test]
 fn config_page_matches_committed() {
     check_page("config.html", &config_page());
+}
+
+#[test]
+fn keys_page_matches_committed() {
+    check_page("keys.html", &keys_page());
 }
