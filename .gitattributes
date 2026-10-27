@@ -1,0 +1,2 @@
+# Windows CI checks out CRLF, but tests/docs.rs compares against LF-generated output.
+docs/wiki/** text eol=lf
