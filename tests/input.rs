@@ -244,41 +244,27 @@ fn ctrl_a_selects_everything() {
 }
 
 #[test]
-fn arrow_keys_nudge_the_selection_one_undo_step_per_press() {
-    let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (20, 6), Instant::now());
-    key(&mut s, KeyCode::Right);
-    key(&mut s, KeyCode::Down);
-    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (21, 6));
-    key(&mut s, KeyCode::Left);
-    key(&mut s, KeyCode::Up);
-    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
-    key(&mut s, KeyCode::Char('u'));
-    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 6));
-}
-
-#[test]
-fn hjkl_nudge_the_selection_like_the_arrows() {
-    let mut s = with_shape("aaaaaaaa", 20, 5);
-    click(&mut s, (20, 6), Instant::now());
-    key(&mut s, KeyCode::Char('l'));
-    key(&mut s, KeyCode::Char('j'));
-    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (21, 6));
-    key(&mut s, KeyCode::Char('h'));
-    key(&mut s, KeyCode::Char('k'));
-    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
-    key(&mut s, KeyCode::Char('u'));
-    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 6));
-}
-
-#[test]
-fn shift_l_adds_a_linked_shape_like_shift_right() {
-    let mut s = with_shape("aaaaaaaa", 20, 5);
-    s.selection = vec![Id::from("aaaaaaaa")];
-    key(&mut s, KeyCode::Char('L'));
-    let sh = shapes(&s);
-    assert_eq!((sh[1].x, sh[1].y, sh[1].w, sh[1].h), (32, 5, 8, 4));
-    assert_eq!(s.canvas.elements.len(), 3);
+fn arrow_and_hjkl_keys_nudge_the_selection_one_undo_step_per_press() {
+    for [right, down, left, up] in [
+        [KeyCode::Right, KeyCode::Down, KeyCode::Left, KeyCode::Up],
+        [
+            KeyCode::Char('l'),
+            KeyCode::Char('j'),
+            KeyCode::Char('h'),
+            KeyCode::Char('k'),
+        ],
+    ] {
+        let mut s = with_shape("aaaaaaaa", 20, 5);
+        click(&mut s, (20, 6), Instant::now());
+        key(&mut s, right);
+        key(&mut s, down);
+        assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (21, 6));
+        key(&mut s, left);
+        key(&mut s, up);
+        assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
+        key(&mut s, KeyCode::Char('u'));
+        assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 6));
+    }
 }
 
 #[test]
@@ -293,21 +279,6 @@ fn shift_arrow_connect_does_not_copy_the_source_link() {
     let sh = shapes(&s);
     assert_eq!(sh[0].link.as_deref(), Some("https://x.test"));
     assert_eq!(sh[1].link, None);
-}
-
-#[test]
-fn hjkl_without_a_selection_keep_the_tool() {
-    let mut s = session();
-    for c in ['h', 'j', 'k', 'l'] {
-        key(&mut s, KeyCode::Char(c));
-    }
-    assert_eq!(s.tool, Tool::Pointer);
-}
-
-#[test]
-fn tools_have_keys_and_no_line_tool() {
-    assert!(Tool::ALL.iter().all(|t| t.label() != "Line"));
-    assert_eq!(Tool::Rect.key(), Some('r'));
 }
 
 #[test]
@@ -1373,46 +1344,17 @@ fn clipboard_keys_do_nothing_without_input_or_while_editing() {
 }
 
 #[test]
-fn removed_keys_do_nothing() {
-    let mut s = with_shape("aaaaaaaa", 5, 5);
-    click(&mut s, (5, 6), Instant::now());
-    for c in ['x', 'v', 'd'] {
-        ctrl(&mut s, c);
-    }
-    key(&mut s, KeyCode::F(5));
-    assert_eq!(s.canvas.elements.len(), 1);
-    assert!(!s.present);
-    key(&mut s, KeyCode::Char('y'));
-    key(&mut s, KeyCode::Char('x'));
-    assert!(s.canvas.elements.is_empty());
-    ctrl(&mut s, 'z');
-    assert!(s.canvas.elements.is_empty());
-    key(&mut s, KeyCode::Char('u'));
-    assert_eq!(s.canvas.elements.len(), 1);
-    ctrl(&mut s, 'y');
-    assert_eq!(s.canvas.elements.len(), 1);
-    ctrl(&mut s, 'r');
-    assert!(s.canvas.elements.is_empty());
-}
-
-#[test]
-fn c_s_e_pick_cylinder_slant_hexagon() {
+fn c_s_e_d_pick_cylinder_slant_hexagon_diamond() {
     let mut s = session();
     for (c, t) in [
         ('c', Tool::Cylinder),
         ('s', Tool::Parallelogram),
         ('e', Tool::Hexagon),
+        ('d', Tool::Diamond),
     ] {
         key(&mut s, KeyCode::Char(c));
         assert_eq!(s.tool, t);
     }
-}
-
-#[test]
-fn d_still_picks_the_diamond_tool() {
-    let mut s = session();
-    key(&mut s, KeyCode::Char('d'));
-    assert_eq!(s.tool, Tool::Diamond);
 }
 
 fn editing(buf: &str) -> Session {
@@ -2823,6 +2765,7 @@ fn hjkl_pan_with_empty_selection_and_move_with_one() {
         key(&mut s, KeyCode::Char(c));
     }
     assert_eq!((s.view.ox, s.view.oy), (ox + 1, oy));
+    assert_eq!(s.tool, Tool::Pointer);
     key(&mut s, KeyCode::Char('H'));
     assert_eq!((s.view.ox, s.view.oy), (ox + 1, oy));
 }

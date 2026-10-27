@@ -2908,18 +2908,28 @@ fn export_cancelled_overwrite_keeps_the_file() {
     assert_eq!(std::fs::read_to_string(&out).unwrap(), "old");
 }
 
-// `home_dir` reads USERPROFILE on Windows, not HOME.
+// `home_dir` reads USERPROFILE on Windows, not HOME. One test: parallel tests would race on HOME.
 #[cfg(unix)]
 #[test]
-fn export_expands_a_leading_tilde() {
+fn a_leading_tilde_expands_in_export_and_import_paths() {
     let t = tempfile::tempdir().unwrap();
     let home = tempfile::tempdir().unwrap();
+    std::fs::write(home.path().join("x.mmd"), "flowchart TD\nA --> B\n").unwrap();
+    std::env::set_var("HOME", home.path());
     let (mut app, now) = area_app(t.path());
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 0, 2), now);
     app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 40, 8), now);
-    std::env::set_var("HOME", home.path());
     type_path(&mut app, "~/tilde.svg", now);
     assert!(home.path().join("tilde.svg").exists());
+
+    let mut app = app_in(t.path());
+    run(&mut app, "import ~/x.mmd");
+    assert!(app
+        .status
+        .as_ref()
+        .unwrap()
+        .text
+        .starts_with("Imported 2 shapes"));
 }
 
 #[test]
@@ -2935,24 +2945,6 @@ fn palette_copy_clidraw_queues_the_canvas_as_osc52() {
     let seq = app.take_copy().expect("copy queued");
     assert!(seq.starts_with("\x1b]52;c;ewog") && seq.ends_with("\x1b\\"));
     assert!(app.take_copy().is_none());
-}
-
-// `directories` reads the Windows known-folder API, not HOME.
-#[cfg(unix)]
-#[test]
-fn import_expands_a_leading_tilde() {
-    let t = tempfile::tempdir().unwrap();
-    let home = tempfile::tempdir().unwrap();
-    std::fs::write(home.path().join("x.mmd"), "flowchart TD\nA --> B\n").unwrap();
-    let mut app = app_in(t.path());
-    std::env::set_var("HOME", home.path());
-    run(&mut app, "import ~/x.mmd");
-    assert!(app
-        .status
-        .as_ref()
-        .unwrap()
-        .text
-        .starts_with("Imported 2 shapes"));
 }
 
 fn command_buf(app: &App) -> &str {

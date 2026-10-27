@@ -62,6 +62,53 @@ Run these commands from the repo root.
 
 ## Tests
 
+A test protects a behavior of clidraw against a regression. It never checks how a library or an external tool behaves.
+
+### Strategy
+
+Pick the cheapest layer that can fail for the regression.
+
+| Layer | Where | Use it for |
+| --- | --- | --- |
+| Unit | `#[cfg(test)]` in `src/`, or `tests/model.rs`, `tests/config.rs`, `tests/store.rs`, `tests/validate.rs`, `tests/import.rs` | Logic with no terminal: model commands, routing, parsing, validation, config, storage. Default choice. |
+| Session and app | `tests/input.rs`, `tests/app.rs`, `tests/render.rs` | One `Session` or `App` driven by synthetic events, with a `TestBackend` buffer. Use it for a gesture, a key, an overlay or one drawn frame. |
+| Golden | `tests/golden.rs` | The full text of an export. |
+| CLI and MCP | `tests/cli.rs`, `tests/mcp.rs` | The command line and the stdio server contract, run as the real binary. |
+| E2E | `tests/e2e.rs` | The real binary in a pty with a parsed screen. Use it for what only a real terminal shows: signals, raw-mode input, a multi-step scenario. |
+| Perf | `tests/perf.rs` | The budgets. Run with `make perf`. |
+
+- Prefer the unit layer. It runs in milliseconds and fails with a small cause.
+- Add an e2e test only to assert one scenario that no lower layer can reach. Keep the number small: each costs about half a second.
+- Each contract has one owner test at the lowest layer that can see it. Add a second test at another layer only for a failure the owner cannot reach.
+- A bug fix adds one regression test at the owner layer. Do not replay the scenario at every layer it crosses.
+- Do not add a seam (export, flag, wrapper) that only a test calls. Test at the real boundary.
+
+### Remove a test when
+
+- It asserts only the OK path of a helper, with no credible regression.
+- It restates the code: a copied table, or an expected value that the code under test produced.
+- It checks that a dependency works (`serde`, `ratatui`, `crossterm`).
+- Another test asserts the same thing. Keep the most specific one and merge the extra input into it.
+- It mutates process state that parallel tests read, such as `HOME`. Put all such checks in one test.
+
+Keep a test that has no assertion on content only when it guards a real panic: small sizes, wide characters, overflow.
+
+### Coverage
+
+Coverage finds untested code. It is not a target.
+
+```sh
+cargo install cargo-llvm-cov
+rustup component add llvm-tools-preview
+cargo llvm-cov --summary-only --ignore-filename-regex 'tests/'
+```
+
+- The e2e binary runs in a child process, so its coverage does not count.
+- Read a low-coverage file before you add a test. Skip code that only draws or prints and that a lower layer already asserts.
+- A test added for coverage alone is junk: delete it.
+
+### Rules
+
 - Export changes need a golden-file update in `tests/golden/`. Review the diff by eye.
 - A bug fix starts with a failing test.
 - A bug fix test fails before the fix: run it and see the failure first.

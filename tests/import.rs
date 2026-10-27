@@ -267,51 +267,6 @@ fn header_only_is_empty() {
 }
 
 #[test]
-fn flowchart_validate_reports_nothing_for_valid_text() {
-    let kind: &dyn DiagramKind = &Flowchart;
-    assert!(kind.validate("flowchart TD\nA --> B").is_empty());
-}
-
-#[test]
-fn flowchart_validate_offers_an_arrow_fix_only_when_it_parses() {
-    let fix = |t: &str| {
-        let d = Flowchart.validate(t).remove(0);
-        d.fix.map(|f| (f.label, f.replacement))
-    };
-    let fixed = |r: &str| Some(("Use -->".to_string(), r.to_string()));
-    assert_eq!(fix("flowchart TD\nA -> B"), fixed("A --> B"));
-    assert_eq!(fix("flowchart TD\nA => B"), fixed("A --> B"));
-    assert_eq!(
-        fix("flowchart TD\nA <-> B"),
-        Some(("Use <-->".into(), "A <--> B".into()))
-    );
-    assert_eq!(fix("flowchart TD\nA ->"), None);
-}
-
-#[test]
-fn flowchart_arrow_fix_keeps_valid_arrows_in_the_same_line() {
-    let d = Flowchart.validate("flowchart TD\nA --> B -> C").remove(0);
-    assert_eq!(
-        d.fix.map(|f| f.replacement),
-        Some("A --> B --> C".to_string())
-    );
-}
-
-#[test]
-fn flowchart_arrow_fix_replaces_the_range_into_clean_text() {
-    let text = "flowchart TD\r\n  A -> B\r\n";
-    let d = Flowchart.validate(text).remove(0);
-    let fixed = format!(
-        "{}{}{}",
-        &text[..d.range.start],
-        d.fix.unwrap().replacement,
-        &text[d.range.end..]
-    );
-    assert_eq!(fixed, "flowchart TD\r\n  A --> B\r\n");
-    assert!(Flowchart.validate(&fixed).is_empty());
-}
-
-#[test]
 fn wide_label_sizes_shape_by_cell_width() {
     let out = Flowchart
         .import("flowchart LR\n  A[日本語ラベル]\n")

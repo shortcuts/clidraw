@@ -8,11 +8,6 @@ use crossterm::terminal::{
 };
 use std::io::stdout;
 
-fn support_line(supported: bool) -> String {
-    let answer = if supported { "yes" } else { "no" };
-    format!("kitty keyboard protocol: {answer}")
-}
-
 /// Prints every terminal event until `q`, to see what a terminal reports.
 pub fn run() -> anyhow::Result<()> {
     enable_raw_mode()?;
@@ -25,7 +20,10 @@ pub fn run() -> anyhow::Result<()> {
             PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES)
         )?;
     }
-    print!("{}\r\n", support_line(enhanced));
+    print!(
+        "kitty keyboard protocol: {}\r\n",
+        if enhanced { "yes" } else { "no" }
+    );
     print!("clidraw probe: move, click, drag, scroll; press q to quit\r\n");
     let result = (|| -> anyhow::Result<()> {
         loop {
@@ -44,15 +42,4 @@ pub fn run() -> anyhow::Result<()> {
     execute!(stdout(), DisableMouseCapture, LeaveAlternateScreen)?;
     disable_raw_mode()?;
     result
-}
-
-#[cfg(test)]
-mod tests {
-    use super::support_line;
-
-    #[test]
-    fn support_line_names_the_result() {
-        assert_eq!(support_line(true), "kitty keyboard protocol: yes");
-        assert_eq!(support_line(false), "kitty keyboard protocol: no");
-    }
 }

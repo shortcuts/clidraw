@@ -16,6 +16,7 @@ fn valid_text_is_clean() {
         "graph LR\r\nA --> B\r\n",
         "flowchart TD\nA -- t --> B\nA ==> B\nA & B --> C\nA --o B\nA --x B",
         "flowchart TD\nA --> B\nstyle A fill:#6ea0ff3f,stroke:#ff5f5f\nlinkStyle 0 stroke:#ff5f5f\nclick A \"https://a.test\" _blank",
+        "flowchart TD\nA((x))\nB[[y]]\nC>z] --> D[\\w/]",
     ] {
         assert!(check(text).is_empty(), "{text:?}");
     }
@@ -98,12 +99,6 @@ fn skipped_count_matches_statement_diagnostics() {
 }
 
 #[test]
-fn doubled_and_slanted_openers_validate_clean() {
-    let text = "flowchart TD\nA((x))\nB[[y]]\nC>z] --> D[\\w/]";
-    assert!(Flowchart.validate(text).is_empty());
-}
-
-#[test]
 fn unregistered_header_gets_one_hint() {
     let text = "sequenceDiagram\nA->>B: hi\nsubgraph x";
     let found = clidraw::diagram::validate(text);
@@ -138,4 +133,43 @@ fn import_failure_names_the_line_of_each_hint() {
         clidraw::diagram::import_failure("%%c\n\nsequenceDiagram\nA->>B", "x"),
         "x; line 3: `sequenceDiagram` diagrams are not supported"
     );
+}
+
+#[test]
+fn arrow_fix_offered_only_when_it_parses() {
+    let fix = |t: &str| {
+        let d = Flowchart.validate(t).remove(0);
+        d.fix.map(|f| (f.label, f.replacement))
+    };
+    let fixed = |r: &str| Some(("Use -->".to_string(), r.to_string()));
+    assert_eq!(fix("flowchart TD\nA -> B"), fixed("A --> B"));
+    assert_eq!(fix("flowchart TD\nA => B"), fixed("A --> B"));
+    assert_eq!(
+        fix("flowchart TD\nA <-> B"),
+        Some(("Use <-->".into(), "A <--> B".into()))
+    );
+    assert_eq!(fix("flowchart TD\nA ->"), None);
+}
+
+#[test]
+fn arrow_fix_keeps_valid_arrows_in_the_same_line() {
+    let d = Flowchart.validate("flowchart TD\nA --> B -> C").remove(0);
+    assert_eq!(
+        d.fix.map(|f| f.replacement),
+        Some("A --> B --> C".to_string())
+    );
+}
+
+#[test]
+fn arrow_fix_replaces_the_range_into_clean_text() {
+    let text = "flowchart TD\r\n  A -> B\r\n";
+    let d = Flowchart.validate(text).remove(0);
+    let fixed = format!(
+        "{}{}{}",
+        &text[..d.range.start],
+        d.fix.unwrap().replacement,
+        &text[d.range.end..]
+    );
+    assert_eq!(fixed, "flowchart TD\r\n  A --> B\r\n");
+    assert!(Flowchart.validate(&fixed).is_empty());
 }

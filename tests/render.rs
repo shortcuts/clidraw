@@ -527,14 +527,6 @@ fn help_bottom_bar_hints_the_tab_keys() {
 }
 
 #[test]
-fn help_canvas_esc_row_stays_inside_the_border() {
-    let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let b = draw(&s, &Overlay::Help(0, String::new()));
-    assert!(row(&b, 4).contains("│ u"), "{}", row(&b, 4));
-    assert_eq!(cols(&b, 4, 71, 1), "│", "{}", row(&b, 4));
-}
-
-#[test]
 fn help_rows_stay_inside_the_border_on_every_page() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     for page in 0..ui::help::SCOPES.len() {

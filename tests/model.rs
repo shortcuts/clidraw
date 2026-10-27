@@ -197,11 +197,6 @@ fn bad_commands_fail_and_leave_the_canvas_alone() {
 }
 
 #[test]
-fn random_ids_are_eight_characters() {
-    assert_eq!(Id::random().0.len(), 8);
-}
-
-#[test]
 fn set_line_kind_undoes_and_rejects_shapes() {
     let mut c = Canvas::default();
     c.push(shape("aaaaaaaa", 0)).unwrap();
