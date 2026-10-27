@@ -67,7 +67,7 @@ Run these commands from the repo root.
 - A bug fix test fails before the fix: run it and see the failure first.
 - A change to rendering, hit testing, input handling or save passes `make perf`.
 - A perf fix starts with a perf test that fails against the budget.
-- The budgets are in the [Performance table](README.md#performance) of the README.
+- The budgets are in the [Performance section](#performance).
 
 `check` in `tests/golden.rs` compares the whole export with its golden file. `UPDATE_GOLDEN` rewrites the file.
 
@@ -120,8 +120,6 @@ A fix must change only the broken part. `arrow_fix` in `src/diagram/flowchart/va
 
 `make perf` checks the frame and drag-step budgets, including frames at 25% and 300% zoom. A frame takes at most 16 ms (about 60 fps), and so does one drag step plus its frame. No test checks the other budgets yet. CI runs `make check` with `CLIDRAW_PERF_SLACK=4`. That value divides each measured median by 4. Local runs leave `CLIDRAW_PERF_SLACK` unset.
 
-The budgets are in the [Performance table](README.md#performance).
-
 `median` in `tests/perf.rs` reads `CLIDRAW_PERF_SLACK` and divides the median by it.
 
 ```rust
@@ -138,6 +136,23 @@ fn median(mut v: Vec<Duration>) -> Duration {
 
 - Good: the `median` helper above.
 - Bad: n/a: no violation in the code.
+
+### Budgets
+
+Budgets for a release build with 5000 elements on a 200x50 screen:
+
+| Budget | Limit |
+| --- | --- |
+| Input to last byte written (key, click, drag step, wheel step) | 16 ms |
+| Idle: no bytes written and no redraw while nothing changes | 0 bytes |
+| Startup to first frame | 50 ms |
+| Load or save of a canvas | 50 ms, never inside a drag |
+| Export to SVG or Mermaid | 100 ms |
+| Terminal output per frame for a one-cell change | under 4 KB |
+| Peak resident memory, 5000 elements (measured once, perf test process) | 4.3 MB |
+| Peak resident memory, 50000 elements (measured once, perf test process) | 14.1 MB |
+
+The loop wakes every 16 ms only while a Fit all or search glide runs.
 
 ### Terminal frame times
 

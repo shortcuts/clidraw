@@ -52,6 +52,15 @@ fn export_writes_svg_and_mermaid_without_the_ui() {
 }
 
 #[test]
+fn unknown_command_usage_points_to_the_cli_page() {
+    let t = seeded();
+    let r = run(t.path(), &["list", "extra"]);
+    assert!(!r.status.success());
+    assert!(String::from_utf8_lossy(&r.stderr)
+        .contains("usage: clidraw list (see https://clidraw.shrtcts.fr/cli.html)"));
+}
+
+#[test]
 fn export_fails_on_a_missing_canvas_or_bad_flag() {
     let t = seeded();
     let out = t.path().join("o.svg");

@@ -1,6 +1,21 @@
 # clidraw
 
+[![CI](https://github.com/shortcuts/clidraw/actions/workflows/ci.yml/badge.svg)](https://github.com/shortcuts/clidraw/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/shortcuts/clidraw)](LICENSE)
+[![crates.io](https://img.shields.io/crates/v/clidraw)](https://crates.io/crates/clidraw)
+
+![clidraw demo](https://raw.githubusercontent.com/shortcuts/clidraw/main/docs/wiki/assets/hero.gif)
+
 A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
+Export to SVG or Mermaid, import Mermaid, and drive it from scripts and agents.
+
+## Features
+
+- Draw [flowcharts](https://clidraw.shrtcts.fr/draw-a-flowchart.html) with arrows that bind to shapes.
+- [Import Mermaid](https://clidraw.shrtcts.fr/import-mermaid.html) and [export SVG](https://clidraw.shrtcts.fr/export-svg.html) or Mermaid.
+- [Manage canvases](https://clidraw.shrtcts.fr/manage-canvases.html). Each canvas is one local file.
+- Use the [command line](https://clidraw.shrtcts.fr/cli.html) or [MCP tools](https://clidraw.shrtcts.fr/mcp.html).
+- Read the [scope](https://clidraw.shrtcts.fr/scope.html): what clidraw covers and what it leaves out.
 
 ## Install
 
@@ -10,158 +25,21 @@ A full-screen terminal whiteboard. Draw with the mouse on an infinite canvas.
 - mise: `mise use -g github:shortcuts/clidraw`
 - Cargo: `cargo install clidraw`
 
-## Run
+All methods and the terminal requirements are on the [install page](https://clidraw.shrtcts.fr/install.html#methods).
 
-- `make run` opens the last canvas, or creates `untitled`.
-- `cargo run -- <name>` opens or creates the canvas `<name>`.
-- `cargo run -- --help` prints the usage. `--version` prints the version. A canvas name cannot start with `-`.
-- `cargo run -- config` prints the default `config.toml`. A canvas named `config` opens from the canvas switcher (Ctrl-p, Canvases), not by argument.
-- `cargo run -- list|new|show|edit|import|export|rename|delete` run without the UI, for scripts and agents. Each prints JSON on stdout, or the export text, and exits 1 with `Error: <msg>` on stderr. A canvas named like one of these commands opens from the canvas switcher (Ctrl-p, Canvases), not by argument.
-  - `list` prints the canvas names as a JSON array. `new <name>` creates an empty canvas. `show <name>` prints the canvas file.
-  - `edit <name>` reads a JSON array of ops on stdin and applies them all or none. It prints `{"applied":N,"ids":[...]}` with the ids of the created elements. The canvas must exist.
-  - `import <name> <path|->` adds a Mermaid flowchart below the existing content and creates the canvas if missing. A failed import exits 1 and names each problem with its line.
-  - `rename <name> <to>` renames a canvas and its undo history. `delete <name>` deletes both.
-  - `export <name> --svg|--mermaid|--clidraw <path|->` writes a saved canvas to a file, or to stdout for `-`.
-  - Ops: `add_shape` (`x`, `y`, optional `kind`, `w`, `h`, `label`, `color`, `fill`, `id`), `add_text` (`x`, `y`, `text`, optional `color`, `id`), `connect` (`from`, `to`, optional `kind`, `label`, `id`), `set` (`id`, optional `label`, `color`, `fill`, `stroke`, `border`, `align`, `bold`, `link`, `kind`, `head`), `resize` (`id`, `w`, `h`), `move` (`id`, `dx`, `dy`), `delete` (`id`), `group` (`ids`), `ungroup` (`ids`), `order` (`ids`, `z`), `layout` (optional `ids`, `dir`). In `set`, `kind` changes a shape kind and `head` changes a line kind. `stroke` is `solid`, `dashed` or `dotted`. `border` is `single`, `rounded`, `double` or `heavy`. `align` is `left`, `center` or `right`. `link` is a URL, or an empty string to clear it. `z` is `front`, `back`, `forward` or `backward`. `dir` is `td` (default) or `lr`. `layout` without `ids` arranges every shape. Shape `kind` is `Rect`, `Diamond`, `Cylinder`, `Parallelogram`, `Hexagon` or `Frame`. Line `kind` is `Line`, `Arrow`, `ArrowStart` or `ArrowBoth`. Colors are `red`, `orange`, `yellow`, `green`, `blue`, `violet`, or `none` in `set`. A `connect` end is a shape id or an `[x, y]` cell.
+## Quick start
 
-    ```sh
-    echo '[{"op":"add_shape","id":"a","x":0,"y":0,"label":"Hi"},{"op":"add_shape","id":"b","x":20,"y":0,"label":"Yo"},{"op":"connect","from":"a","to":"b"}]' | clidraw edit demo
-    ```
-- `cargo run -- mcp` serves the eight commands above as MCP tools (`list`, `new`, `show`, `edit`, `import`, `export`, `rename`, `delete`) over stdio, for agent clients. Config: `{"mcpServers":{"clidraw":{"command":"clidraw","args":["mcp"]}}}`. A tool failure comes back as a result with `isError` true. A running UI overwrites an edit made to the canvas it has open. A canvas named `mcp` opens from the canvas switcher (Ctrl-p, Canvases), not by argument.
-- `cargo run -- probe` prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.
+Run `clidraw first` to open or create the canvas `first`.
+Pick a tool in the top bar, then drag on the canvas.
+The [getting started guide](https://clidraw.shrtcts.fr/) covers the rest.
 
-The terminal needs true color, SGR mouse reporting and the alternate screen.
+## Agents
 
-## Use
+Connect an AI agent to clidraw with the [agent guide](https://clidraw.shrtcts.fr/agents.html).
 
-- Pick a tool in the top bar: Select (band), Rect, Diamond, Cylinder, Slant, Hexagon, Frame (`f`), Arrow, Text.
-- Draw a frame around shapes, then click its border to move them together.
-- Click a shape's border to select it. A click inside a shape selects nothing, so you can draw a new shape there.
-- Drag on empty canvas to pan, or to draw with a shape tool. Drag a selected element to move it.
-- Press `v` for the Select tool: a drag on empty canvas draws a band and selects what it touches. `Esc` returns to the pointer. Shift+drag draws a band from the pointer too.
-- Moving shapes snaps to other shapes' edges and centers within 1 cell and shows dotted guides. Hold Shift to turn guides off. Guides override `grid`.
-- Drag a selected line to bend it. Drag a bend handle to move it. To return to the automatic route, right-click the line and choose Reset route, or click `~ arrange` in the option strip.
-- Drag the `⤡` handle at the bottom-right corner to resize. Drag a line end onto a shape to bind it. The shape turns bold, and `◆` marks the cell where the end attaches.
-- Double-click a shape or line to edit its label. Double-click empty canvas to place text.
-- Double-click the border of a rectangle to label that side. Select the rectangle and drag the label along the side to move it. Mermaid export skips side labels.
-- In a shape label, Alt-Enter or Ctrl-j starts a new line. Long lines wrap, and the shape grows to fit.
-- Select shapes and run `:layout` (top-down) or `:layout lr` to arrange them by their connecting lines.
-- Run `:import <path>` to add a Mermaid flowchart to the canvas. It reads nodes, edges and labels, and arranges them with `:layout`. A failed import shows each problem with its line. A file list under the prompt shows 3 matches: move with Up, Down, Ctrl-p or Ctrl-n, then Tab or Enter fills the path. Enter on a folder opens it. Enter runs the import when nothing is highlighted.
-- Run `:mermaid` to type one flowchart line. It flags mistakes as you type. A fixable mistake shows a fix that Tab applies. Enter adds the diagram.
-- Select shapes and run `:lib save <name>` to keep them in the library. Run `:lib insert <name>` to add them to any canvas, `:lib list` to see the names and `:lib delete <name>` to remove one. `:lib save` refuses to overwrite a name.
-- Group elements to select and move them as one.
-- Click a shape tool to draw a new shape of that kind. A selected shape stays unchanged and the selection clears.
-- Select shapes, open the command palette and choose Change shape. Up and Down preview each kind, Enter applies it, Esc cancels.
-- Select a line to show its options in the top bar. Pick a head: none, end, start or both.
-- Select elements to get align, group and ungroup cells in the top bar. Each cell shows its key.
-- Select a shape and click the align cell in the top bar to cycle its label: left, middle, right.
-- Wheel and horizontal scroll pan the canvas. A fast flick pans further. Shift+wheel pans sideways.
-- Dragging within 2 cells of the screen edge pans the view.
-- A map shows in a corner while content lies off screen. The outlined rectangle marks the view. Click the map to center the view there.
-- Right-click an element or empty canvas for a menu: edit label, duplicate, delete, bring to front, raise, lower and send to back, or paste, select all and fit all.
+## Documentation
 
-| Key | Action |
-|---|---|
-| `Esc` | Cancel the gesture, else clear the selection and return to the pointer |
-| `Delete` / `Backspace` | Delete the selection |
-| `<` `|` `>` `^` `-` `_` | Align the selection left, center, right, top, middle, bottom |
-| `=` / `#` | Distribute the selection evenly, horizontally / vertically |
-| `g` / `G` | Group, ungroup the selection |
-| `]` / `[` | Raise / lower the selection one step |
-| `}` / `{` | Send the selection to the front / back |
-| `Ctrl-b` | Toggle bold on the labels of the selected shapes |
-| `y` / `x` / `p` | Copy / cut / paste the selection |
-| `u` / `Ctrl-r` | Undo / redo |
-| `z` | Fit all: the largest zoom up to 1x that shows the whole diagram |
-| Ctrl + wheel | Zoom 25%, 50%, 100%, 200%, 300% around the cursor. 25% and 50% are read-only. `Esc` returns to 100% |
-| Bottom bar buttons | `[Undo]` `[Redo]` on the left. `[-]` `[+]` zoom and `[Fit]` on the right. Always shown |
-| Present (palette only) | Hides the top bar and status line. Wheel scrolls. `Esc` returns |
-| `/` | Find a label: type the text, `Enter` selects and centers the match. Repeat to cycle. `:/text` does the same |
-| `Ctrl-c` | Quit |
-| `Ctrl-p` | Open the command palette: type to filter every action, `Enter` runs it |
-| `?` | Show the shortcuts, one page per scope. Type to filter all pages |
-| `:` | Open the command line on the bottom row. A list above it shows each command with its usage. `Tab` completes, `Enter` runs |
-
-The command palette (`Ctrl-p`) lists every action with its key, including Canvases, Fit all, the exports and Quit. Saving is automatic. The Minimap action shows the whole canvas. Press Tab to switch between the canvas, the selection and its frame. Click a frame or shape to jump to it.
-
-Export asks what to write: the whole canvas, a dragged area or the selection. `:export` lists the formats; `:export svg`, `:export mmd` and `:export clidraw` skip the list. Clidraw writes the save format. Copy the `.clidraw.json` file into the canvas directory to open it. Set `export_padding` in `config.toml` for the SVG margin in cells.
-
-Mouse capture disables the terminal's own text selection. Hold Shift (Option on macOS) to select text.
-
-## Scope
-
-clidraw takes its core model from [excalidraw](https://excalidraw.com) and [tldraw](https://tldraw.com). It does not match either one feature for feature.
-
-### Covered
-
-- Shapes: rectangle, diamond, slant, hexagon, cylinder and frame.
-- Lines and arrows that bind to shapes. A bound end follows its shape when the shape moves.
-- Frames that move their content together.
-- Marquee select (Select tool, or Shift+drag on empty canvas), multi-select drag, group and ungroup.
-- Align, distribute and z-order commands.
-- Snapping to shape edges and centers, and a grid.
-- Labels with line breaks, word wrap, bold and alignment.
-- Undo and redo, kept across sessions.
-- Find by label, a command palette and a full-screen minimap.
-- Auto layout, and Mermaid flowchart import.
-- A library of reusable snippets.
-- Shape links, exported to SVG and Mermaid.
-- Export to SVG, Mermaid and the clidraw save format.
-
-### Not covered
-
-- Images, freehand drawing, sticky notes, video and embeds.
-
-### Left out on purpose
-
-- Live collaboration and shared canvases. Each canvas is one local file.
-- Accounts and cloud storage.
-
-## Render Mermaid as SVG
-
-The built-in SVG export draws plain shapes. For a Mermaid render, export Mermaid and render it with [pele](https://pele.run). pele needs Node.
-
-1. Choose Export Mermaid in the command palette and enter a file path, such as `diagram.mmd`.
-2. Install pele in a folder of your choice: `npm install pele`
-3. Save this script as `render.mjs` in the same folder:
-
-   ```js
-   import { readFileSync, writeFileSync } from 'node:fs';
-   import { render } from 'pele';
-
-   const { svg } = render(readFileSync(process.argv[2], 'utf8'));
-   writeFileSync(process.argv[3], svg);
-   ```
-
-4. Render the diagram: `node render.mjs diagram.mmd diagram.svg`
-
-pele has no command-line tool. The script calls its `render()` function.
-
-## Performance
-
-Budgets for a release build with 5000 elements on a 200x50 screen:
-
-| Budget | Limit |
-| --- | --- |
-| Input to last byte written (key, click, drag step, wheel step) | 16 ms |
-| Idle: no bytes written and no redraw while nothing changes | 0 bytes |
-| Startup to first frame | 50 ms |
-| Load or save of a canvas | 50 ms, never inside a drag |
-| Export to SVG or Mermaid | 100 ms |
-| Terminal output per frame for a one-cell change | under 4 KB |
-| Peak resident memory, 5000 elements (measured once, perf test process) | 4.3 MB |
-| Peak resident memory, 50000 elements (measured once, perf test process) | 14.1 MB |
-
-The loop wakes every 16 ms only while a Fit all or search glide runs.
-
-## Contributing
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open a pull request.
-
-## Files
-
-- Canvases: `$CLIDRAW_HOME`, else `$XDG_CONFIG_HOME/clidraw`, else `~/.config/clidraw`. One `<name>.clidraw.json` per canvas. Output is stable, so the files diff cleanly in git.
-- Settings: `config.toml` in the canvas directory. The first run writes it with every key commented. Keys: `autosave_ms` (500), `double_click_ms` (400), `default_canvas` (`untitled`), `grid` (1 = no snapping; a larger number snaps drawn, moved and resized shapes to multiples of that many cells), `theme` (`auto`, `dark`, `light`; default `auto`; auto asks the terminal for its background and falls back to dark), `scroll_speed` (100 = percent of the default distance wheel and trackpad scrolling pans; 1 to 1000), `chrome_accent` (`"#rrggbb"`; color of the active tool, selected row and mode badge; default is the theme accent), `motion` (`true`; `false` makes Fit all and search jump snap instead of gliding over 120 ms), `quick_fixes` (`true`; `false` hides fix suggestions and turns Tab off in the `:mermaid` editor). A bad or unknown key shows a status line and keeps the default.
-- Viewport and last canvas: `$XDG_STATE_HOME/clidraw/state.json`, else `~/.local/state/clidraw/state.json`.
-- Undo history: `history/<name>.json` beside `state.json`. It holds at most `history_limit` steps and is dropped when the canvas file changes outside clidraw. Redo does not persist.
-- A CLI or MCP edit to the open canvas reloads it at the UI's next save. The UI shows an error status, and drops the edits made since its last save and the undo history.
+- [clidraw.shrtcts.fr](https://clidraw.shrtcts.fr/): guides, command reference and MCP tools.
+- [Contributing](CONTRIBUTING.md): rules for contributors.
+- [License](LICENSE): MIT.
+- [Sponsor](https://github.com/sponsors/shortcuts).

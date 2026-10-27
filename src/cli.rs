@@ -938,7 +938,7 @@ pub fn run(
             store.delete(name)?;
             writeln!(out, "{}", serde_json::json!({ "deleted": name }))?;
         }
-        (cmd, _) => bail!("usage: clidraw {cmd} (see README)"),
+        (cmd, _) => bail!("usage: clidraw {cmd} (see https://clidraw.shrtcts.fr/cli.html)"),
     }
     Ok(())
 }
