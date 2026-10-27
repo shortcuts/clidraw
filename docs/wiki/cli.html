@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Command line | clidraw</title>
+  <meta name="description" content="Every clidraw command and edit op, with its fields.">
+  <link rel="canonical" href="https://clidraw.shrtcts.fr/cli.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="clidraw">
+  <meta property="og:title" content="Command line | clidraw">
+  <meta property="og:description" content="Every clidraw command and edit op, with its fields.">
+  <meta property="og:url" content="https://clidraw.shrtcts.fr/cli.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Command line | clidraw">
+  <meta name="twitter:description" content="Every clidraw command and edit op, with its fields.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "clidraw",
+    "operatingSystem": "Linux, macOS, Windows",
+    "applicationCategory": "DeveloperApplication",
+    "description": "Every clidraw command and edit op, with its fields.",
+    "url": "https://clidraw.shrtcts.fr/cli.html",
+    "downloadUrl": "https://github.com/shortcuts/clidraw/releases",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+
+  <main>
+    <h1 id="command-line">Command line</h1>
+    <p>clidraw runs these commands without the UI, for scripts and agents. Each command prints JSON on stdout. A failure prints <code>Error: &lt;msg&gt;</code> on stderr and exits 1.</p>
+
+    <h2 id="commands">Commands</h2>
+    <h3 class="item" id="commands-list">list</h3>
+    <p><strong>Usage:</strong> <code>clidraw list</code></p>
+    <p>Prints the names of all canvases as a JSON array.</p>
+    <h3 class="item" id="commands-new">new</h3>
+    <p><strong>Usage:</strong> <code>clidraw new &lt;name&gt;</code></p>
+    <p>Creates an empty canvas. Prints {&quot;created&quot;:name}.</p>
+    <h3 class="item" id="commands-show">show</h3>
+    <p><strong>Usage:</strong> <code>clidraw show &lt;name&gt;</code></p>
+    <p>Prints the canvas as JSON.</p>
+    <h3 class="item" id="commands-edit">edit</h3>
+    <p><strong>Usage:</strong> <code>clidraw edit &lt;name&gt;</code></p>
+    <p>Reads a JSON array of ops from stdin and applies them in order. Applies all ops or none. Prints {&quot;applied&quot;:N,&quot;ids&quot;:[...]}, where ids lists the created elements.</p>
+    <h3 class="item" id="commands-import">import</h3>
+    <p><strong>Usage:</strong> <code>clidraw import &lt;name&gt; &lt;path|-&gt;</code></p>
+    <p>Adds a Mermaid flowchart from a file, or from stdin with -. Creates the canvas if it does not exist. Prints {&quot;shapes&quot;:N,&quot;lines&quot;:N,&quot;skipped&quot;:N}.</p>
+    <h3 class="item" id="commands-export">export</h3>
+    <p><strong>Usage:</strong> <code>clidraw export &lt;name&gt; --svg|--mermaid|--clidraw &lt;path|-&gt;</code></p>
+    <p>Writes the canvas in one format to a file, or to stdout with -.</p>
+    <h3 class="item" id="commands-rename">rename</h3>
+    <p><strong>Usage:</strong> <code>clidraw rename &lt;from&gt; &lt;to&gt;</code></p>
+    <p>Renames a canvas. Prints {&quot;renamed&quot;:to}.</p>
+    <h3 class="item" id="commands-delete">delete</h3>
+    <p><strong>Usage:</strong> <code>clidraw delete &lt;name&gt;</code></p>
+    <p>Deletes a canvas. Prints {&quot;deleted&quot;:name}.</p>
+
+    <h2 id="ops">Edit ops</h2>
+    <p><code>edit</code> reads a JSON array of ops from stdin. Each op is an object. Its <code>op</code> field names the op. For example:</p>
+    <pre><code>[{"op":"add_shape","x":0,"y":0,"label":"Hi"}]</code></pre>
+    <h3 class="item" id="ops-add_shape">add_shape</h3>
+    <p>Adds a shape. Its size fits the label unless w and h are set.</p>
+    <ul>
+      <li><code>x</code> (required): Column, in cells.</li>
+      <li><code>y</code> (required): Row, in cells.</li>
+      <li><code>id</code> (optional)</li>
+      <li><code>kind</code> (optional): <code>Rect</code>, <code>Diamond</code>, <code>Cylinder</code>, <code>Parallelogram</code>, <code>Hexagon</code> or <code>Frame</code>. Default: Rect.</li>
+      <li><code>w</code> (optional): Width, in cells. Default fits the label.</li>
+      <li><code>h</code> (optional): Height, in cells. Default fits the label.</li>
+      <li><code>label</code> (optional)</li>
+      <li><code>color</code> (optional): <code>red</code>, <code>orange</code>, <code>yellow</code>, <code>green</code>, <code>blue</code> or <code>violet</code>.</li>
+      <li><code>fill</code> (optional): <code>red</code>, <code>orange</code>, <code>yellow</code>, <code>green</code>, <code>blue</code> or <code>violet</code>.</li>
+    </ul>
+    <h3 class="item" id="ops-add_text">add_text</h3>
+    <p>Adds a line of text.</p>
+    <ul>
+      <li><code>x</code> (required): Column, in cells.</li>
+      <li><code>y</code> (required): Row, in cells.</li>
+      <li><code>text</code> (required): One line.</li>
+      <li><code>id</code> (optional)</li>
+      <li><code>color</code> (optional): <code>red</code>, <code>orange</code>, <code>yellow</code>, <code>green</code>, <code>blue</code> or <code>violet</code>.</li>
+    </ul>
+    <h3 class="item" id="ops-connect">connect</h3>
+    <p>Adds a line from one endpoint to another.</p>
+    <ul>
+      <li><code>from</code> (required): A shape id, or a [x, y] cell for a free end.</li>
+      <li><code>to</code> (required): A shape id, or a [x, y] cell for a free end.</li>
+      <li><code>id</code> (optional)</li>
+      <li><code>kind</code> (optional): <code>Line</code>, <code>Arrow</code>, <code>ArrowStart</code> or <code>ArrowBoth</code>. Default: Arrow.</li>
+      <li><code>label</code> (optional): One line.</li>
+    </ul>
+    <h3 class="item" id="ops-set">set</h3>
+    <p>Changes one element. Set at least one field besides id.</p>
+    <ul>
+      <li><code>id</code> (required)</li>
+      <li><code>label</code> (optional)</li>
+      <li><code>color</code> (optional): <code>red</code>, <code>orange</code>, <code>yellow</code>, <code>green</code>, <code>blue</code>, <code>violet</code> or <code>none</code>. Use none to clear the color.</li>
+      <li><code>fill</code> (optional): <code>red</code>, <code>orange</code>, <code>yellow</code>, <code>green</code>, <code>blue</code>, <code>violet</code> or <code>none</code>. Use none to clear the fill.</li>
+      <li><code>stroke</code> (optional): <code>solid</code>, <code>dashed</code> or <code>dotted</code>.</li>
+      <li><code>border</code> (optional): <code>single</code>, <code>rounded</code>, <code>double</code> or <code>heavy</code>.</li>
+      <li><code>align</code> (optional): <code>left</code>, <code>center</code> or <code>right</code>.</li>
+      <li><code>bold</code> (optional): <code>true</code> or <code>false</code>.</li>
+      <li><code>link</code> (optional): One line. An empty string clears the link.</li>
+      <li><code>kind</code> (optional): <code>Rect</code>, <code>Diamond</code>, <code>Cylinder</code>, <code>Parallelogram</code>, <code>Hexagon</code> or <code>Frame</code>. Changes the kind of a shape.</li>
+      <li><code>head</code> (optional): <code>Line</code>, <code>Arrow</code>, <code>ArrowStart</code> or <code>ArrowBoth</code>. Changes the kind of a line.</li>
+    </ul>
+    <h3 class="item" id="ops-resize">resize</h3>
+    <p>Sets the size of a shape.</p>
+    <ul>
+      <li><code>id</code> (required)</li>
+      <li><code>w</code> (required): Width, in cells.</li>
+      <li><code>h</code> (required): Height, in cells.</li>
+    </ul>
+    <h3 class="item" id="ops-move">move</h3>
+    <p>Moves one element.</p>
+    <ul>
+      <li><code>id</code> (required)</li>
+      <li><code>dx</code> (required): Columns to move. Negative moves left.</li>
+      <li><code>dy</code> (required): Rows to move. Negative moves up.</li>
+    </ul>
+    <h3 class="item" id="ops-delete">delete</h3>
+    <p>Deletes one element.</p>
+    <ul>
+      <li><code>id</code> (required)</li>
+    </ul>
+    <h3 class="item" id="ops-group">group</h3>
+    <p>Groups two or more elements.</p>
+    <ul>
+      <li><code>ids</code> (required): At least two ids.</li>
+    </ul>
+    <h3 class="item" id="ops-ungroup">ungroup</h3>
+    <p>Removes the group that holds the elements.</p>
+    <ul>
+      <li><code>ids</code> (required)</li>
+    </ul>
+    <h3 class="item" id="ops-order">order</h3>
+    <p>Changes the stacking order of elements.</p>
+    <ul>
+      <li><code>ids</code> (required)</li>
+      <li><code>z</code> (required): <code>front</code>, <code>back</code>, <code>forward</code> or <code>backward</code>.</li>
+    </ul>
+    <h3 class="item" id="ops-layout">layout</h3>
+    <p>Arranges elements by the lines between them.</p>
+    <ul>
+      <li><code>ids</code> (optional): Without ids, arranges every element.</li>
+      <li><code>dir</code> (optional): <code>td</code> or <code>lr</code>. td runs top-down, lr runs left-right. Default: td.</li>
+    </ul>
+
+    <h2 id="other-commands">Other commands</h2>
+    <h3 class="item" id="other-commands-config">config</h3>
+    <p><strong>Usage:</strong> <code>clidraw config</code></p>
+    <p>Prints the default <code>config.toml</code>.</p>
+    <h3 class="item" id="other-commands-probe">probe</h3>
+    <p><strong>Usage:</strong> <code>clidraw probe</code></p>
+    <p>Prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.</p>
+    <h3 class="item" id="other-commands-mcp">mcp</h3>
+    <p><strong>Usage:</strong> <code>clidraw mcp</code></p>
+    <p>Serves the eight commands above as MCP tools over stdio, for agent clients.</p>
+  </main>
+
+</div>
+<script src="wiki-init.js"></script>
+</body>
+</html>

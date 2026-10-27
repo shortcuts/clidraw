@@ -1,3 +1,4 @@
+use clidraw::cli::{FieldDoc, COMMAND_DOCS, OPS};
 use clidraw::config::DEFAULT_TOML;
 use clidraw::ui::help::{self, SCOPES};
 
@@ -146,6 +147,77 @@ fn keys_page() -> String {
         "Every clidraw key binding, grouped by scope.",
         &body,
     )
+}
+
+fn join_or(items: &[String]) -> String {
+    match items.split_last() {
+        Some((last, [])) => last.clone(),
+        Some((last, rest)) => format!("{} or {last}", rest.join(", ")),
+        None => String::new(),
+    }
+}
+
+fn field_item(f: &FieldDoc) -> String {
+    let req = if f.required { "required" } else { "optional" };
+    let values: Vec<String> = f
+        .values
+        .iter()
+        .map(|v| format!("<code>{}</code>", esc(v)))
+        .collect();
+    let mut text = vec![];
+    if !values.is_empty() {
+        text.push(format!("{}.", join_or(&values)));
+    }
+    if !f.note.is_empty() {
+        text.push(esc(f.note));
+    }
+    let sep = if text.is_empty() { "" } else { ": " };
+    format!(
+        "      <li><code>{}</code> ({req}){sep}{}</li>\n",
+        f.name,
+        text.join(" ")
+    )
+}
+
+fn cli_page() -> String {
+    let mut body = String::from(
+        "    <h1 id=\"command-line\">Command line</h1>\n    <p>clidraw runs these commands without the UI, for scripts and agents. Each command prints JSON on stdout. A failure prints <code>Error: &lt;msg&gt;</code> on stderr and exits 1.</p>\n\n    <h2 id=\"commands\">Commands</h2>\n",
+    );
+    for (name, usage, description) in COMMAND_DOCS {
+        body += &format!(
+            "    <h3 class=\"item\" id=\"commands-{name}\">{name}</h3>\n    <p><strong>Usage:</strong> <code>{}</code></p>\n    <p>{}</p>\n",
+            esc(usage),
+            esc(description)
+        );
+    }
+    body += "\n    <h2 id=\"ops\">Edit ops</h2>\n    <p><code>edit</code> reads a JSON array of ops from stdin. Each op is an object. Its <code>op</code> field names the op. For example:</p>\n    <pre><code>[{\"op\":\"add_shape\",\"x\":0,\"y\":0,\"label\":\"Hi\"}]</code></pre>\n";
+    for op in OPS.iter() {
+        body += &format!(
+            "    <h3 class=\"item\" id=\"ops-{}\">{}</h3>\n    <p>{}</p>\n    <ul>\n",
+            op.name,
+            op.name,
+            esc(op.summary)
+        );
+        for f in op.fields {
+            body += &field_item(f);
+        }
+        body += "    </ul>\n";
+    }
+    body += "\n    <h2 id=\"other-commands\">Other commands</h2>\n";
+    body += "    <h3 class=\"item\" id=\"other-commands-config\">config</h3>\n    <p><strong>Usage:</strong> <code>clidraw config</code></p>\n    <p>Prints the default <code>config.toml</code>.</p>\n";
+    body += "    <h3 class=\"item\" id=\"other-commands-probe\">probe</h3>\n    <p><strong>Usage:</strong> <code>clidraw probe</code></p>\n    <p>Prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.</p>\n";
+    body += "    <h3 class=\"item\" id=\"other-commands-mcp\">mcp</h3>\n    <p><strong>Usage:</strong> <code>clidraw mcp</code></p>\n    <p>Serves the eight commands above as MCP tools over stdio, for agent clients.</p>\n";
+    page(
+        "cli.html",
+        "Command line",
+        "Every clidraw command and edit op, with its fields.",
+        &body,
+    )
+}
+
+#[test]
+fn cli_page_matches_committed() {
+    check_page("cli.html", &cli_page());
 }
 
 #[test]

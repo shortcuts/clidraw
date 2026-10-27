@@ -15,6 +15,450 @@ pub const COMMANDS: [&str; 8] = [
     "list", "new", "show", "edit", "import", "export", "rename", "delete",
 ];
 
+/// (name, usage, description) for each entry of `COMMANDS`, in the same order.
+pub const COMMAND_DOCS: [(&str, &str, &str); 8] = [
+    (
+        "list",
+        "clidraw list",
+        "Prints the names of all canvases as a JSON array.",
+    ),
+    (
+        "new",
+        "clidraw new <name>",
+        "Creates an empty canvas. Prints {\"created\":name}.",
+    ),
+    (
+        "show",
+        "clidraw show <name>",
+        "Prints the canvas as JSON.",
+    ),
+    (
+        "edit",
+        "clidraw edit <name>",
+        "Reads a JSON array of ops from stdin and applies them in order. Applies all ops or none. Prints {\"applied\":N,\"ids\":[...]}, where ids lists the created elements.",
+    ),
+    (
+        "import",
+        "clidraw import <name> <path|->",
+        "Adds a Mermaid flowchart from a file, or from stdin with -. Creates the canvas if it does not exist. Prints {\"shapes\":N,\"lines\":N,\"skipped\":N}.",
+    ),
+    (
+        "export",
+        "clidraw export <name> --svg|--mermaid|--clidraw <path|->",
+        "Writes the canvas in one format to a file, or to stdout with -.",
+    ),
+    (
+        "rename",
+        "clidraw rename <from> <to>",
+        "Renames a canvas. Prints {\"renamed\":to}.",
+    ),
+    (
+        "delete",
+        "clidraw delete <name>",
+        "Deletes a canvas. Prints {\"deleted\":name}.",
+    ),
+];
+
+const COLORS: &[&str] = &["red", "orange", "yellow", "green", "blue", "violet"];
+const COLORS_OR_NONE: &[&str] = &["red", "orange", "yellow", "green", "blue", "violet", "none"];
+const SHAPE_KINDS: &[&str] = &[
+    "Rect",
+    "Diamond",
+    "Cylinder",
+    "Parallelogram",
+    "Hexagon",
+    "Frame",
+];
+const LINE_KINDS: &[&str] = &["Line", "Arrow", "ArrowStart", "ArrowBoth"];
+const STROKES: &[&str] = &["solid", "dashed", "dotted"];
+const BORDERS: &[&str] = &["single", "rounded", "double", "heavy"];
+const ALIGNS: &[&str] = &["left", "center", "right"];
+const BOOLS: &[&str] = &["true", "false"];
+const Z_ORDERS: &[&str] = &["front", "back", "forward", "backward"];
+const DIRS: &[&str] = &["td", "lr"];
+
+/// One field of an op, as the reference page shows it.
+pub struct FieldDoc {
+    pub name: &'static str,
+    pub required: bool,
+    /// A JSON literal the parser accepts for this field.
+    pub example: &'static str,
+    /// Accepted values: a bare word is a string, `true` and `false` are booleans. Empty when the field takes any value.
+    pub values: &'static [&'static str],
+    pub note: &'static str,
+}
+
+/// One edit op. Add each new `Op` field here too: the test cannot see an optional field the table lacks.
+pub struct OpDoc {
+    pub name: &'static str,
+    pub summary: &'static str,
+    pub fields: &'static [FieldDoc],
+}
+
+pub const OPS: [OpDoc; 11] = [
+    OpDoc {
+        name: "add_shape",
+        summary: "Adds a shape. Its size fits the label unless w and h are set.",
+        fields: &[
+            FieldDoc {
+                name: "x",
+                required: true,
+                example: "0",
+                values: &[],
+                note: "Column, in cells.",
+            },
+            FieldDoc {
+                name: "y",
+                required: true,
+                example: "0",
+                values: &[],
+                note: "Row, in cells.",
+            },
+            FieldDoc {
+                name: "id",
+                required: false,
+                example: "\"a\"",
+                values: &[],
+                note: "",
+            },
+            FieldDoc {
+                name: "kind",
+                required: false,
+                example: "\"Rect\"",
+                values: SHAPE_KINDS,
+                note: "Default: Rect.",
+            },
+            FieldDoc {
+                name: "w",
+                required: false,
+                example: "10",
+                values: &[],
+                note: "Width, in cells. Default fits the label.",
+            },
+            FieldDoc {
+                name: "h",
+                required: false,
+                example: "3",
+                values: &[],
+                note: "Height, in cells. Default fits the label.",
+            },
+            FieldDoc {
+                name: "label",
+                required: false,
+                example: "\"Hi\"",
+                values: &[],
+                note: "",
+            },
+            FieldDoc {
+                name: "color",
+                required: false,
+                example: "\"red\"",
+                values: COLORS,
+                note: "",
+            },
+            FieldDoc {
+                name: "fill",
+                required: false,
+                example: "\"blue\"",
+                values: COLORS,
+                note: "",
+            },
+        ],
+    },
+    OpDoc {
+        name: "add_text",
+        summary: "Adds a line of text.",
+        fields: &[
+            FieldDoc {
+                name: "x",
+                required: true,
+                example: "0",
+                values: &[],
+                note: "Column, in cells.",
+            },
+            FieldDoc {
+                name: "y",
+                required: true,
+                example: "0",
+                values: &[],
+                note: "Row, in cells.",
+            },
+            FieldDoc {
+                name: "text",
+                required: true,
+                example: "\"Hi\"",
+                values: &[],
+                note: "One line.",
+            },
+            FieldDoc {
+                name: "id",
+                required: false,
+                example: "\"a\"",
+                values: &[],
+                note: "",
+            },
+            FieldDoc {
+                name: "color",
+                required: false,
+                example: "\"red\"",
+                values: COLORS,
+                note: "",
+            },
+        ],
+    },
+    OpDoc {
+        name: "connect",
+        summary: "Adds a line from one endpoint to another.",
+        fields: &[
+            FieldDoc {
+                name: "from",
+                required: true,
+                example: "\"a\"",
+                values: &[],
+                note: "A shape id, or a [x, y] cell for a free end.",
+            },
+            FieldDoc {
+                name: "to",
+                required: true,
+                example: "[0, 0]",
+                values: &[],
+                note: "A shape id, or a [x, y] cell for a free end.",
+            },
+            FieldDoc {
+                name: "id",
+                required: false,
+                example: "\"a\"",
+                values: &[],
+                note: "",
+            },
+            FieldDoc {
+                name: "kind",
+                required: false,
+                example: "\"Arrow\"",
+                values: LINE_KINDS,
+                note: "Default: Arrow.",
+            },
+            FieldDoc {
+                name: "label",
+                required: false,
+                example: "\"Yes\"",
+                values: &[],
+                note: "One line.",
+            },
+        ],
+    },
+    OpDoc {
+        name: "set",
+        summary: "Changes one element. Set at least one field besides id.",
+        fields: &[
+            FieldDoc {
+                name: "id",
+                required: true,
+                example: "\"a\"",
+                values: &[],
+                note: "",
+            },
+            FieldDoc {
+                name: "label",
+                required: false,
+                example: "\"Hi\"",
+                values: &[],
+                note: "",
+            },
+            FieldDoc {
+                name: "color",
+                required: false,
+                example: "\"red\"",
+                values: COLORS_OR_NONE,
+                note: "Use none to clear the color.",
+            },
+            FieldDoc {
+                name: "fill",
+                required: false,
+                example: "\"blue\"",
+                values: COLORS_OR_NONE,
+                note: "Use none to clear the fill.",
+            },
+            FieldDoc {
+                name: "stroke",
+                required: false,
+                example: "\"dashed\"",
+                values: STROKES,
+                note: "",
+            },
+            FieldDoc {
+                name: "border",
+                required: false,
+                example: "\"rounded\"",
+                values: BORDERS,
+                note: "",
+            },
+            FieldDoc {
+                name: "align",
+                required: false,
+                example: "\"left\"",
+                values: ALIGNS,
+                note: "",
+            },
+            FieldDoc {
+                name: "bold",
+                required: false,
+                example: "true",
+                values: BOOLS,
+                note: "",
+            },
+            FieldDoc {
+                name: "link",
+                required: false,
+                example: "\"https://example.com\"",
+                values: &[],
+                note: "One line. An empty string clears the link.",
+            },
+            FieldDoc {
+                name: "kind",
+                required: false,
+                example: "\"Diamond\"",
+                values: SHAPE_KINDS,
+                note: "Changes the kind of a shape.",
+            },
+            FieldDoc {
+                name: "head",
+                required: false,
+                example: "\"ArrowBoth\"",
+                values: LINE_KINDS,
+                note: "Changes the kind of a line.",
+            },
+        ],
+    },
+    OpDoc {
+        name: "resize",
+        summary: "Sets the size of a shape.",
+        fields: &[
+            FieldDoc {
+                name: "id",
+                required: true,
+                example: "\"a\"",
+                values: &[],
+                note: "",
+            },
+            FieldDoc {
+                name: "w",
+                required: true,
+                example: "10",
+                values: &[],
+                note: "Width, in cells.",
+            },
+            FieldDoc {
+                name: "h",
+                required: true,
+                example: "3",
+                values: &[],
+                note: "Height, in cells.",
+            },
+        ],
+    },
+    OpDoc {
+        name: "move",
+        summary: "Moves one element.",
+        fields: &[
+            FieldDoc {
+                name: "id",
+                required: true,
+                example: "\"a\"",
+                values: &[],
+                note: "",
+            },
+            FieldDoc {
+                name: "dx",
+                required: true,
+                example: "1",
+                values: &[],
+                note: "Columns to move. Negative moves left.",
+            },
+            FieldDoc {
+                name: "dy",
+                required: true,
+                example: "0",
+                values: &[],
+                note: "Rows to move. Negative moves up.",
+            },
+        ],
+    },
+    OpDoc {
+        name: "delete",
+        summary: "Deletes one element.",
+        fields: &[FieldDoc {
+            name: "id",
+            required: true,
+            example: "\"a\"",
+            values: &[],
+            note: "",
+        }],
+    },
+    OpDoc {
+        name: "group",
+        summary: "Groups two or more elements.",
+        fields: &[FieldDoc {
+            name: "ids",
+            required: true,
+            example: "[\"a\", \"b\"]",
+            values: &[],
+            note: "At least two ids.",
+        }],
+    },
+    OpDoc {
+        name: "ungroup",
+        summary: "Removes the group that holds the elements.",
+        fields: &[FieldDoc {
+            name: "ids",
+            required: true,
+            example: "[\"a\", \"b\"]",
+            values: &[],
+            note: "",
+        }],
+    },
+    OpDoc {
+        name: "order",
+        summary: "Changes the stacking order of elements.",
+        fields: &[
+            FieldDoc {
+                name: "ids",
+                required: true,
+                example: "[\"a\", \"b\"]",
+                values: &[],
+                note: "",
+            },
+            FieldDoc {
+                name: "z",
+                required: true,
+                example: "\"front\"",
+                values: Z_ORDERS,
+                note: "",
+            },
+        ],
+    },
+    OpDoc {
+        name: "layout",
+        summary: "Arranges elements by the lines between them.",
+        fields: &[
+            FieldDoc {
+                name: "ids",
+                required: false,
+                example: "[\"a\", \"b\"]",
+                values: &[],
+                note: "Without ids, arranges every element.",
+            },
+            FieldDoc {
+                name: "dir",
+                required: false,
+                example: "\"td\"",
+                values: DIRS,
+                note: "td runs top-down, lr runs left-right. Default: td.",
+            },
+        ],
+    },
+];
+
 /// An endpoint is a shape id, or a `[x, y]` cell for a free end.
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -497,4 +941,41 @@ pub fn run(
         (cmd, _) => bail!("usage: clidraw {cmd} (see README)"),
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::{json, Map, Value};
+
+    fn parse(obj: &Map<String, Value>) -> Result<Op, serde_json::Error> {
+        serde_json::from_value(Value::Object(obj.clone()))
+    }
+
+    #[test]
+    fn ops_table_matches_parser() {
+        assert_eq!(OPS.len(), 11);
+        for op in &OPS {
+            let mut obj = Map::new();
+            obj.insert("op".into(), json!(op.name));
+            for f in op.fields {
+                obj.insert(f.name.into(), serde_json::from_str(f.example).unwrap());
+            }
+            assert!(parse(&obj).is_ok(), "{}: {:?}", op.name, parse(&obj).err());
+            for f in op.fields {
+                for v in f.values {
+                    let value = serde_json::from_str(v).unwrap_or_else(|_| json!(v));
+                    obj.insert(f.name.into(), value);
+                    assert!(parse(&obj).is_ok(), "{}.{} = {v}", op.name, f.name);
+                }
+                obj.insert(f.name.into(), serde_json::from_str(f.example).unwrap());
+            }
+        }
+    }
+
+    #[test]
+    fn command_docs_match_commands() {
+        let names: Vec<&str> = COMMAND_DOCS.iter().map(|c| c.0).collect();
+        assert_eq!(names, COMMANDS);
+    }
 }

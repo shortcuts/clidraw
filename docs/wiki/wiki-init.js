@@ -6,6 +6,7 @@
     { group: 'Reference', items: [
       { href: 'config.html', label: 'Configuration' },
       { href: 'keys.html', label: 'Key bindings' },
+      { href: 'cli.html', label: 'Command line' },
     ] },
     { group: 'How-to', items: [
       { href: 'draw-a-flowchart.html', label: 'Draw a flowchart' },
