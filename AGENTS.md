@@ -17,3 +17,7 @@ The code is the source of truth. Documentation describes the code and never repl
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for the constraints, test rules, performance workflow and UI design system. Follow it for every change.
+
+## Live checks
+
+The maintainer runs every `[Live]` plan check by hand. Never ask for one, never wait for one, and never block or mark a task inconclusive because one did not run. Run every other check, then report the task done.
