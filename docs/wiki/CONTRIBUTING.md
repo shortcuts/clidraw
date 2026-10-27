@@ -165,3 +165,4 @@ Every real page (not a redirect stub) must have:
 
 - Add new real pages to `sitemap.xml` with `<loc>https://clidraw.shrtcts.fr/<page>.html</loc>`.
 - Do not list redirect stubs in `sitemap.xml`.
+- `view.html` is the one real page that stays out of the sitemap, the nav and the SEO meta list. It is `noindex` and draws a diagram from the URL fragment.

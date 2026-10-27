@@ -709,3 +709,26 @@ nav [role=group]{display:flex;flex-direction:column}
   box-shadow:none !important;
   top:0 !important;
 }
+
+/* ── Share viewer ── */
+main.viewer{max-width:none}
+.viewer button{
+  font:inherit;
+  color:var(--text);
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  padding:6px 12px;
+  margin-right:8px;
+  cursor:pointer;
+}
+.viewer button:disabled{opacity:.5;cursor:default}
+#error{color:var(--danger)}
+#diagram{
+  --pele-line:var(--muted);
+  height:70vh;
+  overflow:hidden;
+  border:1px solid var(--border);
+  border-radius:var(--r);
+}
+#diagram:empty{display:none}

@@ -296,3 +296,18 @@ fn config_page_matches_committed() {
 fn keys_page_matches_committed() {
     check_page("keys.html", &keys_page());
 }
+
+#[test]
+fn viewer_page_is_noindex_csp_locked_and_unlisted() {
+    let wiki = |f: &str| {
+        std::fs::read_to_string(format!("{}/docs/wiki/{f}", env!("CARGO_MANIFEST_DIR"))).unwrap()
+    };
+    let view = wiki("view.html");
+    assert!(view.contains(r#"name="robots" content="noindex""#));
+    assert!(view.contains("Content-Security-Policy"));
+    assert!(view.contains(
+        r#"src="https://cdn.jsdelivr.net/npm/pele@1.12.0/dist/pele.global.js" integrity="sha384-"#
+    ));
+    assert!(!wiki("sitemap.xml").contains("view.html"));
+    assert!(!wiki("wiki-init.js").contains("view.html"));
+}
