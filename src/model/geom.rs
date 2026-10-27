@@ -1,4 +1,4 @@
-use super::{Anchor, Shape};
+use super::{Anchor, Edge, Shape, SideLabel};
 use std::ops::Range;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
@@ -156,6 +156,54 @@ pub fn label_pos(cells: &[Pt], at: Option<u16>) -> Pt {
         [p, q] => ((p.0 + q.0) / 2, (p.1 + q.1) / 2),
         [p] => *p,
         _ => unreachable!(),
+    }
+}
+
+/// Index of the border cell `at` thousandths along a side whose last index is `span`.
+pub fn side_index(span: i32, at: u16) -> i32 {
+    (i32::from(at.min(1000)) * span + 500) / 1000
+}
+
+/// Thousandths along a side for the border cell `offset`, clamped to `0..=span`.
+pub fn side_at(span: i32, offset: i32) -> u16 {
+    if span <= 0 {
+        return 500;
+    }
+    ((offset.clamp(0, span) * 1000 + span / 2) / span) as u16
+}
+
+/// Start column, row and shown text of a side label, drawn over the border cells of `s`.
+pub fn side_label_at<'a>(s: &Shape, l: &'a SideLabel) -> (i32, i32, &'a str) {
+    let horizontal = matches!(l.edge, Edge::Top | Edge::Bottom);
+    let span = (if horizontal { s.w } else { s.h } - 3).max(0);
+    let i = l.at.map_or(span / 2, |at| side_index(span, at));
+    let room = if horizontal { s.w - 2 } else { s.w }.max(0) as usize;
+    let (mut used, mut end) = (0, 0);
+    for (b, c) in l.text.char_indices() {
+        used += c.width().unwrap_or(0);
+        if used > room {
+            break;
+        }
+        end = b + c.len_utf8();
+    }
+    let text = &l.text[..end];
+    let tw = text.width() as i32;
+    match l.edge {
+        Edge::Top | Edge::Bottom => {
+            let row = if l.edge == Edge::Top {
+                s.y
+            } else {
+                s.y + s.h - 1
+            };
+            let at = s.x + 1 + i - (tw - 1).max(0) / 2;
+            (
+                at.clamp(s.x + 1, (s.x + s.w - 1 - tw).max(s.x + 1)),
+                row,
+                text,
+            )
+        }
+        Edge::Left => (s.x, s.y + 1 + i, text),
+        Edge::Right => (s.x + s.w - tw, s.y + 1 + i, text),
     }
 }
 

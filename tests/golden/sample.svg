@@ -11,6 +11,7 @@
     <tspan x="328" dy="0">Done &amp;</tspan>
     <tspan x="328" dy="16">&quot;dusted&quot;</tspan>
   </text>
+  <text x="256" y="200" text-anchor="start" dominant-baseline="central">side &lt;a&gt;</text>
   <rect x="0" y="320" width="96" height="80" rx="8" fill="none" stroke="black" stroke-dasharray="8 4"/>
   <text x="48" y="344" text-anchor="middle" dominant-baseline="central">
     <tspan x="48" dy="0">alpha beta</tspan>

@@ -52,6 +52,7 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }));
     }
     // A 1-cell gap makes both end cells of a line coincide; widen one gap so the handles differ.
@@ -86,6 +87,7 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     app
 }
@@ -371,6 +373,7 @@ fn frame_fits_the_budget_on_2500_labelled_shapes() {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }));
     }
     let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();

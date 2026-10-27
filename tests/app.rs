@@ -157,6 +157,7 @@ fn area_app(dir: &std::path::Path) -> (App, Instant) {
                 align: Default::default(),
                 bold: false,
                 link: None,
+                side_labels: vec![],
             }),
         ));
     }
@@ -422,6 +423,7 @@ fn map_app(dir: &std::path::Path) -> (App, Instant) {
                 align: Default::default(),
                 bold: false,
                 link: None,
+                side_labels: vec![],
             }),
         ));
     }
@@ -591,6 +593,7 @@ fn insert_shape(app: &mut App) {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }),
     ));
 }
@@ -725,6 +728,7 @@ fn drag_app(dir: &std::path::Path) -> App {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }),
     ));
     app
@@ -819,6 +823,7 @@ fn history_limit_from_config_survives_opening_another_canvas() {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         };
         app.session.exec(Command::Insert(i, Element::Shape(shape)));
     }
@@ -882,6 +887,7 @@ fn moved_redraws_only_when_the_hovered_target_changes() {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }));
     let t0 = Instant::now();
     app.dirty = false;
@@ -968,6 +974,7 @@ fn info_bar_shows_unsaved_until_the_save() {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }),
     ));
     assert!(last_row(&app).ends_with("demo ●"), "{}", last_row(&app));
@@ -1117,6 +1124,7 @@ fn shape_at(id: &str, x: i32, y: i32) -> Command {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }),
     )
 }
@@ -1460,6 +1468,7 @@ fn layout_app(dir: &std::path::Path, edges: &[(&str, &str)]) -> App {
                 align: Default::default(),
                 bold: false,
                 link: None,
+                side_labels: vec![],
             }),
         ));
     }
@@ -1894,6 +1903,7 @@ fn insert_box(app: &mut App) {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }),
     ));
 }
@@ -2845,6 +2855,7 @@ fn reloads_an_external_edit_instead_of_overwriting_it() {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     cli.save("demo", &canvas).unwrap();
     let external = std::fs::read(&file).unwrap();

@@ -45,6 +45,7 @@ impl App {
                         align: Default::default(),
                         bold: false,
                         link: None,
+                        side_labels: vec![],
                     }),
                 );
                 self.session.insert(framed);

@@ -47,6 +47,7 @@ fn generated_canvas(elements: usize, target: (i32, i32)) -> Vec<Element> {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         })
     };
     let shapes = elements / 2;

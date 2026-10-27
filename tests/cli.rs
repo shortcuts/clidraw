@@ -30,6 +30,7 @@ fn seeded() -> tempfile::TempDir {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     }));
     Store::at(t.path().join("c"), t.path().join("state"))
         .save("demo", &c)

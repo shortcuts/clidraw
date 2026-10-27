@@ -190,6 +190,25 @@ impl From<End> for Wire {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Edge {
+    Top,
+    Right,
+    Bottom,
+    Left,
+}
+
+/// Text drawn on one border side of a shape. `at` is the position along the side in thousandths;
+/// `None` centers it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SideLabel {
+    pub edge: Edge,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<u16>,
+    pub text: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Shape {
     pub id: Id,
@@ -214,6 +233,9 @@ pub struct Shape {
     /// Target of the shape in the SVG and Mermaid exports.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link: Option<String>,
+    /// At most one per edge, never empty, ordered by edge.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub side_labels: Vec<SideLabel>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -267,6 +289,10 @@ impl Element {
 pub const MIN_SIZE: i32 = 3;
 
 impl Shape {
+    pub fn side_label(&self, edge: Edge) -> Option<&SideLabel> {
+        self.side_labels.iter().find(|l| l.edge == edge)
+    }
+
     /// Only rect draws a border glyph set.
     pub fn has_border(&self) -> bool {
         self.kind == ShapeKind::Rect

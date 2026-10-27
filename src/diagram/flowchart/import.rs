@@ -377,6 +377,7 @@ pub(super) fn import(text: &str) -> Result<Imported, String> {
             align: Default::default(),
             bold: false,
             link: None,
+            side_labels: vec![],
         }));
     }
     let ids: Vec<Id> = canvas.elements.iter().map(|e| e.id().clone()).collect();

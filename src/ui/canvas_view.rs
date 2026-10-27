@@ -4,7 +4,8 @@ use super::registry;
 use super::theme;
 use crate::input::{handles, EditTarget, Handle, Hit, Session};
 use crate::model::{
-    label_pos, wrap, Border, Element, Find, Id, Line, LineKind, Router, Shape, ShapeKind, Stroke,
+    label_pos, side_label_at, wrap, Border, Edge, Element, Find, Id, Line, LineKind, Router, Shape,
+    ShapeKind, Stroke,
 };
 use crate::view::Zoom;
 use ratatui::style::Color;
@@ -18,7 +19,8 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     }
     let view = s.view;
     let editing = s.edit.as_ref().and_then(|e| match &e.target {
-        EditTarget::Existing(id) => Some(id),
+        EditTarget::Existing(id) => Some((id, None)),
+        EditTarget::Side(id, edge, _) => Some((id, Some(*edge))),
         EditTarget::New(..) => None,
     });
     let mut slot = s.layout.borrow_mut();
@@ -48,15 +50,16 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
         } else {
             0
         };
-        let hide = editing == Some(e.id());
+        let hide = editing.is_some_and(|(id, edge)| id == e.id() && edge.is_none());
         let label = |own| if hide { "" } else { own };
+        let hidden_side = editing.and_then(|(id, edge)| if id == e.id() { edge } else { None });
         match e {
             Element::Shape(sh) if view.zoom > Zoom::One => {
                 let (sx, sy, w, h) = view.rect(sh.x, sh.y, sh.w, sh.h);
                 let big = Shape { w, h, ..sh.clone() };
-                shape(grid, &big, sx, sy, label(&sh.label), flags)
+                shape(grid, &big, sx, sy, label(&sh.label), hidden_side, flags)
             }
-            Element::Shape(sh) => shape(grid, sh, sx, sy, label(&sh.label), flags),
+            Element::Shape(sh) => shape(grid, sh, sx, sy, label(&sh.label), hidden_side, flags),
             Element::Line(l) => line(grid, s, &find, &layout.router, l, label(&l.label), flags),
             Element::Text(t) => grid.text(sx, sy, label(&t.text), flags),
         }
@@ -219,7 +222,7 @@ fn dashed(stroke: Stroke, glyph: char) -> char {
     }
 }
 
-fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
+fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, hidden: Option<Edge>, flags: u8) {
     let (w, h) = (s.w, s.h);
     if s.kind != ShapeKind::Frame {
         grid.clear_inside(x, y, w, h);
@@ -334,6 +337,13 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
         let used = text.width();
         let ink = if s.bold { flags | BOLD } else { flags };
         grid.text(x + 1 + s.align.offset(room, used), row, text, ink);
+    }
+    if !s.side_labels.is_empty() {
+        let local = Shape { x, y, ..s.clone() };
+        for l in s.side_labels.iter().filter(|l| Some(l.edge) != hidden) {
+            let (tx, ty, text) = side_label_at(&local, l);
+            grid.text(tx, ty, text, flags);
+        }
     }
 }
 

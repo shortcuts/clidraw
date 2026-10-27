@@ -26,6 +26,7 @@ fn shape(id: &str, x: i32) -> Element {
         align: Default::default(),
         bold: false,
         link: None,
+        side_labels: vec![],
     })
 }
 
