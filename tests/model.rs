@@ -1011,6 +1011,59 @@ fn an_elbow_to_a_free_end_goes_around_a_shape_in_its_way() {
     }
 }
 
+#[test]
+fn a_top_to_top_arrow_leaves_its_source_from_outside() {
+    let shapes = [(0, 4, 9, 5), (30, 10, 9, 5)];
+    let line = elbow(
+        "arrow000",
+        End::Bound(Id::from("aaaaaaaa"), Anchor::Top(1)),
+        End::Bound(Id::from("bbbbbbbb"), Anchor::Top(1)),
+    );
+    let mut c = Canvas {
+        elements: vec![
+            rect("aaaaaaaa", ShapeKind::Rect, shapes[0]),
+            rect("bbbbbbbb", ShapeKind::Rect, shapes[1]),
+            Element::Line(line.clone()),
+        ],
+        ..Canvas::default()
+    };
+    let cells = c.route(&line);
+    walks(&cells);
+    assert!(
+        !cells.iter().any(|&p| shapes.iter().any(|&s| inside(p, s))),
+        "{cells:?}"
+    );
+    pin(&mut c, &["arrow000"]);
+    let bends = line_of(&c).bends;
+    assert!(
+        !bends.iter().any(|&p| shapes.iter().any(|&s| inside(p, s))),
+        "{bends:?}"
+    );
+}
+
+#[test]
+fn a_parallelogram_top_arrow_leaves_its_source_from_outside() {
+    let source = (0, 4, 9, 5);
+    let line = elbow(
+        "arrow000",
+        End::Bound(Id::from("pppppppp"), Anchor::Top(1)),
+        End::Free(30, 12),
+    );
+    let mut c = Canvas {
+        elements: vec![
+            rect("pppppppp", ShapeKind::Parallelogram, source),
+            Element::Line(line.clone()),
+        ],
+        ..Canvas::default()
+    };
+    let cells = c.route(&line);
+    walks(&cells);
+    assert!(!cells.iter().any(|&p| inside(p, source)), "{cells:?}");
+    pin(&mut c, &["arrow000"]);
+    let bends = line_of(&c).bends;
+    assert!(!bends.iter().any(|&p| inside(p, source)), "{bends:?}");
+}
+
 fn diagonal(extra: Vec<Element>) -> (Canvas, Line) {
     let line = elbow("arrow000", bound("aaaaaaaa"), bound("bbbbbbbb"));
     let mut c = Canvas {
