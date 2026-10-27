@@ -57,6 +57,7 @@ Run these commands from the repo root.
 - `make perf` checks the budgets. See [Performance](#performance).
 - `make profile` records the drag scenario with samply. See [Profile](#profile).
 - `make release` builds the release binary.
+- `make screenshots` renders the VHS tapes in `docs/tapes` into `docs/wiki/assets`. It needs `vhs`. See [Screenshots](#screenshots).
 - `cargo test --test e2e` runs the real binary in a pty and asserts on the parsed screen.
 
 ## Tests
@@ -327,6 +328,15 @@ fn row(b: &Buffer, y: u16) -> String {
 
 - Good: the `render` and `row` helpers above.
 - Bad: n/a: no violation in the code.
+
+## Screenshots
+
+The tapes in `docs/tapes` drive the release binary by keys only, because VHS sends no mouse events. They seed canvases with `clidraw edit` and `clidraw import`. CI does not render them. Commit the output.
+
+Every tape must run against a throwaway home, so a render never edits a real canvas.
+
+- Good: `Type "export CLIDRAW_HOME=$(mktemp -d) XDG_STATE_HOME=$(mktemp -d)" Enter` inside `Hide`, as in `docs/tapes/canvas.tape`.
+- Bad: a tape that runs `clidraw flow` with the real home, so the render opens and autosaves your own canvas `flow`.
 
 ## Pull requests
 

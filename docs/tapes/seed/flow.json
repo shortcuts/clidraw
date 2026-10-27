@@ -1,0 +1,14 @@
+[
+  {"op":"add_shape","id":"commit","x":0,"y":0,"w":16,"h":3,"label":"Commit"},
+  {"op":"add_shape","id":"build","x":24,"y":0,"w":16,"h":3,"label":"Build"},
+  {"op":"add_shape","id":"test","x":48,"y":0,"w":16,"h":5,"kind":"Diamond","label":"Tests pass?"},
+  {"op":"add_shape","id":"deploy","x":72,"y":0,"w":16,"h":3,"label":"Deploy"},
+  {"op":"add_shape","id":"fix","x":48,"y":10,"w":16,"h":3,"label":"Fix"},
+  {"op":"add_shape","id":"db","x":96,"y":0,"w":14,"h":5,"kind":"Cylinder","label":"Release DB"},
+  {"op":"connect","from":"commit","to":"build"},
+  {"op":"connect","from":"build","to":"test"},
+  {"op":"connect","from":"test","to":"deploy","label":"yes"},
+  {"op":"connect","from":"test","to":"fix","label":"no"},
+  {"op":"connect","from":"fix","to":"build"},
+  {"op":"connect","from":"deploy","to":"db"}
+]

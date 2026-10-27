@@ -1,4 +1,4 @@
-.PHONY: build release run test lint fmt fmt-check perf profile check clean
+.PHONY: build release run test lint fmt fmt-check perf profile check clean screenshots
 
 build:
 	cargo build
@@ -29,6 +29,11 @@ profile:
 	samply record $$(CARGO_PROFILE_RELEASE_DEBUG=1 CARGO_PROFILE_RELEASE_STRIP=false cargo test --release --test perf --no-run --message-format=json | grep -o '"executable":"[^"]*deps/perf-[^"]*"' | cut -d'"' -f4) drag_step_fits_the_budget_on_5000_elements --ignored --nocapture --test-threads=1
 
 check: fmt-check lint test perf
+
+screenshots: release
+	@command -v vhs >/dev/null || { echo "vhs not found: brew install vhs"; exit 1; }
+	for t in hero canvas palette shortcuts import; do vhs docs/tapes/$$t.tape || exit 1; done
+	ls docs/wiki/assets
 
 # Also deletes every saved canvas, the config and the history. Paths mirror resolve_dir and resolve_state_dir in src/store.rs.
 clean:
