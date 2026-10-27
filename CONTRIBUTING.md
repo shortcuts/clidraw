@@ -331,3 +331,10 @@ fn row(b: &Buffer, y: u16) -> String {
 ## Pull requests
 
 Run `make check` before you open a pull request. CI runs the same check.
+
+## Releases
+
+- Write commit messages in Conventional Commits form. release-please reads them to pick the version.
+- release-please keeps one release PR open. It edits `CHANGELOG.md`, `Cargo.toml` and `Cargo.lock`.
+- Merging the release PR tags `v<version>`, creates a GitHub release and publishes to crates.io.
+- Do not edit `CHANGELOG.md`, `.release-please-manifest.json` or the `version` in `Cargo.toml` by hand.
