@@ -2982,3 +2982,105 @@ fn dragging_a_selected_rects_side_label_slides_it_along_its_side_in_one_undo_ste
     key(&mut s, KeyCode::Char('u'));
     assert_eq!(side_labels(&s), before);
 }
+
+fn picked(id: &str, x: i32, y: i32) -> Session {
+    let mut s = with_shape(id, x, y);
+    s.selection = vec![Id::from(id)];
+    s
+}
+
+fn lines(s: &Session) -> Vec<&Line> {
+    s.canvas
+        .elements
+        .iter()
+        .filter_map(|e| {
+            if let Element::Line(l) = e {
+                Some(l)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn quick_connect_ghosts_beside_a_selected_shape_and_a_click_adds_both_in_one_step() {
+    let t = Instant::now();
+    let mut s = picked("aaaaaaaa", 20, 6);
+    mouse(&mut s, MouseEventKind::Moved, 28, 7, t);
+    let q = s.quick.clone().expect("ghost right of the shape");
+    assert_eq!((q.edge, q.rect), (Edge::Right, (34, 6, 8, 4)));
+    click(&mut s, (28, 7), t);
+    let sh = shapes(&s);
+    assert_eq!(sh.len(), 2);
+    assert_eq!((sh[1].x, sh[1].y, sh[1].w, sh[1].h), (34, 6, 8, 4));
+    let l = lines(&s);
+    assert_eq!(l.len(), 1);
+    assert_eq!(l[0].kind, LineKind::Arrow);
+    assert_eq!(l[0].from, End::Bound(Id::from("aaaaaaaa"), Anchor::Auto));
+    assert_eq!(l[0].to, End::Bound(sh[1].id.clone(), Anchor::Auto));
+    assert_eq!(s.selection, vec![sh[1].id.clone()]);
+    key(&mut s, KeyCode::Char('u'));
+    assert_eq!(s.canvas.elements.len(), 1);
+}
+
+#[test]
+fn quick_connect_places_the_copy_at_the_layout_gap_on_every_side() {
+    let t = Instant::now();
+    for (at, rect) in [
+        ((22, 5), (20, 6 - 3 - 4, 8, 4)),
+        ((22, 10), (20, 13, 8, 4)),
+        ((19, 7), (20 - 6 - 8, 6, 8, 4)),
+    ] {
+        let mut s = picked("aaaaaaaa", 20, 6);
+        mouse(&mut s, MouseEventKind::Moved, at.0, at.1, t);
+        assert_eq!(s.quick.map(|q| q.rect), Some(rect), "{at:?}");
+    }
+}
+
+#[test]
+fn quick_connect_copies_the_look_but_not_the_text() {
+    let t = Instant::now();
+    let mut s = picked("aaaaaaaa", 20, 6);
+    if let Some(Element::Shape(sh)) = s.canvas.elements.first_mut() {
+        sh.kind = ShapeKind::Diamond;
+        sh.label = "text".into();
+        sh.bold = true;
+        sh.link = Some("x".into());
+    }
+    mouse(&mut s, MouseEventKind::Moved, 28, 7, t);
+    click(&mut s, (28, 7), t);
+    let copy = shapes(&s)[1];
+    assert_eq!(copy.kind, ShapeKind::Diamond);
+    assert!(copy.bold && copy.label.is_empty() && copy.link.is_none());
+}
+
+#[test]
+fn quick_connect_stays_off_unless_one_shape_is_selected_and_the_pointer_is_just_beside_a_side() {
+    let t = Instant::now();
+    let ghost = |s: &mut Session, at: (u16, u16)| {
+        mouse(s, MouseEventKind::Moved, at.0, at.1, t);
+        s.quick.is_some()
+    };
+    let mut s = picked("aaaaaaaa", 20, 6);
+    assert!(ghost(&mut s, (28, 7)));
+    assert!(ghost(&mut s, (29, 7)), "two cells out still counts");
+    assert!(!ghost(&mut s, (30, 7)), "three cells out");
+    assert!(!ghost(&mut s, (28, 5)), "corner zone");
+    assert!(!ghost(&mut s, (23, 7)), "on the shape");
+    s.quick_connect = false;
+    assert!(!ghost(&mut s, (28, 7)), "config off");
+    let mut s = picked("aaaaaaaa", 20, 6);
+    s.selection.clear();
+    assert!(!ghost(&mut s, (28, 7)), "no selection");
+    let mut s = picked("aaaaaaaa", 20, 6);
+    s.tool = Tool::Rect;
+    assert!(!ghost(&mut s, (28, 7)), "rect tool");
+    let mut s = picked("aaaaaaaa", 20, 6);
+    s.canvas
+        .elements
+        .push(with_shape("bbbbbbbb", 34, 6).canvas.elements.remove(0));
+    assert!(!ghost(&mut s, (28, 7)), "target occupied");
+    s.selection.push(Id::from("bbbbbbbb"));
+    assert!(!ghost(&mut s, (28, 7)), "two selected");
+}

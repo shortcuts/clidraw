@@ -1,7 +1,7 @@
-use clidraw::input::{Handle, Hit, Session, Tool};
+use clidraw::input::{Handle, Hit, Quick, Session, Tool};
 use clidraw::model::{
-    Anchor, Border, Canvas, Command, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
-    Stroke, TextAlign,
+    Anchor, Border, Canvas, Command, Edge, Element, End, Id, Line, LineKind, Paint, Shape,
+    ShapeKind, Stroke, TextAlign,
 };
 use clidraw::ui::minimap::Target;
 use clidraw::ui::prompt::{Prompt, PromptKind};
@@ -1954,4 +1954,23 @@ fn side_labels_overwrite_the_border_cells_they_sit_on() {
     assert_eq!(cols(&b, 5, 20, 8), "ab     │");
     assert_eq!(cols(&b, 6, 20, 8), "│ box  │");
     assert_eq!(cols(&b, 8, 20, 8), "└──────┘");
+}
+
+#[test]
+fn quick_connect_draws_a_dim_arrow_and_copy_beside_the_shape() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.quick = Some(Quick {
+        from: Id::from("aaaaaaaa"),
+        edge: Edge::Right,
+        rect: (34, 4, 8, 3),
+    });
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 5, 28, 6), "┄┄┄┄┄▶");
+    assert_eq!(cols(&b, 4, 34, 8), "┌──────┐");
+    assert!(b[(28, 5)].modifier.contains(Modifier::DIM));
+    assert!(b[(34, 4)].modifier.contains(Modifier::DIM));
+    s.quick = None;
+    assert_eq!(cols(&draw(&s, &Overlay::None), 5, 28, 6), "      ");
 }

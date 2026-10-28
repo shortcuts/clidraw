@@ -228,3 +228,31 @@ fn dragging_a_placed_head_to_another_shape_moves_the_arrow() {
         t.screen()
     );
 }
+
+/// Box corners below the palette rows.
+fn corners(t: &Term) -> usize {
+    t.screen()
+        .lines()
+        .skip(2)
+        .map(|l| l.matches('┌').count())
+        .sum()
+}
+
+#[test]
+fn quick_connect_previews_then_adds_a_connected_copy() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut t = Term::spawn(tmp.path(), &["scratch"]);
+    t.draw_rect_at((10, 8), (22, 13));
+    t.key("\r");
+    t.send(b"\x1b[<35;24;11M");
+    t.wait_for("▶");
+    assert_eq!(corners(&t), 2, "{}", t.screen());
+    t.click(23, 10);
+    t.send(b"\x1b[<35;61;21M");
+    t.quiet();
+    assert_eq!(corners(&t), 2, "{}", t.screen());
+    assert!(!t.screen().contains('┄'), "ghost gone\n{}", t.screen());
+    t.key("u");
+    t.wait_gone("▶");
+    assert_eq!(corners(&t), 1, "{}", t.screen());
+}

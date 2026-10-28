@@ -247,3 +247,12 @@ fn obsidian_vault_defaults_to_none_and_needs_an_existing_folder() {
     assert_eq!(c.obsidian_vault, None);
     assert_eq!(w.len(), 1, "{w:?}");
 }
+
+#[test]
+fn quick_connect_defaults_on_and_accepts_false() {
+    assert!(Config::default().quick_connect);
+    let (c, w, _t) = load_text("quick_connect = false\n");
+    assert!(!c.quick_connect && w.is_empty());
+    let (c, w, _t) = load_text("quick_connect = \"yes\"\n");
+    assert!(c.quick_connect && w.len() == 1, "{w:?}");
+}

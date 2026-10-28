@@ -9,6 +9,10 @@ pub enum Dir {
     LeftRight,
 }
 
+/// Cells between layers: down for top-down charts, across for left-right ones.
+pub const GAP_V: i32 = 3;
+pub const GAP_H: i32 = 6;
+
 impl Canvas {
     /// Moves the selected shapes into layers by the lines bound between them. Empty when fewer
     /// than two shapes are selected or nothing moves.
@@ -94,7 +98,7 @@ impl Canvas {
             }
         }
 
-        let (layer_gap, side_gap) = if lr { (6, 1) } else { (3, 4) };
+        let (layer_gap, side_gap) = if lr { (GAP_H, 1) } else { (GAP_V, 4) };
         let span = |m: &[usize]| {
             m.iter().map(|&i| nodes[i].4).sum::<i32>() + side_gap * (m.len() as i32 - 1)
         };

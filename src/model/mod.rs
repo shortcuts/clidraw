@@ -21,7 +21,7 @@ pub use geom::{
 };
 pub use history::{History, HISTORY_LIMIT};
 pub use ids::Id;
-pub use layout::Dir;
+pub use layout::{Dir, GAP_H, GAP_V};
 pub use router::{Router, MARGIN, REACH};
 
 pub const VERSION: u32 = 1;

@@ -33,6 +33,9 @@ pub const DEFAULT_TOML: &str = "\
 # Glide the view for Fit all and search jumps. false snaps instantly.
 # motion = true
 
+# Preview an arrow and a copy of the selected shape when the pointer rests beside it; a click adds both. false turns it off.
+# quick_connect = true
+
 # Offer a fix for a mistake in the :mermaid editor and apply it with Tab. false turns it off.
 # quick_fixes = true
 
@@ -58,6 +61,7 @@ pub struct Config {
     pub history_limit: usize,
     pub export_padding: i32,
     pub motion: bool,
+    pub quick_connect: bool,
     pub quick_fixes: bool,
     pub scroll_speed: i32,
     pub theme: ThemeSetting,
@@ -75,6 +79,7 @@ impl Default for Config {
             history_limit: HISTORY_LIMIT,
             export_padding: 2,
             motion: true,
+            quick_connect: true,
             quick_fixes: true,
             scroll_speed: 100,
             theme: ThemeSetting::Auto,
@@ -122,6 +127,7 @@ impl Config {
                 "history_limit" => count(value).map(|n| self.history_limit = n),
                 "export_padding" => padding(value).map(|n| self.export_padding = n),
                 "motion" => flag(value).map(|b| self.motion = b),
+                "quick_connect" => flag(value).map(|b| self.quick_connect = b),
                 "quick_fixes" => flag(value).map(|b| self.quick_fixes = b),
                 "scroll_speed" => speed(value).map(|n| self.scroll_speed = n),
                 "chrome_accent" => hex(value).map(|c| self.chrome_accent = Some(c)),

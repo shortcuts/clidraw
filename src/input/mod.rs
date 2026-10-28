@@ -2,11 +2,13 @@ mod drag;
 mod edit;
 mod hit;
 mod keys;
+mod quick;
 mod state;
 
 pub use edit::{Edit, EditBox, EditTarget};
 pub use hit::{handles, shape_at, Handle, Hit};
 pub use keys::{edit_key, handle_key, handle_paste, KeyOutcome};
+pub use quick::{clone_of, Quick};
 pub use state::{handle_mouse, scroll_step, Origin};
 
 use crate::model::{
@@ -107,6 +109,10 @@ pub struct Session {
     pub hover: Hit,
     /// Whether a click at the pointer would grab a label to drag or edit it.
     pub label_hover: bool,
+    /// The copy and arrow a click at the pointer would add beside the selected shape.
+    pub quick: Option<Quick>,
+    /// Whether resting the pointer beside a selected shape offers that copy.
+    pub quick_connect: bool,
     pub palette_hover: Option<PaletteHit>,
     /// Columns the tool row and the option row are scrolled by.
     pub tool_scroll: i32,
@@ -153,6 +159,8 @@ impl Session {
             snap_at: None,
             hover: Hit::Empty,
             label_hover: false,
+            quick: None,
+            quick_connect: true,
             palette_hover: None,
             tool_scroll: 0,
             option_scroll: 0,
@@ -324,6 +332,7 @@ impl Session {
         self.glide = None;
         self.view = view;
         self.hover = Hit::Empty;
+        self.quick = None;
         if self.zoomed_out() {
             self.selection.clear();
             self.label_hover = false;

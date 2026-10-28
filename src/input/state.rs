@@ -1,6 +1,6 @@
 use super::drag::{drag, pan_step, up};
 use super::hit::{self, Handle, Hit};
-use super::{Session, Tool};
+use super::{quick, Session, Tool};
 use crate::model::{self, Command, Edge, Element, Id, Paint, ShapeKind, Side};
 use crate::ui::palette::{self, paint, Choice, PaletteHit};
 use crate::view::View;
@@ -97,6 +97,7 @@ impl Session {
             self.view.world_step(scaled(step.1)),
         );
         self.hover = Hit::Empty;
+        self.quick = None;
         self.burst = Some((now, prior + n));
     }
 
@@ -277,14 +278,14 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
 
 fn hover(s: &mut Session, screen: P, world: P) {
     let idle = s.tool.is_pointer() && s.edit.is_none() && matches!(s.gesture, Gesture::Idle);
-    s.hover = if idle
-        && s.in_viewport(screen.0, screen.1)
-        && palette::hit(s, screen.0, screen.1).is_none()
-    {
+    let live =
+        idle && s.in_viewport(screen.0, screen.1) && palette::hit(s, screen.0, screen.1).is_none();
+    s.hover = if live {
         hit::test(s, &s.selection, world)
     } else {
         Hit::Empty
     };
+    s.quick = if live { quick::at(s, world) } else { None };
     s.label_hover = idle && hit::label_hit(s, &s.selection, world).is_some();
     s.palette_hover = if matches!(s.gesture, Gesture::Idle) {
         palette::hit(s, screen.0, screen.1)
@@ -295,6 +296,7 @@ fn hover(s: &mut Session, screen: P, world: P) {
 
 fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     s.hover = Hit::Empty;
+    s.quick = None;
     s.label_hover = false;
     s.palette_hover = None;
     if s.place_caret(screen) {
@@ -314,6 +316,14 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     }
     if !s.in_viewport(screen.0, screen.1) {
         return;
+    }
+    if !double {
+        if let Some((cmd, id)) = quick::at(s, world).and_then(|q| quick::insert_cmd(s, &q)) {
+            s.exec(cmd);
+            s.selection = vec![id];
+            s.quick = None;
+            return;
+        }
     }
     let hit = hit::test(s, &s.selection, world);
     if double {
@@ -388,6 +398,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
 
 fn middle_down(s: &mut Session, screen: P, world: P) {
     s.hover = Hit::Empty;
+    s.quick = None;
     if !s.in_viewport(screen.0, screen.1) {
         return;
     }

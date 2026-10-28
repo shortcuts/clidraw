@@ -2,7 +2,7 @@ use super::grid::{Grid, BOLD, DIM, REVERSE, UNDERLINE};
 use super::layout::{refresh, seen};
 use super::registry;
 use super::theme;
-use crate::input::{handles, EditTarget, Handle, Hit, Session};
+use crate::input::{clone_of, handles, EditTarget, Handle, Hit, Session};
 use crate::model::{
     label_pos, side_label_at, wrap, Border, Edge, Element, Find, Id, Line, LineKind, Router, Shape,
     ShapeKind, Stroke,
@@ -86,6 +86,7 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
             }
         }
     }
+    ghost(grid, s);
     edit_label(grid, s);
     for (h, id, (x, y)) in handles(&s.canvas, &s.selection) {
         if h != Handle::Resize {
@@ -152,6 +153,57 @@ fn blocks(grid: &mut Grid, s: &Session) {
                 }
             }
         }
+    }
+}
+
+fn ghost(grid: &mut Grid, s: &Session) {
+    let Some(q) = &s.quick else {
+        return;
+    };
+    let Some(Element::Shape(src)) = s.canvas.get(&q.from) else {
+        return;
+    };
+    let (rx, ry, w, h) = q.rect;
+    let (sx, sy) = s.view.to_screen(rx, ry);
+    shape(grid, &clone_of(src, q.rect), sx, sy, "", None, DIM);
+    // Cells between the facing borders, on the source midline; the head sits next to the copy.
+    let (a, b, head, vertical) = match q.edge {
+        Edge::Right => (
+            (src.x + src.w, src.y + src.h / 2),
+            (rx - 1, ry + h / 2),
+            '▶',
+            false,
+        ),
+        Edge::Left => (
+            (rx + w, src.y + src.h / 2),
+            (src.x - 1, ry + h / 2),
+            '◀',
+            false,
+        ),
+        Edge::Bottom => (
+            (src.x + src.w / 2, src.y + src.h),
+            (rx + w / 2, ry - 1),
+            '▼',
+            true,
+        ),
+        Edge::Top => (
+            (src.x + src.w / 2, ry + h),
+            (src.x + src.w / 2, src.y - 1),
+            '▲',
+            true,
+        ),
+    };
+    let (x0, y0) = s.view.to_screen(a.0, a.1);
+    let (x1, y1) = s.view.to_screen(b.0, b.1);
+    let forward = matches!(q.edge, Edge::Right | Edge::Bottom);
+    for (x, y) in (x0..=x1).flat_map(|x| (y0..=y1).map(move |y| (x, y))) {
+        let (at, first, last) = if vertical { (y, y0, y1) } else { (x, x0, x1) };
+        let ch = match (at == if forward { last } else { first }, vertical) {
+            (true, _) => head,
+            (_, true) => '┆',
+            _ => '┄',
+        };
+        grid.set(x, y, ch, DIM);
     }
 }
 
