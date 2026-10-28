@@ -3641,6 +3641,29 @@ fn palette_inserts_the_flowchart_template_inside_one_frame() {
 }
 
 #[test]
+fn palette_spreads_flowchart_template_shapes_apart() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    palette_typed(&mut app, "Insert template");
+    app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Enter), now);
+    let mut shapes: Vec<&Shape> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Shape(s) if s.kind != clidraw::model::ShapeKind::Frame => Some(s),
+            _ => None,
+        })
+        .collect();
+    shapes.sort_by_key(|s| s.y);
+    let (first, second) = (shapes[0], shapes[1]);
+    assert!(second.y - first.y - first.h >= 6);
+}
+
+#[test]
 fn palette_inserts_the_architecture_template_inside_one_frame() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());

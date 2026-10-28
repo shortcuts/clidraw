@@ -11,23 +11,29 @@ type Build = fn() -> Result<Canvas, String>;
 
 const TEMPLATES: [(&str, Build); 5] = [
     ("Flowchart", || {
-        Flowchart
-            .import(include_str!("../../docs/tapes/seed/flow.mmd"))
-            .map(|input| input.canvas)
+        imported(include_str!("../../docs/tapes/seed/flow.mmd"))
     }),
     ("Architecture dependency", || {
-        Flowchart
-            .import(include_str!("../../docs/tapes/seed/architecture.mmd"))
-            .map(|input| input.canvas)
+        imported(include_str!("../../docs/tapes/seed/architecture.mmd"))
     }),
     ("Gantt chart", || Ok(gantt())),
     ("Sequence diagram", || Ok(sequence_diagram())),
     ("State diagram", || {
-        Flowchart
-            .import(include_str!("../../docs/tapes/seed/state.mmd"))
-            .map(|input| input.canvas)
+        imported(include_str!("../../docs/tapes/seed/state.mmd"))
     }),
 ];
+
+// Imports stay compact; templates need room for new shapes.
+fn imported(src: &str) -> Result<Canvas, String> {
+    let mut canvas = Flowchart.import(src)?.canvas;
+    for element in &mut canvas.elements {
+        if let Element::Shape(shape) = element {
+            shape.x *= 2;
+            shape.y *= 2;
+        }
+    }
+    Ok(canvas)
+}
 
 const LABEL_W: i32 = 16;
 const WEEK_W: i32 = 6;
