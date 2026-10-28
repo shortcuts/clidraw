@@ -140,7 +140,7 @@ fn check(name: &str, actual: &str) {
 
 ## Diagram kinds
 
-A diagram kind reads and writes one text format. Each kind implements the `DiagramKind` trait in `src/diagram/mod.rs`. Flowchart is the only kind now.
+A diagram kind is only a text import and export format. Each kind implements the `DiagramKind` trait in `src/diagram/mod.rs`. The canvas stays free-form: it draws any diagram, with or without a kind. Flowchart is the one kind that exists today.
 
 - Add a kind in its own module under `src/diagram/`. Implement `keywords`, `import`, `export` and `validate`.
 - Register the kind in `KINDS` (in `src/diagram/mod.rs`, private to that module). The first word of the header picks the kind.
