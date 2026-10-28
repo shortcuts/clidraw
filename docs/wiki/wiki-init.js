@@ -11,7 +11,7 @@
       { href: 'mcp.html', label: 'MCP tools' },
     ] },
     { group: 'How-to', items: [
-      { href: 'draw-a-flowchart.html', label: 'Draw a flowchart' },
+      { href: 'draw-shapes-and-arrows.html', label: 'Draw shapes and arrows' },
       { href: 'import-mermaid.html', label: 'Import Mermaid' },
       { href: 'export-svg.html', label: 'Export SVG' },
       { href: 'manage-canvases.html', label: 'Manage canvases' },

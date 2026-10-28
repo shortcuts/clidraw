@@ -11,7 +11,7 @@ Export to SVG or Mermaid, import Mermaid, and drive it from scripts and agents.
 
 ## Features
 
-- Draw [flowcharts](https://clidraw.shrtcts.fr/draw-a-flowchart.html) with arrows that bind to shapes.
+- Draw [diagrams](https://clidraw.shrtcts.fr/draw-shapes-and-arrows.html) with arrows that bind to shapes.
 - [Import Mermaid](https://clidraw.shrtcts.fr/import-mermaid.html) and [export SVG](https://clidraw.shrtcts.fr/export-svg.html) or Mermaid.
 - [Manage canvases](https://clidraw.shrtcts.fr/manage-canvases.html). Each canvas is one local file.
 - Use the [command line](https://clidraw.shrtcts.fr/cli.html) or [MCP tools](https://clidraw.shrtcts.fr/mcp.html).
