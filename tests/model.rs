@@ -1,7 +1,7 @@
 use clidraw::model::{
     corners, edge_anchor, label_pos, route, side_anchor, side_at, side_index, side_label_at,
     side_mid, wrap, Anchor, Axis, Canvas, Command, Edge, Element, End, History, Id, Line, LineKind,
-    Shape, ShapeKind, Side, SideLabel, Stroke, Text, Z,
+    ModelError, Paint, Shape, ShapeKind, Side, SideLabel, Stroke, Text, Z,
 };
 use std::collections::HashSet;
 
@@ -1953,4 +1953,147 @@ fn side_labels_serialize_only_when_present() {
     let json = serde_json::to_string(&with).unwrap();
     assert!(json.contains(r#""side_labels":[{"edge":"top","text":"x"}]"#));
     assert_eq!(serde_json::from_str::<Shape>(&json).unwrap(), with);
+}
+
+#[test]
+fn moving_a_text_moves_its_position_and_undo_puts_it_back() {
+    let mut c = Canvas::default();
+    c.push(Element::Text(Text {
+        id: Id::from("tttttttt"),
+        x: 1,
+        y: 2,
+        text: "hi".into(),
+        color: None,
+    }))
+    .unwrap();
+    let text = Id::from("tttttttt");
+    let undo = c
+        .apply(Command::Move {
+            id: text.clone(),
+            dx: 2,
+            dy: 3,
+        })
+        .unwrap();
+    assert!(matches!(c.get(&text), Some(Element::Text(t)) if (t.x, t.y) == (3, 5)));
+    c.apply(undo).unwrap();
+    assert!(matches!(c.get(&text), Some(Element::Text(t)) if (t.x, t.y) == (1, 2)));
+}
+
+#[test]
+fn moving_a_line_moves_its_bends_with_its_free_ends() {
+    let mut c = Canvas::default();
+    let mut bent = arrow(End::Free(0, 0), End::Free(10, 0));
+    let Element::Line(l) = &mut bent else {
+        unreachable!()
+    };
+    l.bends = vec![(5, 5)];
+    c.push(bent).unwrap();
+    c.apply(Command::Move {
+        id: Id::from("line0000"),
+        dx: 2,
+        dy: 3,
+    })
+    .unwrap();
+    let Some(Element::Line(l)) = c.get(&Id::from("line0000")) else {
+        panic!("no line")
+    };
+    assert_eq!(l.bends, vec![(7, 8)]);
+    assert_eq!(l.from, End::Free(2, 3));
+    assert_eq!(l.to, End::Free(12, 3));
+}
+
+#[test]
+fn shape_only_edits_reject_lines_and_stroke_rejects_text() {
+    let mut c = Canvas::default();
+    c.push(shape("aaaaaaaa", 0)).unwrap();
+    c.push(arrow(bound("aaaaaaaa"), End::Free(9, 9))).unwrap();
+    c.push(Element::Text(Text {
+        id: Id::from("tttttttt"),
+        x: 0,
+        y: 0,
+        text: String::new(),
+        color: None,
+    }))
+    .unwrap();
+    let line = Id::from("line0000");
+    let shape_id = Id::from("aaaaaaaa");
+    let on_line = [
+        Command::SetRect {
+            id: line.clone(),
+            x: 0,
+            y: 0,
+            w: 6,
+            h: 3,
+        },
+        Command::SetKind {
+            id: line.clone(),
+            kind: ShapeKind::Diamond,
+        },
+        Command::SetBorder {
+            id: line.clone(),
+            border: Default::default(),
+        },
+        Command::SetFill {
+            id: line.clone(),
+            fill: None,
+        },
+        Command::SetAlign {
+            id: line.clone(),
+            align: Default::default(),
+        },
+        Command::SetBold {
+            id: line.clone(),
+            bold: true,
+        },
+        Command::SetLink {
+            id: line.clone(),
+            link: None,
+        },
+        Command::SetStroke {
+            id: Id::from("tttttttt"),
+            stroke: Default::default(),
+        },
+        Command::SetLabelAt {
+            id: shape_id.clone(),
+            at: None,
+        },
+        Command::SetEnd {
+            id: shape_id.clone(),
+            side: Side::From,
+            end: End::Free(0, 0),
+        },
+        Command::SetBends {
+            id: shape_id,
+            bends: vec![],
+        },
+    ];
+    for cmd in on_line {
+        let shown = format!("{cmd:?}");
+        assert!(
+            matches!(c.apply(cmd), Err(ModelError::WrongKind(_))),
+            "{shown}"
+        );
+    }
+}
+
+#[test]
+fn a_line_color_is_set_and_undone() {
+    let mut c = Canvas::default();
+    c.push(shape("aaaaaaaa", 0)).unwrap();
+    c.push(arrow(bound("aaaaaaaa"), End::Free(9, 9))).unwrap();
+    let line = Id::from("line0000");
+    let undo = c
+        .apply(Command::SetColor {
+            id: line.clone(),
+            color: Some(Paint::Red),
+        })
+        .unwrap();
+    assert!(matches!(c.get(&line), Some(Element::Line(l)) if l.color == Some(Paint::Red)));
+    c.apply(undo).unwrap();
+    assert!(matches!(c.get(&line), Some(Element::Line(l)) if l.color.is_none()));
+}
+
+#[test]
+fn an_empty_batch_names_nothing() {
+    assert_eq!(Command::Batch(vec![]).label(), "nothing");
 }

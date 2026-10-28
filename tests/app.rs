@@ -3153,3 +3153,124 @@ fn import_drawer_navigates_fills_and_descends() {
         .text
         .starts_with("Imported 2 shapes"));
 }
+
+/// Finds `text` on the rendered 80x24 screen, from the bottom row up, as (column, row).
+fn text_at(app: &App, text: &str) -> (u16, u16) {
+    let area = Rect::new(0, 0, 80, 24);
+    let mut buf = Buffer::empty(area);
+    app.render(&mut buf, area);
+    (0..24)
+        .rev()
+        .find_map(|y| {
+            let row: String = (0..80).map(|x| buf[(x, y)].symbol().to_string()).collect();
+            row.find(text)
+                .map(|at| (row[..at].chars().count() as u16, y))
+        })
+        .unwrap_or_else(|| panic!("{text} is not on screen"))
+}
+
+fn select_one_shape(app: &mut App) {
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+}
+
+fn shape_kind(app: &App) -> ShapeKind {
+    match app.session.canvas.get(&Id::from("aaaaaaaa")) {
+        Some(Element::Shape(s)) => s.kind,
+        _ => panic!("no shape"),
+    }
+}
+
+#[test]
+fn clicking_an_ink_swatch_paints_the_selection_and_closes_the_list() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    select_one_shape(&mut app);
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "ink", now);
+    app.on_event(key(KeyCode::Enter), now);
+    let (x, y) = text_at(&app, "red");
+    click(&mut app, x + 1, y, now);
+    assert!(matches!(
+        app.session.canvas.get(&Id::from("aaaaaaaa")),
+        Some(Element::Shape(s)) if s.color == Some(Paint::Red)
+    ));
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+}
+
+#[test]
+fn clicking_a_shape_kind_applies_it_and_clicking_off_the_list_restores_the_kind() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    select_one_shape(&mut app);
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "change shape", now);
+    app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Down), now);
+    assert_eq!(
+        shape_kind(&app),
+        ShapeKind::Diamond,
+        "arrow previews the kind"
+    );
+    click(&mut app, 0, 0, now);
+    assert_eq!(shape_kind(&app), ShapeKind::Rect);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "change shape", now);
+    app.on_event(key(KeyCode::Enter), now);
+    let (x, y) = text_at(&app, "Hexagon");
+    click(&mut app, x + 1, y, now);
+    assert_eq!(shape_kind(&app), ShapeKind::Hexagon);
+}
+
+#[test]
+fn clicking_the_rename_or_delete_text_of_a_canvas_row_starts_that_prompt() {
+    use clidraw::ui::prompt::PromptKind;
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    open_canvases(&mut app, now);
+    let (x, y) = text_at(&app, "r rename");
+    click(&mut app, x, y, now);
+    assert!(matches!(prompt_kind(&app), Some(PromptKind::Rename(_))));
+    app.on_event(key(KeyCode::Esc), now);
+
+    open_canvases(&mut app, now);
+    let (x, y) = text_at(&app, "x delete");
+    click(&mut app, x, y, now);
+    assert!(matches!(
+        prompt_kind(&app),
+        Some(PromptKind::ConfirmDelete(_))
+    ));
+    app.on_event(key(KeyCode::Esc), now);
+
+    open_canvases(&mut app, now);
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+}
+
+#[test]
+fn clicking_off_the_colors_scope_or_canvas_list_closes_it() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    select_one_shape(&mut app);
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "ink", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Colors(..)));
+    click(&mut app, 0, 0, now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+
+    open_export(&mut app, now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Scope(..)));
+    click(&mut app, 0, 0, now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+
+    open_canvases(&mut app, now);
+    click(&mut app, 0, 0, now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+}
