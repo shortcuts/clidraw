@@ -1,13 +1,15 @@
 use super::App;
 use crate::diagram::{DiagramKind, Flowchart};
-use crate::model::{Canvas, Element, Id, Paint, Shape, ShapeKind};
+use crate::model::{
+    Anchor, Canvas, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind, Stroke,
+};
 use crate::ui::actions::Action;
 use crate::ui::list::{List, Row};
 use crate::ui::Status;
 
 type Build = fn() -> Result<Canvas, String>;
 
-const TEMPLATES: [(&str, Build); 3] = [
+const TEMPLATES: [(&str, Build); 4] = [
     ("Flowchart", || {
         Flowchart
             .import(include_str!("../../docs/tapes/seed/flow.mmd"))
@@ -19,6 +21,7 @@ const TEMPLATES: [(&str, Build); 3] = [
             .map(|input| input.canvas)
     }),
     ("Gantt chart", || Ok(gantt())),
+    ("Sequence diagram", || Ok(sequence_diagram())),
 ];
 
 const LABEL_W: i32 = 16;
@@ -31,6 +34,74 @@ const TASKS: [(&str, i32, i32); 4] = [
     ("Test", 5, 1),
     ("Docs", 1, 3),
 ];
+
+const PARTICIPANTS: [&str; 3] = ["Client", "Server", "Database"];
+// (from, to, label, stroke) by participant index.
+const MESSAGES: [(usize, usize, &str, Stroke); 4] = [
+    (0, 1, "request", Stroke::Solid),
+    (1, 2, "query", Stroke::Solid),
+    (2, 1, "result", Stroke::Dashed),
+    (1, 0, "response", Stroke::Dashed),
+];
+const BOX_W: i32 = 14;
+const BOX_H: i32 = 3;
+const SPACING: i32 = 24;
+const ROW_GAP: i32 = 2;
+
+fn sequence_diagram() -> Canvas {
+    let mut elements = vec![];
+    let bottom = BOX_H + 2 + ROW_GAP * MESSAGES.len() as i32;
+    let center = |i: usize| i as i32 * SPACING + BOX_W / 2;
+    for (i, name) in PARTICIPANTS.iter().enumerate() {
+        let id = Id::random();
+        elements.push(Element::Shape(Shape {
+            id: id.clone(),
+            kind: ShapeKind::Rect,
+            x: i as i32 * SPACING,
+            y: 0,
+            w: BOX_W,
+            h: BOX_H,
+            label: name.to_string(),
+            stroke: Default::default(),
+            border: Default::default(),
+            color: None,
+            fill: None,
+            align: Default::default(),
+            bold: false,
+            link: None,
+            side_labels: vec![],
+        }));
+        elements.push(Element::Line(Line {
+            id: Id::random(),
+            kind: LineKind::Line,
+            from: End::Bound(id, Anchor::Auto),
+            to: End::Free(center(i), bottom),
+            label: String::new(),
+            label_at: None,
+            stroke: Stroke::Dotted,
+            bends: vec![],
+            color: None,
+        }));
+    }
+    for (k, &(from, to, label, stroke)) in MESSAGES.iter().enumerate() {
+        let y = BOX_H + 2 + ROW_GAP * k as i32;
+        elements.push(Element::Line(Line {
+            id: Id::random(),
+            kind: LineKind::Arrow,
+            from: End::Free(center(from), y),
+            to: End::Free(center(to), y),
+            label: label.to_string(),
+            label_at: None,
+            stroke,
+            bends: vec![],
+            color: None,
+        }));
+    }
+    Canvas {
+        elements,
+        ..Canvas::default()
+    }
+}
 
 impl App {
     pub(super) fn insert_template(&mut self, name: &str) {

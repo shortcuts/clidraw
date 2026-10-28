@@ -3408,7 +3408,12 @@ fn palette_inserts_the_flowchart_template_inside_one_frame() {
     app.on_event(key(KeyCode::Enter), now);
     assert_eq!(
         palette_labels(&app),
-        vec!["Flowchart", "Architecture dependency", "Gantt chart"]
+        vec![
+            "Flowchart",
+            "Architecture dependency",
+            "Gantt chart",
+            "Sequence diagram"
+        ]
     );
     app.on_event(key(KeyCode::Enter), now);
     assert!(!palette_open(&app));
@@ -3464,7 +3469,12 @@ fn new_canvas_offers_the_flowchart_template_inside_one_frame() {
     app.on_event(key(KeyCode::Enter), now);
     assert_eq!(
         palette_labels(&app),
-        vec!["Flowchart", "Architecture dependency", "Gantt chart"]
+        vec![
+            "Flowchart",
+            "Architecture dependency",
+            "Gantt chart",
+            "Sequence diagram"
+        ]
     );
     app.on_event(key(KeyCode::Enter), now);
     assert!(!palette_open(&app));
@@ -3528,4 +3538,42 @@ fn palette_inserts_the_gantt_template_with_offset_bars_inside_one_frame() {
         .filter(|e| matches!(e, Element::Shape(s) if s.kind == clidraw::model::ShapeKind::Frame))
         .collect();
     assert_eq!(frames.len(), 1);
+}
+
+#[test]
+fn palette_inserts_the_sequence_diagram_template_inside_one_frame() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    palette_typed(&mut app, "Insert template");
+    app.on_event(key(KeyCode::Enter), now);
+    type_str(&mut app, "Sequence", now);
+    assert_eq!(palette_labels(&app), vec!["Sequence diagram"]);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(!palette_open(&app));
+    assert_eq!(status(&app), "Inserted template Sequence diagram");
+    let shapes: Vec<&str> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Shape(s) => Some(s.label.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(shapes, vec!["", "Client", "Server", "Database"]);
+    let messages: Vec<&str> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Line(l) if !l.label.is_empty() => Some(l.label.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(messages, vec!["request", "query", "result", "response"]);
+    app.on_event(key(KeyCode::Char('u')), now);
+    assert!(app.session.canvas.elements.is_empty());
 }
