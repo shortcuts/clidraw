@@ -3408,7 +3408,7 @@ fn palette_inserts_the_flowchart_template_inside_one_frame() {
     app.on_event(key(KeyCode::Enter), now);
     assert_eq!(
         palette_labels(&app),
-        vec!["Flowchart", "Architecture dependency"]
+        vec!["Flowchart", "Architecture dependency", "Gantt chart"]
     );
     app.on_event(key(KeyCode::Enter), now);
     assert!(!palette_open(&app));
@@ -3462,7 +3462,10 @@ fn new_canvas_offers_the_flowchart_template_inside_one_frame() {
     let now = Instant::now();
     run_palette(&mut app, "create canvas", now);
     app.on_event(key(KeyCode::Enter), now);
-    assert_eq!(palette_labels(&app), vec!["Flowchart"]);
+    assert_eq!(
+        palette_labels(&app),
+        vec!["Flowchart", "Architecture dependency", "Gantt chart"]
+    );
     app.on_event(key(KeyCode::Enter), now);
     assert!(!palette_open(&app));
     assert_eq!(status(&app), "Inserted template Flowchart");
@@ -3488,4 +3491,41 @@ fn new_canvas_stays_blank_when_the_template_list_is_closed() {
     app.on_event(key(KeyCode::Esc), now);
     assert!(!palette_open(&app));
     assert!(app.session.canvas.elements.is_empty());
+}
+
+#[test]
+fn palette_inserts_the_gantt_template_with_offset_bars_inside_one_frame() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    palette_typed(&mut app, "Insert template");
+    app.on_event(key(KeyCode::Enter), now);
+    type_str(&mut app, "Gantt", now);
+    assert_eq!(palette_labels(&app), vec!["Gantt chart"]);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(!palette_open(&app));
+    assert_eq!(status(&app), "Inserted template Gantt chart");
+    let bars: Vec<(i32, i32)> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Shape(s) if s.fill.is_some() => Some((s.x, s.w)),
+            _ => None,
+        })
+        .collect();
+    let left = bars.iter().map(|b| b.0).min().unwrap();
+    let offsets: Vec<i32> = bars.iter().map(|b| b.0 - left).collect();
+    let widths: Vec<i32> = bars.iter().map(|b| b.1).collect();
+    assert_eq!(offsets, vec![0, 12, 30, 6]);
+    assert_eq!(widths, vec![12, 18, 6, 18]);
+    let frames: Vec<_> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter(|e| matches!(e, Element::Shape(s) if s.kind == clidraw::model::ShapeKind::Frame))
+        .collect();
+    assert_eq!(frames.len(), 1);
 }
