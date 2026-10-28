@@ -24,6 +24,8 @@ pub enum PromptKind {
     ExportClidraw(Extent),
     ConfirmOverwrite(String, ExportFormat, Extent),
     NewCanvas,
+    NewNote(Extent),
+    ConfirmAppend(String, Extent),
     Rename(String),
     ConfirmDelete(String),
     Command,
@@ -136,6 +138,8 @@ impl Prompt {
             PromptKind::ExportMermaid(_) => "Export Mermaid to path",
             PromptKind::ExportClidraw(_) => "Export Clidraw to path",
             PromptKind::NewCanvas => "New canvas name",
+            PromptKind::NewNote(_) => "New note name",
+            PromptKind::ConfirmAppend(..) => "Append to note",
             PromptKind::Rename(_) => "Rename canvas to",
             PromptKind::ConfirmDelete(_) => "Delete canvas",
             PromptKind::ConfirmOverwrite(..) => "Overwrite file",
@@ -169,6 +173,9 @@ pub fn draw(grid: &mut Grid, p: &Prompt) {
         }
         PromptKind::ConfirmOverwrite(path, ..) => {
             grid.text(r.0 + 2, r.1 + 1, &format!("Overwrite \"{path}\"?"), 0)
+        }
+        PromptKind::ConfirmAppend(path, _) => {
+            grid.text(r.0 + 2, r.1 + 1, &format!("Append to \"{path}\"?"), 0)
         }
         _ => caret_line(grid, r.0 + 2, r.1 + 1, r.2 - 4, "", p),
     }

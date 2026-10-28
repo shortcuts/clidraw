@@ -50,6 +50,14 @@ impl App {
                 }
                 _ => {}
             },
+            Overlay::Notes(x, n) => match n.list.key(k) {
+                Outcome::Run(hit) => {
+                    let x = *x;
+                    self.note_hit(hit, x)
+                }
+                Outcome::Close => self.overlay = Overlay::None,
+                _ => {}
+            },
             Overlay::Actions(l) => match l.key(k) {
                 Outcome::Run(action) => self.run_action(action),
                 Outcome::Close => self.overlay = Overlay::None,
@@ -110,6 +118,14 @@ impl App {
                     self.session.restore_kinds(origins);
                     self.overlay = Overlay::None;
                 }
+            },
+            Overlay::Notes(x, n) => match n.list.click(screen, col, row) {
+                Click::Row(hit, _) => {
+                    let x = *x;
+                    self.note_hit(hit, x)
+                }
+                Click::Inside => {}
+                Click::Outside => self.overlay = Overlay::None,
             },
             Overlay::Actions(l) => match l.click(screen, col, row) {
                 Click::Row(action, _) => self.run_action(action),

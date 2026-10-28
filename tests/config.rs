@@ -43,6 +43,8 @@ fn default_text_matches_defaults() {
         .lines()
         // Unset means the theme accent, which no single "#rrggbb" line can state.
         .filter(|l| !l.contains("chrome_accent ="))
+        // The example folder does not exist on the test machine.
+        .filter(|l| !l.contains("obsidian_vault ="))
         .map(|l| match l.strip_prefix("# ") {
             Some(rest) if rest.contains(" = ") => format!("{rest}\n"),
             _ => format!("{l}\n"),
@@ -225,4 +227,23 @@ fn quick_fixes_defaults_on_and_accepts_false() {
     assert!(!c.quick_fixes && w.is_empty());
     let (c, w, _t) = load_text("quick_fixes = \"yes\"\n");
     assert!(c.quick_fixes && w.len() == 1, "{w:?}");
+}
+
+#[test]
+fn obsidian_vault_defaults_to_none_and_needs_an_existing_folder() {
+    assert_eq!(Config::default().obsidian_vault, None);
+    let vault = tempfile::tempdir().unwrap();
+    let path = vault.path().to_str().unwrap().replace('\\', "/");
+    let (c, w, _t) = load_text(&format!("obsidian_vault = \"{path}\"\n"));
+    assert!(w.is_empty(), "{w:?}");
+    assert_eq!(c.obsidian_vault, Some(vault.path().to_path_buf()));
+    let (c, w, _t) = load_text("obsidian_vault = \"/missing/vault\"\n");
+    assert_eq!(c.obsidian_vault, None);
+    assert_eq!(
+        w,
+        vec!["config.toml: key obsidian_vault: expected a path to an existing folder"]
+    );
+    let (c, w, _t) = load_text("obsidian_vault = 3\n");
+    assert_eq!(c.obsidian_vault, None);
+    assert_eq!(w.len(), 1, "{w:?}");
 }

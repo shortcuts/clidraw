@@ -7,6 +7,7 @@ pub enum ExportFormat {
     Clidraw,
     Share,
     Obsidian,
+    ObsidianNote,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -43,6 +44,7 @@ pub fn list(format: ExportFormat) -> List<ScopeItem> {
             ExportFormat::Clidraw => "Export Clidraw",
             ExportFormat::Share => "Copy share link",
             ExportFormat::Obsidian => "Copy for Obsidian",
+            ExportFormat::ObsidianNote => "Save to Obsidian note",
         },
         vec![
             row(ScopeItem::Whole, "Whole canvas"),

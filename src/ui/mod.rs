@@ -9,6 +9,7 @@ mod layout;
 pub mod list;
 pub mod menu;
 pub mod minimap;
+pub mod notes;
 pub mod palette;
 pub mod paths;
 mod perf;
@@ -38,6 +39,7 @@ pub enum Overlay {
         list::List<crate::model::ShapeKind>,
     ),
     Switcher(switcher::Switcher),
+    Notes(prompt::Extent, notes::Notes),
     Prompt(prompt::Prompt),
     Help(usize, String),
     Actions(list::List<actions::Action>),
@@ -114,6 +116,7 @@ pub fn render(
         Overlay::Colors(_, l) => l.draw(&mut grid),
         Overlay::Kinds(_, l) => l.draw(&mut grid),
         Overlay::Switcher(sw) => sw.draw(&mut grid),
+        Overlay::Notes(_, n) => n.draw(&mut grid),
         Overlay::Prompt(p)
             if matches!(
                 p.kind,

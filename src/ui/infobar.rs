@@ -136,6 +136,7 @@ fn hints(s: &Session, doc: &Doc, overlay: &Overlay) -> Vec<(String, &'static str
         | Overlay::Colors(..)
         | Overlay::Kinds(..)
         | Overlay::Switcher(_)
+        | Overlay::Notes(..)
         | Overlay::Actions(_) => &["run", "select", "close"],
         Overlay::Map(_) => &["overview_target", "jump", "close"],
         Overlay::Help(..) => &["tabs", "close"],

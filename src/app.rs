@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 
 mod actions;
 mod command;
-mod export;
+pub(crate) mod export;
 pub(crate) use export::expand_home;
 mod help;
 mod import;
@@ -24,6 +24,7 @@ mod library;
 mod list;
 mod open;
 mod template;
+mod vault;
 
 pub struct App {
     pub session: Session,
@@ -48,6 +49,7 @@ pub struct App {
     export_padding: i32,
     quick_fixes: bool,
     mermaid_header: String,
+    obsidian_vault: Option<std::path::PathBuf>,
 }
 
 impl App {
@@ -343,6 +345,7 @@ impl App {
                 | Overlay::Colors(..)
                 | Overlay::Kinds(..)
                 | Overlay::Switcher(_)
+                | Overlay::Notes(..)
                 | Overlay::Actions(_)
         ) {
             self.list_key(k);
@@ -365,6 +368,7 @@ impl App {
             | Overlay::Colors(..)
             | Overlay::Kinds(..)
             | Overlay::Switcher(_)
+            | Overlay::Notes(..)
             | Overlay::Actions(_) => self.list_click(col, row),
             Overlay::Prompt(p) if p.path_arg().is_some() => {
                 let bar = i32::from(screen.1) - 1;
@@ -414,6 +418,12 @@ impl App {
             MenuItem::CopyClidraw => self.copy_clidraw(),
             MenuItem::CopyShareLink => self.pick_scope(ExportFormat::Share),
             MenuItem::CopyForObsidian => self.pick_scope(ExportFormat::Obsidian),
+            MenuItem::SaveToObsidianNote if self.obsidian_vault.is_none() => {
+                self.status = Some(ui::Status::error(
+                    "Set obsidian_vault in config.toml to save to a vault",
+                ))
+            }
+            MenuItem::SaveToObsidianNote => self.pick_scope(ExportFormat::ObsidianNote),
             MenuItem::Quit => self.quit = true,
         }
     }
@@ -512,6 +522,8 @@ impl App {
             PromptKind::ExportMermaid(x) => self.export(&buf, ExportFormat::Mermaid, x),
             PromptKind::ExportClidraw(x) => self.export(&buf, ExportFormat::Clidraw, x),
             PromptKind::ConfirmOverwrite(path, format, x) => self.write_export(&path, format, x),
+            PromptKind::NewNote(x) => self.new_note(&buf, x),
+            PromptKind::ConfirmAppend(name, x) => self.append_note(&name, x),
             PromptKind::NewCanvas => match self.store.create(&buf) {
                 Ok(()) => self.switch_to(&buf),
                 Err(e) => self.status = Some(ui::Status::error(e.to_string())),

@@ -13,6 +13,7 @@ pub enum MenuItem {
     CopyClidraw,
     CopyShareLink,
     CopyForObsidian,
+    SaveToObsidianNote,
     Quit,
 }
 

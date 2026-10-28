@@ -54,6 +54,7 @@ impl App {
             export_padding: config.export_padding,
             quick_fixes: config.quick_fixes,
             mermaid_header: "flowchart TD".into(),
+            obsidian_vault: config.obsidian_vault,
         };
         app.load_into(&name)?;
         Ok(app)

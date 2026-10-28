@@ -538,6 +538,13 @@ pub const BINDINGS: &[Binding] = &[
         Some(Action::Menu(MenuItem::CopyForObsidian)),
     ),
     Binding::new(
+        "save_to_obsidian_note",
+        &[],
+        "Save to Obsidian note",
+        Scope::Palette,
+        Some(Action::Menu(MenuItem::SaveToObsidianNote)),
+    ),
+    Binding::new(
         "insert_template",
         &[],
         "Insert template",

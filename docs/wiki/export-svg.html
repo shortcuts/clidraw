@@ -69,6 +69,17 @@ writeFileSync(process.argv[3], svg);</code></pre>
     <p>The clipboard holds a Mermaid code block. Obsidian draws it as a diagram.</p>
     <p>Elements with no Mermaid form are dropped, the same as in Mermaid export. The status line reports how many were dropped.</p>
     <p>Terminals that ignore OSC 52 copy nothing. Some terminals and tmux cap the copy length, so a large diagram can be copied incomplete.</p>
+
+    <h2 id="save-a-diagram-into-an-obsidian-vault">Save a diagram into an Obsidian vault</h2>
+    <ol>
+      <li>Set <code>obsidian_vault</code> to your vault folder in the <a href="config.html">configuration</a>.</li>
+      <li>Press <kbd>Ctrl-p</kbd> and choose <code>Save to Obsidian note</code>.</li>
+      <li>Choose what to save: the whole canvas, a dragged area or the selection.</li>
+      <li>Pick a note from the list, or choose <code>+ New note</code> and type a name.</li>
+    </ol>
+    <p>Type in the list to filter the notes. The list shows every Markdown file in the vault except those in folders that start with a dot.</p>
+    <p>clidraw writes the Mermaid code block at the end of the note, after a blank line. It never rewrites the text that is already there.</p>
+    <p>A new note name defaults to the canvas name. If a note with that name exists, clidraw asks before it appends.</p>
   </main>
 
 </div>

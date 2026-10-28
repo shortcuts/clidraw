@@ -3,7 +3,7 @@ use crate::store::validate_name;
 use crate::ui::theme::ThemeSetting;
 use ratatui::style::Color;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 const FILE: &str = "config.toml";
@@ -44,6 +44,9 @@ pub const DEFAULT_TOML: &str = "\
 
 # Color palette: auto asks the terminal for its background, or force dark or light.
 # theme = \"auto\"
+
+# Folder of your Obsidian vault. Save to Obsidian note in the command palette writes into it.
+# obsidian_vault = \"~/Documents/vault\"
 ";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -59,6 +62,7 @@ pub struct Config {
     pub scroll_speed: i32,
     pub theme: ThemeSetting,
     pub chrome_accent: Option<Color>,
+    pub obsidian_vault: Option<PathBuf>,
 }
 
 impl Default for Config {
@@ -75,6 +79,7 @@ impl Default for Config {
             scroll_speed: 100,
             theme: ThemeSetting::Auto,
             chrome_accent: None,
+            obsidian_vault: None,
         }
     }
 }
@@ -120,6 +125,7 @@ impl Config {
                 "quick_fixes" => flag(value).map(|b| self.quick_fixes = b),
                 "scroll_speed" => speed(value).map(|n| self.scroll_speed = n),
                 "chrome_accent" => hex(value).map(|c| self.chrome_accent = Some(c)),
+                "obsidian_vault" => vault(value).map(|p| self.obsidian_vault = Some(p)),
                 "theme" => theme(value).map(|t| self.theme = t),
                 _ => {
                     warns.push(format!("{FILE}: unknown key {key}"));
@@ -206,6 +212,16 @@ fn hex(v: &toml::Value) -> Result<Color, String> {
     }
     let n = u32::from_str_radix(digits, 16).map_err(|_| bad())?;
     Ok(Color::Rgb((n >> 16) as u8, (n >> 8) as u8, n as u8))
+}
+
+fn vault(v: &toml::Value) -> Result<PathBuf, String> {
+    let path = PathBuf::from(crate::app::export::expand_home(
+        v.as_str().unwrap_or_default(),
+    ));
+    match v.is_str() && path.is_dir() {
+        true => Ok(path),
+        false => Err("expected a path to an existing folder".into()),
+    }
 }
 
 fn name(v: &toml::Value) -> Result<String, String> {
