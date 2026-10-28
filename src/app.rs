@@ -16,8 +16,7 @@ use std::time::{Duration, Instant};
 
 mod actions;
 mod command;
-pub(crate) mod export;
-pub(crate) use export::expand_home;
+mod export;
 mod help;
 mod import;
 mod library;

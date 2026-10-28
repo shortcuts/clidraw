@@ -1,5 +1,5 @@
 use super::list::{Anchor, List, Row};
-use crate::app::expand_home;
+use crate::config::expand_home;
 
 pub struct Entry {
     pub name: String,

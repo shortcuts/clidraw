@@ -241,10 +241,19 @@ fn hex(v: &toml::Value) -> Result<Color, String> {
     Ok(Color::Rgb((n >> 16) as u8, (n >> 8) as u8, n as u8))
 }
 
+pub fn expand_home(path: &str) -> String {
+    let rest = match path.strip_prefix('~') {
+        Some(rest) if rest.is_empty() || rest.starts_with('/') => rest,
+        _ => return path.to_string(),
+    };
+    match std::env::home_dir() {
+        Some(home) => format!("{}{rest}", home.display()),
+        None => path.to_string(),
+    }
+}
+
 fn vault(v: &toml::Value) -> Result<PathBuf, String> {
-    let path = PathBuf::from(crate::app::export::expand_home(
-        v.as_str().unwrap_or_default(),
-    ));
+    let path = PathBuf::from(expand_home(v.as_str().unwrap_or_default()));
     match v.is_str() && path.is_dir() {
         true => Ok(path),
         false => Err("expected a path to an existing folder".into()),

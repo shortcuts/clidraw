@@ -1,4 +1,5 @@
-use super::{expand_home, App};
+use super::App;
+use crate::config::expand_home;
 use crate::diagram::{import_failure, DiagramKind, Flowchart};
 use crate::model::{Command, Element, Id, Shape, ShapeKind, TextAlign};
 use crate::ui::Status;

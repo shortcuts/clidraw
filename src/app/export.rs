@@ -1,4 +1,5 @@
 use super::App;
+use crate::config::expand_home;
 use crate::export;
 use crate::model::Canvas;
 use crate::ui::prompt::{Extent, Prompt, PromptKind};
@@ -187,17 +188,6 @@ impl App {
             Ok(()) => Status::notice(format!("Exported {path}")),
             Err(e) => Status::error(format!("Export failed: {e}")),
         });
-    }
-}
-
-pub(crate) fn expand_home(path: &str) -> String {
-    let rest = match path.strip_prefix('~') {
-        Some(rest) if rest.is_empty() || rest.starts_with('/') => rest,
-        _ => return path.to_string(),
-    };
-    match std::env::home_dir() {
-        Some(home) => format!("{}{rest}", home.display()),
-        None => path.to_string(),
     }
 }
 
