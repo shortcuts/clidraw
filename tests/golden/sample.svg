@@ -32,6 +32,6 @@
   <path d="M-44 136 L-44 232" fill="none" stroke="black" stroke-linejoin="round" marker-end="url(#arrow)"/>
   <path d="M100 40 L164 40 L164 232 L236 232" fill="none" stroke="black" stroke-dasharray="2 4" stroke-linejoin="round" marker-start="url(#arrow)"/>
   <path d="M292 184 L292 136 L212 136 L212 40 L100 40" fill="none" stroke="black" stroke-linejoin="round" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
-  <rect x="-8" y="288" width="352" height="144" fill="none" stroke="black"/>
-  <text x="0" y="288" text-anchor="start" dominant-baseline="central">Group</text>
+  <rect x="-8" y="288" width="352" height="144" fill="none" stroke="#767676" stroke-dasharray="2 4"/>
+  <text x="0" y="288" text-anchor="start" dominant-baseline="central" fill="#767676">Group</text>
 </svg>

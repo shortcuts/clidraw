@@ -47,6 +47,14 @@ pub fn ink(theme: Theme, p: Paint) -> Color {
     }
 }
 
+/// The default ink of a frame that has no color.
+pub fn frame_ink(theme: Theme) -> Color {
+    match theme {
+        Theme::Dark => Color::Rgb(150, 150, 150),
+        Theme::Light => Color::Rgb(118, 118, 118),
+    }
+}
+
 /// The ink with its hue turned 180 degrees; uncolored elements have no hue, so they take the accent.
 pub fn selected(theme: Theme, p: Option<Paint>) -> Color {
     let Some(p) = p else {

@@ -73,6 +73,13 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
                 grid.tint(sx, sy, w, h, theme::selected(s.theme, ink));
             } else if let Some(p) = ink {
                 grid.tint(sx, sy, w, h, theme::ink(s.theme, p));
+            } else if matches!(e, Element::Shape(sh) if sh.kind == ShapeKind::Frame) {
+                // Border only: a whole-rect tint would recolor the frame's children.
+                let grey = theme::frame_ink(s.theme);
+                grid.tint(sx, sy, w, 1, grey);
+                grid.tint(sx, sy + h - 1, w, 1, grey);
+                grid.tint(sx, sy, 1, h, grey);
+                grid.tint(sx + w - 1, sy, 1, h, grey);
             }
             if let Some(p) = fill {
                 grid.shade(sx, sy, w, h, theme::fill(s.theme, p));
@@ -349,13 +356,18 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, hidden: Option
 
 fn frame(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     let (w, h) = (s.w, s.h);
+    let stroke = if s.stroke == Stroke::Solid {
+        Stroke::Dotted
+    } else {
+        s.stroke
+    };
     for i in 1..w - 1 {
-        grid.set(x + i, y, dashed(s.stroke, '─'), flags);
-        grid.set(x + i, y + h - 1, dashed(s.stroke, '─'), flags);
+        grid.set(x + i, y, dashed(stroke, '─'), flags);
+        grid.set(x + i, y + h - 1, dashed(stroke, '─'), flags);
     }
     for j in 1..h - 1 {
-        grid.set(x, y + j, dashed(s.stroke, '│'), flags);
-        grid.set(x + w - 1, y + j, dashed(s.stroke, '│'), flags);
+        grid.set(x, y + j, dashed(stroke, '│'), flags);
+        grid.set(x + w - 1, y + j, dashed(stroke, '│'), flags);
     }
     for (c, (cx, cy)) in ['┌', '┐', '└', '┘'].into_iter().zip([
         (x, y),

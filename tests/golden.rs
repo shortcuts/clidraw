@@ -209,6 +209,35 @@ fn svg_padding_widens_the_view_box() {
 }
 
 #[test]
+fn a_default_frame_draws_grey_and_dotted_but_a_colored_one_keeps_its_color() {
+    let frame = |color| {
+        let mut c = Canvas::default();
+        c.elements.push(Element::Shape(Shape {
+            id: Id::from("ffffffff"),
+            kind: ShapeKind::Frame,
+            x: 0,
+            y: 0,
+            w: 12,
+            h: 5,
+            label: "Auth".into(),
+            stroke: Default::default(),
+            border: Default::default(),
+            color,
+            fill: None,
+            align: Default::default(),
+            bold: false,
+            link: None,
+            side_labels: vec![],
+        }));
+        svg(&c)
+    };
+    let plain = frame(None);
+    assert!(plain.contains("stroke=\"#767676\" stroke-dasharray=\"2 4\""));
+    assert!(plain.contains("fill=\"#767676\">Auth"));
+    assert!(!frame(Some(Paint::Blue)).contains("#767676"));
+}
+
+#[test]
 fn clidraw_matches_golden() {
     check("sample.clidraw.json", &encode(&sample()).unwrap());
 }

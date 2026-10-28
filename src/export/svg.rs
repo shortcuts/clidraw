@@ -7,6 +7,7 @@ use std::fmt::Write;
 const CW: i32 = 8;
 const CH: i32 = 16;
 const MARGIN: i32 = 2;
+const FRAME_GREY: &str = "#767676";
 
 fn esc(s: &str) -> String {
     s.replace('&', "&amp;")
@@ -33,7 +34,7 @@ fn text(
     (x, y): (i32, i32),
     anchor: &str,
     lines: &[&str],
-    (ink, bold): (Option<Paint>, bool),
+    (ink, bold): (Option<String>, bool),
 ) {
     if lines.iter().all(|l| l.is_empty()) {
         return;
@@ -47,7 +48,7 @@ fn text(
         head
     };
     let head = match ink {
-        Some(p) => format!("{head} fill=\"{}\"", hex(p)),
+        Some(c) => format!("{head} fill=\"{c}\""),
         None => head,
     };
     if let [one] = lines {
@@ -85,14 +86,14 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
     let mut o = String::new();
     let _ = writeln!(o, "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"{vx} {vy} {vw} {vh}\" width=\"{vw}\" height=\"{vh}\" font-family=\"monospace\" font-size=\"14\">");
     o.push_str("  <defs><marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"8\" markerHeight=\"8\" orient=\"auto-start-reverse\"><path d=\"M0 0 L10 5 L0 10 z\" fill=\"context-stroke\"/></marker></defs>\n");
-    let style = |s: Stroke, ink: Option<Paint>, fill: Option<Paint>| {
+    let style = |s: Stroke, ink: Option<Paint>, fill: Option<Paint>, unset: &str| {
         let fill = fill.map_or("none".to_string(), hex);
         let opacity = if fill == "none" {
             String::new()
         } else {
             format!(" fill-opacity=\"{}\"", f64::from(FILL_ALPHA) / 100.0)
         };
-        let stroke = ink.map_or("black".to_string(), hex);
+        let stroke = ink.map_or(unset.to_string(), hex);
         format!("fill=\"{fill}\"{opacity} stroke=\"{stroke}\"{}", dash(s))
     };
     for e in canvas.stacking().map(|i| &canvas.elements[i]) {
@@ -104,8 +105,14 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                     Border::Heavy => " stroke-width=\"3\"",
                     _ => "",
                 };
-                let arc = format!("{}{width}", style(s.stroke, s.color, None));
-                let style = format!("{}{width}", style(s.stroke, s.color, s.fill));
+                let frame = s.kind == ShapeKind::Frame;
+                let (stroke, unset) = match (frame, s.stroke) {
+                    (true, Stroke::Solid) => (Stroke::Dotted, FRAME_GREY),
+                    (true, st) => (st, FRAME_GREY),
+                    (false, st) => (st, "black"),
+                };
+                let arc = format!("{}{width}", style(stroke, s.color, None, unset));
+                let style = format!("{}{width}", style(stroke, s.color, s.fill, unset));
                 let rx = if s.border == Border::Rounded {
                     " rx=\"8\""
                 } else {
@@ -189,7 +196,8 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                 }
                 if s.kind == ShapeKind::Frame {
                     let label = s.label.replace('\n', " ");
-                    text(&mut o, (x + CW, y), "start", &[&label], (s.color, s.bold));
+                    let ink = s.color.map(hex).unwrap_or(FRAME_GREY.into());
+                    text(&mut o, (x + CW, y), "start", &[&label], (Some(ink), s.bold));
                     linked(&mut o, start, &s.link);
                     continue;
                 }
@@ -203,11 +211,17 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                     TextAlign::Center => (x + w / 2, "middle"),
                     TextAlign::Right => (x + w - CW, "end"),
                 };
-                text(&mut o, (tx, y + h / 2), anchor, &lines, (s.color, s.bold));
+                text(
+                    &mut o,
+                    (tx, y + h / 2),
+                    anchor,
+                    &lines,
+                    (s.color.map(hex), s.bold),
+                );
                 for l in &s.side_labels {
                     let (lx, ly, shown) = side_label_at(s, l);
                     let at = (lx * CW, ly * CH + CH / 2);
-                    text(&mut o, at, "start", &[shown], (s.color, false));
+                    text(&mut o, at, "start", &[shown], (s.color.map(hex), false));
                 }
                 linked(&mut o, start, &s.link);
             }
@@ -237,17 +251,23 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                 let _ = writeln!(
                     o,
                     "  <path d=\"{d}\" {} stroke-linejoin=\"round\"{marker}/>",
-                    style(stroke, l.color, None)
+                    style(stroke, l.color, None, "black")
                 );
                 let (lx, ly) = mid(label_pos(&cells, l.label_at));
-                text(&mut o, (lx, ly), "middle", &[&l.label], (l.color, false));
+                text(
+                    &mut o,
+                    (lx, ly),
+                    "middle",
+                    &[&l.label],
+                    (l.color.map(hex), false),
+                );
             }
             Element::Text(t) => text(
                 &mut o,
                 (t.x * CW, t.y * CH + CH / 2),
                 "start",
                 &[&t.text],
-                (t.color, false),
+                (t.color.map(hex), false),
             ),
         }
     }

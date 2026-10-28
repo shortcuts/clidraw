@@ -147,7 +147,7 @@ fn a_frame_border_draws_over_a_later_shape() {
     }
     let s = Session::new(c, View::default(), (80, 24));
     let b = draw(&s, &Overlay::None);
-    assert_eq!(cols(&b, 4, 24, 1), "─");
+    assert_eq!(cols(&b, 4, 24, 1), "┄");
 }
 
 #[test]
@@ -166,6 +166,48 @@ fn dashed_and_dotted_strokes_swap_the_border_glyphs() {
     assert_eq!(cols(&b, 5, 20, 8), "╎      ╎");
     assert_eq!(cols(&b, 4, 40, 8), "┌┄┄┄┄┄┄┐");
     assert_eq!(cols(&b, 5, 40, 8), "┆      ┆");
+}
+
+#[test]
+fn frame_stroke_overrides_and_solid_draws_dotted() {
+    let mut s = kind_session(ShapeKind::Frame, 12, 5);
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 4, 20, 12), "┌┄┄┄┄┄┄┄┄┄┄┐");
+    assert_eq!(cols(&b, 5, 20, 12), "┆          ┆");
+    let Element::Shape(sh) = &mut s.canvas.elements[0] else {
+        unreachable!()
+    };
+    sh.stroke = Stroke::Dashed;
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 4, 20, 12), "┌╌╌╌╌╌╌╌╌╌╌┐");
+    assert_eq!(cols(&b, 5, 20, 12), "╎          ╎");
+}
+
+#[test]
+fn an_uncolored_frame_tints_only_its_border_grey() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("ffffffff", 20, ""));
+    c.elements.push(shape("bbbbbbbb", 22, ""));
+    if let Element::Shape(f) = &mut c.elements[0] {
+        f.kind = ShapeKind::Frame;
+        f.w = 20;
+        f.h = 7;
+    }
+    if let Element::Shape(r) = &mut c.elements[1] {
+        r.y += 1;
+        r.w = 4;
+        r.h = 3;
+    }
+    let s = Session::new(c, View::default(), (80, 24));
+    let on = draw_env(&s, false, Some("truecolor"));
+    let grey = Color::Rgb(150, 150, 150);
+    assert_eq!(
+        (on[(20, 4)].fg, on[(25, 4)].fg, on[(39, 8)].fg),
+        (grey, grey, grey)
+    );
+    assert_eq!(on[(22, 5)].fg, Color::Reset);
+    let off = draw_env(&s, true, Some("truecolor"));
+    assert_eq!(off[(20, 4)].fg, Color::Reset);
 }
 
 #[test]
@@ -950,9 +992,9 @@ fn frame_draws_its_label_on_the_border_and_leaves_the_interior() {
     };
     sh.label = "Auth".into();
     let b = draw(&s, &Overlay::None);
-    assert_eq!(cols(&b, 4, 20, 12), "┌ Auth ────┐");
-    assert_eq!(cols(&b, 5, 20, 12), "│          │");
-    assert_eq!(cols(&b, 8, 20, 12), "└──────────┘");
+    assert_eq!(cols(&b, 4, 20, 12), "┌ Auth ┄┄┄┄┐");
+    assert_eq!(cols(&b, 5, 20, 12), "┆          ┆");
+    assert_eq!(cols(&b, 8, 20, 12), "└┄┄┄┄┄┄┄┄┄┄┘");
     let Element::Shape(sh) = &mut s.canvas.elements[0] else {
         unreachable!()
     };
