@@ -158,7 +158,7 @@ pub fn validate(text: &str) -> Vec<Diagnostic> {
 ```
 
 - Good: `validate` above. A new kind joins `KINDS`, and the UI does not change.
-- Bad: `render` in `src/export/mod.rs`, `App::import_text` in `src/app/import.rs` and `import` in `src/cli.rs` name `Flowchart` directly. A second kind needs changes in each. Add a dispatch function in `src/diagram/mod.rs` before you add a second kind.
+- Bad: `render` in `src/export/mod.rs`, `App::import_text` in `src/app/import.rs` and `import` in `src/cli/mod.rs` name `Flowchart` directly. A second kind needs changes in each. Add a dispatch function in `src/diagram/mod.rs` before you add a second kind.
 
 A fix must change only the broken part. `arrow_fix` in `src/diagram/flowchart/validate.rs` keeps a candidate only when `parse_line` accepts the fixed line.
 

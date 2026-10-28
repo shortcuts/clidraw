@@ -1,4 +1,7 @@
-use clidraw::cli::{FieldDoc, COMMAND_DOCS, OPS};
+use clidraw::cli::{
+    docs::{FieldDoc, OPS},
+    COMMAND_DOCS,
+};
 use clidraw::config::DEFAULT_TOML;
 use clidraw::mcp::tools;
 use clidraw::ui::help::{self, SCOPES};

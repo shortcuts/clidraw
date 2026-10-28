@@ -6,22 +6,6 @@ use std::io::{BufRead, Write};
 
 const VERSIONS: [&str; 4] = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
-const OPS: &str = "Applies all ops or none and returns {\"applied\":N,\"ids\":[...]}. Ops: \
-add_shape (x, y, optional kind, w, h, label, color, fill, id), \
-add_text (x, y, text, optional color, id), \
-connect (from, to, optional kind, label, id), \
-set (id, optional label, color, fill, stroke, border, align, bold, link, kind, head), \
-resize (id, w, h), move (id, dx, dy), delete (id), \
-group (ids), ungroup (ids), order (ids, z), layout (optional ids, dir). \
-Shape kind: Rect, Diamond, Cylinder, Parallelogram, Hexagon, Frame. \
-Line kind: Line, Arrow, ArrowStart, ArrowBoth. \
-In set, kind changes a shape kind and head changes a line kind. \
-Colors: red, orange, yellow, green, blue, violet, or none in set. \
-stroke: solid, dashed, dotted. border: single, rounded, double, heavy. align: left, center, right. \
-bold: true or false. link: a URL, or an empty string to clear it. \
-z: front, back, forward, backward. dir: td (default) or lr; layout without ids arranges every shape. \
-A connect end is a shape id or an [x, y] cell.";
-
 fn schema(props: Value, required: &[&str]) -> Value {
     json!({"type": "object", "properties": props, "required": required, "additionalProperties": false})
 }
@@ -36,9 +20,12 @@ pub fn tools() -> Value {
          "inputSchema": schema(json!({"name": name}), &["name"])},
         {"name": "show", "description": "Print a canvas as JSON.",
          "inputSchema": schema(json!({"name": name}), &["name"])},
-        {"name": "edit", "description": format!("Edit an existing canvas. {OPS}"),
+        {"name": "edit", "description": format!(
+             "Edit an existing canvas. Applies all ops or none and returns {{\"applied\":N,\"ids\":[...]}}. \
+              Each item of ops is an object whose op field names the op. Ops: {}",
+             cli::docs::op_list()),
          "inputSchema": schema(json!({"name": name, "ops": {
-             "type": "array", "items": {"type": "object", "required": ["op"]}}}), &["name", "ops"])},
+             "type": "array", "items": cli::docs::op_items_schema()}}), &["name", "ops"])},
         {"name": "import",
          "description": "Add a Mermaid diagram below the existing content. The importer reads flowchart syntax only. Creates the canvas if missing.",
          "inputSchema": schema(json!({"name": name,

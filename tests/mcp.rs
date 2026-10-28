@@ -99,6 +99,43 @@ fn tools_list_names_the_eight_cli_commands() {
 }
 
 #[test]
+fn edit_schema_lists_every_op() {
+    let (_t, s) = store();
+    let r = rpc(&s, &[req(1, "tools/list", json!({}))]);
+    let tools = r[0]["result"]["tools"].as_array().unwrap();
+    let edit = tools.iter().find(|t| t["name"] == "edit").unwrap();
+    let one_of = edit["inputSchema"]["properties"]["ops"]["items"]["oneOf"]
+        .as_array()
+        .unwrap();
+    let names: Vec<&str> = one_of
+        .iter()
+        .map(|o| o["properties"]["op"]["const"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        names,
+        [
+            "add_shape",
+            "add_text",
+            "connect",
+            "set",
+            "resize",
+            "move",
+            "delete",
+            "group",
+            "ungroup",
+            "order",
+            "layout"
+        ]
+    );
+    let add_shape = &one_of[0];
+    assert_eq!(add_shape["required"], json!(["op", "x", "y"]));
+    assert!(add_shape["properties"]["kind"]["enum"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("Hexagon")));
+}
+
+#[test]
 fn new_edit_show_export_round_trip() {
     let (_t, s) = store();
     let ops = json!([
