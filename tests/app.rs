@@ -3770,6 +3770,72 @@ fn palette_inserts_the_sequence_diagram_template_inside_one_frame() {
 }
 
 #[test]
+fn palette_gantt_template_leaves_two_empty_task_rows_and_weeks() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    palette_typed(&mut app, "Insert template");
+    app.on_event(key(KeyCode::Enter), now);
+    type_str(&mut app, "Gantt", now);
+    app.on_event(key(KeyCode::Enter), now);
+    let rects: Vec<&Shape> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Shape(s) if s.kind == ShapeKind::Rect => Some(s),
+            _ => None,
+        })
+        .collect();
+    let left = rects.iter().map(|s| s.x).min().unwrap();
+    let top = rects.iter().map(|s| s.y).min().unwrap();
+    let rows = rects.iter().filter(|s| s.x == left).count();
+    let weeks = rects.iter().filter(|s| s.y == top && s.x != left).count();
+    assert_eq!(rows, 7);
+    assert_eq!(weeks, 8);
+}
+
+#[test]
+fn palette_sequence_template_spaces_messages_and_extends_lifelines() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    palette_typed(&mut app, "Insert template");
+    app.on_event(key(KeyCode::Enter), now);
+    type_str(&mut app, "Sequence", now);
+    app.on_event(key(KeyCode::Enter), now);
+    let message_ys: Vec<i32> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Line(l) if !l.label.is_empty() => match l.from {
+                End::Free(_, y) => Some(y),
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect();
+    assert_eq!(message_ys, vec![7, 11, 15, 19]);
+    let lifeline_ends: Vec<i32> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Line(l) if l.kind == LineKind::Line => match l.to {
+                End::Free(_, y) => Some(y),
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect();
+    assert_eq!(lifeline_ends, vec![35, 35, 35]);
+}
+
+#[test]
 fn palette_inserts_the_state_diagram_template_inside_one_frame() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());

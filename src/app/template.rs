@@ -32,7 +32,8 @@ const TEMPLATES: [(&str, Build); 5] = [
 const LABEL_W: i32 = 16;
 const WEEK_W: i32 = 6;
 const ROW_H: i32 = 3;
-const WEEKS: i32 = 6;
+const WEEKS: i32 = 8;
+const TASK_ROWS: usize = 6;
 const TASKS: [(&str, i32, i32); 4] = [
     ("Design", 0, 2),
     ("Build", 2, 3),
@@ -51,11 +52,12 @@ const MESSAGES: [(usize, usize, &str, Stroke); 4] = [
 const BOX_W: i32 = 14;
 const BOX_H: i32 = 3;
 const SPACING: i32 = 24;
-const ROW_GAP: i32 = 2;
+const ROW_GAP: i32 = 4;
+const SPARE_MESSAGES: i32 = 3;
 
 fn sequence_diagram() -> Canvas {
     let mut elements = vec![];
-    let bottom = BOX_H + 2 + ROW_GAP * MESSAGES.len() as i32;
+    let bottom = BOX_H + 2 + ROW_GAP * (MESSAGES.len() as i32 + SPARE_MESSAGES);
     let center = |i: usize| i as i32 * SPACING + BOX_W / 2;
     for (i, name) in PARTICIPANTS.iter().enumerate() {
         let id = Id::random();
@@ -134,13 +136,16 @@ fn gantt() -> Canvas {
             &format!("W{}", week + 1),
         )
     }));
-    for (row, &(task, start, weeks)) in TASKS.iter().enumerate() {
+    for row in 0..TASK_ROWS {
         let y = (row as i32 + 1) * ROW_H;
-        shapes.push(cell(0, y, LABEL_W, task));
-        shapes.push(Shape {
-            fill: Some(Paint::Blue),
-            ..cell(LABEL_W + start * WEEK_W, y, weeks * WEEK_W, "")
-        });
+        let task = TASKS.get(row);
+        shapes.push(cell(0, y, LABEL_W, task.map_or("", |t| t.0)));
+        if let Some(&(_, start, weeks)) = task {
+            shapes.push(Shape {
+                fill: Some(Paint::Blue),
+                ..cell(LABEL_W + start * WEEK_W, y, weeks * WEEK_W, "")
+            });
+        }
     }
     Canvas {
         elements: shapes.into_iter().map(Element::Shape).collect(),
