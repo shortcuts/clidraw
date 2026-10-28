@@ -3412,7 +3412,8 @@ fn palette_inserts_the_flowchart_template_inside_one_frame() {
             "Flowchart",
             "Architecture dependency",
             "Gantt chart",
-            "Sequence diagram"
+            "Sequence diagram",
+            "State diagram"
         ]
     );
     app.on_event(key(KeyCode::Enter), now);
@@ -3473,7 +3474,8 @@ fn new_canvas_offers_the_flowchart_template_inside_one_frame() {
             "Flowchart",
             "Architecture dependency",
             "Gantt chart",
-            "Sequence diagram"
+            "Sequence diagram",
+            "State diagram"
         ]
     );
     app.on_event(key(KeyCode::Enter), now);
@@ -3576,4 +3578,50 @@ fn palette_inserts_the_sequence_diagram_template_inside_one_frame() {
     assert_eq!(messages, vec!["request", "query", "result", "response"]);
     app.on_event(key(KeyCode::Char('u')), now);
     assert!(app.session.canvas.elements.is_empty());
+}
+
+#[test]
+fn palette_inserts_the_state_diagram_template_inside_one_frame() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    palette_typed(&mut app, "Insert template");
+    app.on_event(key(KeyCode::Enter), now);
+    type_str(&mut app, "State", now);
+    assert_eq!(palette_labels(&app), vec!["State diagram"]);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(!palette_open(&app));
+    assert_eq!(status(&app), "Inserted template State diagram");
+    let labels: Vec<&str> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Line(l) => Some(l.label.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(labels, vec!["", "submit", "done", "fail", ""]);
+    let states: Vec<&str> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Shape(s) if s.kind != clidraw::model::ShapeKind::Frame => {
+                Some(s.label.as_str())
+            }
+            _ => None,
+        })
+        .collect();
+    assert_eq!(states, vec!["Start", "Idle", "Running", "Done", "End"]);
+    let frames = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter(|e| matches!(e, Element::Shape(s) if s.kind == clidraw::model::ShapeKind::Frame))
+        .count();
+    assert_eq!(frames, 1);
 }

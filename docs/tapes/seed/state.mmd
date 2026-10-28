@@ -1,0 +1,6 @@
+flowchart LR
+  A([Start]) --> B[Idle]
+  B -->|submit| C[Running]
+  C -->|done| D[Done]
+  C -->|fail| B
+  D --> E([End])

@@ -9,7 +9,7 @@ use crate::ui::Status;
 
 type Build = fn() -> Result<Canvas, String>;
 
-const TEMPLATES: [(&str, Build); 4] = [
+const TEMPLATES: [(&str, Build); 5] = [
     ("Flowchart", || {
         Flowchart
             .import(include_str!("../../docs/tapes/seed/flow.mmd"))
@@ -22,6 +22,11 @@ const TEMPLATES: [(&str, Build); 4] = [
     }),
     ("Gantt chart", || Ok(gantt())),
     ("Sequence diagram", || Ok(sequence_diagram())),
+    ("State diagram", || {
+        Flowchart
+            .import(include_str!("../../docs/tapes/seed/state.mmd"))
+            .map(|input| input.canvas)
+    }),
 ];
 
 const LABEL_W: i32 = 16;
