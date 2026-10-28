@@ -85,7 +85,7 @@ impl Action {
             | Action::NewCanvas
             | Action::RenameCanvas
             | Action::DeleteCanvas => "Canvas",
-            Action::Menu(_) | Action::Ex("w") | Action::Prefill("import ") => "File",
+            Action::Menu(_) | Action::Ex("w" | "wq") | Action::Prefill("import ") => "File",
             _ => "Edit",
         }
     }

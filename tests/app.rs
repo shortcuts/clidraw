@@ -1373,6 +1373,36 @@ fn palette_zoom_actions_step_the_zoom_around_the_screen_center() {
 }
 
 #[test]
+fn palette_lists_save_quit_and_mermaid_editor() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    let l = palette_labels(&app);
+    assert!(l.contains(&"File: Save and quit".to_string()), "{l:?}");
+    assert!(
+        l.contains(&"Edit: Edit a Mermaid line".to_string()),
+        "{l:?}"
+    );
+}
+
+#[test]
+fn palette_mermaid_opens_editor_and_save_quit_quits() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "mermaid line", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Prompt(_)));
+    app.on_event(key(KeyCode::Esc), now);
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "save and quit", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(app.quit);
+}
+
+#[test]
 fn palette_filters_fuzzily_and_backspace_widens() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());

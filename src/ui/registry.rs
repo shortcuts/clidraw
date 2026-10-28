@@ -790,7 +790,7 @@ pub const BINDINGS: &[Binding] = &[
     ex("quit_cmd", ":q", "Quit", None),
     ex("undo_cmd", ":u", "Undo", None),
     ex("redo_cmd", ":redo", "Redo", None),
-    ex("save_quit", ":wq", "Save and quit", None),
+    ex("save_quit", ":wq", "Save and quit", Some(Action::Ex("wq"))),
     ex("open", ":e <name>", "Open or create a canvas", None),
     ex(
         "import",
@@ -798,7 +798,12 @@ pub const BINDINGS: &[Binding] = &[
         "Import file",
         Some(Action::Prefill("import ")),
     ),
-    ex("mermaid", ":mermaid", "Edit a Mermaid line", None),
+    ex(
+        "mermaid",
+        ":mermaid",
+        "Edit a Mermaid line",
+        Some(Action::Ex("mermaid")),
+    ),
     ex(
         "export",
         ":export [svg|mmd|clidraw]",
