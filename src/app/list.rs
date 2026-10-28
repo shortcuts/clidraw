@@ -2,7 +2,7 @@ use super::App;
 use crate::ui::list::{Click, Outcome};
 use crate::ui::switcher::{self, SwitcherHit};
 use crate::ui::Overlay;
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 
 impl App {
     pub(super) fn list_key(&mut self, k: KeyEvent) {
@@ -58,11 +58,18 @@ impl App {
                 Outcome::Close => self.overlay = Overlay::None,
                 _ => {}
             },
-            Overlay::Actions(l) => match l.key(k) {
-                Outcome::Run(action) => self.run_action(action),
-                Outcome::Close => self.overlay = Overlay::None,
-                _ => {}
-            },
+            Overlay::Actions(l) => {
+                if let (KeyCode::Enter, Some(line)) = (k.code, l.ex_line().map(String::from)) {
+                    self.overlay = Overlay::None;
+                    self.run_command(&line);
+                } else {
+                    match l.key(k) {
+                        Outcome::Run(action) => self.run_action(action),
+                        Outcome::Close => self.overlay = Overlay::None,
+                        _ => {}
+                    }
+                }
+            }
             Overlay::Switcher(sw) => match sw.list.key(k) {
                 Outcome::Run(hit) => self.switcher_hit(hit),
                 Outcome::Close => self.overlay = Overlay::None,

@@ -1451,6 +1451,99 @@ fn palette_clicks_run_rows_and_outside_closes() {
 }
 
 #[test]
+fn palette_ex_line_hides_rows_and_esc_restores_them() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, ":w", now);
+    assert!(palette_labels(&app).is_empty());
+    assert!(palette_open(&app));
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(!palette_labels(&app).is_empty());
+    assert!(palette_open(&app));
+}
+
+#[test]
+fn palette_ex_line_shows_the_run_hint() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, ":w", now);
+    let area = Rect::new(0, 0, 80, 24);
+    let mut buf = Buffer::empty(area);
+    app.render(&mut buf, area);
+    let screen: String = (0..24)
+        .flat_map(|y| (0..80).map(move |x| (x, y)))
+        .map(|(x, y)| buf[(x, y)].symbol().to_string())
+        .collect();
+    assert!(screen.contains("Enter: run"));
+}
+
+#[test]
+fn palette_ex_line_wq_saves_and_quits() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let file = t.path().join("c/demo.clidraw.json");
+    let empty = std::fs::read(&file).unwrap();
+    insert_shape(&mut app);
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, ":wq", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_ne!(std::fs::read(&file).unwrap(), empty);
+    assert!(app.quit);
+    assert!(!palette_open(&app));
+}
+
+#[test]
+fn palette_ex_line_e_switches_canvas() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    run_palette(&mut app, ":e other", now);
+    assert_eq!(app.name, "other");
+    assert!(!palette_open(&app));
+}
+
+#[test]
+fn palette_ex_line_slash_selects_the_match() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    app.session.exec(labeled("aaaaaaaa", 500, "Auth service"));
+    app.session.exec(labeled("bbbbbbbb", 0, "db"));
+    let now = Instant::now();
+    run_palette(&mut app, "/auth", now);
+    assert_eq!(app.session.selection, vec![Id::from("aaaaaaaa")]);
+    assert!(!palette_open(&app));
+}
+
+#[test]
+fn palette_bare_colon_closes_without_a_status_error() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    insert_shape(&mut app);
+    let now = Instant::now();
+    run_palette(&mut app, ":", now);
+    assert!(!palette_open(&app));
+    assert_eq!(app.session.canvas.elements.len(), 1);
+}
+
+#[test]
+fn palette_template_list_keeps_colon_as_fuzzy_text() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    run_palette(&mut app, "insert template", now);
+    type_str(&mut app, ":", now);
+    assert!(palette_labels(&app).is_empty());
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(palette_open(&app));
+    assert!(app.session.canvas.elements.is_empty());
+}
+
+#[test]
 fn palette_does_not_open_during_an_edit_and_ctrl_c_quits() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());

@@ -41,6 +41,8 @@ pub struct List<T: Copy> {
     rows: Vec<Row<T>>,
     query: Option<String>,
     headless: bool,
+    // Only the palette reads `:` and `/` queries as ex lines; notes and templates keep them fuzzy.
+    ex: bool,
     selected: usize,
     pub anchor: Anchor,
     min_width: i32,
@@ -77,6 +79,7 @@ impl<T: Copy> List<T> {
             rows,
             query: None,
             headless: false,
+            ex: false,
             selected: 0,
             anchor: Anchor::Center,
             min_width: 0,
@@ -104,6 +107,11 @@ impl<T: Copy> List<T> {
         self
     }
 
+    pub fn ex_lines(mut self) -> List<T> {
+        self.ex = true;
+        self
+    }
+
     /// Filters by a query the caller owns: no input row, and only the matching rows take space.
     pub fn headless(mut self) -> List<T> {
         self.query = Some(String::new());
@@ -127,7 +135,15 @@ impl<T: Copy> List<T> {
         self
     }
 
+    pub fn ex_line(&self) -> Option<&str> {
+        let q = self.query.as_deref()?;
+        (self.ex && (q.starts_with(':') || q.starts_with('/'))).then_some(q)
+    }
+
     fn view(&self) -> Vec<&Row<T>> {
+        if self.ex_line().is_some() {
+            return Vec::new();
+        }
         let query = self.query.as_deref().unwrap_or("");
         let mut m: Vec<(i32, &Row<T>)> = self
             .rows
@@ -212,7 +228,12 @@ impl<T: Copy> List<T> {
         }
         let top = r.1 + 1 + i32::from(self.has_input());
         if view.is_empty() {
-            grid.text(r.0 + 2, top, "No match", MUTED);
+            let hint = if self.ex_line().is_some() {
+                "Enter: run"
+            } else {
+                "No match"
+            };
+            grid.text(r.0 + 2, top, hint, MUTED);
         }
         let first = self.first_visible();
         for (i, row) in view.iter().skip(first).take(self.max_rows).enumerate() {

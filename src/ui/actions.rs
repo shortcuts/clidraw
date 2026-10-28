@@ -102,5 +102,8 @@ pub fn list(s: &Session) -> List<Action> {
             key: b.keys_label(),
         })
         .collect();
-    List::new("Actions", rows).with_query().min_width(52)
+    List::new("Actions", rows)
+        .with_query()
+        .min_width(52)
+        .ex_lines()
 }
