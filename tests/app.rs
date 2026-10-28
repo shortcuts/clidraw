@@ -3454,3 +3454,38 @@ fn assert_inserted_in_one_frame(app: &mut App) {
         app.session.canvas.elements.len()
     );
 }
+
+#[test]
+fn new_canvas_offers_the_flowchart_template_inside_one_frame() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    run_palette(&mut app, "create canvas", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(palette_labels(&app), vec!["Flowchart"]);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(!palette_open(&app));
+    assert_eq!(status(&app), "Inserted template Flowchart");
+    let frames = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter(|e| matches!(e, Element::Shape(s) if s.kind == clidraw::model::ShapeKind::Frame))
+        .count();
+    assert_eq!(frames, 1);
+    assert!(!app.session.canvas.elements.is_empty());
+}
+
+#[test]
+fn new_canvas_stays_blank_when_the_template_list_is_closed() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    run_palette(&mut app, "create canvas", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(palette_open(&app));
+    app.on_event(key(KeyCode::Esc), now);
+    assert!(!palette_open(&app));
+    assert!(app.session.canvas.elements.is_empty());
+}

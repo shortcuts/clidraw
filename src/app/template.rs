@@ -28,7 +28,7 @@ impl App {
     }
 }
 
-pub(super) fn list() -> List<Action> {
+pub(super) fn list(title: &'static str) -> List<Action> {
     let rows = TEMPLATES
         .iter()
         .map(|&(name, _)| Row {
@@ -37,5 +37,5 @@ pub(super) fn list() -> List<Action> {
             key: String::new(),
         })
         .collect();
-    List::new("Templates", rows).with_query().min_width(52)
+    List::new(title, rows).with_query().min_width(52)
 }

@@ -525,7 +525,13 @@ impl App {
             PromptKind::NewNote(x) => self.new_note(&buf, x),
             PromptKind::ConfirmAppend(name, x) => self.append_note(&name, x),
             PromptKind::NewCanvas => match self.store.create(&buf) {
-                Ok(()) => self.switch_to(&buf),
+                Ok(()) => {
+                    self.switch_to(&buf);
+                    if self.name == buf {
+                        self.overlay =
+                            Overlay::Actions(template::list("Start from a template (Esc: blank)"));
+                    }
+                }
                 Err(e) => self.status = Some(ui::Status::error(e.to_string())),
             },
             PromptKind::Rename(old) => {

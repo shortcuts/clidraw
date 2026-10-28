@@ -57,7 +57,7 @@ impl App {
                 let name = self.name.clone();
                 self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Rename(name.clone()), name))
             }
-            Action::Templates => self.overlay = Overlay::Actions(template::list()),
+            Action::Templates => self.overlay = Overlay::Actions(template::list("Templates")),
             Action::Template(name) => self.insert_template(name),
             Action::DeleteCanvas => {
                 let kind = PromptKind::ConfirmDelete(self.name.clone());
