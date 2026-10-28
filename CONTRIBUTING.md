@@ -71,7 +71,7 @@ Pick the cheapest layer that can fail for the regression.
 | Layer | Where | Use it for |
 | --- | --- | --- |
 | Unit | `#[cfg(test)]` in `src/`, or `tests/model.rs`, `tests/config.rs`, `tests/store.rs`, `tests/validate.rs`, `tests/import.rs` | Logic with no terminal: model commands, routing, parsing, validation, config, storage. Default choice. |
-| Session and app | `tests/input.rs`, `tests/app.rs`, `tests/render.rs` | One `Session` or `App` driven by synthetic events, with a `TestBackend` buffer. Use it for a gesture, a key, an overlay or one drawn frame. |
+| Session and app | `tests/input.rs`, `tests/app/`, `tests/render.rs` | One `Session` or `App` driven by synthetic events, with a `TestBackend` buffer. Use it for a gesture, a key, an overlay or one drawn frame. |
 | Golden | `tests/golden.rs` | The full text of an export. |
 | CLI and MCP | `tests/cli.rs`, `tests/mcp.rs` | The command line and the stdio server contract, run as the real binary. |
 | E2E | `tests/e2e.rs` | The real binary in a pty with a parsed screen. Use it for what only a real terminal shows: signals, raw-mode input, a multi-step scenario. |
@@ -83,7 +83,7 @@ Pick the cheapest layer that can fail for the regression.
 - A bug fix adds one regression test at the owner layer. Do not replay the scenario at every layer it crosses.
 - Do not add a seam (export, flag, wrapper) that only a test calls. Test at the real boundary.
 
-### Why `tests/app.rs` is slow
+### Why `tests/app` is slow
 
 Each `App::open` takes about 78 ms on macOS. Two `sync_all` calls in `write_durable` (`src/store.rs:82,87`) cause most of that time. The registry test `registry_runnable_entries_dispatch_their_action` opens 72 apps, so it takes about 5 s.
 

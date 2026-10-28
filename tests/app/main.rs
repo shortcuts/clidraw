@@ -1,0 +1,16 @@
+mod chrome;
+mod common;
+mod context_menu;
+mod editing;
+mod ex;
+mod export;
+mod help;
+mod import;
+mod layout;
+mod minimap;
+mod palette;
+mod registry;
+mod search;
+mod session;
+mod templates;
+mod vault;
