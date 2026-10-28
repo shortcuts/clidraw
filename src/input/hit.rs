@@ -86,7 +86,11 @@ fn covers(canvas: &Canvas, layout: &Layout, i: usize, p: (i32, i32)) -> bool {
 }
 
 fn border_covers(e: &Element, p: (i32, i32)) -> bool {
-    let Element::Shape(s) = e else { return false };
+    let s = match e {
+        Element::Shape(s) => s,
+        Element::Text(t) => return p.1 == t.y && p.0 >= t.x && p.0 < t.x + t.width(),
+        _ => return false,
+    };
     let inside = p.0 > s.x && p.0 < s.x + s.w - 1 && p.1 > s.y && p.1 < s.y + s.h - 1;
     box_covers(e, p) && !inside
 }

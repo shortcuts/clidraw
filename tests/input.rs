@@ -1120,6 +1120,26 @@ fn hover_tracks_shape_handle_and_empty_space() {
 }
 
 #[test]
+fn hover_covers_every_cell_of_a_text() {
+    let mut s = session();
+    let id = Id::from("tttttttt");
+    s.canvas.elements.push(Element::Text(clidraw::model::Text {
+        id: id.clone(),
+        x: 30,
+        y: 5,
+        text: "hello".into(),
+        color: None,
+    }));
+    let t = Instant::now();
+    for col in 30..35 {
+        mouse(&mut s, MouseEventKind::Moved, col, 5, t);
+        assert_eq!(s.hover, Hit::Element(id.clone()), "col {col}");
+    }
+    mouse(&mut s, MouseEventKind::Moved, 35, 5, t);
+    assert_eq!(s.hover, Hit::Empty);
+}
+
+#[test]
 fn hover_is_empty_for_other_tools_mid_gesture_and_over_the_palette() {
     let t = Instant::now();
     let mut s = with_shape("aaaaaaaa", 20, 4);
