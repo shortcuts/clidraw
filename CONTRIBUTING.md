@@ -83,6 +83,12 @@ Pick the cheapest layer that can fail for the regression.
 - A bug fix adds one regression test at the owner layer. Do not replay the scenario at every layer it crosses.
 - Do not add a seam (export, flag, wrapper) that only a test calls. Test at the real boundary.
 
+### Why `tests/app.rs` is slow
+
+Each `App::open` takes about 78 ms on macOS. Two `sync_all` calls in `write_durable` (`src/store.rs:82,87`) cause most of that time. The registry test `registry_runnable_entries_dispatch_their_action` opens 72 apps, so it takes about 5 s.
+
+The syncs stay. A drawing file must survive a power loss. Do not remove them to speed up tests.
+
 ### Remove a test when
 
 - It asserts only the OK path of a helper, with no credible regression.
