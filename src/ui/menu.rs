@@ -12,6 +12,7 @@ pub enum MenuItem {
     ExportClidraw,
     CopyClidraw,
     CopyShareLink,
+    CopyForObsidian,
     Quit,
 }
 

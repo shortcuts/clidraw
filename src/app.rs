@@ -412,6 +412,7 @@ impl App {
             MenuItem::ExportClidraw => self.pick_scope(ExportFormat::Clidraw),
             MenuItem::CopyClidraw => self.copy_clidraw(),
             MenuItem::CopyShareLink => self.pick_scope(ExportFormat::Share),
+            MenuItem::CopyForObsidian => self.pick_scope(ExportFormat::Obsidian),
             MenuItem::Quit => self.quit = true,
         }
     }

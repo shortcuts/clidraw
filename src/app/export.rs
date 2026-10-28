@@ -102,6 +102,7 @@ impl App {
             ExportFormat::Mermaid => (PromptKind::ExportMermaid(extent), "mmd"),
             ExportFormat::Clidraw => (PromptKind::ExportClidraw(extent), "clidraw.json"),
             ExportFormat::Share => return self.copy_share(extent),
+            ExportFormat::Obsidian => return self.copy_obsidian(extent),
         };
         self.overlay = Overlay::Prompt(Prompt::new(kind, format!("{}.{ext}", self.name)));
     }
@@ -148,6 +149,20 @@ impl App {
             0 => Status::notice(format!("Copied share link: {url}")),
             n => Status::notice(format!(
                 "Copied share link, skipped {n} element(s) with no Mermaid form: {url}"
+            )),
+        });
+    }
+
+    fn copy_obsidian(&mut self, extent: Extent) {
+        let canvas = self.extent_canvas(extent);
+        let (text, skipped) = export::render(&canvas, ExportFormat::Obsidian, self.export_padding);
+        let longest_run = text.split(|c| c != '`').map(str::len).max().unwrap_or(0);
+        let fence = "`".repeat(longest_run.max(2) + 1);
+        self.copy = Some(format!("{fence}mermaid\n{}\n{fence}\n", text.trim_end()));
+        self.status = Some(match skipped {
+            0 => Status::notice("Copied for Obsidian"),
+            n => Status::notice(format!(
+                "Copied for Obsidian, skipped {n} element(s) with no Mermaid form"
             )),
         });
     }

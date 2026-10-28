@@ -2995,6 +2995,95 @@ fn palette_copy_share_link_with_no_selection_queues_nothing() {
     assert!(app.take_copy().is_none());
 }
 
+#[test]
+fn palette_copy_for_obsidian_queues_a_fenced_mermaid_block() {
+    use clidraw::ui::scope::ExportFormat;
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "copy for obsidian", now);
+    assert_eq!(palette_labels(&app)[0], "File: Copy for Obsidian");
+    app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(app.status.as_ref().unwrap().text, "Copied for Obsidian");
+    let (mermaid, _) = clidraw::export::render(
+        &app.session.canvas,
+        ExportFormat::Mermaid,
+        Config::default().export_padding,
+    );
+    let seq = app.take_copy().expect("copy queued");
+    let payload = seq
+        .strip_prefix("\x1b]52;c;")
+        .and_then(|s| s.strip_suffix("\x1b\\"))
+        .expect("osc 52 sequence");
+    assert_eq!(
+        decode_base64(payload),
+        format!("```mermaid\n{}\n```\n", mermaid.trim_end())
+    );
+}
+
+#[test]
+fn palette_copy_for_obsidian_fences_past_a_backtick_run_in_a_label() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    let Command::Insert(at, Element::Shape(mut shape)) = shape_at("aaaaaaaa", 20, 5) else {
+        unreachable!()
+    };
+    shape.label = "a ``` b".into();
+    app.session.exec(Command::Insert(at, Element::Shape(shape)));
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "copy for obsidian", now);
+    app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Enter), now);
+    let seq = app.take_copy().expect("copy queued");
+    let payload = seq
+        .strip_prefix("\x1b]52;c;")
+        .and_then(|s| s.strip_suffix("\x1b\\"))
+        .expect("osc 52 sequence");
+    let text = decode_base64(payload);
+    assert!(text.starts_with("````mermaid\n"), "{text}");
+    assert!(text.ends_with("\n````\n"), "{text}");
+}
+
+#[test]
+fn palette_copy_for_obsidian_with_no_selection_queues_nothing() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "copy for obsidian", now);
+    app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(
+        app.status.as_ref().unwrap().text,
+        "Nothing selected: select a shape first"
+    );
+    assert!(app.take_copy().is_none());
+}
+
+fn decode_base64(payload: &str) -> String {
+    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let (mut bits, mut n, mut out) = (0u32, 0, Vec::new());
+    for c in payload.trim_end_matches('=').bytes() {
+        let v = ALPHABET
+            .iter()
+            .position(|&a| a == c)
+            .expect("standard base64") as u32;
+        bits = bits << 6 | v;
+        n += 6;
+        if n >= 8 {
+            n -= 8;
+            out.push((bits >> n) as u8);
+        }
+    }
+    String::from_utf8(out).unwrap()
+}
+
 fn decode_url_safe(fragment: &str) -> String {
     let (mut bits, mut n, mut out) = (0u32, 0, Vec::new());
     for c in fragment.bytes() {

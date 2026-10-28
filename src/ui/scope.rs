@@ -6,6 +6,7 @@ pub enum ExportFormat {
     Mermaid,
     Clidraw,
     Share,
+    Obsidian,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -41,6 +42,7 @@ pub fn list(format: ExportFormat) -> List<ScopeItem> {
             ExportFormat::Mermaid => "Export Mermaid",
             ExportFormat::Clidraw => "Export Clidraw",
             ExportFormat::Share => "Copy share link",
+            ExportFormat::Obsidian => "Copy for Obsidian",
         },
         vec![
             row(ScopeItem::Whole, "Whole canvas"),

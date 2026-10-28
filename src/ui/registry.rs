@@ -530,6 +530,13 @@ pub const BINDINGS: &[Binding] = &[
         Scope::Palette,
         Some(Action::Menu(MenuItem::CopyShareLink)),
     ),
+    Binding::new(
+        "copy_for_obsidian",
+        &[],
+        "Copy for Obsidian",
+        Scope::Palette,
+        Some(Action::Menu(MenuItem::CopyForObsidian)),
+    ),
     ex("save", ":w", "Save", Some(Action::Ex("w"))),
     ex(
         "layout_td",
