@@ -5,8 +5,13 @@ pub enum ExportFormat {
     Svg,
     Mermaid,
     Clidraw,
-    Share,
-    Obsidian,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Sink {
+    File(ExportFormat),
+    ShareLink,
+    ObsidianCopy,
     ObsidianNote,
 }
 
@@ -36,15 +41,15 @@ pub fn formats() -> List<ExportFormat> {
     )
 }
 
-pub fn list(format: ExportFormat) -> List<ScopeItem> {
+pub fn list(sink: Sink) -> List<ScopeItem> {
     List::new(
-        match format {
-            ExportFormat::Svg => "Export SVG",
-            ExportFormat::Mermaid => "Export Mermaid",
-            ExportFormat::Clidraw => "Export Clidraw",
-            ExportFormat::Share => "Copy share link",
-            ExportFormat::Obsidian => "Copy for Obsidian",
-            ExportFormat::ObsidianNote => "Save to Obsidian note",
+        match sink {
+            Sink::File(ExportFormat::Svg) => "Export SVG",
+            Sink::File(ExportFormat::Mermaid) => "Export Mermaid",
+            Sink::File(ExportFormat::Clidraw) => "Export Clidraw",
+            Sink::ShareLink => "Copy share link",
+            Sink::ObsidianCopy => "Copy for Obsidian",
+            Sink::ObsidianNote => "Save to Obsidian note",
         },
         vec![
             row(ScopeItem::Whole, "Whole canvas"),

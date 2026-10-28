@@ -1,5 +1,6 @@
 use super::App;
 use crate::ui::list::{Click, Outcome};
+use crate::ui::scope::Sink;
 use crate::ui::switcher::{self, SwitcherHit};
 use crate::ui::Overlay;
 use crossterm::event::{KeyCode, KeyEvent};
@@ -13,14 +14,14 @@ impl App {
                 _ => {}
             },
             Overlay::Formats(l) => match l.key(k) {
-                Outcome::Run(format) => self.pick_scope(format),
+                Outcome::Run(format) => self.pick_scope(Sink::File(format)),
                 Outcome::Close => self.overlay = Overlay::None,
                 _ => {}
             },
-            Overlay::Scope(format, l) => match l.key(k) {
+            Overlay::Scope(sink, l) => match l.key(k) {
                 Outcome::Run(item) => {
-                    let format = *format;
-                    self.scope_item(item, format)
+                    let sink = *sink;
+                    self.scope_item(item, sink)
                 }
                 Outcome::Close => self.overlay = Overlay::None,
                 _ => {}
@@ -94,14 +95,14 @@ impl App {
                 Click::Outside => self.overlay = Overlay::None,
             },
             Overlay::Formats(l) => match l.click(screen, col, row) {
-                Click::Row(format, _) => self.pick_scope(format),
+                Click::Row(format, _) => self.pick_scope(Sink::File(format)),
                 Click::Inside => {}
                 Click::Outside => self.overlay = Overlay::None,
             },
-            Overlay::Scope(format, l) => match l.click(screen, col, row) {
+            Overlay::Scope(sink, l) => match l.click(screen, col, row) {
                 Click::Row(item, _) => {
-                    let format = *format;
-                    self.scope_item(item, format)
+                    let sink = *sink;
+                    self.scope_item(item, sink)
                 }
                 Click::Inside => {}
                 Click::Outside => self.overlay = Overlay::None,

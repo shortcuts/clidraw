@@ -5,7 +5,7 @@ use clidraw::model::{
 };
 use clidraw::ui::minimap::Target;
 use clidraw::ui::prompt::{Prompt, PromptKind};
-use clidraw::ui::scope::ExportFormat;
+use clidraw::ui::scope::{ExportFormat, Sink};
 use clidraw::ui::switcher::Switcher;
 use clidraw::ui::theme::Theme;
 use clidraw::ui::{self, Overlay, Perf};
@@ -471,7 +471,10 @@ fn overlay_dims_the_canvas_behind_it() {
         .contains(Modifier::DIM));
     assert!(draw(
         &s,
-        &Overlay::Scope(ExportFormat::Svg, ui::scope::list(ExportFormat::Svg))
+        &Overlay::Scope(
+            Sink::File(ExportFormat::Svg),
+            ui::scope::list(Sink::File(ExportFormat::Svg))
+        )
     )[(20, 4)]
         .modifier
         .contains(Modifier::DIM));
@@ -1730,7 +1733,10 @@ fn export_scope_box_title_names_its_format() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let text = screen_text(&draw(
         &s,
-        &Overlay::Scope(ExportFormat::Svg, ui::scope::list(ExportFormat::Svg)),
+        &Overlay::Scope(
+            Sink::File(ExportFormat::Svg),
+            ui::scope::list(Sink::File(ExportFormat::Svg)),
+        ),
     ));
     assert!(text.contains("Export SVG"));
 }

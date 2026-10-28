@@ -6,7 +6,7 @@ use crate::ui::list::Click;
 use crate::ui::menu::{self, ContextItem, MenuItem};
 use crate::ui::minimap;
 use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
-use crate::ui::scope::ExportFormat;
+use crate::ui::scope::{ExportFormat, Sink};
 use crate::ui::switcher::{Switcher, SwitcherHit};
 use crate::ui::{self, Overlay};
 use crossterm::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
@@ -418,18 +418,18 @@ impl App {
         match item {
             MenuItem::Canvases => self.open_switcher(),
             MenuItem::FitAll => self.overlay = Overlay::Map(minimap::Target::Canvas),
-            MenuItem::ExportSvg => self.pick_scope(ExportFormat::Svg),
-            MenuItem::ExportMermaid => self.pick_scope(ExportFormat::Mermaid),
-            MenuItem::ExportClidraw => self.pick_scope(ExportFormat::Clidraw),
+            MenuItem::ExportSvg => self.pick_scope(Sink::File(ExportFormat::Svg)),
+            MenuItem::ExportMermaid => self.pick_scope(Sink::File(ExportFormat::Mermaid)),
+            MenuItem::ExportClidraw => self.pick_scope(Sink::File(ExportFormat::Clidraw)),
             MenuItem::CopyClidraw => self.copy_clidraw(),
-            MenuItem::CopyShareLink => self.pick_scope(ExportFormat::Share),
-            MenuItem::CopyForObsidian => self.pick_scope(ExportFormat::Obsidian),
+            MenuItem::CopyShareLink => self.pick_scope(Sink::ShareLink),
+            MenuItem::CopyForObsidian => self.pick_scope(Sink::ObsidianCopy),
             MenuItem::SaveToObsidianNote if self.obsidian_vault.is_none() => {
                 self.status = Some(ui::Status::error(
                     "Set obsidian_vault in config.toml to save to a vault",
                 ))
             }
-            MenuItem::SaveToObsidianNote => self.pick_scope(ExportFormat::ObsidianNote),
+            MenuItem::SaveToObsidianNote => self.pick_scope(Sink::ObsidianNote),
             MenuItem::Quit => self.quit = true,
         }
     }

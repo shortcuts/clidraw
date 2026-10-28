@@ -3,35 +3,30 @@ use crate::config::expand_home;
 use crate::export;
 use crate::model::Canvas;
 use crate::ui::prompt::{Extent, Prompt, PromptKind};
-use crate::ui::scope::{self, ExportFormat, ScopeItem};
+use crate::ui::scope::{self, ExportFormat, ScopeItem, Sink};
 use crate::ui::{Overlay, Status};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 /// An area export waiting for the user to drag its rectangle.
 pub struct Pick {
-    format: ExportFormat,
+    sink: Sink,
     start: Option<(i32, i32)>,
 }
 
 impl App {
-    pub(super) fn pick_scope(&mut self, format: ExportFormat) {
-        self.overlay = Overlay::Scope(format, scope::list(format));
+    pub(super) fn pick_scope(&mut self, sink: Sink) {
+        self.overlay = Overlay::Scope(sink, scope::list(sink));
     }
 
-    pub(super) fn scope_item(&mut self, item: ScopeItem, format: ExportFormat) {
+    pub(super) fn scope_item(&mut self, item: ScopeItem, sink: Sink) {
         self.overlay = Overlay::None;
         match item {
-            ScopeItem::Whole => self.open_export_prompt(format, Extent::Whole),
+            ScopeItem::Whole => self.open_export_prompt(sink, Extent::Whole),
             ScopeItem::Selection if self.session.selection.is_empty() => {
                 self.status = Some(Status::error("Nothing selected: select a shape first"))
             }
-            ScopeItem::Selection => self.open_export_prompt(format, Extent::Selection),
-            ScopeItem::Area => {
-                self.pick = Some(Pick {
-                    format,
-                    start: None,
-                })
-            }
+            ScopeItem::Selection => self.open_export_prompt(sink, Extent::Selection),
+            ScopeItem::Area => self.pick = Some(Pick { sink, start: None }),
         }
     }
 
@@ -61,10 +56,10 @@ impl App {
                 let Some(start) = pick.start else {
                     return true;
                 };
-                let format = pick.format;
+                let sink = pick.sink;
                 self.pick = None;
                 self.session.band = None;
-                self.finish_pick(format, start, at);
+                self.finish_pick(sink, start, at);
             }
             _ => return false,
         }
@@ -83,7 +78,7 @@ impl App {
         true
     }
 
-    fn finish_pick(&mut self, format: ExportFormat, a: (i32, i32), b: (i32, i32)) {
+    fn finish_pick(&mut self, sink: Sink, a: (i32, i32), b: (i32, i32)) {
         let area = (
             a.0.min(b.0),
             a.1.min(b.1),
@@ -93,18 +88,20 @@ impl App {
         if self.session.canvas.within(area).elements.is_empty() {
             self.status = Some(Status::error("Nothing inside the area: drag over a shape"));
         } else {
-            self.open_export_prompt(format, Extent::Area(area));
+            self.open_export_prompt(sink, Extent::Area(area));
         }
     }
 
-    fn open_export_prompt(&mut self, format: ExportFormat, extent: Extent) {
-        let (kind, ext) = match format {
-            ExportFormat::Svg => (PromptKind::ExportSvg(extent), "svg"),
-            ExportFormat::Mermaid => (PromptKind::ExportMermaid(extent), "mmd"),
-            ExportFormat::Clidraw => (PromptKind::ExportClidraw(extent), "clidraw.json"),
-            ExportFormat::Share => return self.copy_share(extent),
-            ExportFormat::Obsidian => return self.copy_obsidian(extent),
-            ExportFormat::ObsidianNote => return self.open_notes(extent),
+    fn open_export_prompt(&mut self, sink: Sink, extent: Extent) {
+        let (kind, ext) = match sink {
+            Sink::File(ExportFormat::Svg) => (PromptKind::ExportSvg(extent), "svg"),
+            Sink::File(ExportFormat::Mermaid) => (PromptKind::ExportMermaid(extent), "mmd"),
+            Sink::File(ExportFormat::Clidraw) => {
+                (PromptKind::ExportClidraw(extent), "clidraw.json")
+            }
+            Sink::ShareLink => return self.copy_share(extent),
+            Sink::ObsidianCopy => return self.copy_obsidian(extent),
+            Sink::ObsidianNote => return self.open_notes(extent),
         };
         self.overlay = Overlay::Prompt(Prompt::new(kind, format!("{}.{ext}", self.name)));
     }
@@ -158,7 +155,7 @@ impl App {
     /// The fenced Mermaid block of the extent and the count of elements it skips.
     pub(super) fn obsidian_block(&self, extent: Extent) -> (String, usize) {
         let canvas = self.extent_canvas(extent);
-        let (text, skipped) = export::render(&canvas, ExportFormat::Obsidian, self.export_padding);
+        let (text, skipped) = export::render(&canvas, ExportFormat::Mermaid, self.export_padding);
         let longest_run = text.split(|c| c != '`').map(str::len).max().unwrap_or(0);
         let fence = "`".repeat(longest_run.max(2) + 1);
         (

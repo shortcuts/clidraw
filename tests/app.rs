@@ -2720,7 +2720,7 @@ fn palette_ink_opens_a_color_list_that_enter_applies_and_esc_leaves() {
 #[test]
 fn export_command_takes_a_format_or_lists_them() {
     use clidraw::ui::prompt::PromptKind;
-    use clidraw::ui::scope::ExportFormat;
+    use clidraw::ui::scope::{ExportFormat, Sink};
     use clidraw::ui::Overlay;
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
@@ -2731,7 +2731,7 @@ fn export_command_takes_a_format_or_lists_them() {
     app.on_event(key(KeyCode::Enter), now);
     assert!(matches!(
         app.overlay,
-        Overlay::Scope(ExportFormat::Mermaid, _)
+        Overlay::Scope(Sink::File(ExportFormat::Mermaid), _)
     ));
     app.on_event(key(KeyCode::Esc), now);
     for (arg, format) in [
@@ -2740,7 +2740,7 @@ fn export_command_takes_a_format_or_lists_them() {
         ("clidraw", ExportFormat::Clidraw),
     ] {
         run(&mut app, &format!("export {arg}"));
-        assert!(matches!(app.overlay, Overlay::Scope(f, _) if f == format));
+        assert!(matches!(app.overlay, Overlay::Scope(f, _) if f == Sink::File(format)));
         app.on_event(key(KeyCode::Esc), now);
     }
     run(&mut app, "export svg");

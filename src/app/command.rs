@@ -5,7 +5,7 @@ use crate::model::Dir;
 use crate::ui::paths;
 use crate::ui::prompt::{self, Prompt, PromptKind};
 use crate::ui::registry::{self, Binding};
-use crate::ui::scope::{self, ExportFormat};
+use crate::ui::scope::{self, ExportFormat, Sink};
 use crate::ui::{Overlay, Perf, Status};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -100,9 +100,9 @@ impl App {
             }
             "export" => match arg.trim() {
                 "" => self.overlay = Overlay::Formats(scope::formats()),
-                "svg" => self.pick_scope(ExportFormat::Svg),
-                "mmd" => self.pick_scope(ExportFormat::Mermaid),
-                "clidraw" => self.pick_scope(ExportFormat::Clidraw),
+                "svg" => self.pick_scope(Sink::File(ExportFormat::Svg)),
+                "mmd" => self.pick_scope(Sink::File(ExportFormat::Mermaid)),
+                "clidraw" => self.pick_scope(Sink::File(ExportFormat::Clidraw)),
                 _ => self.status = Some(Status::error("Usage: :export [svg|mmd|clidraw]")),
             },
             "link" if !self.session.set_link(arg.trim()) => {

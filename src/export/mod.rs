@@ -11,10 +11,7 @@ pub fn render(canvas: &Canvas, format: ExportFormat, padding: i32) -> (String, u
     match format {
         ExportFormat::Svg => (svg_padded(canvas, padding), 0),
         ExportFormat::Clidraw => (crate::store::encode(canvas).expect("canvas serializes"), 0),
-        ExportFormat::Mermaid
-        | ExportFormat::Share
-        | ExportFormat::Obsidian
-        | ExportFormat::ObsidianNote => {
+        ExportFormat::Mermaid => {
             let out = Flowchart.export(canvas);
             (out.text, out.skipped)
         }

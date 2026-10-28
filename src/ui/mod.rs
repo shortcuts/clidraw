@@ -32,7 +32,7 @@ pub enum Overlay {
     None,
     Context(list::List<menu::ContextItem>),
     Formats(list::List<scope::ExportFormat>),
-    Scope(scope::ExportFormat, list::List<scope::ScopeItem>),
+    Scope(scope::Sink, list::List<scope::ScopeItem>),
     Colors(palette::Choice, list::List<Option<crate::model::Paint>>),
     Kinds(
         Vec<crate::input::Origin>,
