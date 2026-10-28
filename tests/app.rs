@@ -3269,10 +3269,35 @@ fn palette_inserts_the_flowchart_template_inside_one_frame() {
     let now = Instant::now();
     palette_typed(&mut app, "Insert template");
     app.on_event(key(KeyCode::Enter), now);
-    assert_eq!(palette_labels(&app), vec!["Flowchart"]);
+    assert_eq!(
+        palette_labels(&app),
+        vec!["Flowchart", "Architecture dependency"]
+    );
     app.on_event(key(KeyCode::Enter), now);
     assert!(!palette_open(&app));
     assert_eq!(status(&app), "Inserted template Flowchart");
+    assert_inserted_in_one_frame(&mut app);
+    app.on_event(key(KeyCode::Char('u')), now);
+    assert!(app.session.canvas.elements.is_empty());
+}
+
+#[test]
+fn palette_inserts_the_architecture_template_inside_one_frame() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    palette_typed(&mut app, "Insert template");
+    app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(!palette_open(&app));
+    assert_eq!(status(&app), "Inserted template Architecture dependency");
+    assert_inserted_in_one_frame(&mut app);
+    app.on_event(key(KeyCode::Char('u')), now);
+    assert!(app.session.canvas.elements.is_empty());
+}
+
+fn assert_inserted_in_one_frame(app: &mut App) {
     let frames: Vec<_> = app
         .session
         .canvas
@@ -3291,6 +3316,4 @@ fn palette_inserts_the_flowchart_template_inside_one_frame() {
         app.session.selection.len(),
         app.session.canvas.elements.len()
     );
-    app.on_event(key(KeyCode::Char('u')), now);
-    assert!(app.session.canvas.elements.is_empty());
 }

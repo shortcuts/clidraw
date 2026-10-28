@@ -4,8 +4,13 @@ use crate::ui::actions::Action;
 use crate::ui::list::{List, Row};
 use crate::ui::Status;
 
-const TEMPLATES: [(&str, &str); 1] =
-    [("Flowchart", include_str!("../../docs/tapes/seed/flow.mmd"))];
+const TEMPLATES: [(&str, &str); 2] = [
+    ("Flowchart", include_str!("../../docs/tapes/seed/flow.mmd")),
+    (
+        "Architecture dependency",
+        include_str!("../../docs/tapes/seed/architecture.mmd"),
+    ),
+];
 
 impl App {
     pub(super) fn insert_template(&mut self, name: &str) {

@@ -1,0 +1,6 @@
+flowchart LR
+  Gateway[API gateway] --> Orders[Orders service]
+  Orders --> Db[(Orders DB)]
+  Orders --> Queue[/Order events/]
+  Queue --> Billing[Billing service]
+  Billing --> Db
