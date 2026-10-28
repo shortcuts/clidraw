@@ -160,17 +160,13 @@ fn right_click_menu_items() {
 }
 
 #[test]
-fn fit_all_glides_then_goes_idle() {
+fn z_opens_the_minimap_then_goes_idle() {
     let tmp = tempfile::tempdir().unwrap();
     let mut t = Term::spawn(tmp.path(), &["scratch"]);
     t.draw_rect();
-    for _ in 0..10 {
-        t.wheel_down(40, 20);
-    }
-    let panned = t.canvas();
     t.key("z");
     t.quiet();
-    assert_ne!(t.canvas(), panned);
+    assert!(t.screen().contains("Minimap"), "{}", t.screen());
     assert_eq!(t.bytes_in(std::time::Duration::from_millis(500)), 0);
 }
 

@@ -14,6 +14,7 @@ pub enum KeyOutcome {
     FindNext,
     FindPrev,
     Actions,
+    Map,
     Notice(String),
 }
 
@@ -78,10 +79,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         return match k.code {
             KeyCode::Char('c') if ctrl => KeyOutcome::Quit,
             KeyCode::Char('p') if ctrl && s.idle() => KeyOutcome::Actions,
-            KeyCode::Char('z') if !ctrl => {
-                s.fit(s.canvas.all_bounds());
-                KeyOutcome::None
-            }
+            KeyCode::Char('z') if !ctrl => KeyOutcome::Map,
             KeyCode::Esc => {
                 s.zoom_to(Zoom::One, s.viewport_center());
                 KeyOutcome::None
@@ -172,7 +170,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         KeyCode::Char('x') => s.cut(),
         KeyCode::Char('p') => s.paste(),
         KeyCode::Char('u') => return notice(s.undo()),
-        KeyCode::Char('z') if matches!(s.gesture, Gesture::Idle) => s.fit(s.canvas.all_bounds()),
+        KeyCode::Char('z') if matches!(s.gesture, Gesture::Idle) => return KeyOutcome::Map,
         KeyCode::Char(c) if matches!(s.gesture, Gesture::Idle) => {
             if let Some(t) = Tool::ALL.into_iter().find(|t| t.key() == Some(c)) {
                 s.tool = t;

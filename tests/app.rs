@@ -1988,7 +1988,7 @@ fn undo_button_is_inactive_while_zoomed_out() {
 }
 
 #[test]
-fn fit_button_moves_the_view_to_the_content() {
+fn fit_button_opens_the_minimap() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     let now = Instant::now();
@@ -1996,9 +1996,49 @@ fn fit_button_moves_the_view_to_the_content() {
     app.session.view.ox = 500;
     let fit = col_of(&app, "[Fit]");
     click(&mut app, fit, 23, now);
-    app.tick(now);
-    app.tick(now + Duration::from_secs(3));
-    assert_ne!(app.session.view.ox, 500);
+    assert!(matches!(
+        app.overlay,
+        clidraw::ui::Overlay::Map(clidraw::ui::minimap::Target::Canvas)
+    ));
+    assert_eq!(app.session.view.ox, 500);
+}
+
+#[test]
+fn z_opens_the_minimap() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    insert_box(&mut app);
+    app.session.view.ox = 500;
+    app.on_event(key(KeyCode::Char('z')), now);
+    assert!(matches!(
+        app.overlay,
+        clidraw::ui::Overlay::Map(clidraw::ui::minimap::Target::Canvas)
+    ));
+    assert_eq!(app.session.view.ox, 500);
+}
+
+#[test]
+fn fit_all_from_the_palette_and_the_canvas_menu_opens_the_minimap() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    insert_box(&mut app);
+    palette_typed(&mut app, "Fit all");
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(
+        app.overlay,
+        clidraw::ui::Overlay::Map(clidraw::ui::minimap::Target::Canvas)
+    ));
+
+    app.overlay = clidraw::ui::Overlay::None;
+    right_click(&mut app, 60, 15, now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(
+        app.overlay,
+        clidraw::ui::Overlay::Map(clidraw::ui::minimap::Target::Canvas)
+    ));
 }
 
 #[test]

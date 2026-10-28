@@ -1620,7 +1620,7 @@ fn half_zoom_drag_pans_whole_blocks() {
 }
 
 #[test]
-fn z_fits_the_diagram_on_the_zoom_scale() {
+fn fit_fits_the_diagram_on_the_zoom_scale() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     s.canvas.elements.push(Element::Shape(Shape {
         id: Id::from("bbbbbbbb"),
@@ -1628,9 +1628,9 @@ fn z_fits_the_diagram_on_the_zoom_scale() {
         ..shape_at_origin()
     }));
     s.motion = false;
-    key(&mut s, KeyCode::Char('z'));
+    s.fit(s.canvas.all_bounds());
     assert_eq!(s.view.zoom, Zoom::Quarter);
-    key(&mut s, KeyCode::Char('z'));
+    s.fit(s.canvas.all_bounds());
     assert_eq!(s.view.zoom, Zoom::Quarter);
     assert!(s.view.to_screen(20, 5).0 >= 0 && s.view.to_screen(308, 5).0 < 80);
 }

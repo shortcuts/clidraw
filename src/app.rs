@@ -324,6 +324,7 @@ impl App {
                 KeyOutcome::Find => {
                     self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, "/".into()))
                 }
+                KeyOutcome::Map => self.overlay = Overlay::Map(minimap::Target::Canvas),
                 KeyOutcome::Notice(text) => self.status = Some(ui::Status::notice(text)),
                 KeyOutcome::FindNext => self.run_command("/"),
                 KeyOutcome::FindPrev => {
@@ -417,7 +418,7 @@ impl App {
         self.overlay = Overlay::None;
         match item {
             MenuItem::Canvases => self.open_switcher(),
-            MenuItem::FitAll => self.fit_all(),
+            MenuItem::FitAll => self.overlay = Overlay::Map(minimap::Target::Canvas),
             MenuItem::ExportSvg => self.pick_scope(ExportFormat::Svg),
             MenuItem::ExportMermaid => self.pick_scope(ExportFormat::Mermaid),
             MenuItem::ExportClidraw => self.pick_scope(ExportFormat::Clidraw),
@@ -432,11 +433,6 @@ impl App {
             MenuItem::SaveToObsidianNote => self.pick_scope(ExportFormat::ObsidianNote),
             MenuItem::Quit => self.quit = true,
         }
-    }
-
-    fn fit_all(&mut self) {
-        let bounds = self.session.canvas.all_bounds();
-        self.session.fit(bounds);
     }
 
     fn open_context(&mut self, col: i32, row: i32) {
@@ -477,7 +473,7 @@ impl App {
             ContextItem::ResetRoute => s.reset_route(),
             ContextItem::Paste => s.paste(),
             ContextItem::SelectAll => s.select_all(),
-            ContextItem::FitAll => self.fit_all(),
+            ContextItem::FitAll => self.overlay = Overlay::Map(minimap::Target::Canvas),
         }
     }
 
