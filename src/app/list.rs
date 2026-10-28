@@ -59,7 +59,7 @@ impl App {
                 _ => {}
             },
             Overlay::Actions(l) => {
-                if let (KeyCode::Enter, Some(line)) = (k.code, l.ex_line().map(String::from)) {
+                if let (KeyCode::Enter, Some(line)) = (k.code, l.free_text().map(String::from)) {
                     self.overlay = Overlay::None;
                     self.run_command(&line);
                 } else {

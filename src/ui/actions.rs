@@ -91,6 +91,10 @@ impl Action {
     }
 }
 
+fn is_ex_command(q: &str) -> bool {
+    q.starts_with(':') || q.starts_with('/')
+}
+
 pub fn list(s: &Session) -> List<Action> {
     let rows = registry::BINDINGS
         .iter()
@@ -105,5 +109,5 @@ pub fn list(s: &Session) -> List<Action> {
     List::new("Actions", rows)
         .with_query()
         .min_width(52)
-        .ex_lines()
+        .with_free_text(is_ex_command, "Enter: run")
 }

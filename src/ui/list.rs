@@ -34,6 +34,8 @@ pub enum Click<T> {
     Outside,
 }
 
+type FreeText = (fn(&str) -> bool, &'static str);
+
 /// Boxed list shared by every overlay that picks a row: context menu, export scope, switcher, palette.
 #[derive(Clone, Debug)]
 pub struct List<T: Copy> {
@@ -41,8 +43,7 @@ pub struct List<T: Copy> {
     rows: Vec<Row<T>>,
     query: Option<String>,
     headless: bool,
-    // Only the palette reads `:` and `/` queries as ex lines; notes and templates keep them fuzzy.
-    ex: bool,
+    free_text: Option<FreeText>,
     selected: usize,
     pub anchor: Anchor,
     min_width: i32,
@@ -79,7 +80,7 @@ impl<T: Copy> List<T> {
             rows,
             query: None,
             headless: false,
-            ex: false,
+            free_text: None,
             selected: 0,
             anchor: Anchor::Center,
             min_width: 0,
@@ -107,8 +108,8 @@ impl<T: Copy> List<T> {
         self
     }
 
-    pub fn ex_lines(mut self) -> List<T> {
-        self.ex = true;
+    pub fn with_free_text(mut self, is: fn(&str) -> bool, hint: &'static str) -> List<T> {
+        self.free_text = Some((is, hint));
         self
     }
 
@@ -135,13 +136,14 @@ impl<T: Copy> List<T> {
         self
     }
 
-    pub fn ex_line(&self) -> Option<&str> {
+    pub fn free_text(&self) -> Option<&str> {
         let q = self.query.as_deref()?;
-        (self.ex && (q.starts_with(':') || q.starts_with('/'))).then_some(q)
+        let (is, _) = self.free_text?;
+        is(q).then_some(q)
     }
 
     fn view(&self) -> Vec<&Row<T>> {
-        if self.ex_line().is_some() {
+        if self.free_text().is_some() {
             return Vec::new();
         }
         let query = self.query.as_deref().unwrap_or("");
@@ -228,10 +230,9 @@ impl<T: Copy> List<T> {
         }
         let top = r.1 + 1 + i32::from(self.has_input());
         if view.is_empty() {
-            let hint = if self.ex_line().is_some() {
-                "Enter: run"
-            } else {
-                "No match"
+            let hint = match (self.free_text(), self.free_text) {
+                (Some(_), Some((_, hint))) => hint,
+                _ => "No match",
             };
             grid.text(r.0 + 2, top, hint, MUTED);
         }
