@@ -1732,6 +1732,16 @@ fn import_adds_selected_shapes_as_one_undo_step() {
 }
 
 #[test]
+fn import_frame_leaves_four_columns_and_two_rows_around_content() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let file = t.path().join("d.mmd");
+    std::fs::write(&file, "flowchart TD\nA --> B\nB --> C\n").unwrap();
+    run(&mut app, &format!("import {}", file.display()));
+    assert_frame_padding(&app);
+}
+
+#[test]
 fn second_import_frame_lands_below_the_first() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
@@ -3679,7 +3689,34 @@ fn palette_inserts_the_architecture_template_inside_one_frame() {
     assert!(app.session.canvas.elements.is_empty());
 }
 
+fn assert_frame_padding(app: &App) {
+    let canvas = &app.session.canvas;
+    let frame = canvas
+        .elements
+        .iter()
+        .find_map(|e| match e {
+            Element::Shape(s) if s.kind == clidraw::model::ShapeKind::Frame => Some(s.clone()),
+            _ => None,
+        })
+        .unwrap();
+    let boxes: Vec<_> = canvas
+        .elements
+        .iter()
+        .filter(|e| e.id() != &frame.id)
+        .map(|e| canvas.bounds(e))
+        .collect();
+    let x0 = boxes.iter().map(|b| b.0).min().unwrap();
+    let y0 = boxes.iter().map(|b| b.1).min().unwrap();
+    let x1 = boxes.iter().map(|b| b.0 + b.2).max().unwrap();
+    let y1 = boxes.iter().map(|b| b.1 + b.3).max().unwrap();
+    assert_eq!(x0 - frame.x - 1, 4, "empty columns on the left");
+    assert_eq!(frame.x + frame.w - 1 - x1, 4, "empty columns on the right");
+    assert_eq!(y0 - frame.y - 1, 2, "empty rows on the top");
+    assert_eq!(frame.y + frame.h - 1 - y1, 2, "empty rows on the bottom");
+}
+
 fn assert_inserted_in_one_frame(app: &mut App) {
+    assert_frame_padding(app);
     let frames: Vec<_> = app
         .session
         .canvas
@@ -3871,7 +3908,7 @@ fn palette_sequence_template_spaces_messages_and_extends_lifelines() {
             _ => None,
         })
         .collect();
-    assert_eq!(message_ys, vec![7, 11, 15, 19]);
+    assert_eq!(message_ys, vec![9, 13, 17, 21]);
     let lifeline_ends: Vec<i32> = app
         .session
         .canvas
@@ -3885,7 +3922,7 @@ fn palette_sequence_template_spaces_messages_and_extends_lifelines() {
             _ => None,
         })
         .collect();
-    assert_eq!(lifeline_ends, vec![35, 35, 35]);
+    assert_eq!(lifeline_ends, vec![37, 37, 37]);
 }
 
 #[test]

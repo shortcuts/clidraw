@@ -1,6 +1,6 @@
 use super::{expand_home, App};
 use crate::diagram::{import_failure, DiagramKind, Flowchart};
-use crate::model::{Element, Id, Shape, ShapeKind, TextAlign};
+use crate::model::{Command, Element, Id, Shape, ShapeKind, TextAlign};
 use crate::ui::Status;
 
 impl App {
@@ -38,14 +38,17 @@ impl App {
         });
     }
 
-    pub(super) fn insert_framed(&mut self, canvas: crate::model::Canvas, name: &str) {
+    pub(super) fn insert_framed(&mut self, mut canvas: crate::model::Canvas, name: &str) {
         let ids: Vec<_> = canvas.elements.iter().map(|e| e.id().clone()).collect();
+        // Pin detour routes before measuring, so the frame includes them.
+        let _ = canvas.apply(Command::Batch(canvas.pin_cmds(&ids)));
         let (bx, by, bw, bh) = self.extent(&canvas);
         let (vx, vy, ..) = self.session.viewport();
         let (wx, wy) = self.session.view.to_world(vx + 2, vy + 1);
-        let (fw, fh) = (bw + 2, bh + 2);
+        let (px, py) = (4, 2);
+        let (fw, fh) = (bw + 2 + 2 * px, bh + 2 + 2 * py);
         let (fx, fy) = self.free_spot(wx - 1, wy - 1, fw, fh);
-        let mut framed = canvas.clone_canvas(&ids, fx + 1 - bx, fy + 1 - by);
+        let mut framed = canvas.clone_canvas(&ids, fx + 1 + px - bx, fy + 1 + py - by);
         framed.elements.insert(
             0,
             Element::Shape(Shape {
