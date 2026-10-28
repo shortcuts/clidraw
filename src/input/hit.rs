@@ -85,6 +85,32 @@ fn covers(canvas: &Canvas, layout: &Layout, i: usize, p: (i32, i32)) -> bool {
             .contains(&p)
 }
 
+/// True when `p` lies in the 1-cell ring outside a shape's box, or around a text row.
+fn near(canvas: &Canvas, layout: &Layout, i: usize, p: (i32, i32)) -> bool {
+    let within = |(x, y, w, h): (i32, i32, i32, i32)| {
+        p.0 >= x - 1 && p.0 <= x + w && p.1 >= y - 1 && p.1 <= y + h
+    };
+    match &canvas.elements[i] {
+        Element::Shape(s) => within((s.x, s.y, s.w, s.h)) && !box_covers_all(s, p),
+        Element::Text(t) => within((t.x, t.y, t.width(), 1)),
+        Element::Line(l) => {
+            let (x, y, w, h) = layout.bounds[i];
+            p.0 >= x - REACH
+                && p.0 < x + w + REACH
+                && p.1 >= y - REACH
+                && p.1 < y + h + REACH
+                && canvas
+                    .route_with(l, &layout.find(canvas), &layout.router)
+                    .iter()
+                    .any(|c| (c.0 - p.0).abs() <= 1 && (c.1 - p.1).abs() <= 1)
+        }
+    }
+}
+
+fn box_covers_all(s: &Shape, p: (i32, i32)) -> bool {
+    p.0 >= s.x && p.0 < s.x + s.w && p.1 >= s.y && p.1 < s.y + s.h
+}
+
 fn border_covers(e: &Element, p: (i32, i32)) -> bool {
     let s = match e {
         Element::Shape(s) => s,
@@ -162,6 +188,24 @@ pub fn test(s: &Session, selection: &[Id], p: (i32, i32)) -> Hit {
         .stacking()
         .rev()
         .find(|&i| covers(canvas, layout, i, p))
+        .map_or(Hit::Empty, |i| {
+            Hit::Element(canvas.elements[i].id().clone())
+        })
+}
+
+/// Like `test`, but the Pointer tool also picks the topmost element within 1 cell when none covers `p`.
+pub fn pick(s: &Session, selection: &[Id], p: (i32, i32)) -> Hit {
+    let exact = test(s, selection, p);
+    if exact != Hit::Empty || !s.tool.is_pointer() {
+        return exact;
+    }
+    let canvas = &s.canvas;
+    let mut slot = s.layout.borrow_mut();
+    let layout = refresh(&mut slot, canvas, s.rev);
+    canvas
+        .stacking()
+        .rev()
+        .find(|&i| near(canvas, layout, i, p))
         .map_or(Hit::Empty, |i| {
             Hit::Element(canvas.elements[i].id().clone())
         })

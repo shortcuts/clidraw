@@ -637,6 +637,7 @@ fn band_step_fits_the_budget_on_5000_elements() {
     let mut app = busy_app(t.path());
     let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();
     let now = Instant::now();
+    app.session.view.oy = -10;
     let drag = shift_mouse_at(MouseEventKind::Drag(MouseButton::Left), 150, 40);
     app.on_event(
         shift_mouse_at(MouseEventKind::Down(MouseButton::Left), 199, 5),
@@ -1028,6 +1029,7 @@ fn wheel_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duratio
 
 fn band_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Duration> {
     let now = Instant::now();
+    app.session.view.oy = -10;
     app.on_event(
         shift_mouse_at(MouseEventKind::Down(MouseButton::Left), 199, 5),
         now,

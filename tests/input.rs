@@ -1135,8 +1135,104 @@ fn hover_covers_every_cell_of_a_text() {
         mouse(&mut s, MouseEventKind::Moved, col, 5, t);
         assert_eq!(s.hover, Hit::Element(id.clone()), "col {col}");
     }
-    mouse(&mut s, MouseEventKind::Moved, 35, 5, t);
+    mouse(&mut s, MouseEventKind::Moved, 36, 5, t);
     assert_eq!(s.hover, Hit::Empty);
+}
+
+fn hover_at(s: &mut Session, at: (u16, u16)) -> Hit {
+    mouse(s, MouseEventKind::Moved, at.0, at.1, Instant::now());
+    s.hover.clone()
+}
+
+#[test]
+fn hover_picks_a_shape_one_cell_outside_its_border_but_not_its_interior() {
+    let mut s = with_shape("aaaaaaaa", 20, 4);
+    let a = Hit::Element(Id::from("aaaaaaaa"));
+    for at in [(19, 3), (28, 5), (22, 3), (22, 8)] {
+        assert_eq!(hover_at(&mut s, at), a, "{at:?}");
+    }
+    assert_eq!(hover_at(&mut s, (18, 4)), Hit::Empty);
+    assert_eq!(hover_at(&mut s, (23, 5)), Hit::Empty);
+}
+
+#[test]
+fn hover_picks_a_text_one_cell_around_it() {
+    let mut s = session();
+    let id = Id::from("tttttttt");
+    s.canvas.elements.push(Element::Text(clidraw::model::Text {
+        id: id.clone(),
+        x: 30,
+        y: 5,
+        text: "hello".into(),
+        color: None,
+    }));
+    for at in [(29, 4), (35, 6), (32, 4)] {
+        assert_eq!(hover_at(&mut s, at), Hit::Element(id.clone()), "{at:?}");
+    }
+    assert_eq!(hover_at(&mut s, (36, 5)), Hit::Empty);
+    assert_eq!(hover_at(&mut s, (32, 7)), Hit::Empty);
+}
+
+#[test]
+fn an_exact_hit_beats_a_near_hit_on_another_element() {
+    let mut s = with_shape("aaaaaaaa", 20, 4);
+    put(&mut s, "bbbbbbbb", ShapeKind::Rect, (28, 4, 4, 4));
+    assert_eq!(
+        hover_at(&mut s, (28, 5)),
+        Hit::Element(Id::from("bbbbbbbb"))
+    );
+}
+
+#[test]
+fn hover_picks_a_line_one_cell_beside_its_route() {
+    let mut s = session();
+    put(&mut s, "aaaaaaaa", ShapeKind::Rect, (0, 4, 3, 3));
+    put(&mut s, "bbbbbbbb", ShapeKind::Rect, (20, 4, 3, 3));
+    s.canvas.elements.push(Element::Line(Line {
+        id: Id::from("arrow000"),
+        kind: LineKind::Arrow,
+        from: End::Bound(Id::from("aaaaaaaa"), Anchor::Auto),
+        to: End::Bound(Id::from("bbbbbbbb"), Anchor::Auto),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        bends: vec![],
+        color: None,
+    }));
+    let l = Hit::Element(Id::from("arrow000"));
+    assert_eq!(hover_at(&mut s, (10, 5)), l);
+    assert_eq!(hover_at(&mut s, (10, 6)), l);
+    assert_eq!(hover_at(&mut s, (10, 4)), l);
+    assert_eq!(hover_at(&mut s, (10, 7)), Hit::Empty);
+}
+
+#[test]
+fn press_and_right_click_one_cell_outside_select_for_the_pointer_only() {
+    let mut s = with_shape("aaaaaaaa", 20, 4);
+    s.tool = Tool::Select;
+    click(&mut s, (19, 3), Instant::now());
+    assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
+    s.selection.clear();
+    assert_eq!(s.right_down(28, 5), Some(true));
+    assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
+    s.selection.clear();
+    s.tool = Tool::Rect;
+    click(&mut s, (19, 3), Instant::now());
+    assert!(!s.selection.contains(&Id::from("aaaaaaaa")));
+}
+
+#[test]
+fn a_cell_beside_the_resize_handle_is_not_the_handle() {
+    let mut s = with_shape("aaaaaaaa", 20, 4);
+    s.selection = vec![Id::from("aaaaaaaa")];
+    assert_eq!(
+        hover_at(&mut s, (27, 7)),
+        Hit::Handle(Handle::Resize, Id::from("aaaaaaaa"))
+    );
+    assert_eq!(
+        hover_at(&mut s, (28, 8)),
+        Hit::Element(Id::from("aaaaaaaa"))
+    );
 }
 
 #[test]

@@ -280,12 +280,12 @@ fn hover(s: &mut Session, screen: P, world: P) {
     let idle = s.tool.is_pointer() && s.edit.is_none() && matches!(s.gesture, Gesture::Idle);
     let live =
         idle && s.in_viewport(screen.0, screen.1) && palette::hit(s, screen.0, screen.1).is_none();
-    s.hover = if live {
-        hit::test(s, &s.selection, world)
-    } else {
-        Hit::Empty
-    };
     s.quick = if live { quick::at(s, world) } else { None };
+    s.hover = match (live, s.quick.is_some()) {
+        (false, _) => Hit::Empty,
+        (true, true) => hit::test(s, &s.selection, world),
+        (true, false) => hit::pick(s, &s.selection, world),
+    };
     s.label_hover = idle && hit::label_hit(s, &s.selection, world).is_some();
     s.palette_hover = if matches!(s.gesture, Gesture::Idle) {
         palette::hit(s, screen.0, screen.1)
@@ -325,7 +325,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
             return;
         }
     }
-    let hit = hit::test(s, &s.selection, world);
+    let hit = hit::pick(s, &s.selection, world);
     if double {
         let id = match hit {
             Hit::Element(id) | Hit::Handle(_, id) => Some(id),
