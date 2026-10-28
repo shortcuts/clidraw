@@ -2,12 +2,12 @@
 name = "clidraw"
 version = "0.1.0"
 edition = "2021"
-description = "A full-screen terminal whiteboard. Draw diagrams with the mouse, export to SVG or Mermaid."
+description = "A full-screen terminal whiteboard. Sketch with the mouse, export to SVG or Mermaid."
 license = "MIT"
 repository = "https://github.com/shortcuts/clidraw"
 homepage = "https://clidraw.shrtcts.fr"
 readme = "README.md"
-keywords = ["diagram", "tui", "whiteboard", "svg", "mermaid"]
+keywords = ["sketch", "tui", "whiteboard", "svg", "mermaid"]
 categories = ["command-line-utilities", "visualization"]
 rust-version = "1.88"
 

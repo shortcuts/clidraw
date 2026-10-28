@@ -37,7 +37,7 @@ Close the canvas in the clidraw window before an agent edits it.
 
 - [Install](https://clidraw.shrtcts.fr/install.html): every install method and the terminal requirements
 - [Use with agents](https://clidraw.shrtcts.fr/agents.html): MCP setup for each client
-- [Getting Started](https://clidraw.shrtcts.fr/index.html): draw the first diagram
+- [Getting Started](https://clidraw.shrtcts.fr/index.html): draw the first sketch
 - [Configuration](https://clidraw.shrtcts.fr/config.html): config file options
 - [Key bindings](https://clidraw.shrtcts.fr/keys.html): every key
 - [Command line](https://clidraw.shrtcts.fr/cli.html): every command and its output

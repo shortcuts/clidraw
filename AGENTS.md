@@ -1,6 +1,6 @@
 # AGENTS.md
 
-clidraw is a Rust terminal diagram editor which allows exporting to SVG or Mermaid.
+clidraw is a Rust terminal whiteboard which allows exporting to SVG or Mermaid.
 
 ## Breaking changes
 
