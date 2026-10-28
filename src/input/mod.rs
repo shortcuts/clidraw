@@ -542,7 +542,12 @@ impl Session {
             return None;
         }
         let world = self.view.to_world(col, row);
-        let id = match hit::pick(self, &self.selection, world) {
+        let id = match hit::at(
+            self,
+            &self.selection,
+            world,
+            i32::from(self.tool.is_pointer()),
+        ) {
             Hit::Element(id) | Hit::Handle(_, id) => id,
             Hit::Empty => return Some(false),
         };

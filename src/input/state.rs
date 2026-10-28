@@ -281,10 +281,10 @@ fn hover(s: &mut Session, screen: P, world: P) {
     let live =
         idle && s.in_viewport(screen.0, screen.1) && palette::hit(s, screen.0, screen.1).is_none();
     s.quick = if live { quick::at(s, world) } else { None };
-    s.hover = match (live, s.quick.is_some()) {
-        (false, _) => Hit::Empty,
-        (true, true) => hit::test(s, &s.selection, world),
-        (true, false) => hit::pick(s, &s.selection, world),
+    s.hover = if live && s.quick.is_none() {
+        hit::at(s, &s.selection, world, 1)
+    } else {
+        Hit::Empty
     };
     s.label_hover = idle && hit::label_hit(s, &s.selection, world).is_some();
     s.palette_hover = if matches!(s.gesture, Gesture::Idle) {
@@ -296,7 +296,7 @@ fn hover(s: &mut Session, screen: P, world: P) {
 
 fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     s.hover = Hit::Empty;
-    s.quick = None;
+    let quick = s.quick.take();
     s.label_hover = false;
     s.palette_hover = None;
     if s.place_caret(screen) {
@@ -318,14 +318,16 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         return;
     }
     if !double {
-        if let Some((cmd, id)) = quick::at(s, world).and_then(|q| quick::insert_cmd(s, &q)) {
+        if let Some((cmd, id)) = quick
+            .filter(|_| !s.shift)
+            .and_then(|q| quick::insert_cmd(s, &q))
+        {
             s.exec(cmd);
             s.selection = vec![id];
-            s.quick = None;
             return;
         }
     }
-    let hit = hit::pick(s, &s.selection, world);
+    let hit = hit::at(s, &s.selection, world, i32::from(s.tool.is_pointer()));
     if double {
         let id = match hit {
             Hit::Element(id) | Hit::Handle(_, id) => Some(id),
@@ -543,7 +545,7 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
             s.start_edit_new(world);
             s.tool = Tool::Pointer;
         }
-        Target::Draw(_) | Target::Empty => match hit::test(s, &[], world) {
+        Target::Draw(_) | Target::Empty => match hit::at(s, &[], world, 0) {
             Hit::Element(id) => s.select_group_of(id),
             _ => s.selection.clear(),
         },

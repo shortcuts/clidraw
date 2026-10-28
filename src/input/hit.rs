@@ -1,6 +1,6 @@
 use super::Session;
 use crate::model::{
-    label_pos, side_label_at, Canvas, Edge, Element, Find, Id, Shape, ShapeKind, Side, REACH,
+    label_pos, side_label_at, Canvas, Edge, Element, Find, Id, Line, Shape, ShapeKind, Side, REACH,
 };
 use crate::ui::{refresh, Layout};
 use unicode_width::UnicodeWidthStr;
@@ -69,46 +69,44 @@ fn frame_unit(canvas: &Canvas, id: &Id, selection: &[Id]) -> bool {
     unit.len() == selection.len() && unit.iter().all(|u| selection.contains(u))
 }
 
+/// True when `p` lies in the rect grown by `slop` cells on every side.
+fn in_rect((x, y, w, h): (i32, i32, i32, i32), p: (i32, i32), slop: i32) -> bool {
+    p.0 >= x - slop && p.0 < x + w + slop && p.1 >= y - slop && p.1 < y + h + slop
+}
+
+/// A detour stays within REACH of the end cells; routing every line per hover is too slow.
+fn route_near(
+    canvas: &Canvas,
+    layout: &Layout,
+    i: usize,
+    l: &Line,
+    p: (i32, i32),
+) -> Option<Vec<(i32, i32)>> {
+    in_rect(layout.bounds[i], p, REACH)
+        .then(|| canvas.route_with(l, &layout.find(canvas), &layout.router))
+}
+
 fn covers(canvas: &Canvas, layout: &Layout, i: usize, p: (i32, i32)) -> bool {
     let e = &canvas.elements[i];
     let Element::Line(l) = e else {
         return border_covers(e, p);
     };
-    // A detour stays within REACH of the end cells; routing every line per hover is too slow.
-    let (x, y, w, h) = layout.bounds[i];
-    p.0 >= x - REACH
-        && p.0 < x + w + REACH
-        && p.1 >= y - REACH
-        && p.1 < y + h + REACH
-        && canvas
-            .route_with(l, &layout.find(canvas), &layout.router)
-            .contains(&p)
+    route_near(canvas, layout, i, l, p).is_some_and(|r| r.contains(&p))
 }
 
 /// True when `p` lies in the 1-cell ring outside a shape's box, or around a text row.
 fn near(canvas: &Canvas, layout: &Layout, i: usize, p: (i32, i32)) -> bool {
-    let within = |(x, y, w, h): (i32, i32, i32, i32)| {
-        p.0 >= x - 1 && p.0 <= x + w && p.1 >= y - 1 && p.1 <= y + h
-    };
     match &canvas.elements[i] {
-        Element::Shape(s) => within((s.x, s.y, s.w, s.h)) && !box_covers_all(s, p),
-        Element::Text(t) => within((t.x, t.y, t.width(), 1)),
-        Element::Line(l) => {
-            let (x, y, w, h) = layout.bounds[i];
-            p.0 >= x - REACH
-                && p.0 < x + w + REACH
-                && p.1 >= y - REACH
-                && p.1 < y + h + REACH
-                && canvas
-                    .route_with(l, &layout.find(canvas), &layout.router)
-                    .iter()
-                    .any(|c| (c.0 - p.0).abs() <= 1 && (c.1 - p.1).abs() <= 1)
+        Element::Shape(s) => {
+            let rect = (s.x, s.y, s.w, s.h);
+            in_rect(rect, p, 1) && !in_rect(rect, p, 0)
         }
+        Element::Text(t) => in_rect((t.x, t.y, t.width(), 1), p, 1),
+        Element::Line(l) => route_near(canvas, layout, i, l, p).is_some_and(|r| {
+            r.iter()
+                .any(|c| (c.0 - p.0).abs() <= 1 && (c.1 - p.1).abs() <= 1)
+        }),
     }
-}
-
-fn box_covers_all(s: &Shape, p: (i32, i32)) -> bool {
-    p.0 >= s.x && p.0 < s.x + s.w && p.1 >= s.y && p.1 < s.y + s.h
 }
 
 fn border_covers(e: &Element, p: (i32, i32)) -> bool {
@@ -177,7 +175,8 @@ pub fn label_hit(s: &Session, selection: &[Id], p: (i32, i32)) -> Option<(Id, Op
     inside.then(|| (id.clone(), None))
 }
 
-pub fn test(s: &Session, selection: &[Id], p: (i32, i32)) -> Hit {
+/// `slop` 1 also picks the topmost element within 1 cell when none covers `p`.
+pub(super) fn at(s: &Session, selection: &[Id], p: (i32, i32), slop: i32) -> Hit {
     let canvas = &s.canvas;
     if let Some((h, id, _)) = handles(canvas, selection).into_iter().find(|h| h.2 == p) {
         return Hit::Handle(h, id);
@@ -188,24 +187,12 @@ pub fn test(s: &Session, selection: &[Id], p: (i32, i32)) -> Hit {
         .stacking()
         .rev()
         .find(|&i| covers(canvas, layout, i, p))
-        .map_or(Hit::Empty, |i| {
-            Hit::Element(canvas.elements[i].id().clone())
+        .or_else(|| {
+            canvas
+                .stacking()
+                .rev()
+                .find(|&i| slop >= 1 && near(canvas, layout, i, p))
         })
-}
-
-/// Like `test`, but the Pointer tool also picks the topmost element within 1 cell when none covers `p`.
-pub fn pick(s: &Session, selection: &[Id], p: (i32, i32)) -> Hit {
-    let exact = test(s, selection, p);
-    if exact != Hit::Empty || !s.tool.is_pointer() {
-        return exact;
-    }
-    let canvas = &s.canvas;
-    let mut slot = s.layout.borrow_mut();
-    let layout = refresh(&mut slot, canvas, s.rev);
-    canvas
-        .stacking()
-        .rev()
-        .find(|&i| near(canvas, layout, i, p))
         .map_or(Hit::Empty, |i| {
             Hit::Element(canvas.elements[i].id().clone())
         })

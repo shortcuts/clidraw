@@ -3137,6 +3137,23 @@ fn quick_connect_ghosts_beside_a_selected_shape_and_a_click_adds_both_in_one_ste
 }
 
 #[test]
+fn quick_connect_ignores_a_shift_click_after_an_unshifted_hover() {
+    let t = Instant::now();
+    let mut s = picked("aaaaaaaa", 20, 6);
+    mouse(&mut s, MouseEventKind::Moved, 28, 7, t);
+    assert!(s.quick.is_some());
+    mouse_mod(
+        &mut s,
+        MouseEventKind::Down(MouseButton::Left),
+        KeyModifiers::SHIFT,
+        28,
+        7,
+        t,
+    );
+    assert_eq!(shapes(&s).len(), 1);
+}
+
+#[test]
 fn quick_connect_places_the_copy_at_the_layout_gap_on_every_side() {
     let t = Instant::now();
     for (at, rect) in [

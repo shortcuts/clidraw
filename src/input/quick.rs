@@ -59,7 +59,7 @@ pub fn at(s: &Session, p: (i32, i32)) -> Option<Quick> {
         let b = s.canvas.bounds_with(e, &find);
         b.0 < rx + w && rx < b.0 + b.2 && b.1 < ry + h && ry < b.1 + b.3
     });
-    if taken || hit::test(s, &s.selection, p) != Hit::Empty {
+    if taken || hit::at(s, &s.selection, p, 0) != Hit::Empty {
         return None;
     }
     Some(Quick {
