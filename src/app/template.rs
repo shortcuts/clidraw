@@ -116,7 +116,7 @@ impl App {
         };
         self.status = Some(match build() {
             Ok(canvas) => {
-                self.insert_framed(canvas);
+                self.insert_framed(canvas, name);
                 Status::notice(format!("Inserted template {name}"))
             }
             Err(e) => Status::error(e),

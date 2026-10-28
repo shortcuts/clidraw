@@ -1,17 +1,22 @@
 use super::{expand_home, App};
 use crate::diagram::{import_failure, DiagramKind, Flowchart};
-use crate::model::{Element, Id, Shape, ShapeKind};
+use crate::model::{Element, Id, Shape, ShapeKind, TextAlign};
 use crate::ui::Status;
 
 impl App {
     pub(super) fn import(&mut self, path: &str) {
         match std::fs::read_to_string(expand_home(path)) {
-            Ok(text) => self.import_text(&text),
+            Ok(text) => {
+                let name = std::path::Path::new(path)
+                    .file_name()
+                    .map_or(path.into(), |n| n.to_string_lossy());
+                self.import_text(&text, &name)
+            }
             Err(e) => self.status = Some(Status::error(format!("Import failed: {e}"))),
         }
     }
 
-    pub(super) fn import_text(&mut self, text: &str) {
+    pub(super) fn import_text(&mut self, text: &str, name: &str) {
         let parsed = Flowchart.import(text);
         self.status = Some(match parsed {
             Ok(input) => {
@@ -22,7 +27,7 @@ impl App {
                     .iter()
                     .filter(|e| matches!(e, Element::Shape(_)))
                     .count();
-                self.insert_framed(canvas);
+                self.insert_framed(canvas, name);
                 let mut text = format!("Imported {shapes} shapes, {} lines", total - shapes);
                 if input.skipped > 0 {
                     text += &format!(", skipped {} line(s)", input.skipped);
@@ -33,7 +38,7 @@ impl App {
         });
     }
 
-    pub(super) fn insert_framed(&mut self, canvas: crate::model::Canvas) {
+    pub(super) fn insert_framed(&mut self, canvas: crate::model::Canvas, name: &str) {
         let ids: Vec<_> = canvas.elements.iter().map(|e| e.id().clone()).collect();
         let (bx, by, bw, bh) = self.extent(&canvas);
         let (vx, vy, ..) = self.session.viewport();
@@ -50,12 +55,12 @@ impl App {
                 y: fy,
                 w: fw,
                 h: fh,
-                label: String::new(),
+                label: name.into(),
                 stroke: Default::default(),
                 border: Default::default(),
                 color: None,
                 fill: None,
-                align: Default::default(),
+                align: TextAlign::Center,
                 bold: false,
                 link: None,
                 side_labels: vec![],

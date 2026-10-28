@@ -377,17 +377,12 @@ fn frame(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, flags: u8) {
     ]) {
         grid.set(cx, cy, c, flags);
     }
-    let room = (w - 4).max(0) as usize;
-    let mut text = String::new();
-    for c in label.chars().map(|c| if c == '\n' { ' ' } else { c }) {
-        if text.width() + c.width().unwrap_or(0) > room {
-            break;
-        }
-        text.push(c);
-    }
-    if !text.is_empty() {
+    let room = (w - 4).max(0);
+    let text = super::infobar::fit(&label.replace('\n', " "), room);
+    if room > 0 && !text.is_empty() {
         let ink = if s.bold { flags | BOLD } else { flags };
-        grid.text(x + 1, y, &format!(" {text} "), ink);
+        let at = x + 1 + s.align.offset(room as usize, text.width());
+        grid.text(at, y, &format!(" {text} "), ink);
     }
 }
 

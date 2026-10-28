@@ -517,7 +517,7 @@ impl App {
             PromptKind::Command => self.run_command(&buf),
             PromptKind::Mermaid(header) => {
                 if !buf.trim().is_empty() {
-                    self.import_text(&format!("{header}\n{buf}"));
+                    self.import_text(&format!("{header}\n{buf}"), "Mermaid");
                 }
             }
             PromptKind::ExportSvg(x) => self.export(&buf, ExportFormat::Svg, x),

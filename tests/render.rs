@@ -992,7 +992,7 @@ fn frame_draws_its_label_on_the_border_and_leaves_the_interior() {
     };
     sh.label = "Auth".into();
     let b = draw(&s, &Overlay::None);
-    assert_eq!(cols(&b, 4, 20, 12), "┌ Auth ┄┄┄┄┐");
+    assert_eq!(cols(&b, 4, 20, 12), "┌┄┄ Auth ┄┄┐");
     assert_eq!(cols(&b, 5, 20, 12), "┆          ┆");
     assert_eq!(cols(&b, 8, 20, 12), "└┄┄┄┄┄┄┄┄┄┄┘");
     let Element::Shape(sh) = &mut s.canvas.elements[0] else {
@@ -1000,7 +1000,7 @@ fn frame_draws_its_label_on_the_border_and_leaves_the_interior() {
     };
     sh.label = "Authentication".into();
     let b = draw(&s, &Overlay::None);
-    assert_eq!(cols(&b, 4, 20, 12), "┌ Authenti ┐");
+    assert_eq!(cols(&b, 4, 20, 12), "┌ Authent… ┐");
 }
 
 #[test]

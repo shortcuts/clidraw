@@ -1687,6 +1687,8 @@ fn import_adds_selected_shapes_as_one_undo_step() {
     let mut unit = vec![frame.id.clone()];
     app.session.canvas.expand_frames(&mut unit);
     assert_eq!(unit.len(), 6);
+    assert_eq!(frame.label, "d.mmd");
+    assert_eq!(frame.align, clidraw::model::TextAlign::Center);
     let (wx, wy) = app.session.view.to_world(2, 2);
     assert_eq!((frame.x, frame.y), (wx - 1, wy - 1));
     assert!(app
@@ -3748,7 +3750,10 @@ fn palette_inserts_the_sequence_diagram_template_inside_one_frame() {
             _ => None,
         })
         .collect();
-    assert_eq!(shapes, vec!["", "Client", "Server", "Database"]);
+    assert_eq!(
+        shapes,
+        vec!["Sequence diagram", "Client", "Server", "Database"]
+    );
     let messages: Vec<&str> = app
         .session
         .canvas
