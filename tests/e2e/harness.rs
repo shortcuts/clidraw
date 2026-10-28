@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 const ROWS: u16 = 30;
 const COLS: u16 = 100;
 const DA1_REPLY: &[u8] = b"\x1b[?62;c";
+const CPR_REPLY: &[u8] = b"\x1b[1;1R";
 
 pub struct Term {
     child: Box<dyn Child + Send + Sync>,
@@ -69,6 +70,10 @@ impl Term {
             // The app blocks 2 s at startup unless the terminal answers its DA1 query.
             if chunk.windows(3).any(|w| w == b"\x1b[c") {
                 self.send(DA1_REPLY);
+            }
+            // Windows ConPTY withholds all output until the host answers its cursor position query.
+            if chunk.windows(4).any(|w| w == b"\x1b[6n") {
+                self.send(CPR_REPLY);
             }
             self.parser.process(&chunk);
         }
