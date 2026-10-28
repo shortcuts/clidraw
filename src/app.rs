@@ -23,6 +23,7 @@ mod import;
 mod library;
 mod list;
 mod open;
+mod template;
 
 pub struct App {
     pub session: Session,

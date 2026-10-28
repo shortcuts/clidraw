@@ -3261,3 +3261,36 @@ fn clicking_off_the_colors_scope_or_canvas_list_closes_it() {
     click(&mut app, 0, 0, now);
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
 }
+
+#[test]
+fn palette_inserts_the_flowchart_template_inside_one_frame() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    palette_typed(&mut app, "Insert template");
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(palette_labels(&app), vec!["Flowchart"]);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(!palette_open(&app));
+    assert_eq!(status(&app), "Inserted template Flowchart");
+    let frames: Vec<_> = app
+        .session
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Shape(s) if s.kind == clidraw::model::ShapeKind::Frame => Some(s.id.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(frames.len(), 1);
+    let mut unit = frames;
+    app.session.canvas.expand_frames(&mut unit);
+    assert_eq!(unit.len(), app.session.canvas.elements.len());
+    assert_eq!(
+        app.session.selection.len(),
+        app.session.canvas.elements.len()
+    );
+    app.on_event(key(KeyCode::Char('u')), now);
+    assert!(app.session.canvas.elements.is_empty());
+}

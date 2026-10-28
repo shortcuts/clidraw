@@ -537,6 +537,13 @@ pub const BINDINGS: &[Binding] = &[
         Scope::Palette,
         Some(Action::Menu(MenuItem::CopyForObsidian)),
     ),
+    Binding::new(
+        "insert_template",
+        &[],
+        "Insert template",
+        Scope::Palette,
+        Some(Action::Templates),
+    ),
     ex("save", ":w", "Save", Some(Action::Ex("w"))),
     ex(
         "layout_td",

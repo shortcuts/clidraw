@@ -31,6 +31,8 @@ pub enum Action {
     NewCanvas,
     RenameCanvas,
     DeleteCanvas,
+    Templates,
+    Template(&'static str),
 }
 
 impl Action {

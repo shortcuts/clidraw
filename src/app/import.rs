@@ -16,40 +16,14 @@ impl App {
         self.status = Some(match parsed {
             Ok(input) => {
                 let canvas = input.canvas;
-                let ids: Vec<_> = canvas.elements.iter().map(|e| e.id().clone()).collect();
+                let total = canvas.elements.len();
                 let shapes = canvas
                     .elements
                     .iter()
                     .filter(|e| matches!(e, Element::Shape(_)))
                     .count();
-                let (bx, by, bw, bh) = self.extent(&canvas);
-                let (vx, vy, ..) = self.session.viewport();
-                let (wx, wy) = self.session.view.to_world(vx + 2, vy + 1);
-                let (fw, fh) = (bw + 2, bh + 2);
-                let (fx, fy) = self.free_spot(wx - 1, wy - 1, fw, fh);
-                let mut framed = canvas.clone_canvas(&ids, fx + 1 - bx, fy + 1 - by);
-                framed.elements.insert(
-                    0,
-                    Element::Shape(Shape {
-                        id: Id::random(),
-                        kind: ShapeKind::Frame,
-                        x: fx,
-                        y: fy,
-                        w: fw,
-                        h: fh,
-                        label: String::new(),
-                        stroke: Default::default(),
-                        border: Default::default(),
-                        color: None,
-                        fill: None,
-                        align: Default::default(),
-                        bold: false,
-                        link: None,
-                        side_labels: vec![],
-                    }),
-                );
-                self.session.insert(framed);
-                let mut text = format!("Imported {shapes} shapes, {} lines", ids.len() - shapes);
+                self.insert_framed(canvas);
+                let mut text = format!("Imported {shapes} shapes, {} lines", total - shapes);
                 if input.skipped > 0 {
                     text += &format!(", skipped {} line(s)", input.skipped);
                 }
@@ -57,6 +31,37 @@ impl App {
             }
             Err(e) => Status::error(format!("Import failed: {}", import_failure(text, &e))),
         });
+    }
+
+    pub(super) fn insert_framed(&mut self, canvas: crate::model::Canvas) {
+        let ids: Vec<_> = canvas.elements.iter().map(|e| e.id().clone()).collect();
+        let (bx, by, bw, bh) = self.extent(&canvas);
+        let (vx, vy, ..) = self.session.viewport();
+        let (wx, wy) = self.session.view.to_world(vx + 2, vy + 1);
+        let (fw, fh) = (bw + 2, bh + 2);
+        let (fx, fy) = self.free_spot(wx - 1, wy - 1, fw, fh);
+        let mut framed = canvas.clone_canvas(&ids, fx + 1 - bx, fy + 1 - by);
+        framed.elements.insert(
+            0,
+            Element::Shape(Shape {
+                id: Id::random(),
+                kind: ShapeKind::Frame,
+                x: fx,
+                y: fy,
+                w: fw,
+                h: fh,
+                label: String::new(),
+                stroke: Default::default(),
+                border: Default::default(),
+                color: None,
+                fill: None,
+                align: Default::default(),
+                bold: false,
+                link: None,
+                side_labels: vec![],
+            }),
+        );
+        self.session.insert(framed);
     }
 
     fn extent(&self, canvas: &crate::model::Canvas) -> (i32, i32, i32, i32) {
