@@ -1,5 +1,5 @@
 use clidraw::app::App;
-use clidraw::config::Config;
+use clidraw::config::{CommandUi, Config};
 use clidraw::model::{
     Anchor, Border, Command, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind, Stroke,
     Text, TextAlign,
@@ -346,6 +346,12 @@ fn app_in(dir: &std::path::Path) -> App {
     App::open(store, Some("demo".into()), (80, 24)).unwrap()
 }
 
+fn vim_app(dir: &std::path::Path) -> App {
+    let mut app = app_in(dir);
+    app.session.command_ui = CommandUi::Vim;
+    app
+}
+
 fn help_page(app: &App) -> usize {
     match app.overlay {
         clidraw::ui::Overlay::Help(p, _) => p,
@@ -567,6 +573,7 @@ fn config_sets_autosave_default_canvas_and_status() {
 }
 
 fn run(app: &mut App, line: &str) {
+    app.session.command_ui = CommandUi::Vim;
     let t = Instant::now();
     app.on_event(key(KeyCode::Char(':')), t);
     for c in line.chars() {
@@ -683,7 +690,7 @@ fn unknown_command_sets_status_and_esc_cancels_the_prompt() {
     run(&mut app, "nope");
     assert_eq!(
         app.status.as_ref().map(|s| s.text.as_str()),
-        Some("Unknown command: nope (Ctrl-p lists commands)")
+        Some("Unknown command: nope")
     );
     assert!(!app.quit);
     let now = Instant::now();
@@ -1299,6 +1306,46 @@ fn type_str(app: &mut App, s: &str, t: Instant) {
     for c in s.chars() {
         app.on_event(key(KeyCode::Char(c)), t);
     }
+}
+
+#[test]
+fn only_the_key_of_the_chosen_command_ui_opens_an_overlay() {
+    let t = tempfile::tempdir().unwrap();
+    let now = Instant::now();
+    let mut app = app_in(t.path());
+    app.on_event(key(KeyCode::Char(':')), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+    ctrl_key(&mut app, 'p', now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Actions(_)));
+    app.on_event(key(KeyCode::Esc), now);
+    app.on_event(key(KeyCode::Char('/')), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Prompt(_)));
+
+    let mut app = app_in(t.path());
+    app.session.command_ui = CommandUi::Vim;
+    ctrl_key(&mut app, 'p', now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+    app.on_event(key(KeyCode::Char(':')), now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Prompt(_)));
+}
+
+#[test]
+fn unknown_command_hint_names_ctrl_p_only_in_palette_mode() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, ":nope", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(
+        app.status.as_ref().map(|s| s.text.as_str()),
+        Some("Unknown command: nope (Ctrl-p lists commands)")
+    );
+    run(&mut app, "nope");
+    assert_eq!(
+        app.status.as_ref().map(|s| s.text.as_str()),
+        Some("Unknown command: nope")
+    );
 }
 
 fn open_canvases(app: &mut App, t: Instant) {
@@ -2423,6 +2470,9 @@ fn registry_display_only_entries_are_covered() {
             panic!("no case for {}", b.id);
         };
         let mut app = registry_app(&t.path().join(format!("d{i}")));
+        if matches!(b.id, "command" | "confirm") {
+            app.session.command_ui = CommandUi::Vim;
+        }
         setup(&mut app);
         press(&mut app, &b.keys[0]);
         assert!(check(&app), "{} {}", b.id, b.keys[0].label());
@@ -2714,6 +2764,7 @@ fn buffer(app: &App) -> String {
 }
 
 fn command_line(app: &mut App, typed: &str, t: Instant) {
+    app.session.command_ui = CommandUi::Vim;
     app.on_event(key(KeyCode::Char(':')), t);
     type_str(app, typed, t);
 }
@@ -2834,6 +2885,7 @@ fn dialog_prompts_edit_at_the_caret_too() {
 }
 
 fn type_mermaid(app: &mut App, line: &str, end: KeyCode) {
+    app.session.command_ui = CommandUi::Vim;
     let t = Instant::now();
     app.on_event(key(KeyCode::Char(':')), t);
     for c in "mermaid".chars() {
@@ -3473,7 +3525,7 @@ fn import_drawer_navigates_fills_and_descends() {
     std::fs::write(files.join(".hid"), "").unwrap();
     std::fs::create_dir(files.join("sub")).unwrap();
     std::fs::write(files.join("sub").join("c.mmd"), "").unwrap();
-    let mut app = app_in(t.path());
+    let mut app = vim_app(t.path());
     let now = Instant::now();
     type_str(&mut app, &format!(":import {d}/"), now);
     app.on_event(key(KeyCode::Down), now);
@@ -3484,7 +3536,7 @@ fn import_drawer_navigates_fills_and_descends() {
     app.on_event(key(KeyCode::Tab), now);
     assert_eq!(command_buf(&app), format!("import {d}/b.mmd"));
 
-    let mut app = app_in(t.path());
+    let mut app = vim_app(t.path());
     type_str(&mut app, &format!(":import {d}/"), now);
     app.on_event(key(KeyCode::Down), now);
     app.on_event(key(KeyCode::Enter), now);
@@ -3493,7 +3545,7 @@ fn import_drawer_navigates_fills_and_descends() {
     app.on_event(key(KeyCode::Enter), now);
     assert_eq!(command_buf(&app), format!("import {d}/sub/c.mmd"));
 
-    let mut app = app_in(t.path());
+    let mut app = vim_app(t.path());
     type_str(&mut app, &format!(":import {d}/a.mmd"), now);
     app.on_event(key(KeyCode::Enter), now);
     assert!(app

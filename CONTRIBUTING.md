@@ -259,7 +259,7 @@ last row    bottom bar    [Undo] [Redo]  MODE  key action  key action …   12x4
 - Bottom bar, left zone: `[Undo] [Redo]`, the mode badge, then key hints for the current mode. A status message replaces the hints only, never the buttons or the right zone.
 - Bottom bar, right zone, in this order: drag readout, selection count, `[-] <zoom> [+] [Fit]`, canvas name. An unsaved canvas shows ` ●` after its name.
 - Narrow screens drop items in this order: hints (last hint first), drag readout, selection count. The buttons stay. The canvas name truncates with `…`. If the buttons, the zoom cluster and a 2-column name do not fit, the mode badge drops too.
-- The `:` command line and the `/` find input replace the bottom bar, as in vim. Completions show in a list above the bar.
+- The `:` command line (with `command_ui = "vim"`) and the `/` find input replace the bottom bar, as in vim. Completions show in a list above the bar.
 - Centered dialogs are only for input that needs a full line: export path, new canvas, rename, delete confirmation.
 - Present mode draws the canvas only, with no chrome and no hint.
 

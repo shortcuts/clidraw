@@ -1047,7 +1047,7 @@ fn info_bar_idle_reads_buttons_badge_hints_then_view_cluster_and_name() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let r = bar(&s, 120, true);
     assert!(
-        r.starts_with("[Undo] [Redo]   POINTER   ? help  : command  / find  z fit"),
+        r.starts_with("[Undo] [Redo]   POINTER   ? help  Ctrl-p palette  / find  z fit"),
         "{r}"
     );
     assert!(r.ends_with("[-] 100% [+] [Fit]  demo"), "{r}");
@@ -1168,9 +1168,12 @@ fn info_bar_status_replaces_only_the_hints() {
 #[test]
 fn info_bar_hints_come_from_the_registry_at_every_width() {
     let idle = Session::new(Canvas::default(), View::default(), (80, 24));
-    assert!(bar(&idle, 120, true).contains("? help  : command  / find  z fit"));
-    assert!(bar(&idle, 80, true).contains("? help  : command"));
-    assert!(bar(&idle, 70, true).contains("? help  : command"));
+    assert!(bar(&idle, 120, true).contains("? help  Ctrl-p palette  / find  z fit"));
+    assert!(bar(&idle, 80, true).contains("? help  Ctrl-p palette"));
+    assert!(bar(&idle, 70, true).contains("? help"));
+    let mut vim = Session::new(Canvas::default(), View::default(), (80, 24));
+    vim.command_ui = clidraw::config::CommandUi::Vim;
+    assert!(bar(&vim, 120, true).contains("? help  : command  / find  z fit"));
     let sel = two_shapes();
     assert!(bar(&sel, 120, true).contains("Del delete  Shift-arrows connect  y copy  g group"));
     assert!(bar(&sel, 80, true).contains("Del delete"));

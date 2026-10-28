@@ -1,3 +1,4 @@
+use clidraw::config::CommandUi;
 use clidraw::input::{
     handle_key, handle_mouse, handle_paste, Edit, EditTarget, Handle, Hit, KeyOutcome, Session,
     Tool,
@@ -985,6 +986,7 @@ fn configured_double_click_window_applies() {
 #[test]
 fn colon_opens_the_command_line_but_types_into_a_label_edit() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.command_ui = CommandUi::Vim;
     assert_eq!(key(&mut s, KeyCode::Char(':')), KeyOutcome::Command);
     let t = Instant::now();
     click(&mut s, (20, 6), t);
@@ -2222,6 +2224,20 @@ fn ctrl_p_opens_the_palette_only_when_idle() {
     s.view.zoom = Zoom::One;
     let mut s = with_shape("aaaaaaaa", 20, 5);
     s.start_edit_existing(Id::from("aaaaaaaa"));
+    assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::None);
+}
+
+#[test]
+fn only_the_key_of_the_chosen_command_ui_opens_it() {
+    let ctrl_p = || KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL);
+    let mut s = session();
+    assert_eq!(key(&mut s, KeyCode::Char(':')), KeyOutcome::None);
+    assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::Actions);
+    s.command_ui = CommandUi::Vim;
+    assert_eq!(key(&mut s, KeyCode::Char(':')), KeyOutcome::Command);
+    assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::None);
+    assert_eq!(key(&mut s, KeyCode::Char('/')), KeyOutcome::Find);
+    s.view.zoom = Zoom::Half;
     assert_eq!(handle_key(&mut s, ctrl_p()), KeyOutcome::None);
 }
 

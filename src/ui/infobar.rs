@@ -1,6 +1,7 @@
 use super::registry;
 use super::style::{ACTIVE, DISABLED, ERROR, KEY, MUTED};
 use super::{Doc, Grid, Overlay, Severity, Status};
+use crate::config::CommandUi;
 use crate::input::{Session, Tool};
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
@@ -129,7 +130,8 @@ fn hints(s: &Session, doc: &Doc, overlay: &Overlay) -> Vec<(String, &'static str
         Overlay::None if s.tool == Tool::Select => &["cancel"],
         Overlay::None if s.tool != Tool::Pointer => &["draw", "cancel", "tool_select"],
         Overlay::None if !s.selection.is_empty() => &["delete", "connect", "copy", "group"],
-        Overlay::None => &["help", "command", "find", "fit"],
+        Overlay::None if s.command_ui == CommandUi::Vim => &["help", "command", "find", "fit"],
+        Overlay::None => &["help", "palette", "find", "fit"],
         Overlay::Context(_)
         | Overlay::Formats(_)
         | Overlay::Scope(..)

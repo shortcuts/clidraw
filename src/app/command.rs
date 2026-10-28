@@ -1,4 +1,5 @@
 use super::App;
+use crate::config::CommandUi;
 use crate::input::edit_key;
 use crate::model::Dir;
 use crate::ui::paths;
@@ -118,10 +119,13 @@ impl App {
             "u" => self.status = self.session.undo().map(Status::notice),
             "redo" => self.status = self.session.redo().map(Status::notice),
             _ => {
-                self.status = Some(Status::error(format!(
-                    "Unknown command: {cmd} ({} lists commands)",
-                    registry::by_id("palette").first_label()
-                )))
+                self.status = Some(Status::error(match self.session.command_ui {
+                    CommandUi::Palette => format!(
+                        "Unknown command: {cmd} ({} lists commands)",
+                        registry::by_id("palette").first_label()
+                    ),
+                    CommandUi::Vim => format!("Unknown command: {cmd}"),
+                }))
             }
         }
     }

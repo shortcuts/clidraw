@@ -622,7 +622,8 @@ pub const BINDINGS: &[Binding] = &[
         "Command palette",
         Scope::Canvas,
         None,
-    ),
+    )
+    .hint("palette"),
     Binding::new("command", &[c(':')], "Command line", Scope::Canvas, None).hint("command"),
     Binding::new(
         "reset_zoom",

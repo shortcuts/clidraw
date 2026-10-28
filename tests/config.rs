@@ -1,4 +1,4 @@
-use clidraw::config::{Config, DEFAULT_TOML};
+use clidraw::config::{CommandUi, Config, DEFAULT_TOML};
 use clidraw::ui::theme::ThemeSetting;
 use std::time::Duration;
 
@@ -227,6 +227,17 @@ fn quick_fixes_defaults_on_and_accepts_false() {
     assert!(!c.quick_fixes && w.is_empty());
     let (c, w, _t) = load_text("quick_fixes = \"yes\"\n");
     assert!(c.quick_fixes && w.len() == 1, "{w:?}");
+}
+
+#[test]
+fn command_ui_defaults_to_palette_and_accepts_vim() {
+    assert_eq!(Config::default().command_ui, CommandUi::Palette);
+    let (c, w, _t) = load_text("command_ui = \"vim\"\n");
+    assert!(c.command_ui == CommandUi::Vim && w.is_empty(), "{w:?}");
+    let (c, w, _t) = load_text("command_ui = \"Vim\"\n");
+    assert!(c.command_ui == CommandUi::Vim && w.is_empty(), "{w:?}");
+    let (c, w, _t) = load_text("command_ui = \"emacs\"\n");
+    assert!(c.command_ui == CommandUi::Palette && w.len() == 1, "{w:?}");
 }
 
 #[test]

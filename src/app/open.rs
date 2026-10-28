@@ -30,6 +30,7 @@ impl App {
         session.chrome_accent = config.chrome_accent;
         session.motion = config.motion;
         session.quick_connect = config.quick_connect;
+        session.command_ui = config.command_ui;
         session.scroll_speed = config.scroll_speed;
         session.history.limit = config.history_limit;
         let mut app = App {

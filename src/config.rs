@@ -39,6 +39,9 @@ pub const DEFAULT_TOML: &str = "\
 # Offer a fix for a mistake in the :mermaid editor and apply it with Tab. false turns it off.
 # quick_fixes = true
 
+# Command UI: palette opens with Ctrl-p and ignores :, vim opens with : and ignores Ctrl-p.
+# command_ui = \"palette\"
+
 # Percent of the default distance that wheel and trackpad scrolling pans. 50 halves it.
 # scroll_speed = 100
 
@@ -52,6 +55,13 @@ pub const DEFAULT_TOML: &str = "\
 # obsidian_vault = \"~/Documents/vault\"
 ";
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum CommandUi {
+    #[default]
+    Palette,
+    Vim,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Config {
     pub autosave: Duration,
@@ -63,6 +73,7 @@ pub struct Config {
     pub motion: bool,
     pub quick_connect: bool,
     pub quick_fixes: bool,
+    pub command_ui: CommandUi,
     pub scroll_speed: i32,
     pub theme: ThemeSetting,
     pub chrome_accent: Option<Color>,
@@ -81,6 +92,7 @@ impl Default for Config {
             motion: true,
             quick_connect: true,
             quick_fixes: true,
+            command_ui: CommandUi::default(),
             scroll_speed: 100,
             theme: ThemeSetting::Auto,
             chrome_accent: None,
@@ -129,6 +141,7 @@ impl Config {
                 "motion" => flag(value).map(|b| self.motion = b),
                 "quick_connect" => flag(value).map(|b| self.quick_connect = b),
                 "quick_fixes" => flag(value).map(|b| self.quick_fixes = b),
+                "command_ui" => command_ui(value).map(|u| self.command_ui = u),
                 "scroll_speed" => speed(value).map(|n| self.scroll_speed = n),
                 "chrome_accent" => hex(value).map(|c| self.chrome_accent = Some(c)),
                 "obsidian_vault" => vault(value).map(|p| self.obsidian_vault = Some(p)),
@@ -204,6 +217,14 @@ fn theme(v: &toml::Value) -> Result<ThemeSetting, String> {
         Some("dark") => Ok(ThemeSetting::Dark),
         Some("light") => Ok(ThemeSetting::Light),
         _ => Err("expected \"auto\", \"dark\" or \"light\"".into()),
+    }
+}
+
+fn command_ui(v: &toml::Value) -> Result<CommandUi, String> {
+    match v.as_str().map(str::to_lowercase).as_deref() {
+        Some("palette") => Ok(CommandUi::Palette),
+        Some("vim") => Ok(CommandUi::Vim),
+        _ => Err("expected \"palette\" or \"vim\"".into()),
     }
 }
 

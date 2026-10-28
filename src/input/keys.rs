@@ -1,5 +1,6 @@
 use super::state::Gesture;
 use super::{Edit, Session, Tool};
+use crate::config::CommandUi;
 use crate::model::{Align, Command, Z};
 use crate::view::Zoom;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -78,7 +79,9 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
     if s.zoomed_out() {
         return match k.code {
             KeyCode::Char('c') if ctrl => KeyOutcome::Quit,
-            KeyCode::Char('p') if ctrl && s.idle() => KeyOutcome::Actions,
+            KeyCode::Char('p') if ctrl && s.idle() && s.command_ui == CommandUi::Palette => {
+                KeyOutcome::Actions
+            }
             KeyCode::Char('z') if !ctrl => KeyOutcome::Map,
             KeyCode::Esc => {
                 s.zoom_to(Zoom::One, s.viewport_center());
@@ -93,7 +96,9 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             KeyCode::Char('c') => return KeyOutcome::Quit,
             KeyCode::Char('r') => return notice(s.redo()),
             KeyCode::Char('a') => s.select_all(),
-            KeyCode::Char('p') if s.idle() => return KeyOutcome::Actions,
+            KeyCode::Char('p') if s.idle() && s.command_ui == CommandUi::Palette => {
+                return KeyOutcome::Actions
+            }
             KeyCode::Char('b') => s.toggle_bold(),
             _ => {}
         }
@@ -131,7 +136,7 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             s.tool = Tool::Pointer;
         }
         KeyCode::Char('?') => return KeyOutcome::Help,
-        KeyCode::Char(':') => return KeyOutcome::Command,
+        KeyCode::Char(':') if s.command_ui == CommandUi::Vim => return KeyOutcome::Command,
         KeyCode::Char('/') => return KeyOutcome::Find,
         KeyCode::Char('n') => return KeyOutcome::FindNext,
         KeyCode::Char('N') => return KeyOutcome::FindPrev,
