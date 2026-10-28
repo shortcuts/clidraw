@@ -196,7 +196,7 @@ fn drag_a_line_to_bend_it_and_reset_the_route() {
 }
 
 #[test]
-fn arrow_drag_between_shapes_detours_mid_drag_and_on_release() {
+fn arrow_drag_between_shapes_detours_mid_drag_on_release_and_after_a_click_elsewhere() {
     let tmp = tempfile::tempdir().unwrap();
     let mut t = Term::spawn(tmp.path(), &["scratch"]);
     draw_scene(&mut t);
@@ -208,15 +208,6 @@ fn arrow_drag_between_shapes_detours_mid_drag_and_on_release() {
     t.release(60, 10);
     assert_detours_and_points_at_b(&t);
     assert_eq!(t.canvas(), held);
-}
-
-#[test]
-fn released_arrow_keeps_its_detour_after_a_click_elsewhere() {
-    let tmp = tempfile::tempdir().unwrap();
-    let mut t = Term::spawn(tmp.path(), &["scratch"]);
-    draw_scene(&mut t);
-    t.key("a");
-    t.drag((22, 10), (60, 10));
     t.click(90, 28);
     assert_detours_and_points_at_b(&t);
 }

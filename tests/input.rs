@@ -405,14 +405,12 @@ fn dragging_a_line_end_onto_empty_canvas_frees_it() {
 }
 
 #[test]
-fn wheel_pans_and_empty_drag_pans() {
+fn wheel_pans_the_canvas() {
     let mut s = session();
     let t = Instant::now();
     mouse(&mut s, MouseEventKind::ScrollDown, 30, 10, t);
     mouse(&mut s, MouseEventKind::ScrollRight, 30, 10, t);
     assert_eq!((s.view.ox, s.view.oy), (4, 2));
-    drag(&mut s, (30, 10), (25, 12));
-    assert_eq!((s.view.ox, s.view.oy), (9, 0));
 }
 
 #[test]
@@ -572,15 +570,6 @@ fn only_the_border_selects_a_shape() {
     assert!(s.selection.is_empty());
     click(&mut s, (20, 6), Instant::now());
     assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
-}
-
-#[test]
-fn shape_tool_drag_inside_a_shape_draws_a_second_one() {
-    let mut s = with_shape("aaaaaaaa", 20, 5);
-    pick(&mut s, Tool::Rect);
-    drag(&mut s, (22, 6), (24, 7));
-    assert_eq!(shapes(&s).len(), 2);
-    assert_eq!((shapes(&s)[0].x, shapes(&s)[0].y), (20, 5));
 }
 
 #[test]

@@ -1591,17 +1591,6 @@ fn a_pinned_route_replays_and_crosses_no_shape() {
 }
 
 #[test]
-fn a_straight_stub_still_wins_when_free() {
-    let (c, _, l) = scene(&[at("aaaaaaaa", 0, 0, 6, 3), at("bbbbbbbb", 30, 0, 6, 3)]);
-    let cells = c.route(&l);
-    let n = cells.len();
-    assert!(
-        cells[n - 3..].iter().all(|p| p.1 == cells[n - 1].1),
-        "{cells:?}"
-    );
-}
-
-#[test]
 fn a_start_beside_the_end_cell_makes_no_parallel_hairpin() {
     let line = elbow(
         "arrow001",

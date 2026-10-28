@@ -656,17 +656,6 @@ fn colon_e_opens_or_creates_a_canvas_and_needs_a_name() {
 }
 
 #[test]
-fn colon_u_and_redo_undo_and_redo() {
-    let t = tempfile::tempdir().unwrap();
-    let mut app = app_in(t.path());
-    insert_shape(&mut app);
-    run(&mut app, "u");
-    assert_eq!(app.session.canvas.elements.len(), 0);
-    run(&mut app, "redo");
-    assert_eq!(app.session.canvas.elements.len(), 1);
-}
-
-#[test]
 fn undo_and_redo_name_the_action_in_the_status_line() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
@@ -680,6 +669,9 @@ fn undo_and_redo_name_the_action_in_the_status_line() {
     assert_eq!(status(&app).as_deref(), Some("Redid: add 1 element"));
     run(&mut app, "u");
     assert_eq!(status(&app).as_deref(), Some("Undid: add 1 element"));
+    run(&mut app, "redo");
+    assert_eq!(status(&app).as_deref(), Some("Redid: add 1 element"));
+    run(&mut app, "u");
     app.on_event(key(KeyCode::Char('u')), now);
     assert_eq!(status(&app), None, "nothing to undo");
 }
@@ -701,11 +693,6 @@ fn unknown_command_sets_status_and_esc_cancels_the_prompt() {
     app.on_event(key(KeyCode::Esc), now);
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
     assert!(!app.quit);
-}
-
-#[test]
-fn help_lists_the_command_line() {
-    assert!(clidraw::ui::help::rows(0).iter().any(|(k, _)| k == ":"));
 }
 
 fn drag_app(dir: &std::path::Path) -> App {

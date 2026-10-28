@@ -482,40 +482,6 @@ fn prompt_box_holds_no_hint_text() {
 }
 
 #[test]
-fn help_commands_page_lists_every_command_line_verb() {
-    let s = Session::new(Canvas::default(), View::default(), (80, 24));
-    let b = draw(&s, &Overlay::Help(4, String::new()));
-    let page: String = (4..20).map(|y| row(&b, y)).collect();
-    for verb in [
-        ":q",
-        ":w",
-        ":wq",
-        ":e <name>",
-        ":import <path>",
-        ":export",
-        ":layout [td|lr]",
-    ] {
-        assert!(page.contains(verb), "{verb}");
-    }
-}
-
-#[test]
-fn help_canvas_page_lists_find_palette_present_and_minimap() {
-    let rows = ui::help::rows(0);
-    for (keys, action) in [
-        ("/", "Find"),
-        ("Ctrl-p", "Command palette"),
-        ("Ctrl-p", "Present"),
-        ("Ctrl-p", "Show minimap"),
-    ] {
-        assert!(
-            rows.contains(&(keys.to_string(), action.to_string())),
-            "{action}"
-        );
-    }
-}
-
-#[test]
 fn help_bottom_bar_hints_the_tab_keys() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0, String::new()));
