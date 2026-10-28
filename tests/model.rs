@@ -1,7 +1,7 @@
 use clidraw::model::{
     corners, edge_anchor, label_pos, route, side_anchor, side_at, side_index, side_label_at,
-    side_mid, wrap, Anchor, Axis, Canvas, Command, Edge, Element, End, History, Id, Line, LineKind,
-    ModelError, Paint, Shape, ShapeKind, Side, SideLabel, Stroke, Text, Z,
+    side_mid, wrap, Anchor, Axis, Border, Canvas, Command, Edge, Element, End, History, Id, Line,
+    LineKind, ModelError, Paint, Shape, ShapeKind, Side, SideLabel, Stroke, Text, TextAlign, Z,
 };
 use std::collections::HashSet;
 
@@ -2085,4 +2085,45 @@ fn a_line_color_is_set_and_undone() {
 #[test]
 fn an_empty_batch_names_nothing() {
     assert_eq!(Command::Batch(vec![]).label(), "nothing");
+}
+
+#[test]
+fn constructors_set_the_default_fields() {
+    let s = Shape::new(ShapeKind::Rect, 1, 2, 3, 4, "a");
+    assert_eq!(
+        s,
+        Shape {
+            id: s.id.clone(),
+            kind: ShapeKind::Rect,
+            x: 1,
+            y: 2,
+            w: 3,
+            h: 4,
+            label: "a".into(),
+            stroke: Stroke::Solid,
+            border: Border::Single,
+            color: None,
+            fill: None,
+            align: TextAlign::Center,
+            bold: false,
+            link: None,
+            side_labels: vec![],
+        }
+    );
+
+    let l = Line::new(LineKind::Arrow, bound("a"), bound("b"));
+    assert_eq!(
+        l,
+        Line {
+            id: l.id.clone(),
+            kind: LineKind::Arrow,
+            from: bound("a"),
+            to: bound("b"),
+            label: String::new(),
+            label_at: None,
+            stroke: Stroke::Solid,
+            bends: vec![],
+            color: None,
+        }
+    );
 }

@@ -167,20 +167,9 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
             cmds.push(add(created, id, &|id| {
                 Element::Shape(Shape {
                     id,
-                    kind,
-                    x,
-                    y,
-                    w,
-                    h,
-                    label: label.clone(),
-                    stroke: Default::default(),
-                    border: Default::default(),
                     color,
                     fill,
-                    align: Default::default(),
-                    bold: false,
-                    link: None,
-                    side_labels: vec![],
+                    ..Shape::new(kind, x, y, w, h, label.clone())
                 })
             }));
         }
@@ -218,14 +207,8 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
             cmds.push(add(created, id, &|id| {
                 Element::Line(Line {
                     id,
-                    kind: kind.unwrap_or(LineKind::Arrow),
-                    from: from.clone(),
-                    to: to.clone(),
                     label: label.clone().unwrap_or_default(),
-                    label_at: None,
-                    stroke: Default::default(),
-                    bends: vec![],
-                    color: None,
+                    ..Line::new(kind.unwrap_or(LineKind::Arrow), from.clone(), to.clone())
                 })
             }));
         }

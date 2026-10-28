@@ -14,7 +14,7 @@ pub use state::{handle_mouse, scroll_step, Origin};
 use crate::config::CommandUi;
 use crate::model::{
     label_at_nearest, side_at, wrap, Align, Anchor, Canvas, Command, Dir, Edge, Element, End,
-    History, Id, Line, LineKind, Shape, SideLabel, Stroke, Text, Z,
+    History, Id, Line, LineKind, Shape, SideLabel, Text, Z,
 };
 use crate::ui::palette::{self, PaletteHit};
 use crate::ui::theme::Theme;
@@ -399,14 +399,11 @@ impl Session {
         };
         let line = Line {
             id: line_id,
-            kind: LineKind::Arrow,
-            from: End::Bound(from.id, Anchor::Auto),
-            to: End::Bound(new_id.clone(), Anchor::Auto),
-            label: String::new(),
-            label_at: None,
-            stroke: Stroke::Solid,
-            bends: vec![],
-            color: None,
+            ..Line::new(
+                LineKind::Arrow,
+                End::Bound(from.id, Anchor::Auto),
+                End::Bound(new_id.clone(), Anchor::Auto),
+            )
         };
         let at = self.canvas.elements.len();
         self.exec(Command::Batch(vec![

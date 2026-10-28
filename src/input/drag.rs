@@ -275,31 +275,15 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
             let el = match kind {
                 Some(kind) => Element::Shape(Shape {
                     id: id.clone(),
-                    kind,
-                    x: w0.0,
-                    y: w0.1,
-                    w: MIN_SIZE,
-                    h: MIN_SIZE,
-                    label: String::new(),
-                    stroke: Default::default(),
-                    border: Default::default(),
-                    color: None,
-                    fill: None,
-                    align: Default::default(),
-                    bold: false,
-                    link: None,
-                    side_labels: vec![],
+                    ..Shape::new(kind, w0.0, w0.1, MIN_SIZE, MIN_SIZE, "")
                 }),
                 None => Element::Line(Line {
                     id: id.clone(),
-                    kind: LineKind::Arrow,
-                    from: bound_at(&s.canvas, w0).unwrap_or(End::Free(w0.0, w0.1)),
-                    to: End::Free(w0.0, w0.1),
-                    label: String::new(),
-                    label_at: None,
-                    stroke: Default::default(),
-                    bends: vec![],
-                    color: None,
+                    ..Line::new(
+                        LineKind::Arrow,
+                        bound_at(&s.canvas, w0).unwrap_or(End::Free(w0.0, w0.1)),
+                        End::Free(w0.0, w0.1),
+                    )
                 }),
             };
             run(s, inv, Command::Insert(at, el));
@@ -648,20 +632,7 @@ mod tests {
         let mut s = Session::new(Canvas::default(), View::default(), (400, 40));
         s.canvas.elements.push(Element::Shape(Shape {
             id: Id::from("aaaaaaaa"),
-            kind: ShapeKind::Rect,
-            x: 30,
-            y: 15,
-            w: 8,
-            h: 4,
-            label: String::new(),
-            stroke: Default::default(),
-            border: Default::default(),
-            color: None,
-            fill: None,
-            align: Default::default(),
-            bold: false,
-            link: None,
-            side_labels: vec![],
+            ..Shape::new(ShapeKind::Rect, 30, 15, 8, 4, "")
         }));
         s
     }
@@ -758,14 +729,8 @@ mod tests {
         let id = Id::from("cccccccc");
         s.canvas.elements.push(Element::Line(Line {
             id: id.clone(),
-            kind: LineKind::Arrow,
-            from: End::Free(10, 16),
-            to: End::Free(110, 16),
             label: "hi".into(),
-            label_at: None,
-            stroke: Default::default(),
-            bends: vec![],
-            color: None,
+            ..Line::new(LineKind::Arrow, End::Free(10, 16), End::Free(110, 16))
         }));
         s.selection = vec![id.clone()];
         press_and_drag(&mut s, (60, 16), |i| (60 + i % 20, 16));
@@ -861,14 +826,7 @@ mod tests {
         let mut s = with_shape();
         s.canvas.elements.push(Element::Line(Line {
             id: Id::from("cccccccc"),
-            kind: LineKind::Arrow,
-            from: End::Free(10, 16),
-            to: End::Free(60, 16),
-            label: String::new(),
-            label_at: None,
-            stroke: Default::default(),
-            bends: vec![],
-            color: None,
+            ..Line::new(LineKind::Arrow, End::Free(10, 16), End::Free(60, 16))
         }));
         mouse(&mut s, MouseEventKind::Down(MouseButton::Left), 30, 16);
         mouse(&mut s, MouseEventKind::Drag(MouseButton::Left), 60, 16);
@@ -890,20 +848,7 @@ mod tests {
         let mut s = with_shape();
         s.canvas.elements.push(Element::Shape(Shape {
             id: Id::from("bbbbbbbb"),
-            kind: ShapeKind::Rect,
-            x: 60,
-            y: 30,
-            w: 8,
-            h: 4,
-            label: String::new(),
-            stroke: Default::default(),
-            border: Default::default(),
-            color: None,
-            fill: None,
-            align: Default::default(),
-            bold: false,
-            link: None,
-            side_labels: vec![],
+            ..Shape::new(ShapeKind::Rect, 60, 30, 8, 4, "")
         }));
         s
     }

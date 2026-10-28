@@ -289,6 +289,26 @@ impl Element {
 pub const MIN_SIZE: i32 = 3;
 
 impl Shape {
+    pub fn new(kind: ShapeKind, x: i32, y: i32, w: i32, h: i32, label: impl Into<String>) -> Shape {
+        Shape {
+            id: Id::random(),
+            kind,
+            x,
+            y,
+            w,
+            h,
+            label: label.into(),
+            stroke: Stroke::default(),
+            border: Border::default(),
+            color: None,
+            fill: None,
+            align: TextAlign::default(),
+            bold: false,
+            link: None,
+            side_labels: vec![],
+        }
+    }
+
     pub fn side_label(&self, edge: Edge) -> Option<&SideLabel> {
         self.side_labels.iter().find(|l| l.edge == edge)
     }
@@ -343,6 +363,22 @@ impl Shape {
             _ => (0, 0),
         };
         (self.x + l, self.x + self.w - 1 + r)
+    }
+}
+
+impl Line {
+    pub fn new(kind: LineKind, from: End, to: End) -> Line {
+        Line {
+            id: Id::random(),
+            kind,
+            from,
+            to,
+            label: String::new(),
+            label_at: None,
+            stroke: Stroke::default(),
+            bends: vec![],
+            color: None,
+        }
     }
 }
 

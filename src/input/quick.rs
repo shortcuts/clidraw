@@ -91,17 +91,11 @@ pub fn insert_cmd(s: &Session, q: &Quick) -> Option<(Command, Id)> {
     };
     let copy = clone_of(src, q.rect);
     let id = copy.id.clone();
-    let arrow = Line {
-        id: Id::random(),
-        kind: LineKind::Arrow,
-        from: End::Bound(q.from.clone(), Anchor::Auto),
-        to: End::Bound(id.clone(), Anchor::Auto),
-        label: String::new(),
-        label_at: None,
-        stroke: Default::default(),
-        bends: vec![],
-        color: None,
-    };
+    let arrow = Line::new(
+        LineKind::Arrow,
+        End::Bound(q.from.clone(), Anchor::Auto),
+        End::Bound(id.clone(), Anchor::Auto),
+    );
     let at = s.canvas.elements.len();
     let cmd = Command::Batch(vec![
         Command::Insert(at, Element::Shape(copy)),

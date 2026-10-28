@@ -82,20 +82,7 @@ mod tests {
     fn shape(id: &str, x: i32, y: i32) -> Element {
         Element::Shape(Shape {
             id: Id::from(id),
-            kind: ShapeKind::Rect,
-            x,
-            y,
-            w: 3,
-            h: 3,
-            label: String::new(),
-            stroke: Default::default(),
-            border: Default::default(),
-            color: None,
-            fill: None,
-            align: Default::default(),
-            bold: false,
-            link: None,
-            side_labels: vec![],
+            ..Shape::new(ShapeKind::Rect, x, y, 3, 3, "")
         })
     }
 
@@ -103,14 +90,7 @@ mod tests {
         let end = |s: &str| End::Bound(Id::from(s), Anchor::Auto);
         Element::Line(Line {
             id: Id::from(id),
-            kind: LineKind::Arrow,
-            from: end(from),
-            to: end(to),
-            label: String::new(),
-            label_at: None,
-            stroke: Default::default(),
-            bends: vec![],
-            color: None,
+            ..Line::new(LineKind::Arrow, end(from), end(to))
         })
     }
 

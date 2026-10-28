@@ -34,20 +34,7 @@ fn generated_canvas(elements: usize, target: (i32, i32)) -> Vec<Element> {
     let shape = |id: Id, x: i32, y: i32| {
         Element::Shape(Shape {
             id,
-            kind: ShapeKind::Rect,
-            x,
-            y,
-            w: 3,
-            h: 3,
-            label: String::new(),
-            stroke: Default::default(),
-            border: Default::default(),
-            color: None,
-            fill: None,
-            align: Default::default(),
-            bold: false,
-            link: None,
-            side_labels: vec![],
+            ..Shape::new(ShapeKind::Rect, x, y, 3, 3, "")
         })
     };
     let shapes = elements / 2;
@@ -58,14 +45,11 @@ fn generated_canvas(elements: usize, target: (i32, i32)) -> Vec<Element> {
     for i in 0..shapes - 1 {
         els.push(Element::Line(Line {
             id: Id::from(format!("l{i:07}").as_str()),
-            kind: LineKind::Arrow,
-            from: End::Bound(id(i), Anchor::Auto),
-            to: End::Bound(id(i + 1), Anchor::Auto),
-            label: String::new(),
-            label_at: None,
-            stroke: Default::default(),
-            bends: vec![],
-            color: None,
+            ..Line::new(
+                LineKind::Arrow,
+                End::Bound(id(i), Anchor::Auto),
+                End::Bound(id(i + 1), Anchor::Auto),
+            )
         }));
     }
     els.push(shape(Id::from("target"), target.0, target.1));

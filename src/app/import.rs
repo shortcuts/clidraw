@@ -1,7 +1,7 @@
 use super::App;
 use crate::config::expand_home;
 use crate::diagram::{import_failure, DiagramKind, Flowchart};
-use crate::model::{Command, Element, Id, Shape, ShapeKind, TextAlign};
+use crate::model::{Command, Element, Shape, ShapeKind};
 use crate::ui::Status;
 
 impl App {
@@ -52,23 +52,7 @@ impl App {
         let mut framed = canvas.clone_canvas(&ids, fx + 1 + px - bx, fy + 1 + py - by);
         framed.elements.insert(
             0,
-            Element::Shape(Shape {
-                id: Id::random(),
-                kind: ShapeKind::Frame,
-                x: fx,
-                y: fy,
-                w: fw,
-                h: fh,
-                label: name.into(),
-                stroke: Default::default(),
-                border: Default::default(),
-                color: None,
-                fill: None,
-                align: TextAlign::Center,
-                bold: false,
-                link: None,
-                side_labels: vec![],
-            }),
+            Element::Shape(Shape::new(ShapeKind::Frame, fx, fy, fw, fh, name)),
         );
         self.session.insert(framed);
     }

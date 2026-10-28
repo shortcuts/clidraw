@@ -1,8 +1,6 @@
 use super::App;
 use crate::diagram::{DiagramKind, Flowchart};
-use crate::model::{
-    Anchor, Canvas, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind, Stroke,
-};
+use crate::model::{Anchor, Canvas, Element, End, Line, LineKind, Paint, Shape, ShapeKind, Stroke};
 use crate::ui::actions::Action;
 use crate::ui::list::{List, Row};
 use crate::ui::Status;
@@ -64,48 +62,28 @@ fn sequence_diagram() -> Canvas {
     let bottom = BOX_H + 2 + ROW_GAP * (MESSAGES.len() as i32 + SPARE_MESSAGES);
     let center = |i: usize| i as i32 * SPACING + BOX_W / 2;
     for (i, name) in PARTICIPANTS.iter().enumerate() {
-        let id = Id::random();
-        elements.push(Element::Shape(Shape {
-            id: id.clone(),
-            kind: ShapeKind::Rect,
-            x: i as i32 * SPACING,
-            y: 0,
-            w: BOX_W,
-            h: BOX_H,
-            label: name.to_string(),
-            stroke: Default::default(),
-            border: Default::default(),
-            color: None,
-            fill: None,
-            align: Default::default(),
-            bold: false,
-            link: None,
-            side_labels: vec![],
-        }));
+        let shape = Shape::new(ShapeKind::Rect, i as i32 * SPACING, 0, BOX_W, BOX_H, *name);
+        let id = shape.id.clone();
+        elements.push(Element::Shape(shape));
         elements.push(Element::Line(Line {
-            id: Id::random(),
-            kind: LineKind::Line,
-            from: End::Bound(id, Anchor::Auto),
-            to: End::Free(center(i), bottom),
-            label: String::new(),
-            label_at: None,
             stroke: Stroke::Dotted,
-            bends: vec![],
-            color: None,
+            ..Line::new(
+                LineKind::Line,
+                End::Bound(id, Anchor::Auto),
+                End::Free(center(i), bottom),
+            )
         }));
     }
     for (k, &(from, to, label, stroke)) in MESSAGES.iter().enumerate() {
         let y = BOX_H + 2 + ROW_GAP * k as i32;
         elements.push(Element::Line(Line {
-            id: Id::random(),
-            kind: LineKind::Arrow,
-            from: End::Free(center(from), y),
-            to: End::Free(center(to), y),
             label: label.to_string(),
-            label_at: None,
             stroke,
-            bends: vec![],
-            color: None,
+            ..Line::new(
+                LineKind::Arrow,
+                End::Free(center(from), y),
+                End::Free(center(to), y),
+            )
         }));
     }
     Canvas {
@@ -158,23 +136,7 @@ fn gantt() -> Canvas {
 }
 
 fn cell(x: i32, y: i32, w: i32, label: &str) -> Shape {
-    Shape {
-        id: Id::random(),
-        kind: ShapeKind::Rect,
-        x,
-        y,
-        w,
-        h: ROW_H,
-        label: label.to_string(),
-        stroke: Default::default(),
-        border: Default::default(),
-        color: None,
-        fill: None,
-        align: Default::default(),
-        bold: false,
-        link: None,
-        side_labels: vec![],
-    }
+    Shape::new(ShapeKind::Rect, x, y, w, ROW_H, label)
 }
 
 pub(super) fn list(title: &'static str) -> List<Action> {

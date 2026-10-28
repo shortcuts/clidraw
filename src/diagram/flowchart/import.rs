@@ -364,34 +364,21 @@ pub(super) fn import(text: &str) -> Result<Imported, String> {
         pos += if dir == Dir::LeftRight { h + 1 } else { w + 2 };
         canvas.elements.push(Element::Shape(Shape {
             id: Id(format!("n{i}")),
-            kind,
-            x,
-            y,
-            w,
-            h,
-            label,
-            stroke: Stroke::Solid,
             border,
-            color: None,
-            fill: None,
-            align: Default::default(),
-            bold: false,
-            link: None,
-            side_labels: vec![],
+            ..Shape::new(kind, x, y, w, h, label)
         }));
     }
     let ids: Vec<Id> = canvas.elements.iter().map(|e| e.id().clone()).collect();
     for (i, (a, b, (kind, stroke, label))) in edges.into_iter().enumerate() {
         canvas.elements.push(Element::Line(Line {
             id: Id(format!("l{i}")),
-            kind,
-            from: End::Bound(ids[a].clone(), Anchor::Auto),
-            to: End::Bound(ids[b].clone(), Anchor::Auto),
             label,
-            label_at: None,
             stroke,
-            bends: vec![],
-            color: None,
+            ..Line::new(
+                kind,
+                End::Bound(ids[a].clone(), Anchor::Auto),
+                End::Bound(ids[b].clone(), Anchor::Auto),
+            )
         }));
     }
     let shape_count = index.len();
