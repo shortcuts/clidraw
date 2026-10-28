@@ -10,16 +10,14 @@ use crate::ui::Status;
 type Build = fn() -> Result<Canvas, String>;
 
 const TEMPLATES: [(&str, Build); 5] = [
-    ("Flowchart", || {
-        imported(include_str!("../../docs/tapes/seed/flow.mmd"))
-    }),
+    ("Flowchart", || imported(include_str!("templates/flow.mmd"))),
     ("Architecture dependency", || {
-        imported(include_str!("../../docs/tapes/seed/architecture.mmd"))
+        imported(include_str!("templates/architecture.mmd"))
     }),
     ("Gantt chart", || Ok(gantt())),
     ("Sequence diagram", || Ok(sequence_diagram())),
     ("State diagram", || {
-        imported(include_str!("../../docs/tapes/seed/state.mmd"))
+        imported(include_str!("templates/state.mmd"))
     }),
 ];
 
