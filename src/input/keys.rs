@@ -11,6 +11,8 @@ pub enum KeyOutcome {
     Help,
     Command,
     Find,
+    FindNext,
+    FindPrev,
     Actions,
     Notice(String),
 }
@@ -133,6 +135,8 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
         KeyCode::Char('?') => return KeyOutcome::Help,
         KeyCode::Char(':') => return KeyOutcome::Command,
         KeyCode::Char('/') => return KeyOutcome::Find,
+        KeyCode::Char('n') => return KeyOutcome::FindNext,
+        KeyCode::Char('N') => return KeyOutcome::FindPrev,
         KeyCode::Char(c @ (']' | '[' | '}' | '{'))
             if matches!(s.gesture, Gesture::Idle) && !s.selection.is_empty() =>
         {

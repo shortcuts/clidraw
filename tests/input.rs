@@ -1011,6 +1011,18 @@ fn slash_opens_find_but_types_into_a_label_edit_and_ctrl_f_is_unbound() {
     assert_eq!(s.edit.as_ref().unwrap().buf, "/");
 }
 
+#[test]
+fn n_and_capital_n_repeat_the_search_and_wait_for_an_edit() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    assert_eq!(key(&mut s, KeyCode::Char('n')), KeyOutcome::FindNext);
+    assert_eq!(key(&mut s, KeyCode::Char('N')), KeyOutcome::FindPrev);
+    let t = Instant::now();
+    click(&mut s, (20, 6), t);
+    click(&mut s, (20, 6), t + Duration::from_millis(100));
+    assert_eq!(key(&mut s, KeyCode::Char('n')), KeyOutcome::None);
+    assert_eq!(s.edit.as_ref().unwrap().buf, "n");
+}
+
 fn hold(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
     let t = Instant::now();
     mouse(

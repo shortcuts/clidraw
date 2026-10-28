@@ -589,19 +589,38 @@ impl Session {
         if !term.is_empty() {
             self.search = term.to_lowercase();
         }
+        self.step(false)
+    }
+
+    /// Selects the previous element before the current selection whose label holds the stored term, wrapping, and centers it.
+    pub fn find_prev(&mut self) -> bool {
+        self.step(true)
+    }
+
+    fn step(&mut self, back: bool) -> bool {
         let els = &self.canvas.elements;
-        let from = match self.selection.as_slice() {
-            [id] => els.iter().position(|e| e.id() == id).map_or(0, |i| i + 1),
-            _ => 0,
+        let len = els.len();
+        let pos = match self.selection.as_slice() {
+            [id] => els.iter().position(|e| e.id() == id),
+            _ => None,
         };
-        let hit = (0..els.len()).map(|i| (from + i) % els.len()).find(|&i| {
-            let label = match &els[i] {
-                Element::Shape(s) => &s.label,
-                Element::Line(l) => &l.label,
-                Element::Text(t) => &t.text,
-            };
-            !self.search.is_empty() && label.to_lowercase().contains(&self.search)
-        });
+        let from = pos.map_or(0, |i| i + 1);
+        let hit = (0..len)
+            .map(|k| {
+                if back {
+                    (pos.unwrap_or(0) + len - 1 - k) % len
+                } else {
+                    (from + k) % len
+                }
+            })
+            .find(|&i| {
+                let label = match &els[i] {
+                    Element::Shape(s) => &s.label,
+                    Element::Line(l) => &l.label,
+                    Element::Text(t) => &t.text,
+                };
+                !self.search.is_empty() && label.to_lowercase().contains(&self.search)
+            });
         let Some(i) = hit else { return false };
         let b = self.canvas.bounds(&els[i]);
         self.selection = vec![els[i].id().clone()];

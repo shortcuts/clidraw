@@ -395,9 +395,9 @@ fn clicking_a_help_tab_selects_its_page() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     app.on_event(key(KeyCode::Char('?')), now);
-    click(&mut app, 33, 2, now);
+    click(&mut app, 33, 1, now);
     assert_eq!(help_page(&app), 2);
-    click(&mut app, 17, 2, now);
+    click(&mut app, 17, 1, now);
     assert_eq!(help_page(&app), 0);
     click(&mut app, 17, 12, now);
     assert_eq!(help_page(&app), 0, "a click off the tabs keeps the modal");
@@ -925,6 +925,40 @@ fn slash_command_selects_matches_in_turn_and_centers_the_view() {
     assert_eq!(sx, i32::from(app.session.screen.0) / 2);
     run(&mut app, "/zzz");
     assert!(app.status.is_some());
+}
+
+#[test]
+fn n_and_capital_n_cycle_matches_with_wrap() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    app.session.exec(labeled("aaaaaaaa", 500, "Auth service"));
+    app.session.exec(labeled("bbbbbbbb", 0, "db"));
+    app.session.exec(labeled("cccccccc", 900, "auth DB"));
+    run(&mut app, "/auth");
+    let now = Instant::now();
+    let steps = [
+        ('n', "aaaaaaaa"),
+        ('n', "cccccccc"),
+        ('N', "aaaaaaaa"),
+        ('N', "cccccccc"),
+    ];
+    for (c, id) in steps {
+        app.on_event(key(KeyCode::Char(c)), now);
+        assert_eq!(app.session.selection, vec![Id::from(id)], "after {c}");
+    }
+}
+
+#[test]
+fn n_keeps_a_lone_match_selected_and_reports_a_missing_term() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    app.session.exec(labeled("aaaaaaaa", 500, "Auth service"));
+    app.on_event(key(KeyCode::Char('n')), Instant::now());
+    assert!(app.status.is_some());
+    run(&mut app, "/auth");
+    app.on_event(key(KeyCode::Char('n')), Instant::now());
+    assert_eq!(app.session.selection, vec![Id::from("aaaaaaaa")]);
+    assert!(app.status.is_none());
 }
 
 fn last_row(app: &App) -> String {
@@ -1837,7 +1871,7 @@ fn help_tab_click_clears_the_query() {
     let now = Instant::now();
     app.on_event(key(KeyCode::Char('?')), now);
     type_str(&mut app, "del", now);
-    click(&mut app, 33, 2, now);
+    click(&mut app, 33, 1, now);
     assert_eq!(help_query(&app), "");
 }
 
@@ -2077,6 +2111,12 @@ fn palette_typed(app: &mut App, text: &str) {
     type_str(app, text, now);
 }
 
+fn find_two(app: &mut App) {
+    app.session.exec(labeled("ffffffff", 0, "find one"));
+    app.session.exec(labeled("gggggggg", 0, "find two"));
+    run(app, "/find");
+}
+
 fn editing(app: &mut App) {
     app.session.start_edit_existing(Id::from("aaaaaaaa"));
     let e = app.session.edit.as_mut().unwrap();
@@ -2121,6 +2161,17 @@ fn registry_display_only_entries_are_covered() {
         ),
         ("reset_zoom", zoomed, |a| !a.session.zoomed_out()),
         ("confirm", |a| type_str(a, ":q", Instant::now()), |a| a.quit),
+        ("find_next", find_two, |a| {
+            a.session.selection == vec![Id::from("ffffffff")]
+        }),
+        (
+            "find_prev",
+            |a| {
+                find_two(a);
+                a.on_event(key(KeyCode::Char('n')), Instant::now());
+            },
+            |a| a.session.selection == vec![Id::from("gggggggg")],
+        ),
         (
             "cancel_prompt",
             |a| type_str(a, ":", Instant::now()),

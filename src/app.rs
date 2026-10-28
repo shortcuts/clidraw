@@ -325,6 +325,12 @@ impl App {
                     self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, "/".into()))
                 }
                 KeyOutcome::Notice(text) => self.status = Some(ui::Status::notice(text)),
+                KeyOutcome::FindNext => self.run_command("/"),
+                KeyOutcome::FindPrev => {
+                    if !self.session.find_prev() {
+                        self.status = Some(ui::Status::error("No match: try another search term"));
+                    }
+                }
                 KeyOutcome::None => {}
             }
             return;

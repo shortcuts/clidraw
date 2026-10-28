@@ -467,6 +467,14 @@ pub const BINDINGS: &[Binding] = &[
     )
     .shown("Ctrl-p"),
     Binding::new("find", &[c('/')], "Find", Scope::Canvas, Some(Action::Find)).hint("find"),
+    Binding::new("find_next", &[c('n')], "Next match", Scope::Canvas, None),
+    Binding::new(
+        "find_prev",
+        &[c('N')],
+        "Previous match",
+        Scope::Canvas,
+        None,
+    ),
     Binding::new(
         "canvases",
         &[],

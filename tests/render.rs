@@ -541,7 +541,7 @@ fn help_rows_stay_inside_the_border_on_every_page() {
         let b = draw(&s, &Overlay::Help(page, String::new()));
         let edge = row(&b, 2).trim_end().chars().count();
         for i in 0..ui::help::rows(page).len() as u16 {
-            let r = row(&b, 4 + i);
+            let r = row(&b, 3 + i);
             let r = r.trim_end();
             assert!(
                 r.ends_with('│') && r.chars().count() == edge,
@@ -1493,14 +1493,14 @@ fn tool_bar_shows_each_key_dimmed_when_the_row_fits() {
 fn help_search_line_shows_hint_then_query_and_keeps_the_box_aligned() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let b = draw(&s, &Overlay::Help(0, String::new()));
-    assert!(row(&b, 3).contains("Type to filter"), "{}", row(&b, 3));
+    assert!(row(&b, 2).contains("Type to filter"), "{}", row(&b, 2));
     let b = draw(&s, &Overlay::Help(0, "remove".into()));
-    assert!(row(&b, 3).contains("> remove"), "{}", row(&b, 3));
-    assert!(row(&b, 4).contains("Del"), "{}", row(&b, 4));
-    assert_eq!(cols(&b, 4, 71, 1), "│");
+    assert!(row(&b, 2).contains("> remove"), "{}", row(&b, 2));
+    assert!(row(&b, 3).contains("Del"), "{}", row(&b, 3));
+    assert_eq!(cols(&b, 3, 71, 1), "│");
     assert_eq!(cols(&b, 20, 71, 1), "│");
     let b = draw(&s, &Overlay::Help(0, "zzzz".into()));
-    assert!(row(&b, 4).contains("No match"), "{}", row(&b, 4));
+    assert!(row(&b, 3).contains("No match"), "{}", row(&b, 3));
 }
 
 #[test]
