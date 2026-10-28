@@ -6,7 +6,7 @@ use clidraw::model::{
 };
 use clidraw::store::Store;
 use crossterm::event::{
-    Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+    Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -700,6 +700,25 @@ fn unknown_command_sets_status_and_esc_cancels_the_prompt() {
     app.on_event(key(KeyCode::Esc), now);
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
     assert!(!app.quit);
+}
+
+#[test]
+fn key_release_does_not_type_into_the_prompt() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = vim_app(t.path());
+    let now = Instant::now();
+    app.on_event(key(KeyCode::Char(':')), now);
+    app.on_event(key(KeyCode::Char('q')), now);
+    let release = KeyEvent::new_with_kind(
+        KeyCode::Char('q'),
+        KeyModifiers::NONE,
+        KeyEventKind::Release,
+    );
+    app.on_event(Event::Key(release), now);
+    let clidraw::ui::Overlay::Prompt(p) = &app.overlay else {
+        panic!("expected a prompt, got another overlay")
+    };
+    assert_eq!(p.buf(), "q");
 }
 
 fn drag_app(dir: &std::path::Path) -> App {

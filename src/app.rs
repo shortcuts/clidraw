@@ -9,7 +9,7 @@ use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
 use crate::ui::scope::{ExportFormat, Sink};
 use crate::ui::switcher::{Switcher, SwitcherHit};
 use crate::ui::{self, Overlay};
-use crossterm::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
+use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use std::time::{Duration, Instant};
@@ -241,6 +241,7 @@ impl App {
         self.dirty |= !matches!(&ev, Event::Mouse(m) if m.kind == MouseEventKind::Moved);
         match ev {
             Event::Resize(w, h) => self.session.screen = (w, h),
+            Event::Key(k) if k.kind == KeyEventKind::Release => {}
             Event::Key(k) => self.on_key(k),
             Event::Paste(text) => match &mut self.overlay {
                 Overlay::Prompt(p) => p

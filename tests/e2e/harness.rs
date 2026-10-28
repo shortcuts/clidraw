@@ -178,7 +178,16 @@ impl Term {
     }
 
     pub fn screen(&self) -> String {
-        self.parser.screen().contents()
+        let mut rows: Vec<String> = self
+            .parser
+            .screen()
+            .rows(0, COLS)
+            .map(|r| r.trim_end().to_string())
+            .collect();
+        while rows.last().is_some_and(String::is_empty) {
+            rows.pop();
+        }
+        rows.join("\n")
     }
 
     pub fn canvas(&self) -> String {
