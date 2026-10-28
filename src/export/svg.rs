@@ -222,6 +222,11 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                     }
                     LineKind::Line => "",
                 };
+                // Mermaid draws one dotted edge style, so dashed edges share it.
+                let stroke = match l.stroke {
+                    Stroke::Dashed => Stroke::Dotted,
+                    s => s,
+                };
                 let pts = corners(&cells);
                 let d = pts
                     .into_iter()
@@ -232,7 +237,7 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                 let _ = writeln!(
                     o,
                     "  <path d=\"{d}\" {} stroke-linejoin=\"round\"{marker}/>",
-                    style(l.stroke, l.color, None)
+                    style(stroke, l.color, None)
                 );
                 let (lx, ly) = mid(label_pos(&cells, l.label_at));
                 text(&mut o, (lx, ly), "middle", &[&l.label], (l.color, false));

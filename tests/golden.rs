@@ -162,6 +162,13 @@ fn svg_matches_golden() {
 }
 
 #[test]
+fn svg_dashed_edge_uses_the_dotted_pattern_and_shape_keeps_its_own() {
+    let out = svg(&sample());
+    assert!(out.contains("stroke-dasharray=\"2 4\" stroke-linejoin=\"round\"/>"));
+    assert!(out.contains("rx=\"8\" fill=\"none\" stroke=\"black\" stroke-dasharray=\"8 4\"/>"));
+}
+
+#[test]
 fn mermaid_matches_golden_and_counts_skipped() {
     let out = Flowchart.export(&sample());
     check("sample.mmd", &out.text);
