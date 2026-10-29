@@ -22,6 +22,7 @@ mod import;
 mod library;
 mod list;
 mod open;
+mod settings;
 pub mod template;
 mod vault;
 
@@ -566,6 +567,7 @@ impl App {
                 self.report(r);
                 self.open_switcher();
             }
+            PromptKind::Setting(s) => self.save_setting(s, s.toml(&buf)),
             PromptKind::ConfirmDelete(name) => {
                 let r = self.store.delete(&name);
                 if r.is_ok() && self.state.offsets.remove(&name).is_some() {

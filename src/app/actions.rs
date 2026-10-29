@@ -3,6 +3,7 @@ use crate::names;
 use crate::ui::actions::Action;
 use crate::ui::minimap::Target;
 use crate::ui::prompt::{Prompt, PromptKind};
+use crate::ui::settings::Setting;
 use crate::ui::Overlay;
 use crate::ui::{colors, kinds};
 
@@ -69,6 +70,8 @@ impl App {
                     self.insert_template(name)
                 }
             }
+            Action::EditSettings => self.open_settings(Setting::ALL[0]),
+            Action::Setting(s) => self.setting_action(s),
             Action::DeleteCanvas => {
                 let kind = PromptKind::ConfirmDelete(self.name.clone());
                 self.overlay = Overlay::Prompt(Prompt::new(kind, String::new()))

@@ -3,9 +3,21 @@ use crate::config::Config;
 use crate::input::Session;
 use crate::model::Canvas;
 use crate::store::{Store, StoreError};
+use crate::ui::theme::{Theme, ThemeSetting};
 use crate::ui::{self, Overlay};
 use crate::view::View;
 use std::time::Instant;
+
+fn apply_session(s: &mut Session, c: &Config) {
+    s.double_click = c.double_click;
+    s.grid = c.grid;
+    s.chrome_accent = c.chrome_accent;
+    s.motion = c.motion;
+    s.quick_connect = c.quick_connect;
+    s.command_ui = c.command_ui;
+    s.scroll_speed = c.scroll_speed;
+    s.history.limit = c.history_limit;
+}
 
 impl App {
     pub fn open(store: Store, name: Option<String>, screen: (u16, u16)) -> Result<App, StoreError> {
@@ -25,14 +37,7 @@ impl App {
             .or_else(|| state.last.clone())
             .unwrap_or_else(|| config.default_canvas.clone());
         let mut session = Session::new(Canvas::default(), View::default(), screen);
-        session.double_click = config.double_click;
-        session.grid = config.grid;
-        session.chrome_accent = config.chrome_accent;
-        session.motion = config.motion;
-        session.quick_connect = config.quick_connect;
-        session.command_ui = config.command_ui;
-        session.scroll_speed = config.scroll_speed;
-        session.history.limit = config.history_limit;
+        apply_session(&mut session, &config);
         let mut app = App {
             session,
             overlay: Overlay::None,
@@ -61,6 +66,20 @@ impl App {
         };
         app.load_into(&name)?;
         Ok(app)
+    }
+
+    pub(super) fn apply_config(&mut self, c: &Config) {
+        apply_session(&mut self.session, c);
+        self.autosave = c.autosave;
+        self.default_canvas = c.default_canvas.clone();
+        self.export_padding = c.export_padding;
+        self.quick_fixes = c.quick_fixes;
+        self.obsidian_vault = c.obsidian_vault.clone();
+        match c.theme {
+            ThemeSetting::Dark => self.session.theme = Theme::Dark,
+            ThemeSetting::Light => self.session.theme = Theme::Light,
+            ThemeSetting::Auto => {}
+        }
     }
 
     pub(super) fn load_into(&mut self, name: &str) -> Result<(), StoreError> {

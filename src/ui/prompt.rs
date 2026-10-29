@@ -3,6 +3,7 @@ use super::list::{Anchor, List, Row};
 use super::paths;
 use super::registry::{self, Binding};
 use super::scope::ExportFormat;
+use super::settings::Setting;
 use super::style::{ACTIVE, ERROR, MUTED};
 use super::{boxed, centered, Grid};
 use crate::diagram::{self, Severity};
@@ -30,6 +31,7 @@ pub enum PromptKind {
     ConfirmDelete(String),
     Command,
     Mermaid(String),
+    Setting(Setting),
 }
 
 pub struct Prompt {
@@ -155,6 +157,7 @@ impl Prompt {
             PromptKind::Rename(_) => "Rename canvas to",
             PromptKind::ConfirmDelete(_) => "Delete canvas",
             PromptKind::ConfirmOverwrite(..) => "Overwrite file",
+            PromptKind::Setting(_) => "Edit setting",
             PromptKind::Command | PromptKind::Mermaid(_) => "",
         }
     }
@@ -189,6 +192,14 @@ pub fn draw(grid: &mut Grid, p: &Prompt) {
         PromptKind::ConfirmAppend(path, _) => {
             grid.text(r.0 + 2, r.1 + 1, &format!("Append to \"{path}\"?"), 0)
         }
+        PromptKind::Setting(s) => caret_line(
+            grid,
+            r.0 + 2,
+            r.1 + 1,
+            r.2 - 4,
+            &format!("{} = ", s.key()),
+            p,
+        ),
         _ => caret_line(grid, r.0 + 2, r.1 + 1, r.2 - 4, "", p),
     }
     let (ok, cancel) = if p.cancel_focused {

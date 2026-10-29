@@ -12,5 +12,6 @@ mod palette;
 mod registry;
 mod search;
 mod session;
+mod settings;
 mod templates;
 mod vault;

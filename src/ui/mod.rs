@@ -16,6 +16,7 @@ mod perf;
 pub mod prompt;
 pub mod registry;
 pub mod scope;
+pub mod settings;
 mod style;
 pub mod switcher;
 pub mod theme;

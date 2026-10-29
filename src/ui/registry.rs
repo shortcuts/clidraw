@@ -553,6 +553,13 @@ pub const BINDINGS: &[Binding] = &[
         Some(Action::Menu(MenuItem::SaveToObsidianNote)),
     ),
     Binding::new(
+        "edit_settings",
+        &[],
+        "Edit",
+        Scope::Palette,
+        Some(Action::EditSettings),
+    ),
+    Binding::new(
         "insert_template",
         &[],
         "Insert template",

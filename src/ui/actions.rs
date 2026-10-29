@@ -2,6 +2,7 @@ use super::list::{List, Row};
 use super::menu::{ContextItem, MenuItem};
 use super::palette::{self, Choice};
 use super::registry;
+use super::settings::Setting;
 use crate::input::{Session, Tool};
 use crate::model::{Align, Element, Z};
 
@@ -34,6 +35,8 @@ pub enum Action {
     Templates,
     Template(&'static str),
     Blank,
+    EditSettings,
+    Setting(Setting),
 }
 
 impl Action {
@@ -86,6 +89,7 @@ impl Action {
             | Action::NewCanvas
             | Action::RenameCanvas
             | Action::DeleteCanvas => "Canvas",
+            Action::EditSettings | Action::Setting(_) => "Settings",
             Action::Menu(_) | Action::Ex("w" | "wq") | Action::Prefill("import ") => "File",
             _ => "Edit",
         }
