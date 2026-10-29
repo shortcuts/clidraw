@@ -699,14 +699,14 @@ fn perf_row_shows_the_last_120_frames_at_the_top_right() {
 }
 
 #[test]
-fn hovered_unselected_shape_is_underlined_and_a_selected_one_is_not() {
+fn hovered_unselected_shape_is_not_underlined_and_a_selected_one_is_not() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 20, "box"));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.hover = Hit::Element(Id::from("aaaaaaaa"));
     let b = draw(&s, &Overlay::None);
     assert!(
-        b[(22, 4)].modifier.contains(Modifier::UNDERLINED),
+        !b[(22, 4)].modifier.contains(Modifier::UNDERLINED),
         "hovered"
     );
     s.selection.push(Id::from("aaaaaaaa"));

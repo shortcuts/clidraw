@@ -1,4 +1,4 @@
-use super::grid::{Grid, BOLD, DIM, REVERSE, UNDERLINE};
+use super::grid::{Grid, BOLD, DIM, REVERSE};
 use super::layout::{refresh, seen};
 use super::registry;
 use super::theme;
@@ -45,8 +45,6 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
             }
         } else if s.snap.as_ref() == Some(e.id()) {
             BOLD
-        } else if matches!(&s.hover, Hit::Element(id) if id == e.id()) {
-            UNDERLINE
         } else {
             0
         };
