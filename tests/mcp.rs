@@ -86,14 +86,25 @@ fn bad_input_lines_get_protocol_errors() {
 }
 
 #[test]
-fn tools_list_names_the_eight_cli_commands() {
+fn tools_list_names_the_cli_commands() {
     let (_t, s) = store();
     let r = rpc(&s, &[req(1, "tools/list", json!({}))]);
     let tools = r[0]["result"]["tools"].as_array().unwrap();
     let names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
     assert_eq!(
         names,
-        ["list", "new", "show", "edit", "import", "export", "rename", "delete"]
+        [
+            "list",
+            "new",
+            "show",
+            "edit",
+            "import",
+            "export",
+            "rename",
+            "delete",
+            "templates",
+            "template"
+        ]
     );
     assert!(tools.iter().all(|t| t["inputSchema"]["type"] == "object"));
 }
@@ -231,4 +242,50 @@ fn rename_and_delete_tools() {
     assert_eq!(text(&r[1]), r#"{"renamed":"b"}"#);
     assert_eq!(text(&r[2]), r#"{"deleted":"b"}"#);
     assert_eq!(r[3]["result"]["isError"], true);
+}
+
+#[test]
+fn template_tools_list_create_and_extend() {
+    let (_t, s) = store();
+    let r = rpc(
+        &s,
+        &[
+            tool(1, "templates", json!({})),
+            tool(
+                2,
+                "template",
+                json!({"name": "t", "template": "Gantt chart"}),
+            ),
+            tool(
+                3,
+                "template",
+                json!({"name": "t", "template": "Sequence diagram"}),
+            ),
+            tool(4, "template", json!({"name": "t", "template": "Nope"})),
+            tool(5, "show", json!({"name": "t"})),
+        ],
+    );
+    assert_eq!(
+        text(&r[0]),
+        r#"["Flowchart","Architecture dependency","Gantt chart","Sequence diagram","State diagram"]"#
+    );
+    assert!(text(&r[1]).starts_with(r#"{"shapes":"#), "{}", text(&r[1]));
+    assert_eq!(r[3]["result"]["isError"], true);
+    assert!(text(&r[3]).contains("run clidraw templates"));
+    let canvas: Value = serde_json::from_str(text(&r[4])).unwrap();
+    let frames: Vec<&Value> = canvas["elements"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| e["kind"] == "Frame")
+        .collect();
+    let labels: Vec<&str> = frames
+        .iter()
+        .map(|f| f["label"].as_str().unwrap())
+        .collect();
+    assert_eq!(labels, ["Gantt chart", "Sequence diagram"]);
+    let (first, second) = (&frames[0], &frames[1]);
+    assert!(
+        second["y"].as_i64() > Some(first["y"].as_i64().unwrap() + first["h"].as_i64().unwrap())
+    );
 }

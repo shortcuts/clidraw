@@ -91,6 +91,15 @@
     <ul>
       <li><code>name</code> (required, string): Canvas name</li>
     </ul>
+    <h3 class="item" id="tools-templates">templates</h3>
+    <p>List the built-in template names as a JSON array.</p>
+    <p>No parameters.</p>
+    <h3 class="item" id="tools-template">template</h3>
+    <p>Add a built-in template inside a frame, below the existing content. Creates the canvas if missing.</p>
+    <ul>
+      <li><code>name</code> (required, string): Canvas name</li>
+      <li><code>template</code> (required, string): Template name from the templates tool</li>
+    </ul>
 
     <h2 id="errors">Errors</h2>
     <p>A failed tool call returns a normal result with <code>isError</code> set to <code>true</code>. Its text is <code>Error: &lt;msg&gt;</code>.</p>

@@ -1,3 +1,4 @@
+use crate::app::template;
 use crate::config::Config;
 use crate::diagram::{self, import_failure};
 use crate::model::{Canvas, Command, Element, Id};
@@ -9,12 +10,21 @@ use std::io::{Read, Write};
 pub mod docs;
 mod ops;
 
-pub const COMMANDS: [&str; 8] = [
-    "list", "new", "show", "edit", "import", "export", "rename", "delete",
+pub const COMMANDS: [&str; 10] = [
+    "list",
+    "new",
+    "show",
+    "edit",
+    "import",
+    "export",
+    "rename",
+    "delete",
+    "templates",
+    "template",
 ];
 
 /// (name, usage, description) for each entry of `COMMANDS`, in the same order.
-pub const COMMAND_DOCS: [(&str, &str, &str); 8] = [
+pub const COMMAND_DOCS: [(&str, &str, &str); 10] = [
     (
         "list",
         "clidraw list",
@@ -54,6 +64,16 @@ pub const COMMAND_DOCS: [(&str, &str, &str); 8] = [
         "delete",
         "clidraw delete <name>",
         "Deletes a canvas. Prints {\"deleted\":name}.",
+    ),
+    (
+        "templates",
+        "clidraw templates",
+        "Prints the names of the built-in templates as a JSON array.",
+    ),
+    (
+        "template",
+        "clidraw template <name> <template>",
+        "Adds a built-in template inside a frame, below the existing content. Creates the canvas if it does not exist. Prints {\"shapes\":N,\"lines\":N}.",
     ),
 ];
 
@@ -130,6 +150,40 @@ fn import(
     Ok(())
 }
 
+fn template(name: &str, tpl: &str, store: &Store, out: &mut impl Write) -> Result<()> {
+    let built = template::build(tpl)
+        .map_err(|_| anyhow::anyhow!("no template {tpl:?}; run clidraw templates"))?;
+    let mut canvas = if store.exists(name) {
+        store.load(name)?
+    } else {
+        Canvas::default()
+    };
+    let (ox, oy) = canvas
+        .all_bounds()
+        .map_or((0, 0), |(x, y, _, h)| (x, y + h + 1));
+    let fresh = template::framed(template::pinned(built), tpl, ox, oy);
+    let shapes = fresh
+        .elements
+        .iter()
+        .filter(|e| matches!(e, Element::Shape(_)))
+        .count();
+    let lines = fresh.elements.len() - shapes;
+    let inserts = fresh
+        .elements
+        .into_iter()
+        .map(|e| Command::Insert(usize::MAX, e))
+        .collect();
+    canvas.apply(Command::Batch(inserts))?;
+    canvas.groups.extend(fresh.groups);
+    store.save(name, &canvas)?;
+    writeln!(
+        out,
+        "{}",
+        serde_json::json!({ "shapes": shapes, "lines": lines })
+    )?;
+    Ok(())
+}
+
 fn export(args: &[String], store: &Store, out: &mut impl Write) -> Result<()> {
     let (name, flag, path) = match args {
         [name, flag, path] => (name, flag.as_str(), path),
@@ -171,6 +225,8 @@ pub fn run(
         }
         ("show", [name]) => writeln!(out, "{}", serde_json::to_string_pretty(&store.load(name)?)?)?,
         ("edit", [name]) => edit(name, store, stdin, out)?,
+        ("templates", []) => writeln!(out, "{}", serde_json::to_string(&template::names())?)?,
+        ("template", [name, tpl]) => template(name, tpl, store, out)?,
         ("import", [name, path]) => import(name, path, store, stdin, out)?,
         ("export", _) => export(&args[1..], store, out)?,
         ("rename", [from, to]) => {

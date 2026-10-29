@@ -1,7 +1,7 @@
-use super::App;
+use super::{template, App};
 use crate::config::expand_home;
 use crate::diagram::{self, import_failure};
-use crate::model::{Command, Element, Shape, ShapeKind};
+use crate::model::Element;
 use crate::ui::Status;
 
 impl App {
@@ -39,35 +39,13 @@ impl App {
         });
     }
 
-    pub(super) fn insert_framed(&mut self, mut canvas: crate::model::Canvas, name: &str) {
-        let ids: Vec<_> = canvas.elements.iter().map(|e| e.id().clone()).collect();
-        // Pin detour routes before measuring, so the frame includes them.
-        let _ = canvas.apply(Command::Batch(canvas.pin_cmds(&ids)));
-        let (bx, by, bw, bh) = self.extent(&canvas);
+    pub(super) fn insert_framed(&mut self, canvas: crate::model::Canvas, name: &str) {
+        let canvas = template::pinned(canvas);
+        let (fw, fh) = template::frame_size(&canvas);
         let (vx, vy, ..) = self.session.viewport();
         let (wx, wy) = self.session.view.to_world(vx + 2, vy + 1);
-        let (px, py) = (4, 2);
-        let (fw, fh) = (bw + 2 + 2 * px, bh + 2 + 2 * py);
         let (fx, fy) = self.free_spot(wx - 1, wy - 1, fw, fh);
-        let mut framed = canvas.clone_canvas(&ids, fx + 1 + px - bx, fy + 1 + py - by);
-        framed.elements.insert(
-            0,
-            Element::Shape(Shape::new(ShapeKind::Frame, fx, fy, fw, fh, name)),
-        );
-        self.session.insert(framed);
-    }
-
-    fn extent(&self, canvas: &crate::model::Canvas) -> (i32, i32, i32, i32) {
-        let boxes = canvas.elements.iter().map(|e| canvas.bounds(e));
-        let (x0, y0, x1, y1) = boxes.fold((i32::MAX, i32::MAX, i32::MIN, i32::MIN), |m, b| {
-            (
-                m.0.min(b.0),
-                m.1.min(b.1),
-                m.2.max(b.0 + b.2),
-                m.3.max(b.1 + b.3),
-            )
-        });
-        (x0, y0, x1 - x0, y1 - y0)
+        self.session.insert(template::framed(canvas, name, fx, fy));
     }
 
     /// Moves the rectangle down past every element it overlaps; each step raises `y`, so it ends.

@@ -61,6 +61,12 @@
     <h3 class="item" id="commands-delete">delete</h3>
     <p><strong>Usage:</strong> <code>clidraw delete &lt;name&gt;</code></p>
     <p>Deletes a canvas. Prints {&quot;deleted&quot;:name}.</p>
+    <h3 class="item" id="commands-templates">templates</h3>
+    <p><strong>Usage:</strong> <code>clidraw templates</code></p>
+    <p>Prints the names of the built-in templates as a JSON array.</p>
+    <h3 class="item" id="commands-template">template</h3>
+    <p><strong>Usage:</strong> <code>clidraw template &lt;name&gt; &lt;template&gt;</code></p>
+    <p>Adds a built-in template inside a frame, below the existing content. Creates the canvas if it does not exist. Prints {&quot;shapes&quot;:N,&quot;lines&quot;:N}.</p>
 
     <h2 id="ops">Edit ops</h2>
     <p><code>edit</code> reads a JSON array of ops from stdin. Each op is an object. Its <code>op</code> field names the op. For example:</p>
@@ -166,7 +172,7 @@
     <p>Prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.</p>
     <h3 class="item" id="other-commands-mcp">mcp</h3>
     <p><strong>Usage:</strong> <code>clidraw mcp</code></p>
-    <p>Serves the eight commands above as MCP tools over stdio, for agent clients. See the <a href="mcp.html">MCP tools</a> page.</p>
+    <p>Serves the ten commands above as MCP tools over stdio, for agent clients. See the <a href="mcp.html">MCP tools</a> page.</p>
   </main>
 
 </div>

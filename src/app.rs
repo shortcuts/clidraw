@@ -22,7 +22,7 @@ mod import;
 mod library;
 mod list;
 mod open;
-mod template;
+pub mod template;
 mod vault;
 
 pub struct App {

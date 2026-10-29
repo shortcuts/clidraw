@@ -211,7 +211,7 @@ fn cli_page() -> String {
     body += "\n    <h2 id=\"other-commands\">Other commands</h2>\n";
     body += "    <h3 class=\"item\" id=\"other-commands-config\">config</h3>\n    <p><strong>Usage:</strong> <code>clidraw config</code></p>\n    <p>Prints the default <code>config.toml</code>.</p>\n";
     body += "    <h3 class=\"item\" id=\"other-commands-probe\">probe</h3>\n    <p><strong>Usage:</strong> <code>clidraw probe</code></p>\n    <p>Prints the kitty keyboard support result, then every terminal event. Use it to test a terminal.</p>\n";
-    body += "    <h3 class=\"item\" id=\"other-commands-mcp\">mcp</h3>\n    <p><strong>Usage:</strong> <code>clidraw mcp</code></p>\n    <p>Serves the eight commands above as MCP tools over stdio, for agent clients. See the <a href=\"mcp.html\">MCP tools</a> page.</p>\n";
+    body += "    <h3 class=\"item\" id=\"other-commands-mcp\">mcp</h3>\n    <p><strong>Usage:</strong> <code>clidraw mcp</code></p>\n    <p>Serves the ten commands above as MCP tools over stdio, for agent clients. See the <a href=\"mcp.html\">MCP tools</a> page.</p>\n";
     page(
         "cli.html",
         "Command line",

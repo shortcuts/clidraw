@@ -523,3 +523,16 @@ fn edit_meta_adds_merges_clears_and_rejects_bad_pairs() {
         assert_eq!(show(t.path()), before);
     }
 }
+
+#[test]
+fn template_creates_a_framed_canvas() {
+    let t = tempfile::tempdir().unwrap();
+    let r = run(t.path(), &["template", "demo", "Sequence diagram"]);
+    assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
+    let c = show(t.path());
+    assert!(c["elements"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|e| e["kind"] == "Frame" && e["label"] == "Sequence diagram"));
+}

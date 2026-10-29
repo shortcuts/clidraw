@@ -1,6 +1,8 @@
 use super::App;
 use crate::diagram::{DiagramKind, Flowchart};
-use crate::model::{Anchor, Canvas, Element, End, Line, LineKind, Paint, Shape, ShapeKind, Stroke};
+use crate::model::{
+    Anchor, Canvas, Command, Element, End, Line, LineKind, Paint, Shape, ShapeKind, Stroke,
+};
 use crate::ui::actions::Action;
 use crate::ui::list::{List, Row};
 use crate::ui::Status;
@@ -18,6 +20,59 @@ const TEMPLATES: [(&str, Build); 5] = [
         imported(include_str!("templates/state.mmd"))
     }),
 ];
+
+const PAD_X: i32 = 4;
+const PAD_Y: i32 = 2;
+
+pub fn names() -> Vec<&'static str> {
+    TEMPLATES.iter().map(|&(name, _)| name).collect()
+}
+
+pub fn build(name: &str) -> Result<Canvas, String> {
+    match TEMPLATES.iter().find(|(n, _)| *n == name) {
+        Some((_, build)) => build(),
+        None => Err(format!("No template {name}")),
+    }
+}
+
+/// Pins detour routes, so the frame measured next includes them.
+pub fn pinned(mut canvas: Canvas) -> Canvas {
+    let ids: Vec<_> = canvas.elements.iter().map(|e| e.id().clone()).collect();
+    let _ = canvas.apply(Command::Batch(canvas.pin_cmds(&ids)));
+    canvas
+}
+
+fn extent(canvas: &Canvas) -> (i32, i32, i32, i32) {
+    let boxes = canvas.elements.iter().map(|e| canvas.bounds(e));
+    let (x0, y0, x1, y1) = boxes.fold((i32::MAX, i32::MAX, i32::MIN, i32::MIN), |m, b| {
+        (
+            m.0.min(b.0),
+            m.1.min(b.1),
+            m.2.max(b.0 + b.2),
+            m.3.max(b.1 + b.3),
+        )
+    });
+    (x0, y0, x1 - x0, y1 - y0)
+}
+
+/// Width and height of the frame that `framed` draws around `canvas`.
+pub fn frame_size(canvas: &Canvas) -> (i32, i32) {
+    let (_, _, w, h) = extent(canvas);
+    (w + 2 + 2 * PAD_X, h + 2 + 2 * PAD_Y)
+}
+
+/// Moves `canvas` inside a new frame at `(fx, fy)`; the frame is element 0 so it draws behind.
+pub fn framed(canvas: Canvas, name: &str, fx: i32, fy: i32) -> Canvas {
+    let ids: Vec<_> = canvas.elements.iter().map(|e| e.id().clone()).collect();
+    let (bx, by, ..) = extent(&canvas);
+    let (fw, fh) = frame_size(&canvas);
+    let mut framed = canvas.clone_canvas(&ids, fx + 1 + PAD_X - bx, fy + 1 + PAD_Y - by);
+    framed.elements.insert(
+        0,
+        Element::Shape(Shape::new(ShapeKind::Frame, fx, fy, fw, fh, name)),
+    );
+    framed
+}
 
 // Imports stay compact; templates need room for new shapes.
 fn imported(src: &str) -> Result<Canvas, String> {
@@ -94,11 +149,7 @@ fn sequence_diagram() -> Canvas {
 
 impl App {
     pub(super) fn insert_template(&mut self, name: &str) {
-        let Some((_, build)) = TEMPLATES.iter().find(|(n, _)| *n == name) else {
-            self.status = Some(Status::error(format!("No template {name}")));
-            return;
-        };
-        self.status = Some(match build() {
+        self.status = Some(match build(name) {
             Ok(canvas) => {
                 self.insert_framed(canvas, name);
                 Status::notice(format!("Inserted template {name}"))
