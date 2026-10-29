@@ -128,14 +128,16 @@ impl App {
     }
 
     fn extent_canvas(&self, extent: Extent) -> Canvas {
-        match extent {
+        let mut canvas = match extent {
             Extent::Whole => self.session.canvas.clone(),
             Extent::Area(a) => self.session.canvas.within(a),
             Extent::Selection => self
                 .session
                 .canvas
                 .clone_canvas(&self.session.selection, 0, 0),
-        }
+        };
+        canvas.dir = self.session.canvas.dir;
+        canvas
     }
 
     fn copy_share(&mut self, extent: Extent) {

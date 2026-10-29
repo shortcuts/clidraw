@@ -323,6 +323,29 @@ fn palette_copy_for_obsidian_fences_past_a_backtick_run_in_a_label() {
 }
 
 #[test]
+fn palette_copy_for_obsidian_keeps_the_lr_direction_of_the_selection() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    app.session.canvas.dir = clidraw::model::Dir::LeftRight;
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "copy for obsidian", now);
+    app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Enter), now);
+    let seq = app.take_copy().expect("copy queued");
+    let payload = seq
+        .strip_prefix("\x1b]52;c;")
+        .and_then(|s| s.strip_suffix("\x1b\\"))
+        .expect("osc 52 sequence");
+    let text = decode_base64(payload);
+    assert!(text.starts_with("```mermaid\nflowchart LR\n"), "{text}");
+}
+
+#[test]
 fn palette_copy_for_obsidian_with_no_selection_queues_nothing() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
