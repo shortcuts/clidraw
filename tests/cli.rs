@@ -417,6 +417,17 @@ fn edit_resizes_and_restyles() {
 }
 
 #[test]
+fn edit_connect_takes_a_stroke() {
+    let t = seeded_empty();
+    let c = edit_ok(
+        &t,
+        r#"[{"op":"add_shape","id":"a","x":0,"y":0,"w":8,"h":4},{"op":"add_shape","id":"b","x":30,"y":9,"w":8,"h":4},
+        {"op":"connect","id":"l","from":"a","to":"b","stroke":"dotted"}]"#,
+    );
+    assert_eq!(c["elements"][2]["stroke"], "dotted");
+}
+
+#[test]
 fn edit_groups_orders_and_lays_out() {
     let t = seeded_empty();
     let c = edit_ok(

@@ -199,6 +199,13 @@ pub const OPS: [OpDoc; 11] = [
                 note: "One line.",
             },
             FieldDoc {
+                name: "stroke",
+                required: false,
+                example: "\"dotted\"",
+                values: STROKES,
+                note: "Default: solid.",
+            },
+            FieldDoc {
                 name: "meta",
                 required: false,
                 example: "{\"file\": \"src/a.rs\"}",

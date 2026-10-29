@@ -53,6 +53,7 @@ pub(super) enum Op {
         to: Endpoint,
         kind: Option<LineKind>,
         label: Option<String>,
+        stroke: Option<Stroke>,
         meta: Option<Meta>,
     },
     Set {
@@ -229,6 +230,7 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
             to,
             kind,
             label,
+            stroke,
             meta,
         } => {
             ids_ok("connect", &id)?;
@@ -243,6 +245,7 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
                     id,
                     label: label.clone().unwrap_or_default(),
                     meta: meta.clone(),
+                    stroke: stroke.unwrap_or_default(),
                     ..Line::new(kind.unwrap_or(LineKind::Arrow), from.clone(), to.clone())
                 })
             }));
