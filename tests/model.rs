@@ -945,6 +945,15 @@ fn snap_size_holds_the_ratio_of_bound_kinds() {
 }
 
 #[test]
+fn rotated_swaps_width_and_height_around_the_center() {
+    assert_eq!(shape_at(20, 4, 8, 4).rotated(), (22, 2, 4, 8));
+    let turned = shape_at(20, 4, 7, 4).rotated();
+    assert_eq!(turned, (21, 3, 4, 7));
+    let (x, y, w, h) = turned;
+    assert_eq!(shape_at(x, y, w, h).rotated(), (20, 4, 7, 4));
+}
+
+#[test]
 fn snap_size_leaves_free_kinds_alone() {
     for kind in [ShapeKind::Rect, ShapeKind::Cylinder, ShapeKind::Frame] {
         assert_eq!(Shape::snap_size(kind, 7, 2), (7, 2));

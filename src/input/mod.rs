@@ -204,6 +204,7 @@ impl Session {
         match (self.tool, &self.hover) {
             (Tool::Text, _) => "text",
             (Tool::Pointer | Tool::Select, Hit::Handle(Handle::Resize, _)) => "nwse-resize",
+            (Tool::Pointer | Tool::Select, Hit::Handle(Handle::Rotate, _)) => "pointer",
             (Tool::Pointer | Tool::Select, Hit::Handle(Handle::End(_) | Handle::Bend(_), _)) => {
                 "crosshair"
             }

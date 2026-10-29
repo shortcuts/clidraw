@@ -665,6 +665,16 @@ fn selection_box_skips_cells_a_neighbour_owns() {
 }
 
 #[test]
+fn rotate_handle_draws_above_a_selected_rect() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.selection.push(Id::from("aaaaaaaa"));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 2, 23, 1), "↻");
+}
+
+#[test]
 fn selected_line_box_spans_its_route() {
     let mut c = Canvas::default();
     c.elements.push(Element::Line(Line {

@@ -331,6 +331,19 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         }
     }
     let hit = hit::at(s, &s.selection, world, i32::from(s.tool.is_pointer()));
+    if let Hit::Handle(Handle::Rotate, id) = &hit {
+        if let Some(sh) = s.canvas.shape(id) {
+            let (x, y, w, h) = sh.rotated();
+            s.exec(Command::SetRect {
+                id: id.clone(),
+                x,
+                y,
+                w,
+                h,
+            });
+        }
+        return;
+    }
     if double {
         let id = match hit {
             Hit::Element(id) | Hit::Handle(_, id) => Some(id),

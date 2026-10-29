@@ -379,6 +379,13 @@ impl Shape {
         (Self::ratio_width(kind, h).unwrap_or(w), h)
     }
 
+    /// Rect after one 90° turn: width and height swap around the center.
+    pub fn rotated(&self) -> (i32, i32, i32, i32) {
+        let x = self.x + (self.w - self.h) / 2;
+        let y = self.y + (self.h - self.w) / 2;
+        (x, y, self.h, self.w)
+    }
+
     /// Columns the slanted kinds cut off the bounding box at the top and bottom rows.
     pub fn inset(&self) -> i32 {
         match self.kind {

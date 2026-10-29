@@ -224,7 +224,8 @@ pub(super) fn drag(s: &mut Session, screen: P, world: P) {
 
 fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0: P) -> Action {
     match target {
-        Target::Pan => Action::Pan(origin),
+        // `down` rotates on press, so a rotate press never starts a drag.
+        Target::Pan | Target::Handle(Handle::Rotate, _) => Action::Pan(origin),
         Target::Element(_) => Action::Move {
             start: w0,
             last: w0,

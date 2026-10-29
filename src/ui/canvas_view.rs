@@ -77,12 +77,14 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     edit_label(grid, s);
     selection_box(grid, s, &find, &layout.router, accent);
     for (h, id, (x, y)) in handles(&s.canvas, &s.selection) {
-        if h != Handle::Resize {
-            continue;
-        }
+        let glyph = match h {
+            Handle::Resize => '⤡',
+            Handle::Rotate => '↻',
+            _ => continue,
+        };
         let (sx, sy) = view.cell_end(x, y);
         let hovered = matches!(&s.hover, Hit::Handle(hh, hid) if *hh == h && *hid == id);
-        grid.set(sx, sy, if hovered { '◆' } else { '⤡' }, REVERSE);
+        grid.set(sx, sy, if hovered { '◆' } else { glyph }, REVERSE);
         if let Some(c) = accent {
             grid.tint(sx, sy, 1, 1, c);
         }
