@@ -21,6 +21,10 @@ pub struct Term {
 
 impl Term {
     pub fn spawn(tmp: &Path, args: &[&str]) -> Term {
+        Term::spawn_env(tmp, args, false)
+    }
+
+    pub fn spawn_env(tmp: &Path, args: &[&str], truecolor: bool) -> Term {
         let pair = native_pty_system()
             .openpty(PtySize {
                 rows: ROWS,
@@ -34,7 +38,11 @@ impl Term {
         cmd.env("CLIDRAW_HOME", tmp.join("c"));
         cmd.env("XDG_STATE_HOME", tmp.join("state"));
         cmd.env("TERM", "xterm-256color");
-        cmd.env("NO_COLOR", "1");
+        if truecolor {
+            cmd.env("COLORTERM", "truecolor");
+        } else {
+            cmd.env("NO_COLOR", "1");
+        }
         let child = pair.slave.spawn_command(cmd).unwrap();
         let mut reader = pair.master.try_clone_reader().unwrap();
         let writer = pair.master.take_writer().unwrap();
@@ -188,6 +196,10 @@ impl Term {
             rows.pop();
         }
         rows.join("\n")
+    }
+
+    pub fn bg(&self, col: u16, row: u16) -> vt100::Color {
+        self.parser.screen().cell(row, col).unwrap().bgcolor()
     }
 
     pub fn canvas(&self) -> String {

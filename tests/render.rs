@@ -50,6 +50,16 @@ fn draw_env(s: &Session, no_color: bool, colorterm: Option<&str>) -> Buffer {
 }
 
 fn draw_term(s: &Session, no_color: bool, colorterm: Option<&str>, term: Option<&str>) -> Buffer {
+    draw_overlay(s, &Overlay::None, no_color, colorterm, term)
+}
+
+fn draw_overlay(
+    s: &Session,
+    overlay: &Overlay,
+    no_color: bool,
+    colorterm: Option<&str>,
+    term: Option<&str>,
+) -> Buffer {
     let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
     let vars = ["NO_COLOR", "COLORTERM", "TERM"];
     let saved = vars.map(std::env::var_os);
@@ -60,7 +70,7 @@ fn draw_term(s: &Session, no_color: bool, colorterm: Option<&str>, term: Option<
             None => std::env::remove_var(k),
         }
     }
-    let b = render(s, &Overlay::None);
+    let b = render(s, overlay);
     for (k, v) in vars.iter().zip(saved) {
         match v {
             Some(v) => std::env::set_var(k, v),
@@ -2107,4 +2117,48 @@ fn quick_connect_with_a_target_draws_only_a_dim_arrow_to_it() {
     let b = draw(&s, &Overlay::None);
     assert!(b[(30, 5)].modifier.contains(Modifier::DIM));
     assert!(!b[(40, 4)].modifier.contains(Modifier::DIM));
+}
+
+fn swatch_overlay(current: Option<Paint>) -> Overlay {
+    let sw = ui::swatches::Swatches::new("Ink", Some(current), 80);
+    Overlay::Colors(ui::palette::Choice::Ink, sw)
+}
+
+#[test]
+fn the_swatch_window_paints_each_color_square_on_a_truecolor_terminal() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let b = draw_overlay(
+        &s,
+        &swatch_overlay(Some(Paint::Orange)),
+        false,
+        Some("truecolor"),
+        None,
+    );
+    let squares = (0..80)
+        .flat_map(|x| (0..24).map(move |y| (x, y)))
+        .filter(|&p| b[p].bg == Color::Rgb(255, 160, 60))
+        .count();
+    assert_eq!(squares, 6);
+    let rows: Vec<String> = (0..24).map(|y| line_at(&b, y)).collect();
+    assert!(rows.iter().any(|r| r.contains('✓')));
+    assert!(rows.iter().any(|r| r.contains("orange (current)")));
+}
+
+#[test]
+fn the_swatch_window_names_each_color_without_color() {
+    let s = Session::new(Canvas::default(), View::default(), (80, 24));
+    let b = draw_overlay(
+        &s,
+        &swatch_overlay(Some(Paint::Orange)),
+        true,
+        Some("truecolor"),
+        None,
+    );
+    let rows: Vec<String> = (0..24).map(|y| line_at(&b, y)).collect();
+    let grid = rows.iter().find(|r| r.contains("red")).expect("names");
+    assert!(
+        grid.contains("*orange") || grid.contains("*  orange"),
+        "{grid}"
+    );
+    assert!(grid.contains("yellow") && grid.contains("none"), "{grid}");
 }

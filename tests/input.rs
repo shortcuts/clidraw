@@ -4,7 +4,7 @@ use clidraw::input::{
     Tool,
 };
 use clidraw::model::{
-    Align, Anchor, Border, Canvas, Edge, Element, End, Id, Line, LineKind, Paint, Shape, ShapeKind,
+    Align, Anchor, Border, Canvas, Edge, Element, End, Id, Line, LineKind, Shape, ShapeKind,
     SideLabel, Stroke, TextAlign,
 };
 use clidraw::ui::palette::{self, Choice, PaletteHit, Strip};
@@ -888,65 +888,6 @@ fn palette_option_sets_the_border_of_a_selected_rect_and_undoes() {
     assert_eq!(border(&s), Border::Heavy);
     s.undo();
     assert_eq!(border(&s), Border::Double);
-}
-
-#[test]
-fn palette_ink_cycles_through_the_colors_and_undoes_one_click_at_a_time() {
-    let mut s = session();
-    s.canvas.elements.push(Element::Shape(Shape {
-        id: Id::from("rrrrrrrr"),
-        kind: ShapeKind::Rect,
-        x: 30,
-        y: 5,
-        w: 8,
-        h: 3,
-        label: String::new(),
-        stroke: Default::default(),
-        border: Default::default(),
-        color: None,
-        fill: None,
-        align: Default::default(),
-        bold: false,
-        link: None,
-        side_labels: vec![],
-        meta: Default::default(),
-    }));
-    s.canvas.elements.push(Element::Text(clidraw::model::Text {
-        id: Id::from("tttttttt"),
-        x: 50,
-        y: 5,
-        text: "t".into(),
-        color: None,
-        meta: Default::default(),
-    }));
-    s.selection = vec![Id::from("rrrrrrrr")];
-    let ink = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
-        Some(Element::Shape(sh)) => (sh.color, sh.fill),
-        _ => panic!("no shape"),
-    };
-    // Stroke (3), border (4) and align come first, then ink and fill.
-    option(&mut s, 8);
-    assert_eq!(ink(&s), (Some(Paint::Red), None));
-    option(&mut s, 8);
-    assert_eq!(ink(&s), (Some(Paint::Orange), None));
-    s.undo();
-    assert_eq!(ink(&s), (Some(Paint::Red), None));
-    for _ in 0..6 {
-        option(&mut s, 8);
-    }
-    assert_eq!(ink(&s), (None, None));
-    option(&mut s, 9);
-    assert_eq!(ink(&s), (None, Some(Paint::Red)));
-    s.undo();
-    assert_eq!(ink(&s), (None, None));
-
-    s.selection = vec![Id::from("tttttttt")];
-    // A text offers ink only: no stroke, border or fill rows.
-    option(&mut s, 0);
-    assert!(matches!(
-        s.canvas.get(&Id::from("tttttttt")),
-        Some(Element::Text(t)) if t.color == Some(Paint::Red)
-    ));
 }
 
 fn two_shapes_and_arrow_tool() -> Session {

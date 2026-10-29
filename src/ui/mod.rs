@@ -18,6 +18,7 @@ pub mod registry;
 pub mod scope;
 pub mod settings;
 mod style;
+pub mod swatches;
 pub mod switcher;
 pub mod theme;
 
@@ -34,7 +35,7 @@ pub enum Overlay {
     Context(list::List<menu::ContextItem>),
     Formats(list::List<scope::ExportFormat>),
     Scope(scope::Sink, list::List<scope::ScopeItem>),
-    Colors(palette::Choice, list::List<Option<crate::model::Paint>>),
+    Colors(palette::Choice, swatches::Swatches),
     Kinds(
         Vec<crate::input::Origin>,
         list::List<crate::model::ShapeKind>,
@@ -112,7 +113,7 @@ pub fn render(
         Overlay::Context(c) => c.draw(&mut grid),
         Overlay::Formats(l) => l.draw(&mut grid),
         Overlay::Scope(_, l) => l.draw(&mut grid),
-        Overlay::Colors(_, l) => l.draw(&mut grid),
+        Overlay::Colors(_, l) => l.draw(&mut grid, s.theme),
         Overlay::Kinds(_, l) => l.draw(&mut grid),
         Overlay::Switcher(sw) => sw.draw(&mut grid),
         Overlay::Notes(_, n) => n.draw(&mut grid),

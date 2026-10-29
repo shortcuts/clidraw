@@ -98,6 +98,19 @@ impl Grid {
         }
     }
 
+    /// Paints a solid background and keeps the glyphs, so a mark drawn first stays visible.
+    pub fn swatch(&mut self, x: i32, y: i32, w: i32, bg: Color) {
+        for xx in x.max(0)..(x + w).min(self.w) {
+            if let Some(c) = self
+                .cells
+                .get_mut((y * self.w + xx) as usize)
+                .filter(|_| y >= 0 && y < self.h)
+            {
+                c.bg = Some(bg);
+            }
+        }
+    }
+
     /// Skips blanks: reverse video would paint them as colored blocks.
     pub fn tint(&mut self, x: i32, y: i32, w: i32, h: i32, fg: Color) {
         for yy in y.max(0)..(y + h).min(self.h) {
@@ -184,6 +197,19 @@ mod tests {
         g.copy_to(&mut buf, area);
         assert_eq!(buf[(0, 0)].fg, Color::Red);
         assert_eq!(buf[(2, 0)].fg, Color::Reset);
+    }
+
+    #[test]
+    fn swatch_sets_a_background_and_keeps_the_glyph() {
+        let mut g = Grid::new(3, 1);
+        g.text(1, 0, "x", 0);
+        g.swatch(1, 0, 2, Color::Red);
+        let area = Rect::new(0, 0, 3, 1);
+        let mut buf = Buffer::empty(area);
+        g.copy_to(&mut buf, area);
+        assert_eq!((buf[(1, 0)].symbol(), buf[(1, 0)].bg), ("x", Color::Red));
+        assert_eq!((buf[(2, 0)].symbol(), buf[(2, 0)].bg), (" ", Color::Red));
+        assert_eq!(buf[(0, 0)].bg, Color::Reset);
     }
 
     #[test]

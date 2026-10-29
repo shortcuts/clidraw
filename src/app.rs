@@ -2,9 +2,11 @@ use crate::input::{handle_key, handle_mouse, handle_paste, scroll_step, KeyOutco
 use crate::model::Z;
 use crate::names;
 use crate::store::{State, Store, StoreError};
+use crate::ui::actions::Action;
 use crate::ui::list::Click;
 use crate::ui::menu::{self, ContextItem, MenuItem};
 use crate::ui::minimap;
+use crate::ui::palette::{self, Choice, PaletteHit};
 use crate::ui::prompt::{self, Prompt, PromptHit, PromptKind};
 use crate::ui::scope::{ExportFormat, Sink};
 use crate::ui::switcher::{Switcher, SwitcherHit};
@@ -287,6 +289,11 @@ impl App {
                     if let Some(b) = ui::button_at(&self.session, &self.doc(), col, row) {
                         return self.button(b);
                     }
+                    if let Some(PaletteHit::Option(c @ (Choice::Ink | Choice::Fill))) =
+                        palette::hit(&self.session, col, row)
+                    {
+                        return self.run_action(Action::Pick(c));
+                    }
                 }
                 match self.overlay {
                     Overlay::None => {
@@ -309,7 +316,6 @@ impl App {
     }
 
     fn button(&mut self, b: ui::Button) {
-        use crate::ui::actions::Action;
         let action = match b {
             ui::Button::ZoomOut => Action::ZoomOut,
             ui::Button::ZoomIn => Action::ZoomIn,

@@ -517,14 +517,8 @@ fn palette_down(s: &mut Session, h: PaletteHit) {
     match h {
         PaletteHit::Scroll(strip, dir) => palette::jump(s, strip, dir),
         PaletteHit::Option(Choice::Align(cur)) => s.set_choice(Choice::Align(cur.next())),
-        PaletteHit::Option(c @ (Choice::Ink | Choice::Fill)) => {
-            let cur = s
-                .selection
-                .iter()
-                .find_map(|id| paint(s.canvas.get(id)?, c))
-                .flatten();
-            s.set_paint(c, Paint::next(cur));
-        }
+        // The app opens the swatch window before the click reaches the session.
+        PaletteHit::Option(Choice::Ink | Choice::Fill) => {}
         PaletteHit::Option(c @ (Choice::Head(_) | Choice::Stroke(_) | Choice::Border(_))) => {
             s.set_choice(c)
         }

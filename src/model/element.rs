@@ -149,15 +149,6 @@ impl Paint {
         let ch = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).ok();
         Some(Paint::Rgb(ch(0)?, ch(2)?, ch(4)?))
     }
-
-    /// The click cycle: none, each color in order, then none again. A custom hex ends the cycle.
-    pub fn next(cur: Option<Paint>) -> Option<Paint> {
-        let i = match cur {
-            None => 0,
-            Some(p) => Paint::ALL.iter().position(|&a| a == p)? + 1,
-        };
-        Paint::ALL.get(i).copied()
-    }
 }
 
 impl TryFrom<String> for Paint {
@@ -492,12 +483,5 @@ mod tests {
             Paint::Red
         );
         assert!(serde_json::from_str::<Paint>("\"nope\"").is_err());
-    }
-
-    #[test]
-    fn the_click_cycle_ends_on_a_custom_color() {
-        assert_eq!(Paint::next(None), Some(Paint::Red));
-        assert_eq!(Paint::next(Some(Paint::Violet)), None);
-        assert_eq!(Paint::next(Some(Paint::Rgb(1, 2, 3))), None);
     }
 }

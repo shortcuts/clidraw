@@ -565,7 +565,7 @@ fn palette_head_both_sets_the_selected_line() {
 }
 
 #[test]
-fn palette_ink_opens_a_color_list_that_enter_applies_and_esc_leaves() {
+fn palette_ink_opens_a_swatch_grid_that_enter_applies_and_esc_leaves() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     let now = Instant::now();
@@ -575,12 +575,12 @@ fn palette_ink_opens_a_color_list_that_enter_applies_and_esc_leaves() {
     app.on_event(key(KeyCode::Esc), now);
     assert_eq!(rect(&app).color, None);
     run_palette(&mut app, "ink color", now);
-    app.on_event(key(KeyCode::Down), now);
-    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Right), now);
+    app.on_event(key(KeyCode::Right), now);
     app.on_event(key(KeyCode::Enter), now);
     assert_eq!(rect(&app).color, Some(Paint::Orange));
     run_palette(&mut app, "fill color", now);
-    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Right), now);
     app.on_event(key(KeyCode::Enter), now);
     assert_eq!(rect(&app).fill, Some(Paint::Red));
 }
@@ -635,13 +635,52 @@ fn clicking_an_ink_swatch_paints_the_selection_and_closes_the_list() {
     ctrl_key(&mut app, 'p', now);
     type_str(&mut app, "ink", now);
     app.on_event(key(KeyCode::Enter), now);
-    let (x, y) = text_at(&app, "red");
-    click(&mut app, x + 1, y, now);
+    let (x, y) = text_at(&app, "Ink");
+    click(&mut app, x + 10, y + 1, now);
     assert!(matches!(
         app.session.canvas.get(&Id::from("aaaaaaaa")),
         Some(Element::Shape(s)) if s.color == Some(Paint::Red)
     ));
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
+}
+
+#[test]
+fn clicking_ink_in_the_option_row_opens_the_swatch_window() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    select_one_shape(&mut app);
+    let ink = clidraw::ui::palette::PaletteHit::Option(clidraw::ui::palette::Choice::Ink);
+    let cell = (0..200)
+        .find_map(|scroll| {
+            app.session.option_scroll = scroll;
+            let opts = clidraw::ui::palette::choices(
+                &clidraw::ui::palette::selected(&app.session),
+                &app.session.canvas.groups,
+            );
+            clidraw::ui::palette::layout(&opts, 80, (0, scroll))
+                .cells
+                .into_iter()
+                .find(|c| c.hit == ink)
+        })
+        .unwrap();
+    click(&mut app, cell.x as u16, cell.y as u16, now);
+    assert!(matches!(app.overlay, clidraw::ui::Overlay::Colors(..)));
+    assert_eq!(rect(&app).color, None);
+}
+
+#[test]
+fn the_swatch_grid_starts_on_the_current_color() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    app.session
+        .set_paint(clidraw::ui::palette::Choice::Ink, Some(Paint::Blue));
+    run_palette(&mut app, "ink color", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(rect(&app).color, Some(Paint::Blue));
 }
 
 #[test]

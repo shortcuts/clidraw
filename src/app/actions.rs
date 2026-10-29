@@ -21,7 +21,7 @@ impl App {
             Action::Ungroup => s.group(false),
             Action::Bold => s.toggle_bold(),
             Action::Style(c) => s.set_choice(c),
-            Action::Pick(c) => self.overlay = Overlay::Colors(c, colors::list(c)),
+            Action::Pick(c) => self.overlay = Overlay::Colors(c, colors::picker(c, s)),
             Action::ChangeShape => {
                 let origins = s.origins();
                 if let Some(first) = origins.first() {

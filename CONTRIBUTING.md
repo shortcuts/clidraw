@@ -272,6 +272,7 @@ last row    bottom bar    [Undo] [Redo]  MODE  key action  key action …   12x4
 - Mouse: a click on a row runs it. A click outside the box closes it.
 - A row shows its label on the left and its key on the right in the muted style.
 - An open overlay dims everything under it.
+- The ink and fill picker is a swatch grid (`src/ui/swatches.rs`), not a list. It follows the same box, dim, Esc and click-outside rules, and moves with all four arrows.
 - Every action that the mouse can reach is also reachable by keyboard: a shortcut, a palette entry, or both.
 
 `boxed` in `src/ui/mod.rs` defines the box helper that every overlay uses.
