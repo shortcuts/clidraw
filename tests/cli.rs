@@ -233,16 +233,29 @@ fn import_appends_below_existing() {
 }
 
 #[test]
-fn failed_import_lists_diagnostics() {
+fn import_reads_a_sequence_diagram_from_stdin() {
     let t = seeded_empty();
     let r = run_stdin(
         t.path(),
         &["import", "demo", "-"],
         "sequenceDiagram\nA->>B: hi",
     );
+    assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
+    let v: serde_json::Value = serde_json::from_str(&out(&r)).unwrap();
+    assert_eq!(
+        v,
+        serde_json::json!({"shapes": 2, "lines": 3, "skipped": 0})
+    );
+}
+
+#[test]
+fn failed_import_lists_diagnostics() {
+    let t = seeded_empty();
+    let r = run_stdin(t.path(), &["import", "demo", "-"], "gantt\ntitle t");
     assert!(!r.status.success());
-    assert!(String::from_utf8_lossy(&r.stderr)
-        .contains("line 1: `sequenceDiagram` diagrams are not supported"));
+    assert!(
+        String::from_utf8_lossy(&r.stderr).contains("line 1: `gantt` diagrams are not supported")
+    );
 }
 
 #[test]

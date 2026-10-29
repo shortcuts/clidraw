@@ -27,7 +27,7 @@ pub fn tools() -> Value {
          "inputSchema": schema(json!({"name": name, "ops": {
              "type": "array", "items": cli::docs::op_items_schema()}}), &["name", "ops"])},
         {"name": "import",
-         "description": "Add a Mermaid diagram below the existing content. The importer reads flowchart syntax only. Creates the canvas if missing.",
+         "description": "Add a Mermaid diagram below the existing content. The importer reads flowchart, sequence and class diagram syntax. Creates the canvas if missing.",
          "inputSchema": schema(json!({"name": name,
              "mermaid": {"type": "string", "description": "Mermaid diagram text"}}), &["name", "mermaid"])},
         {"name": "export", "description": "Render a saved canvas and return the text.",

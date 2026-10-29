@@ -1,16 +1,6 @@
 use super::import::{header, parse_line, Rejected, Stmt, MAX_SHAPES};
-use crate::diagram::{statements, Diagnostic, Fix, Severity};
+use crate::diagram::{diagnostic, statements, Diagnostic, Fix, Severity};
 use std::collections::HashSet;
-use std::ops::Range;
-
-fn diagnostic(severity: Severity, message: String, range: Range<usize>) -> Diagnostic {
-    Diagnostic {
-        severity,
-        message,
-        range,
-        fix: None,
-    }
-}
 
 fn replace_arrow(line: &str, bad: &str, good: &str) -> String {
     let mut out = String::new();

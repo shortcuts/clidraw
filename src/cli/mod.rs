@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::diagram::{import_failure, DiagramKind, Flowchart};
+use crate::diagram::{self, import_failure};
 use crate::model::{Canvas, Command, Element, Id};
 use crate::store::Store;
 use crate::ui::scope::ExportFormat;
@@ -38,7 +38,7 @@ pub const COMMAND_DOCS: [(&str, &str, &str); 8] = [
     (
         "import",
         "clidraw import <name> <path|->",
-        "Adds a Mermaid diagram from a file, or from stdin with -. The importer reads flowchart syntax only. Creates the canvas if it does not exist. Prints {\"shapes\":N,\"lines\":N,\"skipped\":N}.",
+        "Adds a Mermaid diagram from a file, or from stdin with -. The importer reads flowchart, sequence and class diagram syntax. Creates the canvas if it does not exist. Prints {\"shapes\":N,\"lines\":N,\"skipped\":N}.",
     ),
     (
         "export",
@@ -99,9 +99,8 @@ fn import(
     } else {
         text = std::fs::read_to_string(path)?;
     }
-    let input = Flowchart
-        .import(&text)
-        .map_err(|e| anyhow::Error::msg(import_failure(&text, &e)))?;
+    let input =
+        diagram::import(&text).map_err(|e| anyhow::Error::msg(import_failure(&text, &e)))?;
     let parsed = input.canvas;
     let ids: Vec<Id> = parsed.elements.iter().map(|e| e.id().clone()).collect();
     let (px, py, _, _) = parsed.all_bounds().unwrap_or_default();

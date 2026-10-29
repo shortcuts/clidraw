@@ -56,12 +56,12 @@ fn ranges_survive_multibyte_text_and_crlf() {
 
 #[test]
 fn other_header_errors_alone() {
-    let text = "sequenceDiagram\nA->>B: hi\nsubgraph x";
+    let text = "gantt\ntitle t\nsubgraph x";
     let found = Flowchart.validate(text);
     assert_eq!(found.len(), 1);
     assert_eq!(found[0].severity, Severity::Error);
     assert_eq!(found[0].message, "only flowchart diagrams can be imported");
-    assert_eq!(&text[found[0].range.clone()], "sequenceDiagram");
+    assert_eq!(&text[found[0].range.clone()], "gantt");
 }
 
 #[test]
@@ -100,15 +100,12 @@ fn skipped_count_matches_statement_diagnostics() {
 
 #[test]
 fn unregistered_header_gets_one_hint() {
-    let text = "sequenceDiagram\nA->>B: hi\nsubgraph x";
+    let text = "gantt\ntitle t\nsubgraph x";
     let found = clidraw::diagram::validate(text);
     assert_eq!(found.len(), 1);
     assert_eq!(found[0].severity, Severity::Error);
-    assert_eq!(
-        found[0].message,
-        "`sequenceDiagram` diagrams are not supported"
-    );
-    assert_eq!(&text[found[0].range.clone()], "sequenceDiagram");
+    assert_eq!(found[0].message, "`gantt` diagrams are not supported");
+    assert_eq!(&text[found[0].range.clone()], "gantt");
 }
 
 #[test]
@@ -130,8 +127,8 @@ fn import_failure_names_the_line_of_each_hint() {
         "nothing to import; line 5: `subgraph` is not supported and is skipped on import; line 6: Cannot read this line: expected nodes joined by arrows"
     );
     assert_eq!(
-        clidraw::diagram::import_failure("%%c\n\nsequenceDiagram\nA->>B", "x"),
-        "x; line 3: `sequenceDiagram` diagrams are not supported"
+        clidraw::diagram::import_failure("%%c\n\ngantt\nA->>B", "x"),
+        "x; line 3: `gantt` diagrams are not supported"
     );
 }
 
@@ -172,4 +169,67 @@ fn arrow_fix_replaces_the_range_into_clean_text() {
     );
     assert_eq!(fixed, "flowchart TD\r\n  A --> B\r\n");
     assert!(Flowchart.validate(&fixed).is_empty());
+}
+
+#[test]
+fn sequence_and_class_hints() {
+    use clidraw::diagram::{Class, Sequence};
+    let hints = |kind: &dyn DiagramKind, text: &str| -> Vec<(Severity, String)> {
+        kind.validate(text)
+            .into_iter()
+            .map(|d| (d.severity, text[d.range].to_string()))
+            .collect()
+    };
+    assert!(hints(&Sequence, "sequenceDiagram\nparticipant A\nA->>B: hi").is_empty());
+    assert_eq!(
+        hints(&Sequence, "sequenceDiagram\nA->>B\nloop x\nA->>A: m\nA B"),
+        [
+            (Severity::Warning, "loop x".into()),
+            (Severity::Warning, "A->>A: m".into()),
+            (Severity::Error, "A B".into()),
+        ]
+    );
+    assert_eq!(
+        hints(&Sequence, "sequenceDiagram"),
+        [(Severity::Warning, "sequenceDiagram".into())]
+    );
+    assert!(hints(
+        &Class,
+        "classDiagram\nclass A {\n+x\n}\nA : -->\nA <|-- B : is"
+    )
+    .is_empty());
+    assert_eq!(
+        hints(
+            &Class,
+            "classDiagram\nA --> B\nnote for A \"x\"\nwhat is this"
+        ),
+        [
+            (Severity::Warning, "note for A \"x\"".into()),
+            (Severity::Error, "what is this".into()),
+        ]
+    );
+    assert_eq!(
+        hints(&Class, "classDiagram"),
+        [(Severity::Warning, "classDiagram".into())]
+    );
+}
+
+#[test]
+fn new_kinds_skipped_count_matches_diagnostics() {
+    use clidraw::diagram::{Class, Sequence};
+    for text in [
+        "sequenceDiagram\nA->>B\nNote over A: x\nA->>A: m\nzzz",
+        "classDiagram\nA --> B\nnamespace n\nA B C\nclass A {\n<<x>>\n}",
+    ] {
+        let kind: &dyn DiagramKind = if text.starts_with('s') {
+            &Sequence
+        } else {
+            &Class
+        };
+        assert_eq!(
+            kind.validate(text).len(),
+            kind.import(text).map_or(0, |i| i.skipped),
+            "{text:?}"
+        );
+    }
 }

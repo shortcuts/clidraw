@@ -140,11 +140,11 @@ fn check(name: &str, actual: &str) {
 
 ## Diagram kinds
 
-A diagram kind is only a text import and export format. Each kind implements the `DiagramKind` trait in `src/diagram/mod.rs`. The canvas stays free-form: it draws any diagram, with or without a kind. Flowchart is the one kind that exists today.
+A diagram kind is only a text import and export format. Each kind implements the `DiagramKind` trait in `src/diagram/mod.rs`. The canvas stays free-form: it draws any diagram, with or without a kind. Flowchart, sequence and class are the kinds that exist today. Sequence and class are import-only.
 
 - Add a kind in its own module under `src/diagram/`. Implement `keywords`, `import`, `export` and `validate`.
 - Register the kind in `KINDS` (in `src/diagram/mod.rs`, private to that module). The first word of the header picks the kind.
-- Callers outside `src/diagram/` name no kind. Use `diagram::validate` for live checks.
+- Callers outside `src/diagram/` name no kind. Use `diagram::validate` for live checks and `diagram::import` to read text.
 - Validation returns each problem with a byte `range` into the text. `import_failure` turns that range into a line number.
 - `Error` marks a line the kind cannot read. `Warning` marks an unsupported construct or an empty diagram.
 - A `Fix` replaces only its diagnostic's `range`. Tab applies a fix in the `:mermaid` editor, and only when `quick_fixes` is on.

@@ -152,6 +152,16 @@ fn import_of_a_missing_file_shows_an_error() {
 }
 
 #[test]
+fn import_reads_a_sequence_diagram() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let file = t.path().join("s.mmd");
+    std::fs::write(&file, "sequenceDiagram\nA->>B: hi\nB-->>A: ok\n").unwrap();
+    run(&mut app, &format!("import {}", file.display()));
+    assert_eq!(status(&app), "Imported 2 shapes, 4 lines");
+}
+
+#[test]
 fn failed_import_lists_the_live_hint_diagnostics() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());

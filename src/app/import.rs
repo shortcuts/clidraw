@@ -1,6 +1,6 @@
 use super::App;
 use crate::config::expand_home;
-use crate::diagram::{import_failure, DiagramKind, Flowchart};
+use crate::diagram::{self, import_failure};
 use crate::model::{Command, Element, Shape, ShapeKind};
 use crate::ui::Status;
 
@@ -18,7 +18,7 @@ impl App {
     }
 
     pub(super) fn import_text(&mut self, text: &str, name: &str) {
-        let parsed = Flowchart.import(text);
+        let parsed = diagram::import(text);
         self.status = Some(match parsed {
             Ok(input) => {
                 let canvas = input.canvas;

@@ -1,6 +1,10 @@
+mod class;
 mod flowchart;
+mod sequence;
 
+pub use class::Class;
 pub use flowchart::Flowchart;
+pub use sequence::Sequence;
 
 use crate::model::Canvas;
 use std::ops::Range;
@@ -41,11 +45,17 @@ pub trait DiagramKind {
     /// First words of the header lines this kind reads.
     fn keywords(&self) -> &'static [&'static str];
     fn import(&self, text: &str) -> Result<Imported, String>;
-    fn export(&self, canvas: &Canvas) -> Exported;
+    /// Import-only kinds keep this default; `export::render` always writes a flowchart.
+    fn export(&self, canvas: &Canvas) -> Exported {
+        Exported {
+            text: String::new(),
+            skipped: canvas.elements.len(),
+        }
+    }
     fn validate(&self, text: &str) -> Vec<Diagnostic>;
 }
 
-const KINDS: [&dyn DiagramKind; 1] = [&Flowchart];
+const KINDS: [&dyn DiagramKind; 3] = [&Flowchart, &Sequence, &Class];
 
 /// Non-blank, non-comment lines, trimmed, with their byte range in `text`.
 fn statements(text: &str) -> impl Iterator<Item = (&str, Range<usize>)> {
@@ -58,25 +68,49 @@ fn statements(text: &str) -> impl Iterator<Item = (&str, Range<usize>)> {
     })
 }
 
-/// Validates `text` with the kind its header names; an unregistered header yields one hint.
-pub fn validate(text: &str) -> Vec<Diagnostic> {
-    let Some((head, range)) = statements(text).next() else {
-        return vec![];
-    };
+fn diagnostic(severity: Severity, message: String, range: Range<usize>) -> Diagnostic {
+    Diagnostic {
+        severity,
+        message,
+        range,
+        fix: None,
+    }
+}
+
+/// The header word of `text` and its range.
+fn header(text: &str) -> Option<(&str, Range<usize>)> {
+    let (head, range) = statements(text).next()?;
     let word = head
         .trim_end_matches(';')
         .split_whitespace()
         .next()
         .unwrap_or("");
+    Some((word, range))
+}
+
+/// Validates `text` with the kind its header names; an unregistered header yields one hint.
+pub fn validate(text: &str) -> Vec<Diagnostic> {
+    let Some((word, range)) = header(text) else {
+        return vec![];
+    };
     match KINDS.iter().find(|k| k.keywords().contains(&word)) {
         Some(kind) => kind.validate(text),
-        None => vec![Diagnostic {
-            severity: Severity::Error,
-            message: format!("`{word}` diagrams are not supported"),
+        None => vec![diagnostic(
+            Severity::Error,
+            format!("`{word}` diagrams are not supported"),
             range,
-            fix: None,
-        }],
+        )],
     }
+}
+
+/// Imports `text` with the kind its header names.
+pub fn import(text: &str) -> Result<Imported, String> {
+    let (word, _) = header(text).ok_or("nothing to import")?;
+    KINDS
+        .iter()
+        .find(|k| k.keywords().contains(&word))
+        .ok_or("only flowchart, sequence and class diagrams can be imported")?
+        .import(text)
 }
 
 /// Appends the live-hint diagnostics of `text` to why its import failed.
