@@ -57,6 +57,7 @@ impl App {
             quick_fixes: config.quick_fixes,
             mermaid_header: "flowchart TD".into(),
             obsidian_vault: config.obsidian_vault,
+            pending_canvas: None,
         };
         app.load_into(&name)?;
         Ok(app)

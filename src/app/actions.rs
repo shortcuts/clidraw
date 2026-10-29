@@ -57,8 +57,18 @@ impl App {
                 let name = self.name.clone();
                 self.overlay = Overlay::Prompt(Prompt::new(PromptKind::Rename(name.clone()), name))
             }
-            Action::Templates => self.overlay = Overlay::Actions(template::list("Templates")),
-            Action::Template(name) => self.insert_template(name),
+            Action::Templates => {
+                self.pending_canvas = None;
+                self.overlay = Overlay::Actions(template::list("Templates", false))
+            }
+            Action::Blank => {
+                self.start_pending_canvas();
+            }
+            Action::Template(name) => {
+                if self.start_pending_canvas() {
+                    self.insert_template(name)
+                }
+            }
             Action::DeleteCanvas => {
                 let kind = PromptKind::ConfirmDelete(self.name.clone());
                 self.overlay = Overlay::Prompt(Prompt::new(kind, String::new()))

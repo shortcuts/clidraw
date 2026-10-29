@@ -33,6 +33,7 @@ pub enum Action {
     DeleteCanvas,
     Templates,
     Template(&'static str),
+    Blank,
 }
 
 impl Action {

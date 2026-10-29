@@ -66,7 +66,10 @@ impl App {
                 } else {
                     match l.key(k) {
                         Outcome::Run(action) => self.run_action(action),
-                        Outcome::Close => self.overlay = Overlay::None,
+                        Outcome::Close => {
+                            self.pending_canvas = None;
+                            self.overlay = Overlay::None
+                        }
                         _ => {}
                     }
                 }
@@ -138,7 +141,10 @@ impl App {
             Overlay::Actions(l) => match l.click(screen, col, row) {
                 Click::Row(action, _) => self.run_action(action),
                 Click::Inside => {}
-                Click::Outside => self.overlay = Overlay::None,
+                Click::Outside => {
+                    self.pending_canvas = None;
+                    self.overlay = Overlay::None
+                }
             },
             Overlay::Switcher(sw) => match sw.list.click(screen, col, row) {
                 Click::Row(SwitcherHit::Open(i), off) => {

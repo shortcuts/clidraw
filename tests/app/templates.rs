@@ -91,22 +91,36 @@ fn assert_inserted_in_one_frame(app: &mut App) {
 }
 
 #[test]
-fn new_canvas_offers_the_flowchart_template_inside_one_frame() {
+fn new_canvas_picker_starts_with_a_preselected_blank_row() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     let now = Instant::now();
     run_palette(&mut app, "create canvas", now);
     app.on_event(key(KeyCode::Enter), now);
-    assert_eq!(
-        palette_labels(&app),
-        vec![
-            "Flowchart",
-            "Architecture dependency",
-            "Gantt chart",
-            "Sequence diagram",
-            "State diagram"
-        ]
-    );
+    assert_eq!(palette_labels(&app)[..2], ["Blank", "Flowchart"]);
+}
+
+#[test]
+fn new_canvas_blank_opens_an_empty_canvas() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    run_palette(&mut app, "create canvas", now);
+    app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(!palette_open(&app));
+    assert_ne!(app.name, "demo");
+    assert!(app.session.canvas.elements.is_empty());
+}
+
+#[test]
+fn new_canvas_flowchart_pick_fills_the_new_canvas_inside_one_frame() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    run_palette(&mut app, "create canvas", now);
+    app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Down), now);
     app.on_event(key(KeyCode::Enter), now);
     assert!(!palette_open(&app));
     assert_eq!(status(&app), "Inserted template Flowchart");
@@ -122,16 +136,19 @@ fn new_canvas_offers_the_flowchart_template_inside_one_frame() {
 }
 
 #[test]
-fn new_canvas_stays_blank_when_the_template_list_is_closed() {
+fn new_canvas_esc_on_the_picker_creates_nothing() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     let now = Instant::now();
+    let before = app.name.clone();
+    let files = || std::fs::read_dir(t.path()).unwrap().count();
+    let count = files();
     run_palette(&mut app, "create canvas", now);
     app.on_event(key(KeyCode::Enter), now);
-    assert!(palette_open(&app));
     app.on_event(key(KeyCode::Esc), now);
     assert!(!palette_open(&app));
-    assert!(app.session.canvas.elements.is_empty());
+    assert_eq!(app.name, before);
+    assert_eq!(files(), count);
 }
 
 #[test]

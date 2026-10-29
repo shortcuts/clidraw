@@ -49,6 +49,7 @@ pub struct App {
     quick_fixes: bool,
     mermaid_header: String,
     obsidian_vault: Option<std::path::PathBuf>,
+    pending_canvas: Option<String>,
 }
 
 impl App {
@@ -56,6 +57,20 @@ impl App {
         self.finish();
         let result = self.load_into(name);
         self.report(result);
+    }
+
+    /// Creates and opens the canvas named in the new-canvas prompt. False when that fails.
+    fn start_pending_canvas(&mut self) -> bool {
+        let Some(name) = self.pending_canvas.take() else {
+            return true;
+        };
+        let created = self.store.create(&name);
+        let ok = created.is_ok();
+        self.report(created);
+        if ok {
+            self.switch_to(&name);
+        }
+        ok && self.name == name
     }
 
     fn report(&mut self, r: Result<(), StoreError>) {
@@ -526,16 +541,13 @@ impl App {
             PromptKind::ConfirmOverwrite(path, format, x) => self.write_export(&path, format, x),
             PromptKind::NewNote(x) => self.new_note(&buf, x),
             PromptKind::ConfirmAppend(name, x) => self.append_note(&name, x),
-            PromptKind::NewCanvas => match self.store.create(&buf) {
-                Ok(()) => {
-                    self.switch_to(&buf);
-                    if self.name == buf {
-                        self.overlay =
-                            Overlay::Actions(template::list("Start from a template (Esc: blank)"));
-                    }
-                }
-                Err(e) => self.status = Some(ui::Status::error(e.to_string())),
-            },
+            PromptKind::NewCanvas if self.store.exists(&buf) => {
+                self.status = Some(ui::Status::error(StoreError::Exists(buf).to_string()))
+            }
+            PromptKind::NewCanvas => {
+                self.pending_canvas = Some(buf);
+                self.overlay = Overlay::Actions(template::list("New canvas template", true));
+            }
             PromptKind::Rename(old) => {
                 self.save();
                 let r = self.store.rename(&old, &buf);

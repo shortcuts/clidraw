@@ -46,6 +46,7 @@ fn new_canvas_prompt_is_prefilled_with_a_generated_name() {
     let (adj, noun) = name.split_once('-').expect("adjective-noun");
     assert!(!adj.is_empty() && !noun.is_empty() && name != "demo");
     app.on_event(key(KeyCode::Enter), now);
+    app.on_event(key(KeyCode::Enter), now);
     assert_eq!(app.name, name);
 }
 

@@ -139,14 +139,19 @@ fn cell(x: i32, y: i32, w: i32, label: &str) -> Shape {
     Shape::new(ShapeKind::Rect, x, y, w, ROW_H, label)
 }
 
-pub(super) fn list(title: &'static str) -> List<Action> {
-    let rows = TEMPLATES
-        .iter()
-        .map(|&(name, _)| Row {
+pub(super) fn list(title: &'static str, blank: bool) -> List<Action> {
+    let blank = blank.then(|| Row {
+        value: Action::Blank,
+        label: "Blank".to_string(),
+        key: String::new(),
+    });
+    let rows = blank
+        .into_iter()
+        .chain(TEMPLATES.iter().map(|&(name, _)| Row {
             value: Action::Template(name),
             label: name.to_string(),
             key: String::new(),
-        })
+        }))
         .collect();
     List::new(title, rows).with_query().min_width(52)
 }
