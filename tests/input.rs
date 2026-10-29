@@ -1202,6 +1202,22 @@ fn hover_picks_a_shape_one_cell_outside_its_border_but_not_its_interior() {
 }
 
 #[test]
+fn hover_on_an_angled_shape_follows_its_drawn_outline() {
+    let mut s = with_shape("aaaaaaaa", 20, 4);
+    let Element::Shape(sh) = &mut s.canvas.elements[0] else {
+        unreachable!()
+    };
+    (sh.kind, sh.w, sh.h) = (ShapeKind::Diamond, 9, 5);
+    let a = Hit::Element(Id::from("aaaaaaaa"));
+    for at in [(24, 4), (22, 5), (20, 6), (26, 7), (21, 5)] {
+        assert_eq!(hover_at(&mut s, at), a, "{at:?}");
+    }
+    for at in [(20, 4), (28, 8), (24, 6)] {
+        assert_eq!(hover_at(&mut s, at), Hit::Empty, "{at:?}");
+    }
+}
+
+#[test]
 fn hover_picks_a_text_one_cell_around_it() {
     let mut s = session();
     let id = Id::from("tttttttt");

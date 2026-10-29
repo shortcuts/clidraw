@@ -98,6 +98,11 @@ fn covers(canvas: &Canvas, layout: &Layout, i: usize, p: (i32, i32)) -> bool {
 fn near(canvas: &Canvas, layout: &Layout, i: usize, p: (i32, i32)) -> bool {
     match &canvas.elements[i] {
         Element::Shape(s) => {
+            if slanted(s) {
+                return (-1..=1)
+                    .flat_map(|dy| (-1..=1).map(move |dx| (p.0 + dx, p.1 + dy)))
+                    .any(|c| s.on_slanted_outline(c));
+            }
             let rect = (s.x, s.y, s.w, s.h);
             in_rect(rect, p, 1) && !in_rect(rect, p, 0)
         }
@@ -109,12 +114,22 @@ fn near(canvas: &Canvas, layout: &Layout, i: usize, p: (i32, i32)) -> bool {
     }
 }
 
+fn slanted(s: &Shape) -> bool {
+    matches!(
+        s.kind,
+        ShapeKind::Diamond | ShapeKind::Parallelogram | ShapeKind::Hexagon
+    )
+}
+
 fn border_covers(e: &Element, p: (i32, i32)) -> bool {
     let s = match e {
         Element::Shape(s) => s,
         Element::Text(t) => return p.1 == t.y && p.0 >= t.x && p.0 < t.x + t.width(),
         _ => return false,
     };
+    if slanted(s) {
+        return s.on_slanted_outline(p);
+    }
     let inside = p.0 > s.x && p.0 < s.x + s.w - 1 && p.1 > s.y && p.1 < s.y + s.h - 1;
     box_covers(e, p) && !inside
 }

@@ -316,9 +316,7 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, hidden: Option
         ShapeKind::Diamond => {
             let mid = f64::from(h - 1) / 2.0;
             for j in 0..h {
-                let spread = 1.0 - (f64::from(j) - mid).abs() / mid;
-                let off = (f64::from(w - 1) / 2.0 * spread).round() as i32;
-                let (l, r) = (x + (w - 1) / 2 - off, x + w / 2 + off);
+                let (l, r) = s.diamond_span(y + j);
                 let upper = f64::from(j) < mid;
                 grid.set(l, y + j, if upper { '╱' } else { '╲' }, flags);
                 grid.set(r, y + j, if upper { '╲' } else { '╱' }, flags);

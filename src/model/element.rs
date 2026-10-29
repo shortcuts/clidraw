@@ -382,6 +382,26 @@ impl Shape {
         };
         (self.x + l, self.x + self.w - 1 + r)
     }
+
+    /// First and last column of the diamond outline on absolute row `row`.
+    pub fn diamond_span(&self, row: i32) -> (i32, i32) {
+        let mid = f64::from(self.h - 1) / 2.0;
+        let spread = 1.0 - (f64::from(row - self.y) - mid).abs() / mid;
+        let off = (f64::from(self.w - 1) / 2.0 * spread).round() as i32;
+        (self.x + (self.w - 1) / 2 - off, self.x + self.w / 2 + off)
+    }
+
+    /// True when `p` lies on a cell the diamond, parallelogram or hexagon outline draws.
+    pub fn on_slanted_outline(&self, p: (i32, i32)) -> bool {
+        let (l, r) = match self.kind {
+            ShapeKind::Diamond => self.diamond_span(p.1),
+            _ => self.row_span(p.1),
+        };
+        let flat = p.1 == self.y || p.1 == self.y + self.h - 1;
+        let edge = p.0 == l || p.0 == r;
+        let top_or_bottom = flat && self.kind != ShapeKind::Diamond && (l..=r).contains(&p.0);
+        (0..self.h).contains(&(p.1 - self.y)) && (edge || top_or_bottom)
+    }
 }
 
 impl Line {
