@@ -153,6 +153,24 @@ fn palette_filters_fuzzily_and_backspace_widens() {
 }
 
 #[test]
+fn palette_finds_synonyms_below_direct_hits() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "new", now);
+    assert!(palette_labels(&app).contains(&"Canvas: Create canvas".to_string()));
+    app.on_event(key(KeyCode::Esc), now);
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "list", now);
+    assert!(palette_labels(&app).contains(&"Canvas: Switch canvas".to_string()));
+    app.on_event(key(KeyCode::Esc), now);
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "switch canvas", now);
+    assert_eq!(palette_labels(&app)[0], "Canvas: Switch canvas");
+}
+
+#[test]
 fn palette_enter_runs_the_entry() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());

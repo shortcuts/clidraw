@@ -119,15 +119,3 @@ fn help_search_matches_substring_fuzzy_and_synonyms() {
     assert!(keys("zzzz").is_empty());
     assert!(clidraw::ui::help::search("e").len() <= 18);
 }
-
-#[test]
-fn help_synonym_targets_appear_in_some_row() {
-    for (_, target) in clidraw::ui::help::SYNONYMS {
-        assert!(
-            (0..clidraw::ui::help::SCOPES.len())
-                .flat_map(clidraw::ui::help::rows)
-                .any(|(k, a)| format!("{k} {a}").to_lowercase().contains(target)),
-            "no row for {target}"
-        );
-    }
-}

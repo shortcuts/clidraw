@@ -90,6 +90,87 @@ pub fn rank(docs: &[String], query: &str) -> Vec<(usize, f64)> {
     hits
 }
 
+/// Words that mean the same to a user; `find` matches a query word through its group.
+pub const SYNONYMS: &[&[&str]] = &[
+    &["create", "new", "add"],
+    &["switch", "list", "open"],
+    &["remove", "erase", "delete"],
+    &["exit", "close", "quit"],
+    &["front", "raise"],
+    &["back", "lower"],
+    &["redo", "undo"],
+    &["box", "rect"],
+    &["text", "label"],
+];
+
+fn group(word: &str) -> &'static [&'static str] {
+    SYNONYMS
+        .iter()
+        .find(|g| g.contains(&word))
+        .copied()
+        .unwrap_or(&[])
+}
+
+fn subsequence(query: &str, label: &str) -> bool {
+    let mut label = label.chars();
+    query
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .all(|q| label.any(|c| c == q))
+}
+
+fn word_start(label: &str, query: &str) -> bool {
+    label.match_indices(query).any(|(i, _)| {
+        label[..i]
+            .chars()
+            .next_back()
+            .is_none_or(|c| !c.is_alphanumeric())
+    })
+}
+
+/// Indices into `labels` that match `query`, best first: prefix or word-start, substring,
+/// every word, every word or synonym, then subsequence. BM25 orders each tier; ties keep input order.
+pub fn find(query: &str, labels: &[String]) -> Vec<usize> {
+    let query = query.trim().to_lowercase();
+    if query.is_empty() {
+        return vec![];
+    }
+    let words = tokens(&query);
+    let expanded = words
+        .iter()
+        .flat_map(|w| std::iter::once(w.as_str()).chain(group(w).iter().copied()))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let score = |hits: Vec<(usize, f64)>| -> HashMap<usize, f64> { hits.into_iter().collect() };
+    let (plain, wide) = (score(rank(labels, &query)), score(rank(labels, &expanded)));
+    let mut hits: Vec<(usize, f64, usize)> = vec![];
+    for (i, label) in labels.iter().enumerate() {
+        let label = label.to_lowercase();
+        let have = tokens(&label);
+        let tier = if label.starts_with(&query) || word_start(&label, &query) {
+            0
+        } else if label.contains(&query) {
+            1
+        } else if !words.is_empty() && words.iter().all(|w| have.contains(w)) {
+            2
+        } else if !words.is_empty()
+            && words
+                .iter()
+                .all(|w| have.contains(w) || group(w).iter().any(|s| have.iter().any(|h| h == s)))
+        {
+            3
+        } else if subsequence(&query, &label) {
+            4
+        } else {
+            continue;
+        };
+        let by = if tier == 3 { &wide } else { &plain };
+        hits.push((tier, by.get(&i).copied().unwrap_or(0.0), i));
+    }
+    hits.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.total_cmp(&a.1)).then(a.2.cmp(&b.2)));
+    hits.into_iter().map(|h| h.2).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -111,6 +192,37 @@ mod tests {
         assert_eq!(order, vec![1, 3, 0]);
         assert!(rank(&docs, "zzz").is_empty());
         assert!(rank(&docs, "  ").is_empty());
+    }
+
+    #[test]
+    fn find_matches_synonyms_and_ranks_prefix_first() {
+        let labels = strings(&["Create canvas", "Switch canvas", "New note", "Newton"]);
+        assert_eq!(find("new", &labels), vec![2, 3, 0]);
+        assert_eq!(find("list", &labels), vec![1]);
+        assert_eq!(find("switch canvas", &labels), vec![1]);
+        let labels = strings(&["Open file", "Switch canvas"]);
+        assert_eq!(find("switch", &labels), vec![1, 0]);
+    }
+
+    #[test]
+    fn find_keeps_subsequence_and_ignores_blank_query() {
+        let labels = strings(&["File: Export SVG", "Quit"]);
+        assert_eq!(find("exsvg", &labels), vec![0]);
+        assert!(find("  ", &labels).is_empty());
+        assert!(find("zzz", &labels).is_empty());
+        assert!(find(":", &strings(&["Quit"])).is_empty());
+    }
+
+    #[test]
+    fn synonym_table_is_lowercase_disjoint_groups() {
+        let mut seen = std::collections::HashSet::new();
+        for g in SYNONYMS {
+            assert!(g.len() >= 2);
+            for w in *g {
+                assert_eq!(*w, w.to_lowercase());
+                assert!(seen.insert(*w), "{w} in two groups");
+            }
+        }
     }
 
     #[test]

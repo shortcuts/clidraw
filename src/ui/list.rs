@@ -2,7 +2,6 @@ use super::infobar::fit;
 use super::style::{ACTIVE, MUTED};
 use super::{boxed, centered, Grid};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use std::cmp::Reverse;
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Debug)]
@@ -48,25 +47,6 @@ pub struct List<T: Copy> {
     pub anchor: Anchor,
     min_width: i32,
     max_rows: usize,
-}
-
-/// Case-insensitive subsequence score; None when the query does not fit the label.
-// shortcut: greedy match can miss the best alignment, upgrade if rankings feel off
-fn score(query: &str, label: &str) -> Option<i32> {
-    let label: Vec<char> = label.to_lowercase().chars().collect();
-    let (mut total, mut at, mut prev) = (0, 0, None::<usize>);
-    for q in query.to_lowercase().chars().filter(|c| !c.is_whitespace()) {
-        let i = at + label[at..].iter().position(|&c| c == q)?;
-        total += 1;
-        if prev.is_some_and(|p| p + 1 == i) {
-            total += 2;
-        }
-        if i == 0 || matches!(label[i - 1], ' ' | ':') {
-            total += 3;
-        }
-        (prev, at) = (Some(i), i + 1);
-    }
-    Some(total)
 }
 
 fn width(s: &str) -> i32 {
@@ -147,15 +127,14 @@ impl<T: Copy> List<T> {
             return Vec::new();
         }
         let query = self.query.as_deref().unwrap_or("");
-        let mut m: Vec<(i32, &Row<T>)> = self
-            .rows
-            .iter()
-            .filter_map(|r| Some((score(query, &r.label)?, r)))
-            .collect();
-        if !query.trim().is_empty() {
-            m.sort_by_key(|(s, r)| (Reverse(*s), r.label.chars().count()));
+        if query.trim().is_empty() {
+            return self.rows.iter().collect();
         }
-        m.into_iter().map(|e| e.1).collect()
+        let labels: Vec<String> = self.rows.iter().map(|r| r.label.clone()).collect();
+        crate::search::find(query, &labels)
+            .into_iter()
+            .map(|i| &self.rows[i])
+            .collect()
     }
 
     pub fn labels(&self) -> Vec<&str> {

@@ -17,19 +17,6 @@ const PROJECT: [(&str, &str); 2] = [
     ("Contributing", "github.com/shortcuts/clidraw#contributing"),
 ];
 
-/// Query word and the word the help text uses instead; matched both ways.
-pub const SYNONYMS: [(&str, &str); 9] = [
-    ("remove", "delete"),
-    ("erase", "delete"),
-    ("exit", "quit"),
-    ("close", "quit"),
-    ("front", "raise"),
-    ("back", "lower"),
-    ("redo", "undo"),
-    ("box", "rect"),
-    ("text", "label"),
-];
-
 const MAX_ROWS: usize = 18;
 const WIDTH: i32 = 64;
 const CHROME_ROWS: i32 = 4;
@@ -55,32 +42,15 @@ pub fn rows(page: usize) -> Vec<(String, String)> {
     }
 }
 
-fn fuzzy(needle: &str, hay: &str) -> bool {
-    let mut hay = hay.chars();
-    needle.chars().all(|n| hay.any(|h| h == n))
-}
-
-/// Rows of every page matching the query: substring hits first, then subsequence hits.
+/// Rows of every page matching the query, best match first.
 pub fn search(query: &str) -> Vec<(String, String)> {
-    let query = query.to_lowercase();
-    let mut wanted = vec![query.clone()];
-    for (a, b) in SYNONYMS {
-        if query == a || query == b {
-            wanted.push(if query == a { b } else { a }.to_string());
-        }
-    }
-    let (mut exact, mut loose) = (Vec::new(), Vec::new());
-    for row in (0..SCOPES.len()).flat_map(rows) {
-        let hay = format!("{} {}", row.0, row.1).to_lowercase();
-        if wanted.iter().any(|w| hay.contains(w.as_str())) {
-            exact.push(row);
-        } else if wanted.iter().any(|w| fuzzy(w, &hay)) {
-            loose.push(row);
-        }
-    }
-    exact.extend(loose);
-    exact.truncate(MAX_ROWS);
-    exact
+    let all: Vec<_> = (0..SCOPES.len()).flat_map(rows).collect();
+    let hay: Vec<String> = all.iter().map(|r| format!("{} {}", r.0, r.1)).collect();
+    crate::search::find(query, &hay)
+        .into_iter()
+        .take(MAX_ROWS)
+        .map(|i| all[i].clone())
+        .collect()
 }
 
 /// Fits the longest page so the box does not jump between tabs.
