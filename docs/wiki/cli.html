@@ -77,6 +77,7 @@
       <li><code>label</code> (optional)</li>
       <li><code>color</code> (optional): <code>red</code>, <code>orange</code>, <code>yellow</code>, <code>green</code>, <code>blue</code> or <code>violet</code>.</li>
       <li><code>fill</code> (optional): <code>red</code>, <code>orange</code>, <code>yellow</code>, <code>green</code>, <code>blue</code> or <code>violet</code>.</li>
+      <li><code>meta</code> (optional): Key to value map.</li>
     </ul>
     <h3 class="item" id="ops-add_text">add_text</h3>
     <p>Adds a line of text.</p>
@@ -86,6 +87,7 @@
       <li><code>text</code> (required): One line.</li>
       <li><code>id</code> (optional)</li>
       <li><code>color</code> (optional): <code>red</code>, <code>orange</code>, <code>yellow</code>, <code>green</code>, <code>blue</code> or <code>violet</code>.</li>
+      <li><code>meta</code> (optional): Key to value map.</li>
     </ul>
     <h3 class="item" id="ops-connect">connect</h3>
     <p>Adds a line from one endpoint to another.</p>
@@ -95,6 +97,7 @@
       <li><code>id</code> (optional)</li>
       <li><code>kind</code> (optional): <code>Line</code>, <code>Arrow</code>, <code>ArrowStart</code> or <code>ArrowBoth</code>. Default: Arrow.</li>
       <li><code>label</code> (optional): One line.</li>
+      <li><code>meta</code> (optional): Key to value map.</li>
     </ul>
     <h3 class="item" id="ops-set">set</h3>
     <p>Changes one element. Set at least one field besides id.</p>
@@ -110,6 +113,7 @@
       <li><code>link</code> (optional): One line. An empty string clears the link.</li>
       <li><code>kind</code> (optional): <code>Rect</code>, <code>Diamond</code>, <code>Cylinder</code>, <code>Parallelogram</code>, <code>Hexagon</code> or <code>Frame</code>. Changes the kind of a shape.</li>
       <li><code>head</code> (optional): <code>Line</code>, <code>Arrow</code>, <code>ArrowStart</code> or <code>ArrowBoth</code>. Changes the kind of a line.</li>
+      <li><code>meta</code> (optional): Key to value map. An empty value removes the key.</li>
     </ul>
     <h3 class="item" id="ops-resize">resize</h3>
     <p>Sets the size of a shape.</p>

@@ -24,6 +24,7 @@ fn sample() -> Canvas {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         })
     };
     let line = |id: &str, kind, from, to, label: &str| {
@@ -37,6 +38,7 @@ fn sample() -> Canvas {
             stroke: Default::default(),
             bends: vec![],
             color: None,
+            meta: Default::default(),
         })
     };
     let mut c = Canvas {
@@ -106,6 +108,7 @@ fn sample() -> Canvas {
                 y: -3,
                 text: "note <1>".into(),
                 color: None,
+                meta: Default::default(),
             }),
         ],
         ..Canvas::default()
@@ -119,6 +122,8 @@ fn sample() -> Canvas {
             Element::Shape(s) if s.id == Id::from("aaaaaaaa") => {
                 s.border = Border::Heavy;
                 s.link = Some("https://example.com/a?x=1&y=2".into());
+                s.meta.insert("file".into(), "src/a.rs".into());
+                s.meta.insert("note".into(), "a <b> & \"c\"".into());
                 s.fill = Some(Paint::Blue);
                 s.color = Some(Paint::Red);
             }
@@ -134,13 +139,19 @@ fn sample() -> Canvas {
             }
             Element::Line(l) if l.id == Id::from("eeeeeeee") => l.stroke = Stroke::Dashed,
             Element::Line(l) if l.id == Id::from("dddddddd") => l.color = Some(Paint::Red),
-            Element::Text(t) => t.color = Some(Paint::Green),
+            Element::Text(t) => {
+                t.color = Some(Paint::Green);
+                t.meta.insert("url".into(), "https://x.test".into());
+            }
             Element::Shape(s) if s.id == Id::from("mmmmmmmm") => s.fill = Some(Paint::Yellow),
             Element::Line(l) if l.id == Id::from("hhhhhhhh") => {
                 l.stroke = Stroke::Dotted;
                 l.bends = vec![(20, 9)];
             }
-            Element::Line(l) if l.id == Id::from("iiiiiiii") => l.bends = vec![(26, 8)],
+            Element::Line(l) if l.id == Id::from("iiiiiiii") => {
+                l.bends = vec![(26, 8)];
+                l.meta.insert("service".into(), "api".into());
+            }
             _ => {}
         }
     }
@@ -228,6 +239,7 @@ fn a_default_frame_draws_grey_and_dotted_but_a_colored_one_keeps_its_color() {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         }));
         svg(&c)
     };
@@ -261,6 +273,7 @@ fn svg_follows_the_free_anchor_cell() {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         })
     };
     let with = |a| Canvas {
@@ -277,6 +290,7 @@ fn svg_follows_the_free_anchor_cell() {
                 stroke: Default::default(),
                 bends: vec![],
                 color: None,
+                meta: Default::default(),
             }),
         ],
         ..Canvas::default()

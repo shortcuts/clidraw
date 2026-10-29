@@ -58,7 +58,7 @@ impl Action {
             Action::ChangeShape => palette::selected(s)
                 .iter()
                 .any(|e| matches!(e, Element::Shape(_))),
-            Action::Prefill("link ") => !s.selection.is_empty(),
+            Action::Prefill("link " | "meta ") => !s.selection.is_empty(),
             _ => true,
         }
     }

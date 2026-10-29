@@ -104,6 +104,13 @@ pub const OPS: [OpDoc; 11] = [
                 values: COLORS,
                 note: "",
             },
+            FieldDoc {
+                name: "meta",
+                required: false,
+                example: "{\"file\": \"src/a.rs\"}",
+                values: &[],
+                note: "Key to value map.",
+            },
         ],
     },
     OpDoc {
@@ -145,6 +152,13 @@ pub const OPS: [OpDoc; 11] = [
                 values: COLORS,
                 note: "",
             },
+            FieldDoc {
+                name: "meta",
+                required: false,
+                example: "{\"file\": \"src/a.rs\"}",
+                values: &[],
+                note: "Key to value map.",
+            },
         ],
     },
     OpDoc {
@@ -185,6 +199,13 @@ pub const OPS: [OpDoc; 11] = [
                 example: "\"Yes\"",
                 values: &[],
                 note: "One line.",
+            },
+            FieldDoc {
+                name: "meta",
+                required: false,
+                example: "{\"file\": \"src/a.rs\"}",
+                values: &[],
+                note: "Key to value map.",
             },
         ],
     },
@@ -268,6 +289,13 @@ pub const OPS: [OpDoc; 11] = [
                 example: "\"ArrowBoth\"",
                 values: LINE_KINDS,
                 note: "Changes the kind of a line.",
+            },
+            FieldDoc {
+                name: "meta",
+                required: false,
+                example: "{\"file\": \"src/a.rs\"}",
+                values: &[],
+                note: "Key to value map. An empty value removes the key.",
             },
         ],
     },
@@ -410,6 +438,9 @@ fn field_schema(op: &str, f: &FieldDoc) -> Value {
             Ok(Value::Number(_)) => json!({"type": "integer"}),
             Ok(Value::Bool(_)) => json!({"type": "boolean"}),
             Ok(Value::Array(_)) => json!({"type": "array", "items": {"type": "string"}}),
+            Ok(Value::Object(_)) => {
+                json!({"type": "object", "additionalProperties": {"type": "string"}})
+            }
             _ => json!({"type": "string"}),
         },
     };
@@ -491,7 +522,7 @@ mod tests {
         assert!(list.contains("resize (id, w, h): "), "{list}");
         assert!(list.contains("layout (optional ids, dir): "), "{list}");
         assert!(
-            list.contains("add_text (x, y, text, optional id, color): "),
+            list.contains("add_text (x, y, text, optional id, color, meta): "),
             "{list}"
         );
     }

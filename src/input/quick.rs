@@ -1,6 +1,6 @@
 use super::{hit, Hit, Session};
 use crate::model::{
-    Anchor, Command, Edge, Element, End, Id, Line, LineKind, Shape, ShapeKind, GAP_H, GAP_V,
+    Anchor, Command, Edge, Element, End, Id, Line, LineKind, Meta, Shape, ShapeKind, GAP_H, GAP_V,
 };
 use crate::view::Zoom;
 
@@ -69,7 +69,7 @@ pub fn at(s: &Session, p: (i32, i32)) -> Option<Quick> {
     })
 }
 
-/// A copy of `src` at `rect`, without its text, link and side labels.
+/// A copy of `src` at `rect`, without its text, link, metadata and side labels.
 pub fn clone_of(src: &Shape, rect: (i32, i32, i32, i32)) -> Shape {
     Shape {
         id: Id::random(),
@@ -79,6 +79,7 @@ pub fn clone_of(src: &Shape, rect: (i32, i32, i32, i32)) -> Shape {
         h: rect.3,
         label: String::new(),
         link: None,
+        meta: Meta::new(),
         side_labels: vec![],
         ..src.clone()
     }

@@ -53,6 +53,7 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         }));
     }
     // A 1-cell gap makes both end cells of a line coincide; widen one gap so the handles differ.
@@ -70,6 +71,7 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
             stroke: Default::default(),
             bends: vec![],
             color: None,
+            meta: Default::default(),
         }));
     }
     els.push(Element::Shape(Shape {
@@ -88,6 +90,7 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     app
 }
@@ -181,6 +184,7 @@ fn crossing_app(dir: &std::path::Path) -> App {
             stroke: Default::default(),
             bends: vec![],
             color: None,
+            meta: Default::default(),
         })
     };
     for k in 0..25 {
@@ -374,6 +378,7 @@ fn frame_fits_the_budget_on_2500_labelled_shapes() {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         }));
     }
     let mut term = Terminal::new(TestBackend::new(200, 50)).unwrap();

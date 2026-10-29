@@ -14,7 +14,7 @@ pub use state::{handle_mouse, scroll_step, Origin};
 use crate::config::CommandUi;
 use crate::model::{
     label_at_nearest, side_at, wrap, Align, Anchor, Canvas, Command, Dir, Edge, Element, End,
-    History, Id, Line, LineKind, Shape, SideLabel, Text, Z,
+    History, Id, Line, LineKind, Meta, Shape, SideLabel, Text, Z,
 };
 use crate::ui::palette::{self, PaletteHit};
 use crate::ui::theme::Theme;
@@ -394,6 +394,7 @@ impl Session {
             y: from.y + dy * (from.h + 2),
             label: String::new(),
             link: None,
+            meta: Meta::new(),
             side_labels: vec![],
             ..from.clone()
         };
@@ -451,6 +452,32 @@ impl Session {
             .map(|id| Command::SetLink {
                 id: id.clone(),
                 link: (!url.is_empty()).then(|| url.to_string()),
+            })
+            .collect();
+        self.exec(Command::Batch(cmds));
+        true
+    }
+
+    /// Sets `key` to `value` on the selected elements, or removes `key` when `value` is empty.
+    /// Returns false when `key` is empty or a part has a line break.
+    pub fn set_meta(&mut self, key: &str, value: &str) -> bool {
+        if key.is_empty() || key.contains('\n') || value.contains('\n') {
+            return false;
+        }
+        let cmds = self
+            .selection
+            .iter()
+            .filter_map(|id| {
+                let mut meta = self.canvas.get(id)?.meta().clone();
+                if value.is_empty() {
+                    meta.remove(key);
+                } else {
+                    meta.insert(key.to_string(), value.to_string());
+                }
+                Some(Command::SetMeta {
+                    id: id.clone(),
+                    meta,
+                })
             })
             .collect();
         self.exec(Command::Batch(cmds));
@@ -753,6 +780,7 @@ impl Session {
                         y,
                         text: buf,
                         color: None,
+                        meta: Meta::new(),
                     }),
                 ));
                 self.selection = vec![id];

@@ -154,6 +154,7 @@ fn right_click_menu_arranges_the_route_of_a_bent_line() {
             stroke: Default::default(),
             bends: vec![(30, 9)],
             color: None,
+            meta: Default::default(),
         }),
     ));
     right_click(&mut app, 30, 9, now);

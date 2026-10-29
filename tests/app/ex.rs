@@ -280,3 +280,21 @@ fn dialog_prompts_edit_at_the_caret_too() {
     app.on_event(key(KeyCode::Char('b')), now);
     assert_eq!(buffer(&app), "abc");
 }
+
+#[test]
+fn colon_meta_sets_reads_back_and_shows_usage() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    insert_shape(&mut app);
+    app.session.selection = vec![clidraw::model::Id::from("aaaaaaaa")];
+    run(&mut app, "meta");
+    assert_eq!(status(&app), "No metadata");
+    run(&mut app, "meta url=https://x.test");
+    run(&mut app, "meta");
+    assert_eq!(status(&app), "url=https://x.test");
+    run(&mut app, "meta oops");
+    assert_eq!(status(&app), "Usage: :meta <key>=<value>");
+    run(&mut app, "meta url=");
+    run(&mut app, "meta");
+    assert_eq!(status(&app), "No metadata");
+}

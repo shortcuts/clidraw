@@ -1,6 +1,6 @@
 use super::canvas::{Index, BULK};
 use super::{
-    Border, Canvas, Edge, Element, End, Id, LineKind, ModelError, Paint, Shape, ShapeKind,
+    Border, Canvas, Edge, Element, End, Id, LineKind, Meta, ModelError, Paint, Shape, ShapeKind,
     SideLabel, Stroke, TextAlign, MIN_SIZE,
 };
 use serde::{Deserialize, Serialize};
@@ -111,6 +111,11 @@ pub enum Command {
         id: Id,
         link: Option<String>,
     },
+    /// Replaces the whole metadata map of a shape, line or text.
+    SetMeta {
+        id: Id,
+        meta: Meta,
+    },
     /// Replaces the whole group list.
     SetGroups(Vec<Vec<Id>>),
     Batch(Vec<Command>),
@@ -215,7 +220,8 @@ impl Command {
             | Command::SetFill { .. }
             | Command::SetAlign { .. }
             | Command::SetBold { .. }
-            | Command::SetLink { .. } => "restyle",
+            | Command::SetLink { .. }
+            | Command::SetMeta { .. } => "restyle",
             Command::SetGroups(_) => "regroup",
             Command::Batch(_) => unreachable!(),
         }
@@ -635,6 +641,15 @@ impl Canvas {
                 };
                 let old = std::mem::replace(&mut s.link, link);
                 Ok(Command::SetLink { id, link: old })
+            }
+            Command::SetMeta { id, meta } => {
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
+                let old = match &mut self.elements[i] {
+                    Element::Shape(s) => std::mem::replace(&mut s.meta, meta),
+                    Element::Line(l) => std::mem::replace(&mut l.meta, meta),
+                    Element::Text(t) => std::mem::replace(&mut t.meta, meta),
+                };
+                Ok(Command::SetMeta { id, meta: old })
             }
             Command::SetBends { id, bends } => {
                 let i = self.position(&id, index).ok_or_else(|| missing(&id))?;

@@ -818,6 +818,12 @@ pub const BINDINGS: &[Binding] = &[
         Some(Action::Prefill("link ")),
     ),
     ex(
+        "meta",
+        ":meta <key>=<value>",
+        "Set metadata on selection",
+        Some(Action::Prefill("meta ")),
+    ),
+    ex(
         "lib",
         ":lib list|save|insert|delete [name]",
         "Use library",

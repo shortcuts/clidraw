@@ -1,6 +1,6 @@
 use crate::model::{
-    kind_cmds, Anchor, Border, Canvas, Command, Dir, Element, End, Id, Line, LineKind, ModelError,
-    Paint, Shape, ShapeKind, Stroke, Text, TextAlign, Z,
+    kind_cmds, Anchor, Border, Canvas, Command, Dir, Element, End, Id, Line, LineKind, Meta,
+    ModelError, Paint, Shape, ShapeKind, Stroke, Text, TextAlign, Z,
 };
 use anyhow::{bail, Result};
 use serde::Deserialize;
@@ -37,6 +37,7 @@ pub(super) enum Op {
         label: Option<String>,
         color: Option<Paint>,
         fill: Option<Paint>,
+        meta: Option<Meta>,
     },
     AddText {
         id: Option<Id>,
@@ -44,6 +45,7 @@ pub(super) enum Op {
         y: i32,
         text: String,
         color: Option<Paint>,
+        meta: Option<Meta>,
     },
     Connect {
         id: Option<Id>,
@@ -51,6 +53,7 @@ pub(super) enum Op {
         to: Endpoint,
         kind: Option<LineKind>,
         label: Option<String>,
+        meta: Option<Meta>,
     },
     Set {
         id: Id,
@@ -64,6 +67,7 @@ pub(super) enum Op {
         link: Option<String>,
         kind: Option<ShapeKind>,
         head: Option<LineKind>,
+        meta: Option<Meta>,
     },
     Resize {
         id: Id,
@@ -127,6 +131,25 @@ fn one_line(op: &str, field: &str, value: &str) -> Result<()> {
     Ok(())
 }
 
+/// Rejects an empty key and a line break in a key or value.
+fn check_meta(op: &str, meta: &Option<Meta>) -> Result<()> {
+    for (k, v) in meta.iter().flatten() {
+        if k.is_empty() {
+            bail!("{op}: meta key is empty");
+        }
+        one_line(op, "meta key", k)?;
+        one_line(op, "meta value", v)?;
+    }
+    Ok(())
+}
+
+/// The pairs worth storing: an empty value means no entry.
+fn kept(meta: Option<Meta>) -> Meta {
+    let mut meta = meta.unwrap_or_default();
+    meta.retain(|_, v| !v.is_empty());
+    meta
+}
+
 fn exist(canvas: &Canvas, ids: &[Id]) -> Result<()> {
     match ids.iter().find(|id| canvas.get(id).is_none()) {
         Some(id) => Err(ModelError::NotFound(id.clone()).into()),
@@ -153,8 +176,11 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
             label,
             color,
             fill,
+            meta,
         } => {
             ids_ok("add_shape", &id)?;
+            check_meta("add_shape", &meta)?;
+            let meta = kept(meta);
             let kind = kind.unwrap_or(ShapeKind::Rect);
             let label = label.unwrap_or_default();
             let (w, h) = match (w, h) {
@@ -169,6 +195,7 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
                     id,
                     color,
                     fill,
+                    meta: meta.clone(),
                     ..Shape::new(kind, x, y, w, h, label.clone())
                 })
             }));
@@ -179,8 +206,11 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
             y,
             text,
             color,
+            meta,
         } => {
             ids_ok("add_text", &id)?;
+            check_meta("add_text", &meta)?;
+            let meta = kept(meta);
             one_line("add_text", "text", &text)?;
             cmds.push(add(created, id, &|id| {
                 Element::Text(Text {
@@ -189,6 +219,7 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
                     y,
                     text: text.clone(),
                     color,
+                    meta: meta.clone(),
                 })
             }));
         }
@@ -198,8 +229,11 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
             to,
             kind,
             label,
+            meta,
         } => {
             ids_ok("connect", &id)?;
+            check_meta("connect", &meta)?;
+            let meta = kept(meta);
             if let Some(l) = &label {
                 one_line("connect", "label", l)?;
             }
@@ -208,6 +242,7 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
                 Element::Line(Line {
                     id,
                     label: label.clone().unwrap_or_default(),
+                    meta: meta.clone(),
                     ..Line::new(kind.unwrap_or(LineKind::Arrow), from.clone(), to.clone())
                 })
             }));
@@ -224,8 +259,10 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
             link,
             kind,
             head,
+            meta,
         } => {
             ids_ok("set", [&id])?;
+            check_meta("set", &meta)?;
             if let Some(l) = &link {
                 one_line("set", "link", l)?;
             }
@@ -284,6 +321,18 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
                 cmds.push(Command::SetLink {
                     id: id.clone(),
                     link: Some(link).filter(|l| !l.is_empty()),
+                });
+            }
+            if let Some(pairs) = meta.filter(|m| !m.is_empty()) {
+                let Some(el) = canvas.get(&id) else {
+                    return Err(ModelError::NotFound(id).into());
+                };
+                let mut merged = el.meta().clone();
+                merged.extend(pairs);
+                merged.retain(|_, v| !v.is_empty());
+                cmds.push(Command::SetMeta {
+                    id: id.clone(),
+                    meta: merged,
                 });
             }
             if let Some(kind) = head {

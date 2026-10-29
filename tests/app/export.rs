@@ -84,6 +84,7 @@ fn export_padding_comes_from_the_config() {
             y: 0,
             text: "hi".into(),
             color: None,
+            meta: Default::default(),
         }),
     ));
     let now = Instant::now();

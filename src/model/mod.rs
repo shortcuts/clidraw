@@ -11,8 +11,8 @@ mod router;
 pub use canvas::{Canvas, Find};
 pub use command::{kind_cmds, Align, Command, Side, Z};
 pub use element::{
-    Anchor, Border, Edge, Element, End, Line, LineKind, Paint, Shape, ShapeKind, SideLabel, Stroke,
-    Text, TextAlign, FILL_ALPHA, MIN_SIZE,
+    Anchor, Border, Edge, Element, End, Line, LineKind, Meta, Paint, Shape, ShapeKind, SideLabel,
+    Stroke, Text, TextAlign, FILL_ALPHA, MIN_SIZE,
 };
 pub use error::ModelError;
 pub use geom::{

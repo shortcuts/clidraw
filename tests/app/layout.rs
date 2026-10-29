@@ -26,6 +26,7 @@ fn layout_app(dir: &std::path::Path, edges: &[(&str, &str)]) -> App {
                 bold: false,
                 link: None,
                 side_labels: vec![],
+                meta: Default::default(),
             }),
         ));
     }
@@ -42,6 +43,7 @@ fn layout_app(dir: &std::path::Path, edges: &[(&str, &str)]) -> App {
                 stroke: Default::default(),
                 bends: vec![],
                 color: None,
+                meta: Default::default(),
             }),
         ));
     }

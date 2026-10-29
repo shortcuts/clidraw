@@ -525,6 +525,7 @@ fn palette_head_both_sets_the_selected_line() {
             stroke: Default::default(),
             bends: vec![],
             color: None,
+            meta: Default::default(),
         }),
     ));
     app.session.selection = vec![Id::from("llllllll")];

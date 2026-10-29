@@ -27,6 +27,7 @@ fn shape(id: &str, x: i32) -> Element {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     })
 }
 
@@ -44,6 +45,7 @@ fn sample() -> Canvas {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     c
 }
@@ -345,4 +347,22 @@ fn canvas_hash_is_fnv1a_so_saved_history_survives_toolchain_upgrades() {
     std::fs::create_dir_all(t.path().join("c")).unwrap();
     std::fs::write(t.path().join("c/h.clidraw.json"), "a").unwrap();
     assert_eq!(s.canvas_hash("h"), Some(0xaf63dc4c8601ec8c));
+}
+
+#[test]
+fn meta_round_trips_and_old_files_load_without_it() {
+    let (_t, s) = store();
+    let mut c = sample();
+    assert!(!clidraw::store::encode(&c).unwrap().contains("meta"));
+    let Element::Shape(sh) = &mut c.elements[0] else {
+        panic!("shape expected");
+    };
+    sh.meta.insert("url".into(), "https://x.test".into());
+    assert!(clidraw::store::encode(&c)
+        .unwrap()
+        .contains("\"url\": \"https://x.test\""));
+    assert!(s.save("m", &c).unwrap());
+    assert_eq!(s.load("m").unwrap(), c);
+    assert!(s.save("old", &sample()).unwrap());
+    assert!(s.load("old").unwrap().elements[0].meta().is_empty());
 }

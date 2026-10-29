@@ -1,6 +1,6 @@
 use crate::model::{
-    corners, label_pos, side_label_at, wrap, Border, Canvas, Element, LineKind, Paint, ShapeKind,
-    Stroke, TextAlign, FILL_ALPHA,
+    corners, label_pos, side_label_at, wrap, Border, Canvas, Element, LineKind, Meta, Paint,
+    ShapeKind, Stroke, TextAlign, FILL_ALPHA,
 };
 use std::fmt::Write;
 
@@ -68,6 +68,20 @@ fn linked(o: &mut String, start: usize, link: &Option<String>) {
         o.insert_str(start, &format!("  <a href=\"{}\">\n", esc(url)));
         o.push_str("  </a>\n");
     }
+}
+
+/// Wraps the element written since `start` in a group whose `<desc>` lists the metadata.
+fn annotate(o: &mut String, start: usize, meta: &Meta) {
+    if meta.is_empty() {
+        return;
+    }
+    let desc = meta
+        .iter()
+        .map(|(k, v)| format!("{}: {}", esc(k), esc(v)))
+        .collect::<Vec<_>>()
+        .join("\n");
+    o.insert_str(start, &format!("  <g>\n    <desc>{desc}</desc>\n"));
+    o.push_str("  </g>\n");
 }
 
 pub fn svg(canvas: &Canvas) -> String {
@@ -198,6 +212,7 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                     let label = s.label.replace('\n', " ");
                     let ink = s.color.map(hex).unwrap_or(FRAME_GREY.into());
                     text(&mut o, (x + CW, y), "start", &[&label], (Some(ink), s.bold));
+                    annotate(&mut o, start, &s.meta);
                     linked(&mut o, start, &s.link);
                     continue;
                 }
@@ -223,6 +238,7 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                     let at = (lx * CW, ly * CH + CH / 2);
                     text(&mut o, at, "start", &[shown], (s.color.map(hex), false));
                 }
+                annotate(&mut o, start, &s.meta);
                 linked(&mut o, start, &s.link);
             }
             Element::Line(l) => {
@@ -261,14 +277,18 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                     &[&l.label],
                     (l.color.map(hex), false),
                 );
+                annotate(&mut o, start, &l.meta);
             }
-            Element::Text(t) => text(
-                &mut o,
-                (t.x * CW, t.y * CH + CH / 2),
-                "start",
-                &[&t.text],
-                (t.color.map(hex), false),
-            ),
+            Element::Text(t) => {
+                text(
+                    &mut o,
+                    (t.x * CW, t.y * CH + CH / 2),
+                    "start",
+                    &[&t.text],
+                    (t.color.map(hex), false),
+                );
+                annotate(&mut o, start, &t.meta);
+            }
         }
     }
     o.push_str("</svg>\n");

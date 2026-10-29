@@ -209,6 +209,9 @@ pub struct SideLabel {
     pub text: String,
 }
 
+/// Free-form key to value pairs; keys such as `file` or `url` are convention only.
+pub type Meta = std::collections::BTreeMap<String, String>;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Shape {
     pub id: Id,
@@ -233,6 +236,8 @@ pub struct Shape {
     /// Target of the shape in the SVG and Mermaid exports.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link: Option<String>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub meta: Meta,
     /// At most one per edge, never empty, ordered by edge.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub side_labels: Vec<SideLabel>,
@@ -255,6 +260,8 @@ pub struct Line {
     pub bends: Vec<(i32, i32)>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<Paint>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub meta: Meta,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -265,6 +272,8 @@ pub struct Text {
     pub text: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<Paint>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub meta: Meta,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -281,6 +290,14 @@ impl Element {
             Element::Shape(s) => &s.id,
             Element::Line(l) => &l.id,
             Element::Text(t) => &t.id,
+        }
+    }
+
+    pub fn meta(&self) -> &Meta {
+        match self {
+            Element::Shape(s) => &s.meta,
+            Element::Line(l) => &l.meta,
+            Element::Text(t) => &t.meta,
         }
     }
 }
@@ -305,6 +322,7 @@ impl Shape {
             align: TextAlign::default(),
             bold: false,
             link: None,
+            meta: Meta::new(),
             side_labels: vec![],
         }
     }
@@ -378,6 +396,7 @@ impl Line {
             stroke: Stroke::default(),
             bends: vec![],
             color: None,
+            meta: Meta::new(),
         }
     }
 }

@@ -22,6 +22,7 @@ fn shape(id: &str, x: i32) -> Element {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     })
 }
 
@@ -36,6 +37,7 @@ fn arrow(from: End, to: End) -> Element {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     })
 }
 
@@ -282,6 +284,7 @@ fn within_keeps_only_elements_fully_inside_the_area() {
                 stroke: Default::default(),
                 bends: vec![],
                 color: None,
+                meta: Default::default(),
             }),
         ],
         ..Canvas::default()
@@ -1194,6 +1197,7 @@ fn a_text_is_an_obstacle() {
         y: 5,
         text: "xxxx".into(),
         color: None,
+        meta: Default::default(),
     })]);
     assert!(!c.route(&l).iter().any(|&p| inside(p, (10, 5, 4, 1))));
 }
@@ -1816,6 +1820,7 @@ fn insert_rejects_a_line_bound_to_a_missing_or_text_element() {
             y: 3,
             text: "hi".into(),
             color: None,
+            meta: Default::default(),
         }),
     ))
     .unwrap();
@@ -1995,6 +2000,7 @@ fn moving_a_text_moves_its_position_and_undo_puts_it_back() {
         y: 2,
         text: "hi".into(),
         color: None,
+        meta: Default::default(),
     }))
     .unwrap();
     let text = Id::from("tttttttt");
@@ -2044,6 +2050,7 @@ fn shape_only_edits_reject_lines_and_stroke_rejects_text() {
         y: 0,
         text: String::new(),
         color: None,
+        meta: Default::default(),
     }))
     .unwrap();
     let line = Id::from("line0000");
@@ -2150,6 +2157,7 @@ fn constructors_set_the_default_fields() {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         }
     );
 
@@ -2166,6 +2174,45 @@ fn constructors_set_the_default_fields() {
             stroke: Stroke::Solid,
             bends: vec![],
             color: None,
+            meta: Default::default(),
         }
     );
+}
+
+#[test]
+fn set_meta_replaces_the_map_on_shapes_lines_and_texts_and_undoes() {
+    let (mut c, mut h) = setup();
+    let at = c.elements.len();
+    h.exec(
+        &mut c,
+        Command::Insert(
+            at,
+            Element::Text(Text {
+                id: Id::from("tttttttt"),
+                x: 0,
+                y: 0,
+                text: "t".into(),
+                color: None,
+                meta: Default::default(),
+            }),
+        ),
+    )
+    .unwrap();
+    let before = c.clone();
+    for id in ["aaaaaaaa", "line0000", "tttttttt"] {
+        let meta = [("file".to_string(), "a.rs".to_string())].into();
+        h.exec(
+            &mut c,
+            Command::SetMeta {
+                id: Id::from(id),
+                meta,
+            },
+        )
+        .unwrap();
+        assert_eq!(c.get(&Id::from(id)).unwrap().meta()["file"], "a.rs");
+    }
+    for _ in 0..3 {
+        h.undo(&mut c).unwrap();
+    }
+    assert_eq!(c, before);
 }

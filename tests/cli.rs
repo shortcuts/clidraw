@@ -31,6 +31,7 @@ fn seeded() -> tempfile::TempDir {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     Store::at(t.path().join("c"), t.path().join("state"))
         .save("demo", &c)
@@ -435,4 +436,77 @@ fn rename_and_delete_manage_canvases() {
     let r = run(t.path(), &["delete", "other"]);
     assert_eq!(out(&r).trim(), r#"{"deleted":"other"}"#);
     assert!(!run(t.path(), &["delete", "other"]).status.success());
+}
+
+#[test]
+fn edit_meta_adds_merges_clears_and_rejects_bad_pairs() {
+    let t = seeded_empty();
+    let c = edit_ok(
+        &t,
+        &format!(
+            r#"[{AB},{{"op":"add_text","id":"t","x":0,"y":20,"text":"hi","meta":{{"dir":"src"}}}},
+            {{"op":"set","id":"a","meta":{{"file":"src/a.rs","empty":""}}}},
+            {{"op":"set","id":"l","meta":{{"service":"api"}}}}]"#
+        ),
+    );
+    let get = |c: &serde_json::Value, id: &str| {
+        c["elements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|e| e["id"] == id)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(
+        get(&c, "a")["meta"],
+        serde_json::json!({"file": "src/a.rs"})
+    );
+    assert_eq!(get(&c, "l")["meta"], serde_json::json!({"service": "api"}));
+    assert_eq!(get(&c, "t")["meta"], serde_json::json!({"dir": "src"}));
+    assert!(get(&c, "b").get("meta").is_none());
+    let c = edit_ok(
+        &t,
+        r#"[{"op":"set","id":"a","meta":{"url":"https://x.test","file":"b.rs"}},
+        {"op":"add_shape","id":"n","x":0,"y":30,"meta":{"k":"v"}},
+        {"op":"connect","id":"m","from":"a","to":"n","meta":{"k":"v"}}]"#,
+    );
+    assert_eq!(
+        get(&c, "a")["meta"],
+        serde_json::json!({"file": "b.rs", "url": "https://x.test"})
+    );
+    assert_eq!(get(&c, "n")["meta"], serde_json::json!({"k": "v"}));
+    assert_eq!(get(&c, "m")["meta"], serde_json::json!({"k": "v"}));
+    let c = edit_ok(&t, r#"[{"op":"set","id":"a","meta":{"file":""}}]"#);
+    assert_eq!(
+        get(&c, "a")["meta"],
+        serde_json::json!({"url": "https://x.test"})
+    );
+
+    let before = show(t.path());
+    for (bad, want) in [
+        (
+            r#"[{"op":"set","id":"a","meta":{"file":"a\nb"}}]"#,
+            "set: meta value must be one line",
+        ),
+        (
+            r#"[{"op":"set","id":"a","meta":{"":"x"}}]"#,
+            "set: meta key is empty",
+        ),
+        (
+            r#"[{"op":"add_shape","x":0,"y":0,"meta":{"a\nb":"x"}}]"#,
+            "add_shape: meta key must be one line",
+        ),
+        (
+            r#"[{"op":"set","id":"a","meta":{}}]"#,
+            "set: nothing to change",
+        ),
+        (r#"[{"op":"set","id":"zz","meta":{"a":"b"}}]"#, "zz"),
+    ] {
+        let r = run_stdin(t.path(), &["edit", "demo"], bad);
+        assert!(!r.status.success(), "{bad}");
+        let err = String::from_utf8_lossy(&r.stderr);
+        assert!(err.contains(want), "{bad}: {err}");
+        assert_eq!(show(t.path()), before);
+    }
 }

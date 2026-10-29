@@ -77,6 +77,34 @@ impl App {
         }
     }
 
+    /// `key=value` sets, `key=` removes, and no argument reads back the one selected element.
+    fn meta(&mut self, arg: &str) {
+        let usage = || Some(Status::error("Usage: :meta <key>=<value>"));
+        self.status = if arg.is_empty() {
+            match self.session.selection.as_slice() {
+                [id] => {
+                    let meta = self.session.canvas.get(id).map(|e| e.meta().clone());
+                    let pairs: Vec<String> = meta
+                        .iter()
+                        .flatten()
+                        .map(|(k, v)| format!("{k}={v}"))
+                        .collect();
+                    Some(Status::notice(if pairs.is_empty() {
+                        "No metadata".to_string()
+                    } else {
+                        pairs.join(", ")
+                    }))
+                }
+                _ => usage(),
+            }
+        } else {
+            match arg.split_once('=') {
+                Some((k, v)) if self.session.set_meta(k.trim(), v.trim()) => None,
+                _ => usage(),
+            }
+        };
+    }
+
     pub(super) fn run_command(&mut self, line: &str) {
         let line = line.trim().trim_start_matches(':');
         if let Some(term) = line.strip_prefix('/') {
@@ -117,6 +145,7 @@ impl App {
                 self.status = Some(Status::error("Usage: :link <http(s) or mailto url>"))
             }
             "link" => {}
+            "meta" => self.meta(arg.trim()),
             "lib" => self.library(arg.trim()),
             "perf" => self.perf = self.perf.is_none().then(Perf::default),
             "layout" => match arg.trim() {

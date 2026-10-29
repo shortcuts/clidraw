@@ -107,6 +107,7 @@ fn info_bar_shows_unsaved_until_the_save() {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         }),
     ));
     assert!(last_row(&app).ends_with("demo ●"), "{}", last_row(&app));

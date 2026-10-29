@@ -138,6 +138,7 @@ fn with_shape(id: &str, x: i32, y: i32) -> Session {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     s
 }
@@ -236,6 +237,7 @@ fn ctrl_a_selects_everything() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     ctrl(&mut s, 'a');
     assert_eq!(
@@ -283,6 +285,36 @@ fn shift_arrow_connect_does_not_copy_the_source_link() {
 }
 
 #[test]
+fn shift_arrow_connect_does_not_copy_the_source_meta() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.selection = vec![Id::from("aaaaaaaa")];
+    assert!(s.set_meta("file", "a.rs"));
+    key(&mut s, KeyCode::Char('L'));
+    let sh = shapes(&s);
+    assert_eq!(sh[0].meta["file"], "a.rs");
+    assert!(sh[1].meta.is_empty());
+}
+
+#[test]
+fn set_meta_sets_overwrites_clears_undoes_and_rejects_bad_pairs() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.selection = vec![Id::from("aaaaaaaa")];
+    let get = |s: &Session| shapes(s)[0].meta.clone();
+    assert!(!s.set_meta("", "x"));
+    assert!(!s.set_meta("k", "a\nb"));
+    assert!(get(&s).is_empty());
+    assert!(s.set_meta("file", "a.rs"));
+    assert!(s.set_meta("file", "b.rs"));
+    assert!(s.set_meta("url", "https://x.test"));
+    assert_eq!(get(&s).len(), 2);
+    assert_eq!(get(&s)["file"], "b.rs");
+    assert!(s.set_meta("file", ""));
+    assert_eq!(get(&s).keys().collect::<Vec<_>>(), ["url"]);
+    s.undo();
+    assert_eq!(get(&s)["file"], "b.rs");
+}
+
+#[test]
 fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
     let mut s = with_shape("aaaaaaaa", 15, 3);
     s.canvas.elements.push(Element::Shape(Shape {
@@ -301,6 +333,7 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     pick(&mut s, Tool::Arrow);
     drag(&mut s, (18, 5), (43, 5));
@@ -344,6 +377,7 @@ fn a_new_arrow_bends_around_an_arrow_it_would_cross() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     };
     s.canvas.elements.push(Element::Line(wall.clone()));
     pick(&mut s, Tool::Arrow);
@@ -376,6 +410,7 @@ fn releasing_an_arrow_on_a_border_cell_pins_that_side() {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         }));
         pick(&mut s, Tool::Arrow);
         drag(&mut s, (18, 5), to);
@@ -537,6 +572,7 @@ fn shift_click_toggles_an_element_in_the_selection() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     click(&mut s, (20, 6), Instant::now());
     shift_drag(&mut s, (40, 10), (40, 10));
@@ -633,6 +669,7 @@ fn double_click_on_an_unlabeled_arrow_puts_its_label_at_the_click() {
             stroke: Default::default(),
             bends: vec![],
             color: None,
+            meta: Default::default(),
         }))
         .unwrap();
     let t = Instant::now();
@@ -763,6 +800,7 @@ fn palette_option_sets_the_head_of_a_selected_line() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     });
     s.canvas.push(line).unwrap();
     let kind = |s: &Session| match s.canvas.get(&Id::from("llllllll")) {
@@ -800,6 +838,7 @@ fn palette_option_sets_the_stroke_of_a_selected_line_and_undoes() {
             stroke: Default::default(),
             bends: vec![],
             color: None,
+            meta: Default::default(),
         }))
         .unwrap();
     s.selection = vec![Id::from("llllllll")];
@@ -835,6 +874,7 @@ fn palette_option_sets_the_border_of_a_selected_rect_and_undoes() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
     let border = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
@@ -869,6 +909,7 @@ fn palette_ink_cycles_through_the_colors_and_undoes_one_click_at_a_time() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     s.canvas.elements.push(Element::Text(clidraw::model::Text {
         id: Id::from("tttttttt"),
@@ -876,6 +917,7 @@ fn palette_ink_cycles_through_the_colors_and_undoes_one_click_at_a_time() {
         y: 5,
         text: "t".into(),
         color: None,
+        meta: Default::default(),
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
     let ink = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
@@ -925,6 +967,7 @@ fn two_shapes_and_arrow_tool() -> Session {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     pick(&mut s, Tool::Arrow);
     s
@@ -1131,6 +1174,7 @@ fn hover_covers_every_cell_of_a_text() {
         y: 5,
         text: "hello".into(),
         color: None,
+        meta: Default::default(),
     }));
     let t = Instant::now();
     for col in 30..35 {
@@ -1167,6 +1211,7 @@ fn hover_picks_a_text_one_cell_around_it() {
         y: 5,
         text: "hello".into(),
         color: None,
+        meta: Default::default(),
     }));
     for at in [(29, 4), (35, 6), (32, 4)] {
         assert_eq!(hover_at(&mut s, at), Hit::Element(id.clone()), "{at:?}");
@@ -1200,6 +1245,7 @@ fn hover_picks_a_line_one_cell_beside_its_route() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let l = Hit::Element(Id::from("arrow000"));
     assert_eq!(hover_at(&mut s, (10, 5)), l);
@@ -1321,6 +1367,7 @@ fn bracket_keys_reorder_the_selection_one_undo_step_per_press() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     let ids = |s: &Session| -> Vec<String> {
         s.canvas
@@ -1371,6 +1418,7 @@ fn diagram() -> Session {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     s.canvas.elements.push(Element::Line(Line {
         id: Id::from("line0000"),
@@ -1382,6 +1430,7 @@ fn diagram() -> Session {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     s
 }
@@ -1607,6 +1656,7 @@ fn click_on_a_label_places_the_caret_and_elsewhere_commits() {
         y: 5,
         text: "hello".into(),
         color: None,
+        meta: Default::default(),
     }));
     s.start_edit_existing(id);
     let t = Instant::now();
@@ -1861,6 +1911,7 @@ fn committing_a_wrapped_label_grows_the_shape_in_one_undo_step() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     s.start_edit_existing(Id::from("aaaaaaaa"));
     typed(&mut s, "ab");
@@ -1926,6 +1977,7 @@ fn dragging_a_selected_lines_label_slides_it_along_the_line() {
             stroke: Default::default(),
             bends: vec![],
             color: None,
+            meta: Default::default(),
         }))
         .unwrap();
     s.selection = vec![id.clone()];
@@ -1962,6 +2014,7 @@ fn three_shapes() -> Session {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         }));
     }
     s
@@ -2066,6 +2119,7 @@ fn at(id: &str, x: i32, y: i32, w: i32, h: i32) -> Element {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     })
 }
 
@@ -2128,6 +2182,7 @@ fn bound_arrow_follows_an_aligned_shape() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let before = s.canvas.route(match &s.canvas.elements[3] {
         Element::Line(l) => l,
@@ -2181,6 +2236,7 @@ fn palette_cycles_label_align_and_ctrl_b_toggles_bold() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
     let get = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
@@ -2258,6 +2314,7 @@ fn put(s: &mut Session, id: &str, kind: ShapeKind, r: (i32, i32, i32, i32)) {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
 }
 
@@ -2410,6 +2467,7 @@ fn set_link_sets_clears_undoes_and_rejects_unsafe_urls() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
     let get = |s: &Session| match s.canvas.get(&Id::from("rrrrrrrr")) {
@@ -2622,6 +2680,7 @@ fn ratio_label_growth_widens_a_bound_shape() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     s.start_edit_existing(Id::from("aaaaaaaa"));
     for line in ["a", "b", "c"] {
@@ -2649,6 +2708,7 @@ fn hover_picks_a_detour_cell_for_the_line_and_the_crossed_shape_elsewhere() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let Some(Element::Line(l)) = s.canvas.elements.last() else {
         unreachable!()
@@ -2684,6 +2744,7 @@ fn hover_reaches_a_detour_cell_past_the_margin_of_the_end_cells() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let Some(Element::Line(l)) = s.canvas.elements.last() else {
         unreachable!()
@@ -2712,6 +2773,7 @@ fn free_line(id: &str, bends: Vec<(i32, i32)>) -> Element {
         stroke: Default::default(),
         bends,
         color: None,
+        meta: Default::default(),
     })
 }
 
@@ -2921,6 +2983,7 @@ fn a_dragged_head_over_a_shape_routes_to_its_edge() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     s.selection = vec![line.clone()];
     let Some(Element::Line(l)) = s.canvas.get(&line) else {

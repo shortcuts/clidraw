@@ -155,6 +155,7 @@ fn drag_app(dir: &std::path::Path) -> App {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         }),
     ));
     app
@@ -250,6 +251,7 @@ fn history_limit_from_config_survives_opening_another_canvas() {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         };
         app.session.exec(Command::Insert(i, Element::Shape(shape)));
     }
@@ -314,6 +316,7 @@ fn moved_redraws_only_when_the_hovered_target_changes() {
             bold: false,
             link: None,
             side_labels: vec![],
+            meta: Default::default(),
         }));
     let t0 = Instant::now();
     app.dirty = false;
@@ -465,6 +468,7 @@ fn reloads_an_external_edit_instead_of_overwriting_it() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     cli.save("demo", &canvas).unwrap();
     let external = std::fs::read(&file).unwrap();

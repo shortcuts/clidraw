@@ -33,6 +33,7 @@ fn shape(id: &str, x: i32, label: &str) -> Element {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     })
 }
 
@@ -126,6 +127,7 @@ fn a_line_is_drawn_when_only_its_detour_is_on_screen() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let view = View {
         oy: 10,
@@ -334,6 +336,7 @@ fn arrow_between_shapes_ends_in_a_head() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│{}▶│", "─".repeat(19));
@@ -356,6 +359,7 @@ fn selected_arrow_keeps_its_head_visible() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.selection.push(Id::from("cccccccc"));
@@ -378,6 +382,7 @@ fn arrow_start_has_its_head_at_the_first_cell() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│◀{}│", "─".repeat(19));
@@ -400,6 +405,7 @@ fn arrow_both_has_a_head_at_each_end() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
     let expected = format!("│◀{}▶│", "─".repeat(18));
@@ -426,6 +432,7 @@ fn arrow_between_shapes_on_different_rows_bends_with_rounded_corners() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let b = draw(&Session::new(c, View::default(), (80, 24)), &Overlay::None);
     assert_eq!(cols(&b, 5, 19, 12), "│─────────╮ ");
@@ -652,6 +659,7 @@ fn line_crossing_the_view_draws_when_both_ends_are_off_screen() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
     assert_eq!(cols(&draw(&s, &Overlay::None), 5, 30, 4), "────");
@@ -785,6 +793,7 @@ fn long_shape_label_wraps_inside_the_shape() {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     s.rev += 1;
     let b = draw(&s, &Overlay::None);
@@ -841,6 +850,7 @@ fn edit_caret_shows_on_a_line_label() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let mut s = Session::new(c, View::default(), (80, 24));
     s.start_edit_existing(Id::from("cccccccc"));
@@ -868,6 +878,7 @@ fn half_session(x: i32, y: i32) -> Session {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     Session::new(
         c,
@@ -948,6 +959,7 @@ fn kind_session(kind: ShapeKind, w: i32, h: i32) -> Session {
         bold: false,
         link: None,
         side_labels: vec![],
+        meta: Default::default(),
     }));
     Session::new(c, View::default(), (80, 24))
 }
@@ -1413,6 +1425,7 @@ fn minimap_draws_the_route_between_linked_shapes() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let s = Session::new(c, View::default(), (80, 24));
     assert!(map_rows(&s, Target::Canvas).contains("▒·"));
@@ -1539,6 +1552,7 @@ fn double_zoom_draws_the_arrow_head_at_the_scaled_end() {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let view = View {
         zoom: Zoom::Two,
@@ -1639,6 +1653,7 @@ fn strip_session(w: u16) -> Session {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     }));
     let mut s = Session::new(c, View::default(), (w, 12));
     s.selection = vec![Id::from("aaaaaaaa"), Id::from("llllllll")];
@@ -1901,6 +1916,7 @@ fn free_line(id: &str, from: (i32, i32), to: (i32, i32)) -> Element {
         stroke: Default::default(),
         bends: vec![],
         color: None,
+        meta: Default::default(),
     })
 }
 

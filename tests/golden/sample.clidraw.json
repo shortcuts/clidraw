@@ -13,7 +13,11 @@
       "border": "heavy",
       "color": "red",
       "fill": "blue",
-      "link": "https://example.com/a?x=1&y=2"
+      "link": "https://example.com/a?x=1&y=2",
+      "meta": {
+        "file": "src/a.rs",
+        "note": "a <b> & \"c\""
+      }
     },
     {
       "type": "shape",
@@ -176,7 +180,10 @@
           26,
           8
         ]
-      ]
+      ],
+      "meta": {
+        "service": "api"
+      }
     },
     {
       "type": "text",
@@ -184,7 +191,10 @@
       "x": -8,
       "y": -3,
       "text": "note <1>",
-      "color": "green"
+      "color": "green",
+      "meta": {
+        "url": "https://x.test"
+      }
     }
   ]
 }

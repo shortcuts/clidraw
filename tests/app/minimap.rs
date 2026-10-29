@@ -25,6 +25,7 @@ fn map_app(dir: &std::path::Path) -> (App, Instant) {
                 bold: false,
                 link: None,
                 side_labels: vec![],
+                meta: Default::default(),
             }),
         ));
     }
