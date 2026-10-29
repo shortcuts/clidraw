@@ -86,6 +86,16 @@
       <li><code>name</code> (required, string): Canvas name</li>
       <li><code>to</code> (required, string): New canvas name</li>
     </ul>
+    <h3 class="item" id="tools-undo">undo</h3>
+    <p>Revert the last edit or import on a canvas. Returns {&quot;undone&quot;:label}.</p>
+    <ul>
+      <li><code>name</code> (required, string): Canvas name</li>
+    </ul>
+    <h3 class="item" id="tools-redo">redo</h3>
+    <p>Re-apply the last undone step. Returns {&quot;redone&quot;:label}.</p>
+    <ul>
+      <li><code>name</code> (required, string): Canvas name</li>
+    </ul>
     <h3 class="item" id="tools-delete">delete</h3>
     <p>Delete a canvas and its undo history.</p>
     <ul>

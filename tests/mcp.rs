@@ -101,6 +101,8 @@ fn tools_list_names_the_cli_commands() {
             "import",
             "export",
             "rename",
+            "undo",
+            "redo",
             "delete",
             "templates",
             "template"
@@ -288,4 +290,41 @@ fn template_tools_list_create_and_extend() {
     assert!(
         second["y"].as_i64() > Some(first["y"].as_i64().unwrap() + first["h"].as_i64().unwrap())
     );
+}
+
+#[test]
+fn undo_and_redo_tools_revert_an_edit_batch() {
+    let (_t, s) = store();
+    let ops = json!([{"op":"add_shape","x":0,"y":0}]);
+    let r = rpc(
+        &s,
+        &[
+            tool(1, "new", json!({"name": "a"})),
+            tool(2, "edit", json!({"name": "a", "ops": ops})),
+            tool(3, "undo", json!({"name": "a"})),
+            tool(4, "show", json!({"name": "a"})),
+            tool(5, "redo", json!({"name": "a"})),
+            tool(6, "show", json!({"name": "a"})),
+            tool(7, "redo", json!({"name": "a"})),
+        ],
+    );
+    let elements = |i: usize| {
+        let c: Value = serde_json::from_str(text(&r[i])).unwrap();
+        c["elements"].as_array().unwrap().len()
+    };
+    assert!(text(&r[2]).starts_with(r#"{"undone":""#), "{}", text(&r[2]));
+    assert_eq!(elements(3), 0);
+    assert!(text(&r[4]).starts_with(r#"{"redone":""#), "{}", text(&r[4]));
+    assert_eq!(elements(5), 1);
+    assert_eq!(r[6]["result"]["isError"], true);
+    assert_eq!(text(&r[6]), "Error: nothing to redo");
+    let r = rpc(
+        &s,
+        &[
+            tool(1, "undo", json!({"name": "a"})),
+            tool(2, "undo", json!({"name": "a"})),
+        ],
+    );
+    assert_eq!(r[1]["result"]["isError"], true);
+    assert_eq!(text(&r[1]), "Error: nothing to undo");
 }

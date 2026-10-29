@@ -93,7 +93,8 @@ impl App {
 
     fn install(&mut self, name: &str, canvas: Canvas, view: View) {
         self.session.replace_canvas(canvas, view);
-        self.session.history.restore(self.store.load_history(name));
+        let (undo, redo) = self.store.load_history(name);
+        self.session.history.restore(undo, redo);
         self.name = name.to_string();
         self.saved_rev = 0;
         self.seen_rev = 0;

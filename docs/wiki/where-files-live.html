@@ -39,11 +39,12 @@
     <p>clidraw remembers the viewport and the last canvas in <code>state.json</code>. It lives in <code>$XDG_STATE_HOME/clidraw</code>, else in <code>~/.local/state/clidraw</code>.</p>
 
     <h2 id="undo-history">Undo history</h2>
-    <p>Each canvas has a history file at <code>history/&lt;name&gt;.json</code>, next to <code>state.json</code>. Three rules apply:</p>
+    <p>Each canvas has a history file at <code>history/&lt;name&gt;.json</code>, next to <code>state.json</code>. Four rules apply:</p>
     <ul>
       <li>It holds at most <code>history_limit</code> steps.</li>
       <li>clidraw drops it when the canvas file changes outside clidraw, because the steps no longer match.</li>
-      <li>Redo does not persist.</li>
+      <li>It keeps the redo steps, so redo works after a restart.</li>
+      <li>The <code>edit</code>, <code>import</code>, <code>undo</code> and <code>redo</code> commands read and write the same file as the UI.</li>
     </ul>
 
     <h2 id="edits-from-scripts-and-agents">Edits from scripts and agents</h2>

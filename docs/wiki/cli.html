@@ -58,6 +58,12 @@
     <h3 class="item" id="commands-rename">rename</h3>
     <p><strong>Usage:</strong> <code>clidraw rename &lt;from&gt; &lt;to&gt;</code></p>
     <p>Renames a canvas. Prints {&quot;renamed&quot;:to}.</p>
+    <h3 class="item" id="commands-undo">undo</h3>
+    <p><strong>Usage:</strong> <code>clidraw undo &lt;name&gt;</code></p>
+    <p>Reverts the last edit or import on a canvas. Prints {&quot;undone&quot;:label}.</p>
+    <h3 class="item" id="commands-redo">redo</h3>
+    <p><strong>Usage:</strong> <code>clidraw redo &lt;name&gt;</code></p>
+    <p>Re-applies the last undone step. Prints {&quot;redone&quot;:label}.</p>
     <h3 class="item" id="commands-delete">delete</h3>
     <p><strong>Usage:</strong> <code>clidraw delete &lt;name&gt;</code></p>
     <p>Deletes a canvas. Prints {&quot;deleted&quot;:name}.</p>

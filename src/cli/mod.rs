@@ -1,7 +1,7 @@
 use crate::app::template;
 use crate::config::Config;
 use crate::diagram::{self, import_failure};
-use crate::model::{Canvas, Command, Element, Id};
+use crate::model::{Canvas, Command, Element, History, Id};
 use crate::store::Store;
 use crate::ui::scope::ExportFormat;
 use anyhow::{bail, Result};
@@ -10,7 +10,7 @@ use std::io::{Read, Write};
 pub mod docs;
 mod ops;
 
-pub const COMMANDS: [&str; 10] = [
+pub const COMMANDS: [&str; 12] = [
     "list",
     "new",
     "show",
@@ -18,13 +18,15 @@ pub const COMMANDS: [&str; 10] = [
     "import",
     "export",
     "rename",
+    "undo",
+    "redo",
     "delete",
     "templates",
     "template",
 ];
 
 /// (name, usage, description) for each entry of `COMMANDS`, in the same order.
-pub const COMMAND_DOCS: [(&str, &str, &str); 10] = [
+pub const COMMAND_DOCS: [(&str, &str, &str); 12] = [
     (
         "list",
         "clidraw list",
@@ -61,6 +63,16 @@ pub const COMMAND_DOCS: [(&str, &str, &str); 10] = [
         "Renames a canvas. Prints {\"renamed\":to}.",
     ),
     (
+        "undo",
+        "clidraw undo <name>",
+        "Reverts the last edit or import on a canvas. Prints {\"undone\":label}.",
+    ),
+    (
+        "redo",
+        "clidraw redo <name>",
+        "Re-applies the last undone step. Prints {\"redone\":label}.",
+    ),
+    (
         "delete",
         "clidraw delete <name>",
         "Deletes a canvas. Prints {\"deleted\":name}.",
@@ -77,21 +89,56 @@ pub const COMMAND_DOCS: [(&str, &str, &str); 10] = [
     ),
 ];
 
+fn load_history(name: &str, store: &Store) -> History {
+    let mut history = History::with_limit(Config::load(store.dir()).0.history_limit);
+    let (undo, redo) = store.load_history(name);
+    history.restore(undo, redo);
+    history
+}
+
+fn save_history(name: &str, history: &History, store: &Store) -> Result<()> {
+    Ok(store.save_history(name, history.commands(), history.redo_commands())?)
+}
+
+fn step(name: &str, store: &Store, redo: bool, out: &mut impl Write) -> Result<()> {
+    let mut canvas = store.load(name)?;
+    let mut history = load_history(name, store);
+    let (done, key) = if redo {
+        (history.redo(&mut canvas)?, "redone")
+    } else {
+        (history.undo(&mut canvas)?, "undone")
+    };
+    let Some(label) = done else {
+        bail!("nothing to {}", if redo { "redo" } else { "undo" });
+    };
+    store.save(name, &canvas)?;
+    save_history(name, &history, store)?;
+    writeln!(out, "{}", serde_json::json!({ key: label }))?;
+    Ok(())
+}
+
 fn edit(name: &str, store: &Store, stdin: &mut impl Read, out: &mut impl Write) -> Result<()> {
     let mut canvas = store.load(name)?;
+    let mut history = load_history(name, store);
     let mut text = String::new();
     stdin.read_to_string(&mut text)?;
     let ops: Vec<ops::Op> = serde_json::from_str(&text)?;
     let mut created = vec![];
+    let mut inverses = vec![];
     let mut moved = vec![];
     let applied = ops.len();
     for op in ops {
         let batch = Command::Batch(ops::commands(op, &canvas, &mut created)?);
         moved.extend(batch.rerouting());
-        canvas.apply(batch)?;
+        inverses.push(canvas.apply(batch)?);
     }
-    canvas.apply(Command::Batch(canvas.pin_cmds(&moved)))?;
+    inverses.push(canvas.apply(Command::Batch(canvas.pin_cmds(&moved)))?);
+    if applied > 0 {
+        inverses.reverse();
+        history.record(Command::Batch(inverses));
+    }
     store.save(name, &canvas)?;
+    save_history(name, &history, store)?;
     let ids: Vec<&str> = created.iter().map(|i| i.0.as_str()).collect();
     writeln!(
         out,
@@ -108,11 +155,13 @@ fn import(
     stdin: &mut impl Read,
     out: &mut impl Write,
 ) -> Result<()> {
-    let mut canvas = if store.exists(name) {
+    let existed = store.exists(name);
+    let mut canvas = if existed {
         store.load(name)?
     } else {
         Canvas::default()
     };
+    let mut history = load_history(name, store);
     let mut text = String::new();
     if path == "-" {
         stdin.read_to_string(&mut text)?;
@@ -139,9 +188,14 @@ fn import(
         .into_iter()
         .map(|e| Command::Insert(usize::MAX, e))
         .collect();
-    canvas.apply(Command::Batch(inserts))?;
-    canvas.groups.extend(fresh.groups);
+    let undo_inserts = canvas.apply(Command::Batch(inserts))?;
+    let groups = [canvas.groups.clone(), fresh.groups].concat();
+    let undo_groups = canvas.apply(Command::SetGroups(groups))?;
+    if existed {
+        history.record(Command::Batch(vec![undo_groups, undo_inserts]));
+    }
     store.save(name, &canvas)?;
+    save_history(name, &history, store)?;
     writeln!(
         out,
         "{}",
@@ -228,6 +282,8 @@ pub fn run(
         ("templates", []) => writeln!(out, "{}", serde_json::to_string(&template::names())?)?,
         ("template", [name, tpl]) => template(name, tpl, store, out)?,
         ("import", [name, path]) => import(name, path, store, stdin, out)?,
+        ("undo", [name]) => step(name, store, false, out)?,
+        ("redo", [name]) => step(name, store, true, out)?,
         ("export", _) => export(&args[1..], store, out)?,
         ("rename", [from, to]) => {
             store.rename(from, to)?;

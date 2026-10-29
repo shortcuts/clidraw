@@ -118,8 +118,9 @@ impl App {
             .store
             .save(&self.name, &self.session.canvas)
             .and_then(|_| {
-                let undo = self.session.history.commands();
-                self.store.save_history(&self.name, undo)
+                let h = &self.session.history;
+                self.store
+                    .save_history(&self.name, h.commands(), h.redo_commands())
             });
         if r.is_ok() {
             self.saved_rev = self.session.rev;

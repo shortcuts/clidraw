@@ -42,8 +42,19 @@ impl History {
         self.undo.iter().map(|(c, _)| c.clone()).collect()
     }
 
-    pub fn restore(&mut self, inverses: Vec<Command>) {
-        inverses.into_iter().for_each(|c| self.record(c));
+    pub fn redo_commands(&self) -> Vec<Command> {
+        self.redo.iter().map(|(c, _)| c.clone()).collect()
+    }
+
+    pub fn restore(&mut self, undo: Vec<Command>, redo: Vec<Command>) {
+        undo.into_iter().for_each(|c| self.record(c));
+        self.redo = redo
+            .into_iter()
+            .map(|c| {
+                let label = c.label();
+                (c, label)
+            })
+            .collect();
     }
 
     /// Returns the label of the reverted action, or `None` when the stack is empty.

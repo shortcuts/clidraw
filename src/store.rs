@@ -68,6 +68,7 @@ pub struct Store {
 struct HistoryFile {
     canvas_hash: u64,
     undo: Vec<Command>,
+    redo: Vec<Command>,
 }
 
 #[derive(Deserialize)]
@@ -275,10 +276,16 @@ impl Store {
         }))
     }
 
-    /// Call after `save`. An empty stack removes the file.
-    pub fn save_history(&self, name: &str, undo: Vec<Command>) -> Result<(), StoreError> {
+    /// Call after `save`. Two empty stacks remove the file.
+    pub fn save_history(
+        &self,
+        name: &str,
+        undo: Vec<Command>,
+        redo: Vec<Command>,
+    ) -> Result<(), StoreError> {
         let path = self.history_path(name)?;
-        let Some(canvas_hash) = self.canvas_hash(name).filter(|_| !undo.is_empty()) else {
+        let empty = undo.is_empty() && redo.is_empty();
+        let Some(canvas_hash) = self.canvas_hash(name).filter(|_| !empty) else {
             let _ = fs::remove_file(path);
             return Ok(());
         };
@@ -287,20 +294,24 @@ impl Store {
         Ok(write_durable(
             &tmp,
             &path,
-            &serde_json::to_vec(&HistoryFile { canvas_hash, undo })?,
+            &serde_json::to_vec(&HistoryFile {
+                canvas_hash,
+                undo,
+                redo,
+            })?,
         )?)
     }
 
     /// Empty when the canvas file changed since the history was saved.
-    pub fn load_history(&self, name: &str) -> Vec<Command> {
+    pub fn load_history(&self, name: &str) -> (Vec<Command>, Vec<Command>) {
         let file: Option<HistoryFile> = self
             .history_path(name)
             .ok()
             .and_then(|p| fs::read(p).ok())
             .and_then(|b| serde_json::from_slice(&b).ok());
         match file {
-            Some(f) if Some(f.canvas_hash) == self.canvas_hash(name) => f.undo,
-            _ => vec![],
+            Some(f) if Some(f.canvas_hash) == self.canvas_hash(name) => (f.undo, f.redo),
+            _ => (vec![], vec![]),
         }
     }
 }

@@ -536,3 +536,57 @@ fn template_creates_a_framed_canvas() {
         .iter()
         .any(|e| e["kind"] == "Frame" && e["label"] == "Sequence diagram"));
 }
+
+const ONE_SHAPE: &str = r#"[{"op":"add_shape","x":0,"y":0,"w":6,"h":3}]"#;
+
+#[test]
+fn undo_reverts_an_edit_and_redo_survives_the_process() {
+    let t = seeded_empty();
+    let before = show(t.path());
+    run_stdin(t.path(), &["edit", "demo"], ONE_SHAPE);
+    let after = show(t.path());
+    let r = run(t.path(), &["undo", "demo"]);
+    assert!(out(&r).starts_with(r#"{"undone":""#), "{}", out(&r));
+    assert_eq!(show(t.path()), before);
+    let r = run(t.path(), &["redo", "demo"]);
+    assert!(out(&r).starts_with(r#"{"redone":""#), "{}", out(&r));
+    assert_eq!(show(t.path()), after);
+}
+
+#[test]
+fn undo_reverts_an_import_with_its_groups() {
+    let t = seeded_empty();
+    run_stdin(t.path(), &["edit", "demo"], ONE_SHAPE);
+    let before = show(t.path());
+    let mmd = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/sample.mmd");
+    run(t.path(), &["import", "demo", mmd]);
+    assert_ne!(show(t.path()), before);
+    assert!(run(t.path(), &["undo", "demo"]).status.success());
+    assert_eq!(show(t.path()), before);
+}
+
+#[test]
+fn a_new_edit_clears_redo_and_empty_stacks_fail() {
+    let t = seeded_empty();
+    let r = run(t.path(), &["undo", "demo"]);
+    assert!(!r.status.success());
+    assert!(String::from_utf8_lossy(&r.stderr).contains("nothing to undo"));
+    run_stdin(t.path(), &["edit", "demo"], ONE_SHAPE);
+    run(t.path(), &["undo", "demo"]);
+    run_stdin(t.path(), &["edit", "demo"], ONE_SHAPE);
+    let r = run(t.path(), &["redo", "demo"]);
+    assert!(!r.status.success());
+    assert!(String::from_utf8_lossy(&r.stderr).contains("nothing to redo"));
+}
+
+#[test]
+fn undo_after_an_outside_write_reports_nothing_to_undo() {
+    let t = seeded_empty();
+    run_stdin(t.path(), &["edit", "demo"], ONE_SHAPE);
+    let path = t.path().join("c/demo.clidraw.json");
+    let mut text = std::fs::read_to_string(&path).unwrap();
+    text.push('\n');
+    std::fs::write(&path, text).unwrap();
+    let r = run(t.path(), &["undo", "demo"]);
+    assert!(String::from_utf8_lossy(&r.stderr).contains("nothing to undo"));
+}

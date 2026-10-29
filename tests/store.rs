@@ -300,10 +300,10 @@ fn load_rejects_invalid_elements_and_names_them() {
 fn rename_moves_the_history_and_delete_removes_it() {
     let (t, s) = store();
     s.save("a", &sample()).unwrap();
-    s.save_history("a", vec![Command::Remove(Id::from("x"))])
+    s.save_history("a", vec![Command::Remove(Id::from("x"))], vec![])
         .unwrap();
     s.rename("a", "b").unwrap();
-    assert_eq!(s.load_history("b").len(), 1);
+    assert_eq!(s.load_history("b").0.len(), 1);
     assert!(!t.path().join("state/history/a.json").exists());
     s.delete("b").unwrap();
     assert!(!t.path().join("state/history/b.json").exists());
@@ -330,15 +330,15 @@ fn a_failed_state_write_keeps_the_previous_state() {
 fn a_failed_history_write_keeps_the_previous_history() {
     let (t, s) = store();
     s.save("a", &sample()).unwrap();
-    s.save_history("a", vec![Command::Remove(Id::from("x"))])
+    s.save_history("a", vec![Command::Remove(Id::from("x"))], vec![])
         .unwrap();
     std::fs::create_dir(t.path().join("state/history/.a.json.tmp")).unwrap();
     let undo = vec![
         Command::Remove(Id::from("y")),
         Command::Remove(Id::from("z")),
     ];
-    assert!(s.save_history("a", undo).is_err());
-    assert_eq!(s.load_history("a").len(), 1);
+    assert!(s.save_history("a", undo, vec![]).is_err());
+    assert_eq!(s.load_history("a").0.len(), 1);
 }
 
 #[test]
@@ -365,4 +365,18 @@ fn meta_round_trips_and_old_files_load_without_it() {
     assert_eq!(s.load("m").unwrap(), c);
     assert!(s.save("old", &sample()).unwrap());
     assert!(s.load("old").unwrap().elements[0].meta().is_empty());
+}
+
+#[test]
+fn history_round_trips_undo_and_redo() {
+    let (_t, s) = store();
+    s.save("a", &sample()).unwrap();
+    let (u, r) = (
+        vec![Command::Remove(Id::from("x"))],
+        vec![Command::Remove(Id::from("y"))],
+    );
+    s.save_history("a", u.clone(), r.clone()).unwrap();
+    assert_eq!(s.load_history("a"), (u, r));
+    s.save_history("a", vec![], vec![]).unwrap();
+    assert_eq!(s.load_history("a"), (vec![], vec![]));
 }
