@@ -421,5 +421,6 @@ pub(super) fn import(text: &str) -> Result<Imported, String> {
     for cmd in canvas.layout(&ids, dir) {
         let _ = canvas.apply(cmd);
     }
+    canvas.dir = dir;
     Ok(Imported { canvas, skipped })
 }

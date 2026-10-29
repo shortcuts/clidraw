@@ -662,3 +662,17 @@ fn undo_after_an_outside_write_reports_nothing_to_undo() {
     let r = run(t.path(), &["undo", "demo"]);
     assert!(String::from_utf8_lossy(&r.stderr).contains("nothing to undo"));
 }
+
+#[test]
+fn import_then_export_keeps_the_flowchart_direction() {
+    let t = tempfile::tempdir().unwrap();
+    for (name, header) in [("lr", "flowchart LR"), ("td", "flowchart TD")] {
+        let src = t.path().join(format!("{name}.mmd"));
+        std::fs::write(&src, format!("{header}\nA --> B\n")).unwrap();
+        let r = run(t.path(), &["import", name, src.to_str().unwrap()]);
+        assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
+        let r = run(t.path(), &["export", name, "--mermaid", "-"]);
+        let out = String::from_utf8(r.stdout).unwrap();
+        assert_eq!(out.lines().next(), Some(header), "{out}");
+    }
+}

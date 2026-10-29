@@ -1,12 +1,19 @@
 use super::{Canvas, Command, Element, End, Id, ShapeKind};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Dir {
+    #[default]
     #[serde(rename = "td")]
     TopDown,
     #[serde(rename = "lr")]
     LeftRight,
+}
+
+impl Dir {
+    pub fn is_td(&self) -> bool {
+        *self == Dir::TopDown
+    }
 }
 
 /// Cells between layers: down for top-down charts, across for left-right ones.

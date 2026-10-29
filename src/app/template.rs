@@ -67,6 +67,7 @@ pub fn framed(canvas: Canvas, name: &str, fx: i32, fy: i32) -> Canvas {
     let (bx, by, ..) = extent(&canvas);
     let (fw, fh) = frame_size(&canvas);
     let mut framed = canvas.clone_canvas(&ids, fx + 1 + PAD_X - bx, fy + 1 + PAD_Y - by);
+    framed.dir = canvas.dir;
     framed.elements.insert(
         0,
         Element::Shape(Shape::new(ShapeKind::Frame, fx, fy, fw, fh, name)),

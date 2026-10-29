@@ -75,6 +75,17 @@ fn layout_lr_puts_children_right_of_their_parent() {
 }
 
 #[test]
+fn layout_lr_sets_the_canvas_direction_and_undo_restores_it() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = layout_app(t.path(), &[("a", "b")]);
+    app.session.selection = vec![];
+    run(&mut app, "layout lr");
+    assert_eq!(app.session.canvas.dir, clidraw::model::Dir::LeftRight);
+    run(&mut app, "u");
+    assert_eq!(app.session.canvas.dir, clidraw::model::Dir::TopDown);
+}
+
+#[test]
 fn layout_survives_a_cycle() {
     let t = tempfile::tempdir().unwrap();
     let mut app = layout_app(t.path(), &[("a", "b"), ("b", "a")]);

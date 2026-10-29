@@ -409,3 +409,22 @@ fn history_file_without_a_redo_stack_reads_as_empty() {
     std::fs::write(&path, serde_json::to_vec(&v).unwrap()).unwrap();
     assert_eq!(s.load_history("a"), (vec![], vec![]));
 }
+
+#[test]
+fn direction_defaults_to_top_down_and_is_written_only_when_left_right() {
+    use clidraw::model::Dir;
+    let (t, s) = store();
+    s.save("td", &Canvas::default()).unwrap();
+    let td = std::fs::read_to_string(t.path().join("c/td.clidraw.json")).unwrap();
+    assert!(!td.contains("\"dir\""), "{td}");
+    assert_eq!(s.load("td").unwrap().dir, Dir::TopDown);
+    let lr = Canvas {
+        dir: Dir::LeftRight,
+        ..Canvas::default()
+    };
+    s.save("lr", &lr).unwrap();
+    assert!(std::fs::read_to_string(t.path().join("c/lr.clidraw.json"))
+        .unwrap()
+        .contains("\"dir\": \"lr\""));
+    assert_eq!(s.load("lr").unwrap().dir, Dir::LeftRight);
+}

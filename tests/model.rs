@@ -2225,3 +2225,14 @@ fn set_meta_replaces_the_map_on_shapes_lines_and_texts_and_undoes() {
     }
     assert_eq!(c, before);
 }
+
+#[test]
+fn set_dir_returns_the_old_direction_as_its_inverse() {
+    use clidraw::model::Dir;
+    let mut c = Canvas::default();
+    let undo = c.apply(Command::SetDir(Dir::LeftRight)).unwrap();
+    assert_eq!(c.dir, Dir::LeftRight);
+    assert_eq!(undo.label(), "direction change");
+    c.apply(undo).unwrap();
+    assert_eq!(c.dir, Dir::TopDown);
+}

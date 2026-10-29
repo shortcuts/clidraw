@@ -1,6 +1,6 @@
 use super::super::Exported;
 use crate::model::{
-    Border, Canvas, Element, End, Id, LineKind, Paint, ShapeKind, Stroke, FILL_ALPHA,
+    Border, Canvas, Dir, Element, End, Id, LineKind, Paint, ShapeKind, Stroke, FILL_ALPHA,
 };
 use std::fmt::Write;
 
@@ -30,7 +30,10 @@ pub(super) fn export(canvas: &Canvas) -> Exported {
             .map(|i| format!("n{i}")),
         End::Free(..) => None,
     };
-    let mut text = String::from("flowchart TD\n");
+    let mut text = String::from(match canvas.dir {
+        Dir::TopDown => "flowchart TD\n",
+        Dir::LeftRight => "flowchart LR\n",
+    });
     let mut edges = String::new();
     let mut styles = String::new();
     let mut clicks = String::new();

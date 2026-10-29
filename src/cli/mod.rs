@@ -1,7 +1,7 @@
 use crate::app::template;
 use crate::config::Config;
 use crate::diagram::{self, import_failure};
-use crate::model::{Canvas, Command, Element, History, Id};
+use crate::model::{Canvas, Command, Dir, Element, History, Id};
 use crate::store::Store;
 use crate::ui::scope::ExportFormat;
 use anyhow::{bail, Result};
@@ -191,8 +191,12 @@ fn import(
     let undo_inserts = canvas.apply(Command::Batch(inserts))?;
     let groups = [canvas.groups.clone(), fresh.groups].concat();
     let undo_groups = canvas.apply(Command::SetGroups(groups))?;
+    let mut undo = vec![undo_groups, undo_inserts];
+    if parsed.dir != Dir::TopDown {
+        undo.push(canvas.apply(Command::SetDir(parsed.dir))?);
+    }
     if existed {
-        history.record(Command::Batch(vec![undo_groups, undo_inserts]));
+        history.record(Command::Batch(undo));
     }
     store.save(name, &canvas)?;
     save_history(name, &history, store)?;

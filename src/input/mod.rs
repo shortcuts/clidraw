@@ -518,7 +518,10 @@ impl Session {
     }
 
     pub fn layout(&mut self, dir: Dir) {
-        let cmds = self.canvas.layout(&self.selection, dir);
+        let mut cmds = self.canvas.layout(&self.selection, dir);
+        if dir != self.canvas.dir {
+            cmds.push(Command::SetDir(dir));
+        }
         if !cmds.is_empty() {
             self.exec(Command::Batch(cmds));
         }
@@ -605,6 +608,9 @@ impl Session {
             let mut groups = self.canvas.groups.clone();
             groups.extend(new.groups);
             cmds.push(Command::SetGroups(groups));
+        }
+        if new.dir != Dir::TopDown {
+            cmds.push(Command::SetDir(new.dir));
         }
         self.exec(Command::Batch(cmds));
         self.selection = ids;

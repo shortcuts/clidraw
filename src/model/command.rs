@@ -1,7 +1,7 @@
 use super::canvas::{Index, BULK};
 use super::{
-    Border, Canvas, Edge, Element, End, Id, LineKind, Meta, ModelError, Paint, Shape, ShapeKind,
-    SideLabel, Stroke, TextAlign, MIN_SIZE,
+    Border, Canvas, Dir, Edge, Element, End, Id, LineKind, Meta, ModelError, Paint, Shape,
+    ShapeKind, SideLabel, Stroke, TextAlign, MIN_SIZE,
 };
 use serde::{Deserialize, Serialize};
 
@@ -119,6 +119,7 @@ pub enum Command {
     },
     /// Replaces the whole group list.
     SetGroups(Vec<Vec<Id>>),
+    SetDir(Dir),
     Batch(Vec<Command>),
 }
 
@@ -162,7 +163,10 @@ impl Command {
         if leaves.iter().all(|c| matches!(c, Command::SetGroups(_))) && !leaves.is_empty() {
             return "group change".into();
         }
-        leaves.retain(|c| !matches!(c, Command::SetGroups(_)));
+        if leaves.iter().all(|c| matches!(c, Command::SetDir(_))) && !leaves.is_empty() {
+            return "direction change".into();
+        }
+        leaves.retain(|c| !matches!(c, Command::SetGroups(_) | Command::SetDir(_)));
         // A pinned route rides along with the edit that caused it, so the edit names the step.
         if leaves
             .iter()
@@ -224,6 +228,7 @@ impl Command {
             | Command::SetLink { .. }
             | Command::SetMeta { .. } => "restyle",
             Command::SetGroups(_) => "regroup",
+            Command::SetDir(_) => "relayout",
             Command::Batch(_) => unreachable!(),
         }
     }
@@ -664,6 +669,7 @@ impl Canvas {
                 &mut self.groups,
                 groups,
             ))),
+            Command::SetDir(dir) => Ok(Command::SetDir(std::mem::replace(&mut self.dir, dir))),
             Command::Insert(..)
             | Command::Remove(_)
             | Command::MoveTo { .. }

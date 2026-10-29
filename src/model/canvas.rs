@@ -1,7 +1,7 @@
 use super::geom::{center, contour, corners, route, side_anchor, side_cell, Axis};
 use super::router::{grow, union};
 use super::{
-    Anchor, Command, Element, End, Id, Line, Router, Shape, ShapeKind, Side, Text, VERSION,
+    Anchor, Command, Dir, Element, End, Id, Line, Router, Shape, ShapeKind, Side, Text, VERSION,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -14,6 +14,8 @@ pub struct Canvas {
     pub elements: Vec<Element>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub groups: Vec<Vec<Id>>,
+    #[serde(default, skip_serializing_if = "Dir::is_td")]
+    pub dir: Dir,
 }
 
 impl Default for Canvas {
@@ -22,6 +24,7 @@ impl Default for Canvas {
             version: VERSION,
             elements: vec![],
             groups: vec![],
+            dir: Dir::TopDown,
         }
     }
 }
@@ -406,6 +409,7 @@ impl Canvas {
             version: self.version,
             elements,
             groups,
+            dir: Dir::TopDown,
         }
     }
 
@@ -566,6 +570,7 @@ impl Canvas {
             version: self.version,
             elements: kept,
             groups,
+            dir: Dir::TopDown,
         }
     }
 }
