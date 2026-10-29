@@ -142,6 +142,13 @@
       <li><code>dx</code> (required): Columns to move. Negative moves left.</li>
       <li><code>dy</code> (required): Rows to move. Negative moves up.</li>
     </ul>
+    <h3 class="item" id="ops-duplicate">duplicate</h3>
+    <p>Copies elements and the lines between them, shifted by dx and dy. Returns the new ids.</p>
+    <ul>
+      <li><code>ids</code> (required): Elements to copy. A line is copied when it is listed or both its ends are listed.</li>
+      <li><code>dx</code> (required): Columns to shift the copy. Negative shifts left.</li>
+      <li><code>dy</code> (required): Rows to shift the copy. Negative shifts up.</li>
+    </ul>
     <h3 class="item" id="ops-delete">delete</h3>
     <p>Deletes one element.</p>
     <ul>

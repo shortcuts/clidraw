@@ -184,6 +184,41 @@ fn edit_set_move_delete() {
 }
 
 #[test]
+fn edit_duplicate_copies_shapes_and_their_line_with_an_offset() {
+    let t = seeded_empty();
+    run_stdin(t.path(), &["edit", "demo"], TWO_AND_AN_ARROW);
+    let r = run_stdin(
+        t.path(),
+        &["edit", "demo"],
+        r#"[{"op":"duplicate","ids":["a","b"],"dx":10,"dy":2}]"#,
+    );
+    assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
+    let v: serde_json::Value = serde_json::from_str(&out(&r)).unwrap();
+    assert_eq!(v["applied"], 1);
+    assert_eq!(v["ids"].as_array().unwrap().len(), 3);
+    let c = show(t.path());
+    let els = c["elements"].as_array().unwrap();
+    assert_eq!(els.len(), 6);
+    assert_eq!(els[3]["id"], v["ids"][0]);
+    assert_eq!(
+        (els[3]["x"].as_i64(), els[3]["y"].as_i64()),
+        (Some(10), Some(2))
+    );
+    assert_eq!(
+        (els[4]["x"].as_i64(), els[4]["y"].as_i64()),
+        (Some(30), Some(2))
+    );
+    assert_eq!(els[4]["label"], "Yo");
+    assert_eq!(els[5]["type"], "line");
+    assert_eq!(els[5]["from"], serde_json::json!({"bound": els[3]["id"]}));
+    assert_eq!(els[5]["to"], serde_json::json!({"bound": els[4]["id"]}));
+    assert_eq!(
+        (els[0]["x"].as_i64(), els[0]["y"].as_i64()),
+        (Some(0), Some(0))
+    );
+}
+
+#[test]
 fn add_shape_sizes_itself_from_the_label() {
     let t = seeded_empty();
     run_stdin(

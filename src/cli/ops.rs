@@ -98,6 +98,11 @@ pub(super) enum Op {
         dx: i32,
         dy: i32,
     },
+    Duplicate {
+        ids: Vec<Id>,
+        dx: i32,
+        dy: i32,
+    },
     Delete {
         id: Id,
     },
@@ -401,6 +406,22 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
             ids_ok("move", [&id])?;
             cmds.push(Command::Move { id, dx, dy });
         }
+        Op::Duplicate { ids, dx, dy } => {
+            ids_ok("duplicate", &ids)?;
+            exist(canvas, &ids)?;
+            let copy = canvas.clone_canvas(&ids, dx, dy);
+            created.extend(copy.elements.iter().map(|e| e.id().clone()));
+            cmds.extend(
+                copy.elements
+                    .into_iter()
+                    .map(|e| Command::Insert(usize::MAX, e)),
+            );
+            if !copy.groups.is_empty() {
+                cmds.push(Command::SetGroups(
+                    [canvas.groups.clone(), copy.groups].concat(),
+                ));
+            }
+        }
         Op::Delete { id } => {
             ids_ok("delete", [&id])?;
             cmds.push(Command::Remove(id));
@@ -447,7 +468,7 @@ mod tests {
 
     #[test]
     fn ops_table_matches_parser() {
-        assert_eq!(OPS.len(), 12);
+        assert_eq!(OPS.len(), 13);
         for op in &OPS {
             let mut obj = Map::new();
             obj.insert("op".into(), json!(op.name));

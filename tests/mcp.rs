@@ -133,11 +133,13 @@ fn edit_schema_lists_every_op() {
             "set",
             "resize",
             "move",
+            "duplicate",
             "delete",
             "group",
             "ungroup",
             "order",
-            "layout"
+            "layout",
+            "align"
         ]
     );
     let add_shape = &one_of[0];

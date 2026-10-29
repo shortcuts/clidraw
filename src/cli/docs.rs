@@ -45,7 +45,7 @@ pub struct OpDoc {
     pub fields: &'static [FieldDoc],
 }
 
-pub const OPS: [OpDoc; 12] = [
+pub const OPS: [OpDoc; 13] = [
     OpDoc {
         name: "add_shape",
         summary: "Adds a shape. Its size fits the label unless w and h are set.",
@@ -366,6 +366,33 @@ pub const OPS: [OpDoc; 12] = [
                 example: "0",
                 values: &[],
                 note: "Rows to move. Negative moves up.",
+            },
+        ],
+    },
+    OpDoc {
+        name: "duplicate",
+        summary: "Copies elements and the lines between them, shifted by dx and dy. Returns the new ids.",
+        fields: &[
+            FieldDoc {
+                name: "ids",
+                required: true,
+                example: "[\"a\", \"b\"]",
+                values: &[],
+                note: "Elements to copy. A line is copied when it is listed or both its ends are listed.",
+            },
+            FieldDoc {
+                name: "dx",
+                required: true,
+                example: "1",
+                values: &[],
+                note: "Columns to shift the copy. Negative shifts left.",
+            },
+            FieldDoc {
+                name: "dy",
+                required: true,
+                example: "0",
+                values: &[],
+                note: "Rows to shift the copy. Negative shifts up.",
             },
         ],
     },
