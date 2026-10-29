@@ -287,7 +287,7 @@ impl<T: Copy> List<T> {
             }
             KeyCode::Char('j') if plain => self.step(1, last),
             KeyCode::Char('k') if plain => self.step(-1, last),
-            KeyCode::Char(c) if plain => Outcome::Key(c, self.selected()),
+            KeyCode::Char(c) if plain || ctrl => Outcome::Key(c, self.selected()),
             _ => Outcome::Idle,
         }
     }

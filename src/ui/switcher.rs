@@ -15,9 +15,9 @@ pub enum SwitcherHit {
     Delete(usize),
 }
 
-const KEYS: &str = "r rename  x delete";
-pub const RENAME: Range<i32> = 0..8;
-pub const DELETE: Range<i32> = 10..18;
+const KEYS: &str = "^r rename  ^x delete";
+pub const RENAME: Range<i32> = 0..9;
+pub const DELETE: Range<i32> = 11..20;
 
 impl Switcher {
     pub fn new(names: Vec<String>, current: &str) -> Switcher {
@@ -39,7 +39,10 @@ impl Switcher {
         let at = names.iter().position(|n| n == current).map_or(0, |i| i + 1);
         Switcher {
             names,
-            list: List::new("Canvases", rows).min_width(44).select(at),
+            list: List::new("Canvases", rows)
+                .with_query()
+                .min_width(44)
+                .select(at),
         }
     }
 

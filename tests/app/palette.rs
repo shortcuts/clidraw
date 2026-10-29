@@ -21,7 +21,7 @@ fn question_mark_types_into_a_label_and_a_prompt() {
     assert_eq!(app.session.edit.as_ref().unwrap().buf, "?");
     app.on_event(key(KeyCode::Esc), now);
     open_canvases(&mut app, now);
-    click(&mut app, 22, 11, now);
+    click(&mut app, 22, 7, now);
     for _ in 0..40 {
         app.on_event(key(KeyCode::Backspace), now);
     }
@@ -38,7 +38,7 @@ fn new_canvas_prompt_is_prefilled_with_a_generated_name() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     open_canvases(&mut app, now);
-    click(&mut app, 25, 11, now);
+    click(&mut app, 25, 7, now);
     let clidraw::ui::Overlay::Prompt(p) = &app.overlay else {
         panic!("no prompt");
     };
@@ -343,12 +343,39 @@ fn switcher_renames_and_deletes_the_highlighted_canvas_from_the_keyboard() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     open_canvases(&mut app, now);
-    app.on_event(key(KeyCode::Char('x')), now);
+    ctrl_key(&mut app, 'x', now);
     assert!(matches!(prompt_kind(&app), Some(PromptKind::ConfirmDelete(n)) if n == app.name));
     app.on_event(key(KeyCode::Esc), now);
     open_canvases(&mut app, now);
-    app.on_event(key(KeyCode::Char('r')), now);
+    ctrl_key(&mut app, 'r', now);
     assert!(matches!(prompt_kind(&app), Some(PromptKind::Rename(n)) if n == app.name));
+}
+
+#[test]
+fn switcher_filters_by_typed_text_and_plain_r_x_do_not_rename_or_delete() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    Store::at(t.path().join("c"), t.path().join("state"))
+        .create("other")
+        .unwrap();
+    open_canvases(&mut app, now);
+    type_str(&mut app, "rx", now);
+    assert!(prompt_kind(&app).is_none());
+    let clidraw::ui::Overlay::Switcher(sw) = &app.overlay else {
+        panic!("expected the switcher")
+    };
+    assert!(sw.list.labels().is_empty());
+    for _ in 0..2 {
+        app.on_event(key(KeyCode::Backspace), now);
+    }
+    type_str(&mut app, "oth", now);
+    let clidraw::ui::Overlay::Switcher(sw) = &app.overlay else {
+        panic!("expected the switcher")
+    };
+    assert_eq!(sw.list.labels(), ["other"]);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(app.name, "other");
 }
 
 #[test]
@@ -361,29 +388,29 @@ fn rename_and_delete_move_and_drop_the_saved_viewport() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     open_canvases(&mut app, now);
-    app.on_event(key(KeyCode::Char('r')), now);
+    ctrl_key(&mut app, 'r', now);
     type_str(&mut app, "2", now);
     app.on_event(key(KeyCode::Enter), now);
     let state = store.load_state();
     assert_eq!(state.offsets.get("demo2"), Some(&(7, 9)));
     assert!(!state.offsets.contains_key("demo"));
-    app.on_event(key(KeyCode::Char('x')), now);
+    ctrl_key(&mut app, 'x', now);
     app.on_event(key(KeyCode::Enter), now);
     assert!(!store.load_state().offsets.contains_key("demo2"));
 }
 
 #[test]
-fn switcher_moves_with_j_k_and_enter_on_the_current_canvas_closes() {
+fn switcher_moves_with_arrows_and_enter_on_the_current_canvas_closes() {
     use clidraw::ui::prompt::PromptKind;
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     let now = Instant::now();
     open_canvases(&mut app, now);
-    app.on_event(key(KeyCode::Char('k')), now);
-    app.on_event(key(KeyCode::Char('x')), now);
+    app.on_event(key(KeyCode::Up), now);
+    ctrl_key(&mut app, 'x', now);
     assert!(prompt_kind(&app).is_none(), "x on the New row does nothing");
-    app.on_event(key(KeyCode::Char('j')), now);
-    app.on_event(key(KeyCode::Char('x')), now);
+    app.on_event(key(KeyCode::Down), now);
+    ctrl_key(&mut app, 'x', now);
     assert!(matches!(
         prompt_kind(&app),
         Some(PromptKind::ConfirmDelete(_))

@@ -496,7 +496,7 @@ fn switcher_rows_show_current_and_dim_keys_at_every_width() {
         let all: Vec<String> = (0..24).map(|y| row(&b, y)).collect();
         let at = |needle: &str| all.iter().position(|r| r.contains(needle)).unwrap();
         assert!(
-            all[at("main (current)")].contains("r rename  x delete"),
+            all[at("main (current)")].contains("^r rename  ^x delete"),
             "{w}"
         );
         let (selected, other) = (at("main (current)") as u16, at("other") as u16);

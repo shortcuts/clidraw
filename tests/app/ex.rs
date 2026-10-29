@@ -271,7 +271,7 @@ fn dialog_prompts_edit_at_the_caret_too() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     open_canvases(&mut app, now);
-    click(&mut app, 25, 11, now);
+    click(&mut app, 25, 7, now);
     for _ in 0..40 {
         app.on_event(key(KeyCode::Backspace), now);
     }
