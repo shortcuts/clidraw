@@ -4,7 +4,7 @@ use super::registry;
 use super::style::{ACTIVE, DISABLED, HOVER, MUTED};
 use crate::input::{Session, Tool};
 use crate::model::{Align, Border, Element, Id, LineKind, Paint, Stroke, TextAlign};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -231,6 +231,14 @@ fn active(els: &[&Element], c: Choice) -> bool {
     }
 }
 
+fn tool_group(t: Tool) -> u8 {
+    match t {
+        Tool::Pointer | Tool::Select => 0,
+        Tool::Arrow | Tool::Text => 2,
+        _ => 1,
+    }
+}
+
 const ARROW: i32 = 3;
 const STRIPS: [Strip; 2] = [Strip::Tools, Strip::Options];
 
@@ -331,19 +339,29 @@ fn lay_row(
 pub fn layout(opts: &[Choice], width: i32, scroll: (i32, i32)) -> Layout {
     let mut out = Layout::default();
     let key_w = |t: Tool| t.key().map_or(0, |_| 2);
+    let groups_n = Tool::ALL
+        .iter()
+        .map(|&t| tool_group(t))
+        .collect::<BTreeSet<_>>()
+        .len() as i32;
     let keyed = Tool::ALL
         .iter()
         .map(|&t| t.label().width() as i32 + 2 + key_w(t))
         .sum::<i32>()
+        + groups_n
+        - 1
         <= width;
-    let tools: Vec<_> = Tool::ALL
-        .iter()
-        .map(|&t| {
-            let w = t.label().width() as i32 + 2 + if keyed { key_w(t) } else { 0 };
-            vec![(PaletteHit::Tool(t), w)]
-        })
-        .collect();
-    lay_row(&mut out, 0, &tools, width, scroll.0, false);
+    let mut tools: Vec<Vec<(PaletteHit, i32)>> = vec![];
+    let mut last = None;
+    for &t in &Tool::ALL {
+        if last != Some(tool_group(t)) {
+            tools.push(vec![]);
+            last = Some(tool_group(t));
+        }
+        let w = t.label().width() as i32 + 2 + if keyed { key_w(t) } else { 0 };
+        tools.last_mut().unwrap().push((PaletteHit::Tool(t), w));
+    }
+    lay_row(&mut out, 0, &tools, width, scroll.0, true);
     let mut groups: Vec<Vec<(PaletteHit, i32)>> = vec![];
     let mut last = None;
     for c in opts {

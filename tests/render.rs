@@ -80,7 +80,9 @@ fn render(s: &Session, overlay: &Overlay) -> Buffer {
 }
 
 fn row(b: &Buffer, y: u16) -> String {
-    (0..80).map(|x| b[(x, y)].symbol().to_string()).collect()
+    (0..b.area.width)
+        .map(|x| b[(x, y)].symbol().to_string())
+        .collect()
 }
 
 fn cols(b: &Buffer, y: u16, x: u16, n: u16) -> String {
@@ -1500,12 +1502,30 @@ fn top_row(s: &Session, w: u16) -> (String, Buffer) {
 fn tool_bar_shows_each_key_dimmed_when_the_row_fits() {
     let s = Session::new(Canvas::default(), View::default(), (100, 24));
     let (line, b) = top_row(&s, 100);
-    assert!(line.starts_with(" Select v  Rect r "), "{line}");
+    assert!(line.starts_with(" Select v │ Rect r "), "{line}");
     assert!(b[(8, 0)].modifier.contains(Modifier::DIM));
     assert_eq!(b[(8, 0)].symbol(), "v");
     assert!(!b[(1, 0)].modifier.contains(Modifier::DIM));
     let (line, _) = top_row(&s, 80);
-    assert!(line.starts_with(" Select  Rect "), "{line}");
+    assert!(line.starts_with(" Select │ Rect "), "{line}");
+}
+
+#[test]
+fn tool_row_groups_tools_with_dividers_at_40_60_and_120_columns() {
+    let s = Session::new(Canvas::default(), View::default(), (120, 24));
+    let (line, b) = top_row(&s, 120);
+    assert!(line.starts_with(" Select v │ Rect r "), "{line}");
+    assert_eq!(line.matches('│').count(), 2, "{line}");
+    assert!(b[(8, 0)].modifier.contains(Modifier::DIM));
+    for w in [60, 40] {
+        let (line, _) = top_row(&s, w);
+        assert!(line.contains('│'), "w={w} {line}");
+    }
+    let mut s = Session::new(Canvas::default(), View::default(), (120, 24));
+    s.tool = Tool::Select;
+    let on = draw_env(&s, false, Some("truecolor"));
+    assert!(on[(3, 0)].modifier.contains(Modifier::REVERSED));
+    assert!(!on[(12, 0)].modifier.contains(Modifier::REVERSED));
 }
 
 #[test]

@@ -2626,6 +2626,18 @@ fn strip_arrows_scroll_by_group_and_a_dimmed_arrow_does_nothing() {
     assert_eq!(s.option_scroll, 0);
 }
 
+#[test]
+fn tool_dividers_are_not_hits_and_arrows_jump_to_a_group_start() {
+    let mut s = Session::new(Canvas::default(), View::default(), (40, 24));
+    assert_eq!(
+        palette::hit(&s, 11, 0),
+        None,
+        "divider after Select is no hit"
+    );
+    palette::jump(&mut s, Strip::Tools, 1);
+    assert_eq!(s.tool_scroll, 9, "Select width plus its divider");
+}
+
 fn rect_of(s: &Session) -> (i32, i32, i32, i32) {
     let sh = shapes(s)[0];
     (sh.x, sh.y, sh.w, sh.h)
