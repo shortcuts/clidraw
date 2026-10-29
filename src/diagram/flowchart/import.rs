@@ -40,7 +40,7 @@ const TEXT_ARROWS: [(&str, &str, LineKind, Stroke); 8] = [
 // Longer openers come first so `([` is not read as `(`.
 const BRACKETS: [(&str, &str, ShapeKind, Border); 11] = [
     ("((", "))", ShapeKind::Rect, Border::Rounded),
-    ("[[", "]]", ShapeKind::Rect, Border::Double),
+    ("[[", "]]", ShapeKind::Subroutine, Border::Single),
     ("([", "])", ShapeKind::Stadium, Border::Rounded),
     ("[(", ")]", ShapeKind::Cylinder, Border::Single),
     ("[/", "/]", ShapeKind::Parallelogram, Border::Single),

@@ -83,7 +83,7 @@
       <li><code>x</code> (required): Column, in cells.</li>
       <li><code>y</code> (required): Row, in cells.</li>
       <li><code>id</code> (optional)</li>
-      <li><code>kind</code> (optional): <code>Rect</code>, <code>Diamond</code>, <code>Cylinder</code>, <code>Parallelogram</code>, <code>Hexagon</code>, <code>Stadium</code> or <code>Frame</code>. Default: Rect.</li>
+      <li><code>kind</code> (optional): <code>Rect</code>, <code>Diamond</code>, <code>Cylinder</code>, <code>Parallelogram</code>, <code>Hexagon</code>, <code>Stadium</code>, <code>Subroutine</code> or <code>Frame</code>. Default: Rect.</li>
       <li><code>w</code> (optional): Width, in cells. Default fits the label.</li>
       <li><code>h</code> (optional): Height, in cells. Default fits the label.</li>
       <li><code>label</code> (optional)</li>
@@ -124,8 +124,10 @@
       <li><code>align</code> (optional): <code>left</code>, <code>center</code> or <code>right</code>.</li>
       <li><code>bold</code> (optional): <code>true</code> or <code>false</code>.</li>
       <li><code>link</code> (optional): One line. An empty string clears the link.</li>
-      <li><code>kind</code> (optional): <code>Rect</code>, <code>Diamond</code>, <code>Cylinder</code>, <code>Parallelogram</code>, <code>Hexagon</code>, <code>Stadium</code> or <code>Frame</code>. Changes the kind of a shape.</li>
+      <li><code>kind</code> (optional): <code>Rect</code>, <code>Diamond</code>, <code>Cylinder</code>, <code>Parallelogram</code>, <code>Hexagon</code>, <code>Stadium</code>, <code>Subroutine</code> or <code>Frame</code>. Changes the kind of a shape.</li>
       <li><code>head</code> (optional): <code>Line</code>, <code>Arrow</code>, <code>ArrowStart</code> or <code>ArrowBoth</code>. Changes the kind of a line.</li>
+      <li><code>label_at</code> (optional): Position of a line label along the line, from 0 (start) to 1000 (end).</li>
+      <li><code>side_labels</code> (optional): Key to text map. Keys: top, right, bottom, left. An empty text removes that side label. Only a bordered shape takes side labels.</li>
       <li><code>meta</code> (optional): Key to value map. An empty value removes the key.</li>
     </ul>
     <h3 class="item" id="ops-resize">resize</h3>
@@ -175,6 +177,12 @@
     <ul>
       <li><code>ids</code> (optional): Without ids, arranges every element.</li>
       <li><code>dir</code> (optional): <code>td</code> or <code>lr</code>. td runs top-down, lr runs left-right. Default: td.</li>
+    </ul>
+    <h3 class="item" id="ops-align">align</h3>
+    <p>Aligns or spreads elements. Lines do not move.</p>
+    <ul>
+      <li><code>ids</code> (required): At least two ids. The distribute modes need three.</li>
+      <li><code>mode</code> (required): <code>left</code>, <code>center</code>, <code>right</code>, <code>top</code>, <code>middle</code>, <code>bottom</code>, <code>distribute_h</code> or <code>distribute_v</code>.</li>
     </ul>
 
     <h2 id="other-commands">Other commands</h2>

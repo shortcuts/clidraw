@@ -11,6 +11,7 @@ pub enum ShapeKind {
     Parallelogram,
     Hexagon,
     Stadium,
+    Subroutine,
     Frame,
 }
 

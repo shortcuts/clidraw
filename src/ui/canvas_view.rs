@@ -331,7 +331,7 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, hidden: Option
     }
     match s.kind {
         ShapeKind::Frame => return frame(grid, s, x, y, label, flags),
-        ShapeKind::Rect | ShapeKind::Stadium => {
+        ShapeKind::Rect | ShapeKind::Stadium | ShapeKind::Subroutine => {
             let border = if s.kind == ShapeKind::Stadium {
                 Border::Rounded
             } else {
@@ -358,6 +358,18 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, hidden: Option
                 (x + w - 1, y + h - 1),
             ]) {
                 grid.set(cx, cy, c, flags);
+            }
+            if s.kind == ShapeKind::Subroutine {
+                for j in 0..h {
+                    for bx in [x + 1, x + w - 2] {
+                        let ch = match j {
+                            0 => '┬',
+                            _ if j == h - 1 => '┴',
+                            _ => '│',
+                        };
+                        grid.set(bx, y + j, dashed(s.stroke, ch), flags);
+                    }
+                }
             }
         }
         ShapeKind::Diamond => {
@@ -423,7 +435,8 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, hidden: Option
         }
     }
     // shortcut: diamond, parallelogram and hexagon use the rect room, narrow the room per row if the text touches the outline
-    let room = (w - 2).max(1) as usize;
+    let pad = i32::from(s.kind == ShapeKind::Subroutine);
+    let room = (w - 2 - 2 * pad).max(1) as usize;
     let lines = wrap(label, room);
     let top = y + h / 2 - (lines.len() as i32 - 1) / 2;
     for (r, row) in lines.into_iter().zip(top..) {
@@ -438,7 +451,7 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, hidden: Option
         let text = label[r].trim_end_matches([' ', '\n']);
         let used = text.width();
         let ink = if s.bold { flags | BOLD } else { flags };
-        grid.text(x + 1 + s.align.offset(room, used), row, text, ink);
+        grid.text(x + 1 + pad + s.align.offset(room, used), row, text, ink);
     }
     if !s.side_labels.is_empty() {
         let local = Shape { x, y, ..s.clone() };

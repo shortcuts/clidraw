@@ -134,11 +134,19 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                 };
                 let (x, y, w, h) = (s.x * CW, s.y * CH, s.w * CW, s.h * CH);
                 match s.kind {
-                    ShapeKind::Rect | ShapeKind::Stadium | ShapeKind::Frame => {
+                    ShapeKind::Rect
+                    | ShapeKind::Stadium
+                    | ShapeKind::Frame
+                    | ShapeKind::Subroutine => {
                         let _ = writeln!(
                             o,
                             "  <rect x=\"{x}\" y=\"{y}\" width=\"{w}\" height=\"{h}\"{rx} {style}/>"
                         );
+                        if s.kind == ShapeKind::Subroutine {
+                            for bx in [x + CW, x + w - CW] {
+                                let _ = writeln!(o, "  <path d=\"M {bx},{y} V {}\" {arc}/>", y + h);
+                            }
+                        }
                     }
                     ShapeKind::Cylinder => {
                         let (rx, ry) = (w / 2, CH);
@@ -216,15 +224,16 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                     linked(&mut o, start, &s.link);
                     continue;
                 }
-                let room = (s.w - 2).max(1) as usize;
+                let pad = i32::from(s.kind == ShapeKind::Subroutine);
+                let room = (s.w - 2 - 2 * pad).max(1) as usize;
                 let lines: Vec<&str> = wrap(&s.label, room)
                     .into_iter()
                     .map(|r| s.label[r].trim_end_matches([' ', '\n']))
                     .collect();
                 let (tx, anchor) = match s.align {
-                    TextAlign::Left => (x + CW, "start"),
+                    TextAlign::Left => (x + CW * (1 + pad), "start"),
                     TextAlign::Center => (x + w / 2, "middle"),
-                    TextAlign::Right => (x + w - CW, "end"),
+                    TextAlign::Right => (x + w - CW * (1 + pad), "end"),
                 };
                 text(
                     &mut o,

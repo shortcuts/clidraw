@@ -213,7 +213,7 @@ fn doubled_and_slanted_openers_keep_only_the_inner_text() {
         got,
         [
             (ShapeKind::Rect, Border::Rounded, "Circle"),
-            (ShapeKind::Rect, Border::Double, "Sub"),
+            (ShapeKind::Subroutine, Border::Single, "Sub"),
             (ShapeKind::Rect, Border::Single, "Flag"),
             (ShapeKind::Parallelogram, Border::Single, "Trap"),
         ]
@@ -505,4 +505,11 @@ fn state_with_no_states_fails() {
         State.import("stateDiagram-v2\ndirection LR").err().unwrap(),
         "nothing to import"
     );
+}
+
+#[test]
+fn subroutine_round_trips_through_export() {
+    let out = Flowchart.import("graph TD\nA[[Sub]]").unwrap();
+    let text = Flowchart.export(&out.canvas).text;
+    assert!(text.contains("n0[[\"Sub\"]]"), "{text}");
 }

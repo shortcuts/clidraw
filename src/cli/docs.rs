@@ -7,6 +7,7 @@ const SHAPE_KINDS: &[&str] = &[
     "Parallelogram",
     "Hexagon",
     "Stadium",
+    "Subroutine",
     "Frame",
 ];
 const LINE_KINDS: &[&str] = &["Line", "Arrow", "ArrowStart", "ArrowBoth"];

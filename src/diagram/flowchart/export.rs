@@ -53,6 +53,7 @@ pub(super) fn export(canvas: &Canvas) -> Exported {
                     ShapeKind::Diamond => writeln!(text, "  n{n}{{{l}}}"),
                     ShapeKind::Cylinder => writeln!(text, "  n{n}[({l})]"),
                     ShapeKind::Parallelogram => writeln!(text, "  n{n}[/{l}/]"),
+                    ShapeKind::Subroutine => writeln!(text, "  n{n}[[{l}]]"),
                     ShapeKind::Hexagon => writeln!(text, "  n{n}{{{{{l}}}}}"),
                     ShapeKind::Frame => unreachable!(),
                 };
