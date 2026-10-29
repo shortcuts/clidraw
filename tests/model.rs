@@ -1354,6 +1354,48 @@ fn a_bent_line_keeps_its_bends_and_crosses_an_obstacle() {
     assert!(cells.iter().any(|&p| inside(p, (14, 4, 3, 8))));
 }
 
+#[test]
+fn a_bent_line_contours_its_own_end_shape() {
+    let src = (97, 3, 21, 12);
+    let mut c = Canvas {
+        elements: vec![
+            rect("hz5p9iap", ShapeKind::Rect, (94, 18, 26, 14)),
+            rect("zugj2nwl", ShapeKind::Rect, (53, 3, 21, 12)),
+            rect("xgzjs57w", ShapeKind::Rect, src),
+        ],
+        ..Canvas::default()
+    };
+    let pinned = |id: &str, from, to, bends| {
+        let mut l = elbow(id, from, to);
+        l.bends = bends;
+        l
+    };
+    let end = |id: &str, a| End::Bound(Id::from(id), a);
+    let side = pinned(
+        "jgh6oytj",
+        end("xgzjs57w", Anchor::Right(6)),
+        end("zugj2nwl", Anchor::Right(6)),
+        vec![(96, 9)],
+    );
+    let below = pinned(
+        "lp5w3dfv",
+        end("xgzjs57w", Anchor::Bottom(13)),
+        end("hz5p9iap", Anchor::Bottom(18)),
+        vec![(110, 23), (112, 23)],
+    );
+    c.elements.push(Element::Line(side.clone()));
+    c.elements.push(Element::Line(below.clone()));
+    let cells = c.route(&side);
+    walks(&cells);
+    assert_eq!(cells[0], (118, 9));
+    assert!(cells.contains(&(96, 9)));
+    assert!(!cells.iter().any(|&p| inside(p, src)));
+    let cells = c.route(&below);
+    walks(&cells);
+    assert!(cells.contains(&(110, 23)) && cells.contains(&(112, 23)));
+    assert!(!cells.iter().any(|&p| inside(p, src)));
+}
+
 fn pin(c: &mut Canvas, ids: &[&str]) {
     let ids: Vec<Id> = ids.iter().map(|i| Id::from(*i)).collect();
     for cmd in c.pin_cmds(&ids) {

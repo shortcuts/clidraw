@@ -172,7 +172,11 @@ pub fn route(a: Pt, ax_a: Option<Axis>, b: Pt, ax_b: Option<Axis>) -> Vec<Pt> {
         (Some(Axis::Vertical), None) | (None, Some(Axis::Horizontal)) => vec![a, (a.0, b.1), b],
         _ => vec![a, (b.0, a.1), b],
     };
-    let mut cells = vec![a];
+    walk(&corners)
+}
+
+fn walk(corners: &[Pt]) -> Vec<Pt> {
+    let mut cells = vec![corners[0]];
     for w in corners.windows(2) {
         let (mut c, to) = (w[0], w[1]);
         while c != to {
@@ -185,6 +189,32 @@ pub fn route(a: Pt, ax_a: Option<Axis>, b: Pt, ax_b: Option<Axis>) -> Vec<Pt> {
         }
     }
     cells
+}
+
+/// `route` from end cell `a` of `s` to bend `p`, around `s` when the straight leg crosses it.
+pub fn contour(s: &Shape, a: Pt, ax: Axis, p: Pt) -> Vec<Pt> {
+    let plain = route(a, Some(ax), p, None);
+    let covers = |c: Pt| {
+        let (lo, hi) = s.row_span(c.1);
+        (s.y..s.y + s.h).contains(&c.1) && (lo..=hi).contains(&c.0)
+    };
+    if covers(p) || !plain.iter().any(|&c| covers(c)) {
+        return plain;
+    }
+    let (cx, cy) = center(s);
+    let corners = match ax {
+        Axis::Horizontal => {
+            let o = if a.0 > cx { 1 } else { -1 };
+            let r = if p.1 <= cy { s.y - 1 } else { s.y + s.h };
+            [a, (a.0 + o, a.1), (a.0 + o, r), (p.0, r), p]
+        }
+        Axis::Vertical => {
+            let o = if a.1 > cy { 1 } else { -1 };
+            let c = if p.0 <= cx { s.x - 1 } else { s.x + s.w };
+            [a, (a.0, a.1 + o), (c, a.1 + o), (c, p.1), p]
+        }
+    };
+    walk(&corners)
 }
 
 /// First cell, last cell and every cell where the route turns.

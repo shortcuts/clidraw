@@ -1,4 +1,4 @@
-use super::geom::{center, corners, route, side_anchor, side_cell, Axis};
+use super::geom::{center, contour, corners, route, side_anchor, side_cell, Axis};
 use super::router::{grow, union};
 use super::{
     Anchor, Command, Element, End, Id, Line, Router, Shape, ShapeKind, Side, Text, VERSION,
@@ -186,43 +186,48 @@ impl Canvas {
         path
     }
 
-    /// The route ignoring obstacles.
+    /// The route ignoring obstacles, except that a bent line contours its own end shapes.
     pub(crate) fn plain_with<'a>(&'a self, l: &Line, find: &Find<'a>) -> Vec<(i32, i32)> {
-        self.chain(l, find, |((p, ax_p), (q, ax_q))| route(p, ax_p, q, ax_q))
+        let mut cells: Vec<(i32, i32)> = vec![];
+        for leg in self.legs(l, find) {
+            cells.extend(leg.into_iter().skip(usize::from(!cells.is_empty())));
+        }
+        cells
     }
 
-    /// Joins the cells `leg` returns for each pair of consecutive stops: ends and bends.
-    fn chain<'a>(
-        &'a self,
-        l: &Line,
-        find: &Find<'a>,
-        leg: impl Fn((Stop, Stop)) -> Vec<(i32, i32)>,
-    ) -> Vec<(i32, i32)> {
+    /// Cells of each leg between consecutive stops: ends and bends.
+    fn legs<'a>(&'a self, l: &Line, find: &Find<'a>) -> Vec<Vec<(i32, i32)>> {
         let [a, b] = self.anchors(l, find);
         let mut stops = vec![a];
         stops.extend(l.bends.iter().map(|&p| (p, None)));
         stops.push(b);
-        let mut cells: Vec<(i32, i32)> = vec![];
-        for w in stops.windows(2) {
-            cells.extend(
-                leg((w[0], w[1]))
-                    .into_iter()
-                    .skip(usize::from(!cells.is_empty())),
-            );
+        let mut legs: Vec<_> = stops
+            .windows(2)
+            .map(|w| route(w[0].0, w[0].1, w[1].0, w[1].1))
+            .collect();
+        if let (Some(&first), Some(&last)) = (l.bends.first(), l.bends.last()) {
+            let end_leg = |end: &End, (p, ax): Stop, bend| match (end, ax) {
+                (End::Bound(id, _), Some(ax)) => find(id).map(|s| contour(s, p, ax, bend)),
+                _ => None,
+            };
+            if let Some(cells) = end_leg(&l.from, a, first) {
+                legs[0] = cells;
+            }
+            if let Some(mut cells) = end_leg(&l.to, b, last) {
+                cells.reverse();
+                *legs.last_mut().expect("a line has a leg") = cells;
+            }
         }
-        cells
+        legs
     }
 
     /// Index in `l.bends` where a bend dragged from cell `p` belongs: the leg that holds `p`.
     pub fn bend_slot(&self, l: &Line, p: (i32, i32)) -> usize {
         let find = |id: &Id| self.shape(id);
-        let [(a, ax_a), (b, ax_b)] = self.anchors(l, &find);
-        let mut stops = vec![(a, ax_a)];
-        stops.extend(l.bends.iter().map(|&q| (q, None)));
-        stops.push((b, ax_b));
-        let holds =
-            |w: &[((i32, i32), Option<Axis>)]| route(w[0].0, w[0].1, w[1].0, w[1].1).contains(&p);
-        stops.windows(2).position(holds).unwrap_or(l.bends.len())
+        self.legs(l, &find)
+            .iter()
+            .position(|leg| leg.contains(&p))
+            .unwrap_or(l.bends.len())
     }
 
     /// Lines in `ids` and lines bound to a shape in `ids`.
