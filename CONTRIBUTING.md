@@ -248,7 +248,7 @@ Every change to the chrome follows these rules. The chrome is the bars, the opti
 
 ```
 row 0       tool row      Select v │ Rect r  Diamond d  …  │ Arrow a  Text t
-row 1       option strip  ‹ -> end <- start │ __ solid -- dashed │ ink › fill ›  ›   (only with a selection)
+row 1       option strip  ‹ head -> end <- start │ stroke __ solid -- dashed │ color ink red > fill none >  ›   (only with a selection)
 rows 1|2…   canvas viewport
 last row    bottom bar    [Undo] [Redo]  MODE  key action  key action …   12x4  3 sel  [-] 100% [+] [Fit]  demo ●
 ```
@@ -324,7 +324,7 @@ Top rows (the tool row and the option strip) share these rules:
 - Active: the active token on the whole cell.
 - Hover: the hover token. Disabled: the disabled token.
 - Overflow: `‹` and `›` cells at the edges. A dimmed arrow is no hit. An arrow jumps to the next group start.
-- Groups carry no caption text. The divider alone separates them.
+- The tool row carries no captions. The option strip starts each group with a muted caption, and `~` after it marks a mixed group.
 
 - Good: `GAP` in `src/ui/infobar.rs` names the gap, and `layout` uses it.
 

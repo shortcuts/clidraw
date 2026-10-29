@@ -68,16 +68,12 @@ fn pick(s: &mut Session, tool: Tool) {
 }
 
 fn option_cells(s: &Session) -> Vec<(PaletteHit, i32, i32, i32)> {
-    palette::layout(
-        &palette::choices(&palette::selected(s), &s.canvas.groups),
-        i32::from(s.screen.0),
-        (s.tool_scroll, s.option_scroll),
-    )
-    .cells
-    .into_iter()
-    .filter(|c| matches!(c.hit, PaletteHit::Option(_)))
-    .map(|c| (c.hit, c.x, c.y, c.w))
-    .collect()
+    palette::layout(s, i32::from(s.screen.0), (s.tool_scroll, s.option_scroll))
+        .cells
+        .into_iter()
+        .filter(|c| matches!(c.hit, PaletteHit::Option(_)))
+        .map(|c| (c.hit, c.x, c.y, c.w))
+        .collect()
 }
 
 /// Wheels the option row right until `c` shows.
@@ -2552,11 +2548,7 @@ fn strip_arrows_scroll_by_group_and_a_dimmed_arrow_does_nothing() {
     assert_eq!(arrow(&s, -1), None, "dimmed arrow is no hit");
     let right = arrow(&s, 1).unwrap();
     click(&mut s, right, Instant::now());
-    let layout = palette::layout(
-        &palette::choices(&palette::selected(&s), &s.canvas.groups),
-        40,
-        (0, 0),
-    );
+    let layout = palette::layout(&s, 40, (0, 0));
     assert!(s.option_scroll > 0);
     assert!(layout.cells.len() > 1);
     assert!(arrow(&s, -1).is_some());
@@ -2565,6 +2557,13 @@ fn strip_arrows_scroll_by_group_and_a_dimmed_arrow_does_nothing() {
     assert_eq!(s.option_scroll, 0);
     click(&mut s, back, Instant::now());
     assert_eq!(s.option_scroll, 0);
+}
+
+#[test]
+fn captions_are_not_hits() {
+    let s = narrow_two_selected(120);
+    let cap = palette::layout(&s, 120, (0, 0)).caps[0];
+    assert_eq!(palette::hit(&s, cap.x, cap.y), None);
 }
 
 #[test]

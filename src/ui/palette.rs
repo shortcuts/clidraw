@@ -84,9 +84,29 @@ impl Choice {
         }
     }
 
-    fn label(self) -> String {
+    fn caption(self) -> &'static str {
+        [
+            "head", "stroke", "border", "text", "color", "place", "group",
+        ][self.group() as usize]
+    }
+
+    fn label(self, els: &[&Element]) -> String {
         if let Some((word, key)) = self.hint() {
             return format!("{key} {word}");
+        }
+        match self {
+            Choice::Ink | Choice::Fill => {
+                let name = if self == Choice::Ink { "ink" } else { "fill" };
+                let mut paints = els.iter().filter_map(|e| paint(e, self));
+                let first = paints.next().flatten();
+                let value = if paints.any(|p| p != first) {
+                    "mixed".to_string()
+                } else {
+                    first.map_or("none".to_string(), Paint::label)
+                };
+                return format!("{name} {value} >");
+            }
+            _ => {}
         }
         match self {
             Choice::Stroke(Stroke::Solid) => "__ solid",
@@ -99,8 +119,6 @@ impl Choice {
             Choice::Align(TextAlign::Left) => "<< left",
             Choice::Align(TextAlign::Center) => "<> mid",
             Choice::Align(TextAlign::Right) => ">> right",
-            Choice::Ink => "ink >",
-            Choice::Fill => "fill >",
             Choice::Head(LineKind::Line) => "-- none",
             Choice::Head(LineKind::Arrow) => "-> end",
             Choice::Head(LineKind::ArrowStart) => "<- start",
@@ -231,6 +249,35 @@ fn active(els: &[&Element], c: Choice) -> bool {
     }
 }
 
+fn mixed(els: &[&Element], c: Choice) -> bool {
+    fn differ<T: PartialEq>(mut it: impl Iterator<Item = T>) -> bool {
+        let first = it.next();
+        it.any(|x| Some(x) != first)
+    }
+    let els = els.iter().copied();
+    match c {
+        Choice::Head(_) => differ(els.filter_map(|e| match e {
+            Element::Line(l) => Some(l.kind),
+            _ => None,
+        })),
+        Choice::Stroke(_) => differ(els.filter_map(|e| match e {
+            Element::Line(l) => Some(l.stroke),
+            Element::Shape(s) => Some(s.stroke),
+            Element::Text(_) => None,
+        })),
+        Choice::Border(_) => differ(els.filter_map(|e| match e {
+            Element::Shape(s) if s.has_border() => Some(s.border),
+            _ => None,
+        })),
+        Choice::Align(_) => differ(els.filter_map(|e| match e {
+            Element::Shape(s) => Some(s.align),
+            _ => None,
+        })),
+        Choice::Ink | Choice::Fill => differ(els.filter_map(|e| paint(e, c))),
+        Choice::Arrange | Choice::Place(_) | Choice::Group | Choice::Ungroup => false,
+    }
+}
+
 fn tool_group(t: Tool) -> u8 {
     match t {
         Tool::Pointer | Tool::Select => 0,
@@ -252,10 +299,22 @@ pub struct Placed {
     pub from: i32,
 }
 
+/// A group caption: `x` and `w` are clipped to the visible area, `from` is the unclipped left edge.
+#[derive(Clone, Copy, Debug)]
+pub struct Cap {
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub from: i32,
+    pub text: &'static str,
+    pub mixed: bool,
+}
+
 /// Geometry of both chrome rows; hit testing and drawing both read it.
 #[derive(Default)]
 pub struct Layout {
     pub cells: Vec<Placed>,
+    pub caps: Vec<Cap>,
     seps: Vec<(i32, i32)>,
     off: Vec<(i32, i32, char)>,
     max: [i32; 2],
@@ -266,18 +325,24 @@ fn lay_row(
     out: &mut Layout,
     r: usize,
     units: &[Vec<(PaletteHit, i32)>],
+    caps: &[(&'static str, bool)],
     width: i32,
     scroll: i32,
     seps: bool,
 ) {
     let y = r as i32;
-    let (mut run, mut gaps, mut vx) = (vec![], vec![], 0);
+    let (mut run, mut gaps, mut vx, mut capped) = (vec![], vec![], 0, vec![]);
     for (i, unit) in units.iter().enumerate() {
         if i > 0 && seps {
             gaps.push(vx);
             vx += 1;
         }
         out.starts[r].push(vx);
+        if let Some(&(text, mixed)) = caps.get(i) {
+            let w = text.width() as i32 + 2;
+            capped.push((text, mixed, vx, w));
+            vx += w;
+        }
         for &(hit, w) in unit {
             run.push((hit, vx, w));
             vx += w;
@@ -297,6 +362,19 @@ fn lay_row(
     let scroll = scroll.clamp(0, max);
     out.max[r] = max;
     let shift = lo - scroll;
+    for (text, mixed, vx, w) in capped {
+        let (x0, x1) = ((vx + shift).max(lo), (vx + shift + w).min(hi));
+        if x1 > x0 {
+            out.caps.push(Cap {
+                x: x0,
+                y,
+                w: x1 - x0,
+                from: vx + shift,
+                text,
+                mixed,
+            });
+        }
+    }
     for (hit, vx, w) in run {
         let (x0, x1) = ((vx + shift).max(lo), (vx + shift + w).min(hi));
         if x1 > x0 {
@@ -336,7 +414,13 @@ fn lay_row(
 }
 
 /// Both rows as clickable cells. Tools fill row 0, with their key when the row fits; options sit on row 1 in groups. A row wider than `width` scrolls by `scroll` columns between two arrow cells.
-pub fn layout(opts: &[Choice], width: i32, scroll: (i32, i32)) -> Layout {
+pub fn layout(s: &Session, width: i32, scroll: (i32, i32)) -> Layout {
+    let els = selected(s);
+    let opts = if s.zoomed_out() {
+        vec![]
+    } else {
+        choices(&els, &s.canvas.groups)
+    };
     let mut out = Layout::default();
     let key_w = |t: Tool| t.key().map_or(0, |_| 2);
     let groups_n = Tool::ALL
@@ -361,34 +445,28 @@ pub fn layout(opts: &[Choice], width: i32, scroll: (i32, i32)) -> Layout {
         let w = t.label().width() as i32 + 2 + if keyed { key_w(t) } else { 0 };
         tools.last_mut().unwrap().push((PaletteHit::Tool(t), w));
     }
-    lay_row(&mut out, 0, &tools, width, scroll.0, true);
+    lay_row(&mut out, 0, &tools, &[], width, scroll.0, true);
     let mut groups: Vec<Vec<(PaletteHit, i32)>> = vec![];
+    let mut caps: Vec<(&'static str, bool)> = vec![];
     let mut last = None;
-    for c in opts {
+    for c in &opts {
         if last != Some(c.group()) {
             groups.push(vec![]);
+            caps.push((c.caption(), false));
             last = Some(c.group());
         }
+        caps.last_mut().unwrap().1 |= mixed(&els, *c);
         groups
             .last_mut()
             .unwrap()
-            .push((PaletteHit::Option(*c), c.label().width() as i32 + 2));
+            .push((PaletteHit::Option(*c), c.label(&els).width() as i32 + 2));
     }
-    lay_row(&mut out, 1, &groups, width, scroll.1, true);
+    lay_row(&mut out, 1, &groups, &caps, width, scroll.1, true);
     out
 }
 
 fn current(s: &Session) -> Layout {
-    let opts = if s.zoomed_out() {
-        vec![]
-    } else {
-        choices(&selected(s), &s.canvas.groups)
-    };
-    layout(
-        &opts,
-        i32::from(s.screen.0),
-        (s.tool_scroll, s.option_scroll),
-    )
+    layout(s, i32::from(s.screen.0), (s.tool_scroll, s.option_scroll))
 }
 
 fn slot(s: &mut Session, strip: Strip) -> &mut i32 {
@@ -455,12 +533,11 @@ pub fn hit(s: &Session, col: i32, row: i32) -> Option<PaletteHit> {
 pub fn draw(grid: &mut Grid, s: &Session) {
     let els = selected(s);
     let off = s.zoomed_out();
-    let opts = if off {
-        vec![]
-    } else {
-        choices(&els, &s.canvas.groups)
-    };
-    let lay = layout(&opts, grid.w, (s.tool_scroll, s.option_scroll));
+    let lay = layout(s, grid.w, (s.tool_scroll, s.option_scroll));
+    for c in &lay.caps {
+        let pad = if c.mixed { '~' } else { ' ' };
+        grid.text(c.from, c.y, &format!(" {}{pad}", c.text), MUTED);
+    }
     for p in &lay.cells {
         let (text, flags) = match p.hit {
             PaletteHit::Tool(t) => (
@@ -473,7 +550,7 @@ pub fn draw(grid: &mut Grid, s: &Session) {
                     0
                 },
             ),
-            PaletteHit::Option(c) => (c.label(), if active(&els, c) { ACTIVE } else { 0 }),
+            PaletteHit::Option(c) => (c.label(&els), if active(&els, c) { ACTIVE } else { 0 }),
             PaletteHit::Scroll(_, dir) => (if dir < 0 { "‹" } else { "›" }.to_string(), 0),
         };
         let flags = flags

@@ -1688,7 +1688,7 @@ fn option_cells_leave_no_canvas_gap_after_wide_glyph_labels() {
     let b = draw(&s, &Overlay::None);
     assert_eq!(
         cols(&b, 1, 3, 62),
-        " __ solid  -- dashed  .. dotted │ ┌┐ single  ╭╮ round  ╔╗ doub",
+        " stroke  __ solid  -- dashed  .. dotted │ border  ┌┐ single  ╭",
     );
 }
 
@@ -1763,21 +1763,21 @@ fn strip_session(w: u16) -> Session {
 
 #[test]
 fn strip_is_one_row_with_group_separators_and_arrows_when_it_overflows() {
-    for w in [40, 60, 120] {
+    for w in [40, 60, 160] {
         let mut s = strip_session(w);
-        if w == 120 {
+        if w == 160 {
             s.selection.truncate(1);
         }
         assert_eq!(ui::palette::rows(&s), 2, "w={w}");
         let b = render_at(&s, w, 12);
         let row = line_at(&b, 1);
-        assert!(w == 40 || row.contains('│'), "w={w} {row}");
+        assert!(w < 160 || row.contains('│'), "w={w} {row}");
         assert!(
             !line_at(&b, 2).contains("single"),
             "w={w} no second option row"
         );
         let (first, last) = (cols(&b, 1, 0, 3), cols(&b, 1, w - 3, 3));
-        if w == 120 {
+        if w == 160 {
             assert!(!row.contains('›') && !row.contains('‹'), "{row}");
         } else {
             assert_eq!((first.as_str(), last.as_str()), (" ‹ ", " › "), "w={w}");
@@ -1791,6 +1791,47 @@ fn strip_is_one_row_with_group_separators_and_arrows_when_it_overflows() {
             );
         }
     }
+}
+
+fn painted_pair(a: impl Fn(&mut Shape), b: impl Fn(&mut Shape), w: u16) -> Session {
+    let mut c = Canvas::default();
+    for (id, x, f) in [
+        ("aaaaaaaa", 20, &a as &dyn Fn(&mut Shape)),
+        ("bbbbbbbb", 40, &b),
+    ] {
+        let Element::Shape(mut sh) = shape(id, x, "") else {
+            unreachable!()
+        };
+        f(&mut sh);
+        c.elements.push(Element::Shape(sh));
+    }
+    let mut s = Session::new(c, View::default(), (w, 12));
+    s.selection = vec![Id::from("aaaaaaaa"), Id::from("bbbbbbbb")];
+    s
+}
+
+#[test]
+fn option_row_shows_captions_ink_value_and_mixed_marker() {
+    let red = |s: &mut Shape| s.color = Some(Paint::Red);
+    for w in [40, 60, 200] {
+        let s = painted_pair(red, red, w);
+        let row = line_at(&render_at(&s, w, 12), 1);
+        assert!(row.contains(" stroke  "), "w={w} {row}");
+        assert!(!row.contains('~'), "w={w} {row}");
+    }
+    let s = painted_pair(red, red, 200);
+    let row = line_at(&render_at(&s, 200, 12), 1);
+    assert!(row.contains("ink red >  fill none >"), "{row}");
+    let s = painted_pair(
+        |s| (s.stroke, s.color) = (Stroke::Dashed, Some(Paint::Red)),
+        |s| s.color = Some(Paint::Blue),
+        200,
+    );
+    let row = line_at(&render_at(&s, 200, 12), 1);
+    assert!(row.contains(" stroke~"), "{row}");
+    assert!(row.contains(" color~"), "{row}");
+    assert!(row.contains("ink mixed >"), "{row}");
+    assert!(row.contains(" border  "), "{row}");
 }
 
 #[test]
