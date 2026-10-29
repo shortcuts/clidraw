@@ -1,10 +1,12 @@
 mod class;
 mod flowchart;
 mod sequence;
+mod state;
 
 pub use class::Class;
 pub use flowchart::Flowchart;
 pub use sequence::Sequence;
+pub use state::State;
 
 use crate::model::Canvas;
 use std::ops::Range;
@@ -55,7 +57,7 @@ pub trait DiagramKind {
     fn validate(&self, text: &str) -> Vec<Diagnostic>;
 }
 
-const KINDS: [&dyn DiagramKind; 3] = [&Flowchart, &Sequence, &Class];
+const KINDS: [&dyn DiagramKind; 4] = [&Flowchart, &Sequence, &Class, &State];
 
 /// Non-blank, non-comment lines, trimmed, with their byte range in `text`.
 fn statements(text: &str) -> impl Iterator<Item = (&str, Range<usize>)> {
@@ -109,7 +111,7 @@ pub fn import(text: &str) -> Result<Imported, String> {
     KINDS
         .iter()
         .find(|k| k.keywords().contains(&word))
-        .ok_or("only flowchart, sequence and class diagrams can be imported")?
+        .ok_or("only flowchart, sequence, class and state diagrams can be imported")?
         .import(text)
 }
 

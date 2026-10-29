@@ -274,7 +274,7 @@ fn wide_label_sizes_shape_by_cell_width() {
     assert_eq!(shapes(&out.canvas)[0].w, 18);
 }
 
-use clidraw::diagram::{Class, Sequence};
+use clidraw::diagram::{Class, Sequence, State};
 
 #[test]
 fn sequence_draws_boxes_lifelines_and_messages() {
@@ -423,13 +423,84 @@ fn dispatch_picks_the_kind_by_header() {
         shapes(&import("sequenceDiagram\nA->>B").unwrap().canvas).len(),
         2
     );
+    for text in ["stateDiagram\nA --> B", "stateDiagram-v2\nA --> B"] {
+        assert_eq!(shapes(&import(text).unwrap().canvas).len(), 2);
+    }
     assert_eq!(
         shapes(&import("graph TD\nA --> B").unwrap().canvas).len(),
         2
     );
     assert_eq!(
         import("gantt\ntitle t").err().unwrap(),
-        "only flowchart, sequence and class diagrams can be imported"
+        "only flowchart, sequence, class and state diagrams can be imported"
     );
     assert_eq!(import("%% c\n").err().unwrap(), "nothing to import");
+}
+
+const TASK_STATUS: &str = "stateDiagram-v2
+  [*] --> pending: backlog add
+  pending --> in_progress: task-next claims, attempts + 1
+  in_progress --> [*]: STATUS SUCCESS, recorded, entry removed
+  in_progress --> failed: STATUS FAILED, debug pass used, loop moves on
+  in_progress --> blocked: STATUS BLOCKED
+  in_progress --> pending: no STATUS line or dirty tree (wip commit), retry
+  failed --> in_progress: debug pass, then re-run
+  blocked --> in_progress: user settles the question
+  pending --> blocked: dependency unresolved or MAX_ATTEMPTS
+  failed --> [*]: reconcile lands its branch, Finish entry filed
+  blocked --> [*]: reconcile lands its branch, Finish entry filed
+";
+
+#[test]
+fn state_draws_rounded_states_markers_and_labeled_arrows() {
+    let out = State.import(TASK_STATUS).unwrap();
+    let (s, l) = (shapes(&out.canvas), lines(&out.canvas));
+    assert_eq!((s.len(), l.len(), out.skipped), (6, 11, 0));
+    let labels: Vec<_> = s.iter().map(|s| s.label.as_str()).collect();
+    assert_eq!(labels.iter().filter(|&&l| l == "●").count(), 1);
+    assert_eq!(labels.iter().filter(|&&l| l == "◉").count(), 1);
+    assert!(s.iter().all(|s| s.border == Border::Rounded));
+    assert!(l
+        .iter()
+        .all(|l| l.kind == LineKind::Arrow && !l.label.is_empty()));
+}
+
+#[test]
+fn state_labels_come_from_state_and_colon_forms() {
+    let out = State
+        .import("stateDiagram\nstate \"Long name\" as a\nb : Bee\na --> b\nstate c")
+        .unwrap();
+    let got: Vec<_> = shapes(&out.canvas)
+        .iter()
+        .map(|s| s.label.clone())
+        .collect();
+    assert_eq!(got, ["Long name", "Bee", "c"]);
+}
+
+#[test]
+fn state_rejects_composite_note_and_concurrency() {
+    for line in ["state A {", "note left of A: x", "--"] {
+        let text = format!("stateDiagram-v2\nA --> B\n{line}");
+        assert_eq!(
+            State.import(&text).err().unwrap(),
+            "composite states, notes and concurrency cannot be imported",
+            "{line:?}"
+        );
+    }
+}
+
+#[test]
+fn state_skips_unsupported_and_unreadable_lines() {
+    let out = State
+        .import("stateDiagram-v2\nA --> B\ndirection LR\nA --> A\nwhat is this\nstate X <<choice>>")
+        .unwrap();
+    assert_eq!((shapes(&out.canvas).len(), out.skipped), (2, 4));
+}
+
+#[test]
+fn state_with_no_states_fails() {
+    assert_eq!(
+        State.import("stateDiagram-v2\ndirection LR").err().unwrap(),
+        "nothing to import"
+    );
 }

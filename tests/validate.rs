@@ -216,13 +216,16 @@ fn sequence_and_class_hints() {
 
 #[test]
 fn new_kinds_skipped_count_matches_diagnostics() {
-    use clidraw::diagram::{Class, Sequence};
+    use clidraw::diagram::{Class, Sequence, State};
     for text in [
         "sequenceDiagram\nA->>B\nNote over A: x\nA->>A: m\nzzz",
         "classDiagram\nA --> B\nnamespace n\nA B C\nclass A {\n<<x>>\n}",
+        "stateDiagram-v2\n[*] --> A\ndirection LR\nA --> A\nA B C",
     ] {
-        let kind: &dyn DiagramKind = if text.starts_with('s') {
+        let kind: &dyn DiagramKind = if text.starts_with("se") {
             &Sequence
+        } else if text.starts_with("st") {
+            &State
         } else {
             &Class
         };
@@ -232,4 +235,32 @@ fn new_kinds_skipped_count_matches_diagnostics() {
             "{text:?}"
         );
     }
+}
+
+#[test]
+fn state_hints() {
+    use clidraw::diagram::State;
+    let hints = |text: &str| -> Vec<(Severity, String)> {
+        State
+            .validate(text)
+            .into_iter()
+            .map(|d| (d.severity, text[d.range].to_string()))
+            .collect()
+    };
+    assert!(hints("stateDiagram-v2\n[*] --> A: go\nA --> [*]\nstate \"x y\" as b").is_empty());
+    assert_eq!(
+        hints("stateDiagram-v2\nstate A {\n}\nnote right of A: x\n--\ndirection LR\nA B C"),
+        [
+            (Severity::Error, "state A {".into()),
+            (Severity::Error, "}".into()),
+            (Severity::Error, "note right of A: x".into()),
+            (Severity::Error, "--".into()),
+            (Severity::Warning, "direction LR".into()),
+            (Severity::Error, "A B C".into()),
+        ]
+    );
+    assert_eq!(
+        hints("stateDiagram-v2"),
+        [(Severity::Warning, "stateDiagram-v2".into())]
+    );
 }

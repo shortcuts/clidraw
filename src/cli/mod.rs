@@ -50,7 +50,7 @@ pub const COMMAND_DOCS: [(&str, &str, &str); 12] = [
     (
         "import",
         "clidraw import <name> <path|->",
-        "Adds a Mermaid diagram from a file, or from stdin with -. The importer reads flowchart, sequence and class diagram syntax. Creates the canvas if it does not exist. Prints {\"shapes\":N,\"lines\":N,\"skipped\":N}.",
+        "Adds a Mermaid diagram from a file, or from stdin with -. The importer reads flowchart, sequence, class and state diagram syntax. Creates the canvas if it does not exist. Prints {\"shapes\":N,\"lines\":N,\"skipped\":N}.",
     ),
     (
         "export",
