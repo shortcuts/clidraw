@@ -131,30 +131,74 @@ impl Config {
             }
         };
         for (key, value) in &table {
-            let done = match key.as_str() {
-                "autosave_ms" => millis(value).map(|d| self.autosave = d),
-                "double_click_ms" => millis(value).map(|d| self.double_click = d),
-                "grid" => grid(value).map(|n| self.grid = n),
-                "default_canvas" => name(value).map(|n| self.default_canvas = n),
-                "history_limit" => count(value).map(|n| self.history_limit = n),
-                "export_padding" => padding(value).map(|n| self.export_padding = n),
-                "motion" => flag(value).map(|b| self.motion = b),
-                "quick_connect" => flag(value).map(|b| self.quick_connect = b),
-                "quick_fixes" => flag(value).map(|b| self.quick_fixes = b),
-                "command_ui" => command_ui(value).map(|u| self.command_ui = u),
-                "scroll_speed" => speed(value).map(|n| self.scroll_speed = n),
-                "chrome_accent" => hex(value).map(|c| self.chrome_accent = Some(c)),
-                "obsidian_vault" => vault(value).map(|p| self.obsidian_vault = Some(p)),
-                "theme" => theme(value).map(|t| self.theme = t),
-                _ => {
-                    warns.push(format!("{FILE}: unknown key {key}"));
-                    continue;
-                }
-            };
-            if let Err(why) = done {
-                warns.push(format!("{FILE}: key {key}: {why}"));
+            match self.assign(key, value) {
+                None => warns.push(format!("{FILE}: unknown key {key}")),
+                Some(Err(why)) => warns.push(format!("{FILE}: key {key}: {why}")),
+                Some(Ok(())) => {}
             }
         }
+    }
+
+    /// `None` means the key is unknown.
+    fn assign(&mut self, key: &str, value: &toml::Value) -> Option<Result<(), String>> {
+        Some(match key {
+            "autosave_ms" => millis(value).map(|d| self.autosave = d),
+            "double_click_ms" => millis(value).map(|d| self.double_click = d),
+            "grid" => grid(value).map(|n| self.grid = n),
+            "default_canvas" => name(value).map(|n| self.default_canvas = n),
+            "history_limit" => count(value).map(|n| self.history_limit = n),
+            "export_padding" => padding(value).map(|n| self.export_padding = n),
+            "motion" => flag(value).map(|b| self.motion = b),
+            "quick_connect" => flag(value).map(|b| self.quick_connect = b),
+            "quick_fixes" => flag(value).map(|b| self.quick_fixes = b),
+            "command_ui" => command_ui(value).map(|u| self.command_ui = u),
+            "scroll_speed" => speed(value).map(|n| self.scroll_speed = n),
+            "chrome_accent" => hex(value).map(|c| self.chrome_accent = Some(c)),
+            "obsidian_vault" => vault(value).map(|p| self.obsidian_vault = Some(p)),
+            "theme" => theme(value).map(|t| self.theme = t),
+            _ => return None,
+        })
+    }
+
+    /// Writes `key = value` into `dir/config.toml`, touching only that key's line.
+    /// `value` is TOML text, for example `4` or `"dark"`. A bad value is rejected before any write.
+    pub fn save(dir: &Path, key: &str, value: &str) -> Result<(), String> {
+        let parsed = (!value.contains('\n'))
+            .then(|| format!("{key} = {value}").parse::<toml::Table>().ok())
+            .flatten()
+            .and_then(|t| t.get(key).filter(|_| t.len() == 1).cloned())
+            .ok_or("expected a single valid TOML value")?;
+        Config::default()
+            .assign(key, &parsed)
+            .ok_or_else(|| format!("unknown key {key}"))??;
+
+        let path = dir.join(FILE);
+        let text = match std::fs::read_to_string(&path) {
+            Ok(t) => t,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => DEFAULT_TOML.to_string(),
+            Err(e) => return Err(e.to_string()),
+        };
+        let mut lines: Vec<String> = text.lines().map(str::to_string).collect();
+        let sets_key = |l: &str, commented: bool| {
+            let l = l.trim_start();
+            let l = match commented {
+                true => l.strip_prefix('#').map(str::trim_start),
+                false => Some(l),
+            };
+            l.and_then(|l| l.strip_prefix(key))
+                .is_some_and(|rest| rest.trim_start().starts_with('='))
+        };
+        let at = lines
+            .iter()
+            .position(|l| sets_key(l, false))
+            .or_else(|| lines.iter().position(|l| sets_key(l, true)));
+        let line = format!("{key} = {value}");
+        match at {
+            Some(i) => lines[i] = line,
+            None => lines.push(line),
+        }
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+        std::fs::write(&path, lines.join("\n") + "\n").map_err(|e| e.to_string())
     }
 }
 

@@ -267,3 +267,49 @@ fn quick_connect_defaults_on_and_accepts_false() {
     let (c, w, _t) = load_text("quick_connect = \"yes\"\n");
     assert!(c.quick_connect && w.len() == 1, "{w:?}");
 }
+
+#[test]
+fn save_edits_only_the_key_line() {
+    let t = tempfile::tempdir().unwrap();
+    let file = t.path().join("config.toml");
+    std::fs::write(&file, DEFAULT_TOML).unwrap();
+
+    Config::save(t.path(), "grid", "4").unwrap();
+    let want = DEFAULT_TOML.replace("# grid = 1", "grid = 4");
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), want);
+
+    Config::save(t.path(), "grid", "8").unwrap();
+    assert_eq!(
+        std::fs::read_to_string(&file).unwrap(),
+        DEFAULT_TOML.replace("# grid = 1", "grid = 8")
+    );
+    let (c, w) = Config::load(t.path());
+    assert!(w.is_empty(), "{w:?}");
+    assert_eq!(c.grid, 8);
+}
+
+#[test]
+fn save_appends_missing_key_and_keeps_other_lines() {
+    let t = tempfile::tempdir().unwrap();
+    let file = t.path().join("config.toml");
+    std::fs::write(&file, "# mine\nautosave_ms = 900 # slow\n").unwrap();
+    Config::save(t.path(), "motion", "false").unwrap();
+    assert_eq!(
+        std::fs::read_to_string(&file).unwrap(),
+        "# mine\nautosave_ms = 900 # slow\nmotion = false\n"
+    );
+}
+
+#[test]
+fn save_rejects_bad_value_and_unknown_key_without_writing() {
+    let t = tempfile::tempdir().unwrap();
+    let file = t.path().join("config.toml");
+    std::fs::write(&file, "grid = 2\n").unwrap();
+    assert_eq!(
+        Config::save(t.path(), "grid", "0").unwrap_err(),
+        "expected an integer from 1 to 1000"
+    );
+    assert!(Config::save(t.path(), "nope", "1").is_err());
+    assert!(Config::save(t.path(), "grid", "3\nmotion = false").is_err());
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), "grid = 2\n");
+}
