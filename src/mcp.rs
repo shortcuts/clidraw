@@ -1,6 +1,9 @@
 use crate::cli;
+use crate::config::Config;
+use crate::model::Id;
 use crate::store::Store;
-use anyhow::Result;
+use crate::ui::scope::ExportFormat;
+use anyhow::{bail, Result};
 use serde_json::{json, Value};
 use std::io::{BufRead, Write};
 
@@ -30,9 +33,10 @@ pub fn tools() -> Value {
          "description": "Add a Mermaid diagram below the existing content. The importer reads flowchart, sequence, class and state diagram syntax. Creates the canvas if missing.",
          "inputSchema": schema(json!({"name": name,
              "mermaid": {"type": "string", "description": "Mermaid diagram text"}}), &["name", "mermaid"])},
-        {"name": "export", "description": "Render a saved canvas and return the text.",
+        {"name": "export", "description": "Render a saved canvas and return the text. With ids, render only those elements and the lines bound to them.",
          "inputSchema": schema(json!({"name": name,
-             "format": {"type": "string", "enum": ["svg", "mermaid", "clidraw"]}}), &["name", "format"])},
+             "format": {"type": "string", "enum": ["svg", "mermaid", "clidraw"]},
+             "ids": {"type": "array", "items": {"type": "string"}, "description": "Element ids to export. Omit to export the whole canvas."}}), &["name", "format"])},
         {"name": "rename", "description": "Rename a canvas.",
          "inputSchema": schema(json!({"name": name,
              "to": {"type": "string", "description": "New canvas name"}}), &["name", "to"])},
@@ -87,6 +91,32 @@ fn command(tool: &str, a: &Value) -> Result<(Vec<String>, String)> {
     Ok((argv, stdin))
 }
 
+/// Renders the elements named by `ids`, as the TUI exports a selection.
+fn export_ids(a: &Value, ids: &Value, store: &Store, out: &mut impl Write) -> Result<()> {
+    let ids: Vec<Id> = serde_json::from_value(ids.clone())?;
+    let format = match string(a, "format")? {
+        "svg" => ExportFormat::Svg,
+        "mermaid" => ExportFormat::Mermaid,
+        "clidraw" => ExportFormat::Clidraw,
+        other => bail!("unknown format {other:?}, use svg, mermaid or clidraw"),
+    };
+    let canvas = store.load(string(a, "name")?)?;
+    if ids.is_empty() {
+        bail!("`ids` names no element");
+    }
+    if let Some(id) = ids
+        .iter()
+        .find(|id| !canvas.elements.iter().any(|e| e.id() == *id))
+    {
+        bail!("no element with id `{id}`");
+    }
+    let (config, _) = Config::load(store.dir());
+    let selection = canvas.clone_canvas(&ids, 0, 0);
+    let (text, _) = crate::export::render(&selection, format, config.export_padding);
+    write!(out, "{text}")?;
+    Ok(())
+}
+
 fn call(params: &Value, store: &Store) -> Result<Value, String> {
     let tool = params.get("name").and_then(Value::as_str).unwrap_or("");
     if !cli::COMMANDS.contains(&tool) {
@@ -95,8 +125,11 @@ fn call(params: &Value, store: &Store) -> Result<Value, String> {
     let empty = json!({});
     let args = params.get("arguments").unwrap_or(&empty);
     let mut out = Vec::new();
-    let result = command(tool, args)
-        .and_then(|(argv, stdin)| cli::run(&argv, store, &mut stdin.as_bytes(), &mut out));
+    let result = match args.get("ids") {
+        Some(ids) if tool == "export" => export_ids(args, ids, store, &mut out),
+        _ => command(tool, args)
+            .and_then(|(argv, stdin)| cli::run(&argv, store, &mut stdin.as_bytes(), &mut out)),
+    };
     let (text, is_error) = match result {
         Ok(()) => (String::from_utf8_lossy(&out).trim_end().to_string(), false),
         Err(e) => (format!("Error: {e}"), true),

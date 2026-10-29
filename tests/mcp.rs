@@ -328,3 +328,32 @@ fn undo_and_redo_tools_revert_an_edit_batch() {
     assert_eq!(r[1]["result"]["isError"], true);
     assert_eq!(text(&r[1]), "Error: nothing to undo");
 }
+
+#[test]
+fn export_with_ids_renders_only_those_elements() {
+    let (_t, s) = store();
+    let ops = json!([
+        {"op": "add_shape", "id": "a", "x": 0, "y": 0, "label": "Alpha"},
+        {"op": "add_shape", "id": "b", "x": 20, "y": 0, "label": "Beta"},
+    ]);
+    let r = rpc(
+        &s,
+        &[
+            tool(1, "new", json!({"name": "demo"})),
+            tool(2, "edit", json!({"name": "demo", "ops": ops})),
+            tool(
+                3,
+                "export",
+                json!({"name": "demo", "format": "clidraw", "ids": ["a"]}),
+            ),
+            tool(
+                4,
+                "export",
+                json!({"name": "demo", "format": "clidraw", "ids": ["zzz"]}),
+            ),
+        ],
+    );
+    assert!(text(&r[2]).contains("Alpha") && !text(&r[2]).contains("Beta"));
+    assert_eq!(r[3]["result"]["isError"], true);
+    assert_eq!(text(&r[3]), "Error: no element with id `zzz`");
+}

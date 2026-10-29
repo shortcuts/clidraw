@@ -75,9 +75,10 @@
       <li><code>name</code> (required, string): Canvas name</li>
     </ul>
     <h3 class="item" id="tools-export">export</h3>
-    <p>Render a saved canvas and return the text.</p>
+    <p>Render a saved canvas and return the text. With ids, render only those elements and the lines bound to them.</p>
     <ul>
       <li><code>format</code> (required, string): One of <code>svg</code>, <code>mermaid</code> or <code>clidraw</code>.</li>
+      <li><code>ids</code> (optional, array): Element ids to export. Omit to export the whole canvas.</li>
       <li><code>name</code> (required, string): Canvas name</li>
     </ul>
     <h3 class="item" id="tools-rename">rename</h3>
