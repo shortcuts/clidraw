@@ -14,6 +14,13 @@ impl App {
         let Overlay::Prompt(p) = &mut self.overlay else {
             return;
         };
+        if p.is_confirm() {
+            match k.code {
+                KeyCode::Left | KeyCode::Char('h') => return p.cancel_focused = false,
+                KeyCode::Right | KeyCode::Char('l') => return p.cancel_focused = true,
+                _ => {}
+            }
+        }
         if edit_key(&mut p.edit, &k) {
             p.sel = 0;
             p.path_sel = None;
@@ -47,6 +54,7 @@ impl App {
             KeyCode::Char('p') if ctrl => -1,
             KeyCode::Char('n') if ctrl => 1,
             KeyCode::Esc => return self.overlay = Overlay::None,
+            KeyCode::Enter if p.cancel_focused => return self.overlay = Overlay::None,
             KeyCode::Enter => return self.confirm(),
             KeyCode::Tab if p.fixes => return p.apply_fix(),
             KeyCode::Tab if p.completing() => {

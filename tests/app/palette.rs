@@ -394,6 +394,35 @@ fn switcher_moves_with_j_k_and_enter_on_the_current_canvas_closes() {
 }
 
 #[test]
+fn confirm_delete_moves_focus_with_arrows_and_hl_and_enter_acts_on_it() {
+    let t = tempfile::tempdir().unwrap();
+    let store = Store::at(t.path().join("c"), t.path().join("state"));
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    let name = app.name.clone();
+    assert!(store.list().unwrap().contains(&name));
+    open_canvases(&mut app, now);
+    app.on_event(key(KeyCode::Char('x')), now);
+    app.on_event(key(KeyCode::Right), now);
+    app.on_event(key(KeyCode::Left), now);
+    app.on_event(key(KeyCode::Char('l')), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(
+        store.list().unwrap().contains(&name),
+        "Enter on Cancel keeps the canvas"
+    );
+    open_canvases(&mut app, now);
+    app.on_event(key(KeyCode::Char('x')), now);
+    app.on_event(key(KeyCode::Char('l')), now);
+    app.on_event(key(KeyCode::Char('h')), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(
+        !store.list().unwrap().contains(&name),
+        "Enter on OK deletes the canvas"
+    );
+}
+
+#[test]
 fn palette_types_j_k_into_the_query_and_esc_clears_it_before_closing() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());

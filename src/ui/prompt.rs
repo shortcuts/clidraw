@@ -41,6 +41,8 @@ pub struct Prompt {
     pub fixes: bool,
     /// Highlighted file of the `import` path drawer; `None` until the user navigates.
     pub path_sel: Option<usize>,
+    /// Focus on `[ Cancel ]` of a confirm prompt; Enter acts on the focused button.
+    pub cancel_focused: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -68,7 +70,17 @@ impl Prompt {
             sel: 0,
             fixes: false,
             path_sel: None,
+            cancel_focused: false,
         }
+    }
+
+    pub fn is_confirm(&self) -> bool {
+        matches!(
+            self.kind,
+            PromptKind::ConfirmDelete(_)
+                | PromptKind::ConfirmOverwrite(..)
+                | PromptKind::ConfirmAppend(..)
+        )
     }
 
     pub fn buf(&self) -> &str {
@@ -179,8 +191,13 @@ pub fn draw(grid: &mut Grid, p: &Prompt) {
         }
         _ => caret_line(grid, r.0 + 2, r.1 + 1, r.2 - 4, "", p),
     }
-    grid.text(r.0 + 2, r.1 + 3, OK, ACTIVE);
-    grid.text(r.0 + 4 + OK.len() as i32, r.1 + 3, CANCEL, 0);
+    let (ok, cancel) = if p.cancel_focused {
+        (0, ACTIVE)
+    } else {
+        (ACTIVE, 0)
+    };
+    grid.text(r.0 + 2, r.1 + 3, OK, ok);
+    grid.text(r.0 + 4 + OK.len() as i32, r.1 + 3, CANCEL, cancel);
 }
 
 /// Draws `prefix + buffer` with a reversed caret cell, dropping the head when the caret would leave `w` columns.
