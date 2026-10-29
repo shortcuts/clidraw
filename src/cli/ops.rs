@@ -1,5 +1,5 @@
 use crate::model::{
-    kind_cmds, Anchor, Border, Canvas, Command, Dir, Element, End, Id, Line, LineKind, Meta,
+    kind_cmds, Align, Anchor, Border, Canvas, Command, Dir, Element, End, Id, Line, LineKind, Meta,
     ModelError, Paint, Shape, ShapeKind, Stroke, Text, TextAlign, Z,
 };
 use anyhow::{bail, Result};
@@ -88,6 +88,10 @@ pub(super) enum Op {
     Layout {
         ids: Option<Vec<Id>>,
         dir: Option<Dir>,
+    },
+    Align {
+        ids: Vec<Id>,
+        mode: Align,
     },
     Move {
         id: Id,
@@ -388,6 +392,11 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
             };
             cmds = canvas.layout(&ids, dir.unwrap_or(Dir::TopDown));
         }
+        Op::Align { ids, mode } => {
+            ids_ok("align", &ids)?;
+            exist(canvas, &ids)?;
+            cmds = canvas.align(&ids, mode);
+        }
         Op::Move { id, dx, dy } => {
             ids_ok("move", [&id])?;
             cmds.push(Command::Move { id, dx, dy });
@@ -411,8 +420,34 @@ mod tests {
     }
 
     #[test]
+    fn align_op_moves_the_right_shape_to_the_left_edge() {
+        let mut canvas = Canvas::default();
+        for (id, x) in [("a", 0), ("b", 10)] {
+            let shape = Shape {
+                id: Id(id.into()),
+                ..Shape::new(ShapeKind::Rect, x, 0, 6, 3, "")
+            };
+            canvas
+                .apply(Command::Insert(usize::MAX, Element::Shape(shape)))
+                .unwrap();
+        }
+        let op: Op =
+            serde_json::from_value(json!({"op": "align", "ids": ["a", "b"], "mode": "left"}))
+                .unwrap();
+        let cmds = commands(op, &canvas, &mut vec![]).unwrap();
+        assert_eq!(
+            cmds,
+            vec![Command::Move {
+                id: Id("b".into()),
+                dx: -10,
+                dy: 0
+            }]
+        );
+    }
+
+    #[test]
     fn ops_table_matches_parser() {
-        assert_eq!(OPS.len(), 11);
+        assert_eq!(OPS.len(), 12);
         for op in &OPS {
             let mut obj = Map::new();
             obj.insert("op".into(), json!(op.name));

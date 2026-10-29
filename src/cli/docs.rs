@@ -12,6 +12,16 @@ const LINE_KINDS: &[&str] = &["Line", "Arrow", "ArrowStart", "ArrowBoth"];
 const STROKES: &[&str] = &["solid", "dashed", "dotted"];
 const BORDERS: &[&str] = &["single", "rounded", "double", "heavy"];
 const ALIGNS: &[&str] = &["left", "center", "right"];
+const ALIGN_MODES: &[&str] = &[
+    "left",
+    "center",
+    "right",
+    "top",
+    "middle",
+    "bottom",
+    "distribute_h",
+    "distribute_v",
+];
 const BOOLS: &[&str] = &["true", "false"];
 const Z_ORDERS: &[&str] = &["front", "back", "forward", "backward"];
 const DIRS: &[&str] = &["td", "lr"];
@@ -34,7 +44,7 @@ pub struct OpDoc {
     pub fields: &'static [FieldDoc],
 }
 
-pub const OPS: [OpDoc; 11] = [
+pub const OPS: [OpDoc; 12] = [
     OpDoc {
         name: "add_shape",
         summary: "Adds a shape. Its size fits the label unless w and h are set.",
@@ -428,6 +438,26 @@ pub const OPS: [OpDoc; 11] = [
                 example: "\"td\"",
                 values: DIRS,
                 note: "td runs top-down, lr runs left-right. Default: td.",
+            },
+        ],
+    },
+    OpDoc {
+        name: "align",
+        summary: "Aligns or spreads elements. Lines do not move.",
+        fields: &[
+            FieldDoc {
+                name: "ids",
+                required: true,
+                example: "[\"a\", \"b\"]",
+                values: &[],
+                note: "At least two ids. The distribute modes need three.",
+            },
+            FieldDoc {
+                name: "mode",
+                required: true,
+                example: "\"left\"",
+                values: ALIGN_MODES,
+                note: "",
             },
         ],
     },
