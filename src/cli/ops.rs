@@ -1,9 +1,10 @@
 use crate::model::{
-    kind_cmds, Align, Anchor, Border, Canvas, Command, Dir, Element, End, Id, Line, LineKind, Meta,
-    ModelError, Paint, Shape, ShapeKind, Stroke, Text, TextAlign, Z,
+    kind_cmds, Align, Anchor, Border, Canvas, Command, Dir, Edge, Element, End, Id, Line, LineKind,
+    Meta, ModelError, Paint, Shape, ShapeKind, SideLabel, Stroke, Text, TextAlign, Z,
 };
 use anyhow::{bail, Result};
 use serde::Deserialize;
+use std::collections::BTreeMap;
 use unicode_width::UnicodeWidthStr;
 
 /// An endpoint is a shape id, or a `[x, y]` cell for a free end.
@@ -68,6 +69,8 @@ pub(super) enum Op {
         link: Option<String>,
         kind: Option<ShapeKind>,
         head: Option<LineKind>,
+        label_at: Option<u16>,
+        side_labels: Option<BTreeMap<Edge, String>>,
         meta: Option<Meta>,
     },
     Resize {
@@ -271,12 +274,20 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
             link,
             kind,
             head,
+            label_at,
+            side_labels,
             meta,
         } => {
             ids_ok("set", [&id])?;
             check_meta("set", &meta)?;
             if let Some(l) = &link {
                 one_line("set", "link", l)?;
+            }
+            if let Some(at) = label_at.filter(|at| *at > 1000) {
+                bail!("set: label_at must be 0 to 1000, got {at}");
+            }
+            for text in side_labels.iter().flat_map(|m| m.values()) {
+                one_line("set", "side label", text)?;
             }
             if let Some(kind) = kind {
                 match canvas.get(&id) {
@@ -290,6 +301,24 @@ pub(super) fn commands(op: Op, canvas: &Canvas, created: &mut Vec<Id>) -> Result
             if let Some(label) = label {
                 cmds.push(Command::SetLabel {
                     id: id.clone(),
+                    label,
+                });
+            }
+            if let Some(at) = label_at {
+                cmds.push(Command::SetLabelAt {
+                    id: id.clone(),
+                    at: Some(at),
+                });
+            }
+            for (edge, text) in side_labels.into_iter().flatten() {
+                let at = match canvas.get(&id) {
+                    Some(Element::Shape(s)) => s.side_label(edge).and_then(|l| l.at),
+                    _ => None,
+                };
+                let label = (!text.is_empty()).then_some(SideLabel { edge, at, text });
+                cmds.push(Command::SetSide {
+                    id: id.clone(),
+                    edge,
                     label,
                 });
             }
@@ -485,5 +514,90 @@ mod tests {
                 obj.insert(f.name.into(), serde_json::from_str(f.example).unwrap());
             }
         }
+    }
+
+    fn run(canvas: &mut Canvas, value: Value) -> Result<()> {
+        let op: Op = serde_json::from_value(value)?;
+        let cmds = commands(op, canvas, &mut vec![])?;
+        canvas.apply(Command::Batch(cmds))?;
+        Ok(())
+    }
+
+    fn sample() -> Canvas {
+        let shape = Shape {
+            id: "a".into(),
+            border: Border::Single,
+            ..Shape::new(ShapeKind::Rect, 0, 0, 10, 4, "a")
+        };
+        let line = Line {
+            id: "l".into(),
+            ..Line::new(LineKind::Arrow, End::Free(0, 0), End::Free(20, 0))
+        };
+        Canvas {
+            elements: vec![Element::Shape(shape), Element::Line(line)],
+            ..Canvas::default()
+        }
+    }
+
+    fn side(canvas: &Canvas, edge: Edge) -> Option<SideLabel> {
+        match canvas.get(&"a".into()) {
+            Some(Element::Shape(s)) => s.side_label(edge).cloned(),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn set_moves_a_line_label_along_the_route() {
+        let mut canvas = sample();
+        run(
+            &mut canvas,
+            json!({"op": "set", "id": "l", "label_at": 250}),
+        )
+        .unwrap();
+        let Some(Element::Line(l)) = canvas.get(&"l".into()) else {
+            panic!("no line");
+        };
+        assert_eq!(l.label_at, Some(250));
+    }
+
+    #[test]
+    fn set_rejects_a_label_position_past_the_route() {
+        let mut canvas = sample();
+        run(
+            &mut canvas,
+            json!({"op": "set", "id": "l", "label_at": 1000}),
+        )
+        .unwrap();
+        let err = run(
+            &mut canvas,
+            json!({"op": "set", "id": "l", "label_at": 1001}),
+        );
+        assert!(err.unwrap_err().to_string().contains("label_at"));
+    }
+
+    #[test]
+    fn set_writes_and_clears_a_side_label() {
+        let mut canvas = sample();
+        let set = json!({"op": "set", "id": "a", "side_labels": {"top": "Yes"}});
+        run(&mut canvas, set).unwrap();
+        assert_eq!(side(&canvas, Edge::Top).unwrap().text, "Yes");
+        let clear = json!({"op": "set", "id": "a", "side_labels": {"top": ""}});
+        run(&mut canvas, clear).unwrap();
+        assert_eq!(side(&canvas, Edge::Top), None);
+    }
+
+    #[test]
+    fn set_keeps_the_position_of_a_side_label() {
+        let mut canvas = sample();
+        let first = json!({"op": "set", "id": "a", "side_labels": {"left": "A"}});
+        run(&mut canvas, first).unwrap();
+        let Some(Element::Shape(s)) = canvas.elements.get_mut(0) else {
+            panic!("no shape");
+        };
+        s.side_labels[0].at = Some(400);
+        let second = json!({"op": "set", "id": "a", "side_labels": {"left": "B"}});
+        run(&mut canvas, second).unwrap();
+        assert_eq!(side(&canvas, Edge::Left).unwrap().at, Some(400));
+        assert_eq!(side(&canvas, Edge::Left).unwrap().text, "B");
     }
 }

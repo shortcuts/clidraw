@@ -307,6 +307,20 @@ pub const OPS: [OpDoc; 13] = [
                 note: "Changes the kind of a line.",
             },
             FieldDoc {
+                name: "label_at",
+                required: false,
+                example: "250",
+                values: &[],
+                note: "Position of a line label along the line, from 0 (start) to 1000 (end).",
+            },
+            FieldDoc {
+                name: "side_labels",
+                required: false,
+                example: "{\"top\": \"Yes\"}",
+                values: &[],
+                note: "Key to text map. Keys: top, right, bottom, left. An empty text removes that side label. Only a bordered shape takes side labels.",
+            },
+            FieldDoc {
                 name: "meta",
                 required: false,
                 example: "{\"file\": \"src/a.rs\"}",
