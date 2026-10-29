@@ -137,8 +137,8 @@ fn change_shape_click_outside_restores_and_click_row_commits() {
     ctrl_key(&mut app, 'p', now);
     type_str(&mut app, "change shape", now);
     app.on_event(key(KeyCode::Enter), now);
-    // The box ends above the bottom bar: border at row 15, Rect at 16, Cylinder at 18.
-    click(&mut app, 3, 18, now);
+    // The box ends above the bottom bar: border at row 14, Rect at 15, Cylinder at 17.
+    click(&mut app, 3, 17, now);
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
     assert_eq!(box_state(&app).0, ShapeKind::Cylinder);
 }

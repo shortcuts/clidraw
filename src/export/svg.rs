@@ -127,14 +127,14 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                 };
                 let arc = format!("{}{width}", style(stroke, s.color, None, unset));
                 let style = format!("{}{width}", style(stroke, s.color, s.fill, unset));
-                let rx = if s.border == Border::Rounded {
+                let rx = if s.border == Border::Rounded || s.kind == ShapeKind::Stadium {
                     " rx=\"8\""
                 } else {
                     ""
                 };
                 let (x, y, w, h) = (s.x * CW, s.y * CH, s.w * CW, s.h * CH);
                 match s.kind {
-                    ShapeKind::Rect | ShapeKind::Frame => {
+                    ShapeKind::Rect | ShapeKind::Stadium | ShapeKind::Frame => {
                         let _ = writeln!(
                             o,
                             "  <rect x=\"{x}\" y=\"{y}\" width=\"{w}\" height=\"{h}\"{rx} {style}/>"

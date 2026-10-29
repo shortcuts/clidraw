@@ -41,7 +41,7 @@ const TEXT_ARROWS: [(&str, &str, LineKind, Stroke); 8] = [
 const BRACKETS: [(&str, &str, ShapeKind, Border); 11] = [
     ("((", "))", ShapeKind::Rect, Border::Rounded),
     ("[[", "]]", ShapeKind::Rect, Border::Double),
-    ("([", "])", ShapeKind::Rect, Border::Rounded),
+    ("([", "])", ShapeKind::Stadium, Border::Rounded),
     ("[(", ")]", ShapeKind::Cylinder, Border::Single),
     ("[/", "/]", ShapeKind::Parallelogram, Border::Single),
     ("[\\", "/]", ShapeKind::Parallelogram, Border::Single),

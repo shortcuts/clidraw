@@ -10,6 +10,7 @@ pub enum ShapeKind {
     Cylinder,
     Parallelogram,
     Hexagon,
+    Stadium,
     Frame,
 }
 

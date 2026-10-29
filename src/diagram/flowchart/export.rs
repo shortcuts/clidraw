@@ -44,6 +44,7 @@ pub(super) fn export(canvas: &Canvas) -> Exported {
                 skipped += s.side_labels.len();
                 let l = label(&s.label);
                 let _ = match s.kind {
+                    ShapeKind::Stadium => writeln!(text, "  n{n}([{l}])"),
                     ShapeKind::Rect if s.border == Border::Rounded => writeln!(text, "  n{n}({l})"),
                     ShapeKind::Rect => writeln!(text, "  n{n}[{l}]"),
                     ShapeKind::Diamond => writeln!(text, "  n{n}{{{l}}}"),

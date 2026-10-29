@@ -331,8 +331,13 @@ fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, hidden: Option
     }
     match s.kind {
         ShapeKind::Frame => return frame(grid, s, x, y, label, flags),
-        ShapeKind::Rect => {
-            let (hz, vt, corners) = match s.border {
+        ShapeKind::Rect | ShapeKind::Stadium => {
+            let border = if s.kind == ShapeKind::Stadium {
+                Border::Rounded
+            } else {
+                s.border
+            };
+            let (hz, vt, corners) = match border {
                 Border::Double => ('═', '║', ['╔', '╗', '╚', '╝']),
                 Border::Heavy => ('━', '┃', ['┏', '┓', '┗', '┛']),
                 Border::Rounded => ('─', '│', ['╭', '╮', '╰', '╯']),

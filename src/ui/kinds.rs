@@ -1,12 +1,13 @@
 use super::list::{Anchor, List, Row};
 use crate::model::ShapeKind;
 
-const ALL: [(ShapeKind, &str); 6] = [
+const ALL: [(ShapeKind, &str); 7] = [
     (ShapeKind::Rect, "Rect"),
     (ShapeKind::Diamond, "Diamond"),
     (ShapeKind::Cylinder, "Cylinder"),
     (ShapeKind::Parallelogram, "Parallelogram"),
     (ShapeKind::Hexagon, "Hexagon"),
+    (ShapeKind::Stadium, "Stadium"),
     (ShapeKind::Frame, "Frame"),
 ];
 

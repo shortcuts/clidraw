@@ -189,13 +189,15 @@ fn circle_and_cross_heads_import_as_arrows() {
 }
 
 #[test]
-fn stadium_imports_as_rounded_rect() {
+fn stadium_imports_and_exports_as_stadium() {
     let out = Flowchart.import("graph TD\nA([hi])").unwrap();
     let s = shapes(&out.canvas);
     assert_eq!(
-        (s.len(), s[0].kind, s[0].border, s[0].label.as_str()),
-        (1, ShapeKind::Rect, Border::Rounded, "hi")
+        (s.len(), s[0].kind, s[0].label.as_str()),
+        (1, ShapeKind::Stadium, "hi")
     );
+    let text = Flowchart.export(&out.canvas).text;
+    assert!(text.contains("n0([\"hi\"])"), "{text}");
 }
 
 #[test]
