@@ -144,7 +144,7 @@ fn palette_hover_redraws_once_and_underlines_the_cell() {
 }
 
 #[test]
-fn palette_tooltip_names_the_tool_and_key_after_a_rest() {
+fn palette_tool_cell_shows_no_tooltip() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     let (c, r) = (0..80u16)
@@ -166,15 +166,10 @@ fn palette_tooltip_names_the_tool_and_key_after_a_rest() {
     };
     let t0 = Instant::now();
     app.on_events(vec![mouse(MouseEventKind::Moved, c, r)], t0);
-    assert_eq!(app.next_wake(t0), Some(Duration::from_millis(400)));
+    assert_eq!(app.next_wake(t0), None);
     app.dirty = false;
-    app.tick(t0 + Duration::from_millis(399));
-    assert!(!app.dirty);
-    assert!(!row(&app).contains("Rect  r"));
     app.tick(t0 + Duration::from_millis(400));
-    assert!(app.dirty, "the tooltip appears");
-    assert!(row(&app).contains(" Rect  r "));
-    app.on_events(vec![mouse(MouseEventKind::Moved, 70, 20)], t0);
+    assert!(!app.dirty);
     assert!(!row(&app).contains("Rect  r"));
 }
 

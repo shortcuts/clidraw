@@ -135,7 +135,10 @@ impl Session {
     /// Restarts the tooltip delay after the palette hover changed.
     pub fn tip_reset(&mut self, now: Instant) {
         self.tip = false;
-        self.tip_due = self.palette_hover.map(|_| now + TIP_DELAY);
+        self.tip_due = match self.palette_hover {
+            Some(PaletteHit::Option(_)) => Some(now + TIP_DELAY),
+            _ => None,
+        };
     }
 
     pub fn tip_wait(&self, now: Instant) -> Option<Duration> {

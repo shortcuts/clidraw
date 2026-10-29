@@ -491,10 +491,6 @@ fn tooltip(grid: &mut Grid, h: PaletteHit, cells: &[Placed]) {
         return;
     };
     let text = match h {
-        PaletteHit::Tool(t) => match t.key() {
-            Some(k) => format!(" {}  {} ", t.label(), k),
-            None => format!(" {} ", t.label()),
-        },
         PaletteHit::Option(c) => match c.action() {
             None => " Reset route ".to_string(),
             Some(a) => {
@@ -507,7 +503,7 @@ fn tooltip(grid: &mut Grid, h: PaletteHit, cells: &[Placed]) {
                 }
             }
         },
-        PaletteHit::Scroll(..) => return,
+        PaletteHit::Tool(_) | PaletteHit::Scroll(..) => return,
     };
     let x = p.x.min(grid.w - text.width() as i32).max(0);
     grid.text(x, p.y + 1, &text, ACTIVE);
