@@ -396,3 +396,16 @@ fn history_round_trips_undo_and_redo() {
     s.save_history("a", vec![], vec![]).unwrap();
     assert_eq!(s.load_history("a"), (vec![], vec![]));
 }
+
+#[test]
+fn history_file_without_a_redo_stack_reads_as_empty() {
+    let (t, s) = store();
+    s.save("a", &sample()).unwrap();
+    let u = vec![Command::Remove(Id::from("x"))];
+    s.save_history("a", u, vec![]).unwrap();
+    let path = t.path().join("state/history/a.json");
+    let mut v: serde_json::Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    v.as_object_mut().unwrap().remove("redo");
+    std::fs::write(&path, serde_json::to_vec(&v).unwrap()).unwrap();
+    assert_eq!(s.load_history("a"), (vec![], vec![]));
+}
