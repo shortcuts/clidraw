@@ -4,8 +4,8 @@ use super::registry;
 use super::theme;
 use crate::input::{clone_of, handles, EditTarget, Handle, Hit, Session};
 use crate::model::{
-    label_pos, side_label_at, wrap, Border, Edge, Element, Find, Id, Line, LineKind, Router, Shape,
-    ShapeKind, Stroke,
+    label_pos, side_label_at, wrap, Anchor, Border, Edge, Element, End, Find, Id, Line, LineKind,
+    Router, Shape, ShapeKind, Stroke,
 };
 use crate::view::Zoom;
 use ratatui::style::Color;
@@ -161,6 +161,16 @@ fn ghost(grid: &mut Grid, s: &Session) {
     let Some(Element::Shape(src)) = s.canvas.get(&q.from) else {
         return;
     };
+    if let Some(target) = &q.target {
+        let arrow = Line::new(
+            LineKind::Arrow,
+            End::Bound(q.from.clone(), Anchor::Auto),
+            End::Bound(target.clone(), Anchor::Auto),
+        );
+        let find = s.canvas.shape_lookup();
+        line(grid, s, &find, &s.canvas.router(), &arrow, "", DIM);
+        return;
+    }
     let (rx, ry, w, h) = q.rect;
     let (sx, sy) = s.view.to_screen(rx, ry);
     shape(grid, &clone_of(src, q.rect), sx, sy, "", None, DIM);

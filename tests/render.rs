@@ -2010,6 +2010,7 @@ fn quick_connect_draws_a_dim_arrow_and_copy_beside_the_shape() {
         from: Id::from("aaaaaaaa"),
         edge: Edge::Right,
         rect: (34, 4, 8, 3),
+        target: None,
     });
     let b = draw(&s, &Overlay::None);
     assert_eq!(cols(&b, 5, 28, 6), "┄┄┄┄┄▶");
@@ -2018,4 +2019,21 @@ fn quick_connect_draws_a_dim_arrow_and_copy_beside_the_shape() {
     assert!(b[(34, 4)].modifier.contains(Modifier::DIM));
     s.quick = None;
     assert_eq!(cols(&draw(&s, &Overlay::None), 5, 28, 6), "      ");
+}
+
+#[test]
+fn quick_connect_with_a_target_draws_only_a_dim_arrow_to_it() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    c.elements.push(shape("bbbbbbbb", 40, ""));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.quick = Some(Quick {
+        from: Id::from("aaaaaaaa"),
+        edge: Edge::Right,
+        rect: (40, 4, 8, 3),
+        target: Some(Id::from("bbbbbbbb")),
+    });
+    let b = draw(&s, &Overlay::None);
+    assert!(b[(30, 5)].modifier.contains(Modifier::DIM));
+    assert!(!b[(40, 4)].modifier.contains(Modifier::DIM));
 }

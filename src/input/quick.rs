@@ -7,15 +7,16 @@ use crate::view::Zoom;
 /// How far outside a side the pointer still offers a copy.
 const REACH: i32 = 2;
 
-/// The copy and arrow offered beside the selected shape `from`.
+/// The offer beside the selected shape `from`: a copy and an arrow, or with `target` only an arrow to it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Quick {
     pub from: Id,
     pub edge: Edge,
     pub rect: (i32, i32, i32, i32),
+    pub target: Option<Id>,
 }
 
-/// What the pointer at world cell `p` offers: a copy of the lone selected shape at the layout gap.
+/// What the pointer at world cell `p` offers: an arrow to the nearest shape past the pointed side, else a copy at the layout gap.
 pub fn at(s: &Session, p: (i32, i32)) -> Option<Quick> {
     if !(s.quick_connect
         && s.tool.is_pointer()
@@ -48,6 +49,17 @@ pub fn at(s: &Session, p: (i32, i32)) -> Option<Quick> {
     } else {
         return None;
     };
+    if hit::at(s, &s.selection, p, 0) != Hit::Empty {
+        return None;
+    }
+    if let Some(t) = target(s, src, edge, p) {
+        return Some(Quick {
+            from: id.clone(),
+            edge,
+            rect: (t.x, t.y, t.w, t.h),
+            target: Some(t.id.clone()),
+        });
+    }
     let (rx, ry) = match edge {
         Edge::Top => (x, y - GAP_V - h),
         Edge::Bottom => (x, y + h + GAP_V),
@@ -59,14 +71,49 @@ pub fn at(s: &Session, p: (i32, i32)) -> Option<Quick> {
         let b = s.canvas.bounds_with(e, &find);
         b.0 < rx + w && rx < b.0 + b.2 && b.1 < ry + h && ry < b.1 + b.3
     });
-    if taken || hit::at(s, &s.selection, p, 0) != Hit::Empty {
+    if taken {
         return None;
     }
     Some(Quick {
         from: id.clone(),
         edge,
         rect: (rx, ry, w, h),
+        target: None,
     })
+}
+
+/// The shape past `edge` of `src` that no line joins to `src` yet, preferring one the pointer lines up with, then the nearest.
+fn target<'a>(s: &'a Session, src: &Shape, edge: Edge, p: (i32, i32)) -> Option<&'a Shape> {
+    let joined = |id: &Id| {
+        s.canvas.elements.iter().any(|e| match e {
+            Element::Line(Line {
+                from: End::Bound(a, _),
+                to: End::Bound(b, _),
+                ..
+            }) => (a, b) == (&src.id, id) || (a, b) == (id, &src.id),
+            _ => false,
+        })
+    };
+    s.canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Shape(t) if t.id != src.id && t.kind != ShapeKind::Frame && !joined(&t.id) => {
+                Some(t)
+            }
+            _ => None,
+        })
+        .filter_map(|t| {
+            let (gap, aligned) = match edge {
+                Edge::Right => (t.x - (src.x + src.w), (t.y..t.y + t.h).contains(&p.1)),
+                Edge::Left => (src.x - (t.x + t.w), (t.y..t.y + t.h).contains(&p.1)),
+                Edge::Bottom => (t.y - (src.y + src.h), (t.x..t.x + t.w).contains(&p.0)),
+                Edge::Top => (src.y - (t.y + t.h), (t.x..t.x + t.w).contains(&p.0)),
+            };
+            (gap >= 0).then_some((t, (!aligned, gap)))
+        })
+        .min_by_key(|&(_, rank)| rank)
+        .map(|(t, _)| t)
 }
 
 /// A copy of `src` at `rect`, without its text, link, metadata and side labels.
@@ -85,8 +132,19 @@ pub fn clone_of(src: &Shape, rect: (i32, i32, i32, i32)) -> Shape {
     }
 }
 
-/// Inserts the copy and an arrow bound to both shapes; one undo step.
+/// Inserts the arrow, with the copy unless `q` has a target; one undo step.
 pub fn insert_cmd(s: &Session, q: &Quick) -> Option<(Command, Id)> {
+    if let Some(target) = &q.target {
+        let arrow = Line::new(
+            LineKind::Arrow,
+            End::Bound(q.from.clone(), Anchor::Auto),
+            End::Bound(target.clone(), Anchor::Auto),
+        );
+        return Some((
+            Command::Insert(s.canvas.elements.len(), Element::Line(arrow)),
+            target.clone(),
+        ));
+    }
     let Some(Element::Shape(src)) = s.canvas.get(&q.from) else {
         return None;
     };

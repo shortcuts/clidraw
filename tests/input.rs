@@ -3227,6 +3227,99 @@ fn quick_connect_ghosts_beside_a_selected_shape_and_a_click_adds_both_in_one_ste
     assert_eq!(s.canvas.elements.len(), 1);
 }
 
+fn trio() -> Session {
+    let mut c = Canvas::default();
+    for (id, kind, x, y, w, h) in [
+        ("rect", ShapeKind::Rect, -70, -4, 38, 20),
+        ("cyl", ShapeKind::Cylinder, 5, -19, 36, 26),
+        ("para", ShapeKind::Parallelogram, -9, 11, 34, 17),
+    ] {
+        c.elements.push(Element::Shape(Shape {
+            id: Id::from(id),
+            ..Shape::new(kind, x, y, w, h, "")
+        }));
+    }
+    Session::new(
+        c,
+        View {
+            ox: -80,
+            oy: -25,
+            zoom: Zoom::One,
+        },
+        (160, 50),
+    )
+}
+
+fn target_at(s: &mut Session, from: &str, at: (i32, i32)) -> Option<Id> {
+    s.selection = vec![Id::from(from)];
+    mouse(
+        s,
+        MouseEventKind::Moved,
+        (at.0 + 80) as u16,
+        (at.1 + 25) as u16,
+        Instant::now(),
+    );
+    s.quick.clone().and_then(|q| q.target)
+}
+
+#[test]
+fn quick_connect_reaches_every_pair_of_three_shapes_by_pointer_position() {
+    let mut s = trio();
+    for (from, at, to) in [
+        ("rect", (-31, 0), "cyl"),
+        ("rect", (-31, 12), "para"),
+        ("rect", (-31, 9), "para"),
+        ("cyl", (4, 0), "rect"),
+        ("cyl", (20, 8), "para"),
+        ("para", (0, 10), "cyl"),
+        ("para", (-10, 15), "rect"),
+    ] {
+        assert_eq!(
+            target_at(&mut s, from, at),
+            Some(Id::from(to)),
+            "{from} {at:?}"
+        );
+    }
+}
+
+#[test]
+fn quick_connect_to_an_existing_shape_inserts_only_an_arrow_in_one_undo_step() {
+    let mut s = trio();
+    assert!(target_at(&mut s, "rect", (-31, 0)).is_some());
+    click(&mut s, (49, 25), Instant::now());
+    assert_eq!(shapes(&s).len(), 3);
+    let l = lines(&s);
+    assert_eq!(l.len(), 1);
+    assert_eq!(l[0].kind, LineKind::Arrow);
+    assert_eq!(l[0].from, End::Bound(Id::from("rect"), Anchor::Auto));
+    assert_eq!(l[0].to, End::Bound(Id::from("cyl"), Anchor::Auto));
+    assert_eq!(s.selection, vec![Id::from("cyl")]);
+    key(&mut s, KeyCode::Char('u'));
+    assert!(lines(&s).is_empty());
+}
+
+#[test]
+fn quick_connect_skips_a_shape_already_joined_to_the_selection_by_an_arrow() {
+    let mut s = trio();
+    s.canvas.elements.push(Element::Line(Line::new(
+        LineKind::Arrow,
+        End::Bound(Id::from("cyl"), Anchor::Auto),
+        End::Bound(Id::from("rect"), Anchor::Auto),
+    )));
+    assert_eq!(target_at(&mut s, "rect", (-31, 0)), Some(Id::from("para")));
+    s.canvas.elements.push(Element::Line(Line::new(
+        LineKind::Arrow,
+        End::Bound(Id::from("rect"), Anchor::Auto),
+        End::Bound(Id::from("para"), Anchor::Auto),
+    )));
+    assert_eq!(target_at(&mut s, "rect", (-31, 0)), None);
+    assert!(s.quick.is_none(), "the copy spot overlaps the other shapes");
+    assert_eq!(target_at(&mut s, "cyl", (42, 0)), None);
+    assert!(s
+        .quick
+        .is_some_and(|q| q.edge == Edge::Right && q.target.is_none()));
+}
+
 #[test]
 fn quick_connect_ignores_a_shift_click_after_an_unshifted_hover() {
     let t = Instant::now();
@@ -3300,7 +3393,11 @@ fn quick_connect_stays_off_unless_one_shape_is_selected_and_the_pointer_is_just_
     s.canvas
         .elements
         .push(with_shape("bbbbbbbb", 34, 6).canvas.elements.remove(0));
-    assert!(!ghost(&mut s, (28, 7)), "target occupied");
+    assert!(ghost(&mut s, (28, 7)), "an arrow to the shape in the way");
+    assert_eq!(
+        s.quick.take().and_then(|q| q.target),
+        Some(Id::from("bbbbbbbb"))
+    );
     s.selection.push(Id::from("bbbbbbbb"));
     assert!(!ghost(&mut s, (28, 7)), "two selected");
 }
