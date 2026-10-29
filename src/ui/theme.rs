@@ -55,24 +55,6 @@ pub fn frame_ink(theme: Theme) -> Color {
     }
 }
 
-/// The ink with its hue turned 180 degrees; uncolored elements have no hue, so they take the accent.
-pub fn selected(theme: Theme, p: Option<Paint>) -> Color {
-    let Some(p) = p else {
-        return theme.accent();
-    };
-    let Color::Rgb(r, g, b) = ink(theme, p) else {
-        unreachable!("ink is rgb");
-    };
-    let (hi, lo) = (r.max(g).max(b), r.min(g).min(b));
-    let flip = |c: u8| hi - c + lo;
-    // A turned dark-theme blue is too dim on the dark background; lift it a quarter toward white.
-    let lift = |c: u8| match theme {
-        Theme::Dark => c + (255 - c) / 4,
-        Theme::Light => c,
-    };
-    Color::Rgb(lift(flip(r)), lift(flip(g)), lift(flip(b)))
-}
-
 fn darken(c: u8) -> u8 {
     (u16::from(c) * 45 / 100) as u8
 }
@@ -240,22 +222,6 @@ mod tests {
             assert!(contrast(ink(Theme::Light, p), WHITE) >= 4.5, "{p:?}");
         }
         assert_eq!(ink(Theme::Light, Paint::Red), Color::Rgb(114, 42, 42));
-    }
-
-    #[test]
-    fn selected_ink_turns_the_hue_and_stays_readable() {
-        assert_eq!(
-            selected(Theme::Dark, Some(Paint::Red)),
-            Color::Rgb(135, 255, 255)
-        );
-        assert_eq!(selected(Theme::Dark, None), Theme::Dark.accent());
-        for p in Paint::ALL {
-            assert!(contrast(selected(Theme::Dark, Some(p)), BG) >= 4.5, "{p:?}");
-            assert!(
-                contrast(selected(Theme::Light, Some(p)), WHITE) >= 4.5,
-                "{p:?}"
-            );
-        }
     }
 
     #[test]

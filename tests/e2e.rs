@@ -17,13 +17,21 @@ fn cell(t: &Term, col: u16, row: u16) -> char {
         .unwrap_or(' ')
 }
 
-fn assert_detours_and_points_at_b(t: &Term) {
+fn assert_points_at_b(t: &Term) {
     assert_eq!(
         cell(t, 34, 5),
         '┌',
         "obstacle O is not drawn\n{}",
         t.screen()
     );
+    assert_eq!(t.screen().matches(['▶', '◆']).count(), 1, "{}", t.screen());
+    assert!(matches!(cell(t, 59, 11), '▶' | '◆'), "{}", t.screen());
+    assert_eq!(cell(t, 58, 11), '─', "{}", t.screen());
+    assert_eq!(cell(t, 57, 11), '─', "{}", t.screen());
+}
+
+/// The selection box of a selected arrow crosses O, so only an unselected arrow proves the detour.
+fn assert_clear_of_o(t: &Term) {
     for row in 6..=15 {
         for col in 35..=45 {
             assert_eq!(
@@ -34,10 +42,6 @@ fn assert_detours_and_points_at_b(t: &Term) {
             );
         }
     }
-    assert_eq!(t.screen().matches(['▶', '◆']).count(), 1, "{}", t.screen());
-    assert!(matches!(cell(t, 59, 11), '▶' | '◆'), "{}", t.screen());
-    assert_eq!(cell(t, 58, 11), '─', "{}", t.screen());
-    assert_eq!(cell(t, 57, 11), '─', "{}", t.screen());
 }
 
 #[test]
@@ -199,13 +203,14 @@ fn arrow_drag_between_shapes_detours_mid_drag_on_release_and_after_a_click_elsew
     t.key("a");
     t.press(22, 10);
     t.move_to(60, 10);
-    assert_detours_and_points_at_b(&t);
+    assert_points_at_b(&t);
     let held = t.canvas().replace('◆', "▶");
     t.release(60, 10);
-    assert_detours_and_points_at_b(&t);
+    assert_points_at_b(&t);
     assert_eq!(t.canvas(), held);
     t.click(90, 28);
-    assert_detours_and_points_at_b(&t);
+    assert_points_at_b(&t);
+    assert_clear_of_o(&t);
 }
 
 #[test]

@@ -271,7 +271,7 @@ fn ink_and_fill_draw_only_on_a_truecolor_terminal() {
 }
 
 #[test]
-fn light_theme_darkens_ink_and_fill_and_the_selection_ink() {
+fn light_theme_darkens_ink_and_fill() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 20, ""));
     c.elements.push(shape("bbbbbbbb", 40, ""));
@@ -289,7 +289,7 @@ fn light_theme_darkens_ink_and_fill_and_the_selection_ink() {
     let off = draw_env(&s, true, Some("truecolor"));
     assert_eq!(on[(20, 4)].fg, Color::Rgb(114, 42, 42));
     assert_eq!(on[(23, 5)].bg, Color::Rgb(255, 215, 215));
-    assert_eq!(on[(41, 4)].fg, Color::Rgb(42, 114, 114));
+    assert_eq!(on[(41, 4)].fg, Color::Rgb(114, 42, 42));
     assert_eq!(
         (off[(20, 4)].fg, off[(23, 5)].bg),
         (Color::Reset, Color::Reset)
@@ -583,7 +583,7 @@ fn help_draws_on_a_tiny_screen() {
 }
 
 #[test]
-fn selected_shape_takes_a_turned_ink_on_truecolor_and_reverses_without_it() {
+fn selected_shape_keeps_its_ink_and_gets_a_corner_box() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 20, "box"));
     c.elements.push(shape("bbbbbbbb", 40, "box"));
@@ -596,14 +596,61 @@ fn selected_shape_takes_a_turned_ink_on_truecolor_and_reverses_without_it() {
     s.selection.push(Id::from("bbbbbbbb"));
     let on = draw_env(&s, false, Some("truecolor"));
     let off = draw_env(&s, false, Some("256color"));
-    for x in [22, 42, 62] {
-        assert!(!on[(x, 4)].modifier.contains(Modifier::REVERSED), "{x}");
+    for b in [&on, &off] {
+        for x in [22, 42, 62] {
+            assert!(!b[(x, 4)].modifier.contains(Modifier::REVERSED), "{x}");
+        }
+        for (x, y) in [(19, 3), (48, 3), (19, 7), (48, 7)] {
+            assert_eq!(b[(x, y)].symbol(), "■", "{x},{y}");
+            assert!(b[(x, y)].modifier.contains(Modifier::REVERSED), "{x},{y}");
+        }
+        assert_eq!(cols(b, 3, 30, 1), "─");
+        assert_eq!(cols(b, 5, 19, 1), "│");
+        assert_eq!(cols(b, 5, 48, 1), "│");
+        assert_eq!(cols(b, 4, 20, 2), "┌─");
     }
-    assert_eq!(on[(22, 4)].fg, Color::Rgb(95, 215, 255));
-    assert_eq!(on[(42, 4)].fg, Color::Rgb(135, 255, 255));
+    assert_eq!(on[(22, 4)].fg, Color::Reset);
+    assert_eq!(on[(42, 4)].fg, Color::Rgb(255, 95, 95));
     assert_eq!(on[(62, 4)].fg, Color::Reset);
-    assert!(off[(22, 4)].modifier.contains(Modifier::REVERSED));
-    assert!(!off[(62, 4)].modifier.contains(Modifier::REVERSED));
+    assert_eq!(on[(19, 3)].fg, Theme::Dark.accent());
+    assert_eq!(on[(30, 3)].fg, Theme::Dark.accent());
+    assert_eq!(off[(30, 3)].fg, Color::Reset);
+    assert!(!off[(30, 3)].modifier.contains(Modifier::REVERSED));
+}
+
+#[test]
+fn selection_box_skips_cells_a_neighbour_owns() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    c.elements.push(shape("bbbbbbbb", 30, ""));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.selection.push(Id::from("aaaaaaaa"));
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 5, 28, 1), "│");
+    assert_eq!(cols(&b, 5, 29, 2), " │");
+}
+
+#[test]
+fn selected_line_box_spans_its_route() {
+    let mut c = Canvas::default();
+    c.elements.push(Element::Line(Line {
+        id: Id::from("cccccccc"),
+        kind: LineKind::Line,
+        from: End::Free(10, 10),
+        to: End::Free(20, 10),
+        label: String::new(),
+        label_at: None,
+        stroke: Default::default(),
+        bends: vec![],
+        color: None,
+        meta: Default::default(),
+    }));
+    let mut s = Session::new(c, View::default(), (80, 24));
+    s.selection.push(Id::from("cccccccc"));
+    let b = draw(&s, &Overlay::None);
+    for (x, y) in [(9, 9), (21, 9), (9, 11), (21, 11)] {
+        assert_eq!(b[(x, y)].symbol(), "■", "{x},{y}");
+    }
 }
 
 #[test]

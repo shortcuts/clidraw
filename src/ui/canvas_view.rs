@@ -4,13 +4,12 @@ use super::registry;
 use super::theme;
 use crate::input::{clone_of, handles, EditTarget, Handle, Hit, Session};
 use crate::model::{
-    label_pos, side_label_at, wrap, Anchor, Border, Edge, Element, End, Find, Id, Line, LineKind,
+    label_pos, side_label_at, wrap, Anchor, Border, Edge, Element, End, Find, Line, LineKind,
     Router, Shape, ShapeKind, Stroke,
 };
 use crate::view::Zoom;
 use ratatui::style::Color;
 use std::cmp::Ordering;
-use std::collections::HashSet;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
@@ -26,7 +25,6 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     let mut slot = s.layout.borrow_mut();
     let layout = refresh(&mut slot, &s.canvas, s.rev);
     let find = layout.find(&s.canvas);
-    let selected: HashSet<&Id> = s.selection.iter().collect();
     for i in s.canvas.stacking() {
         let e = &s.canvas.elements[i];
         let (x, y, w, h) = seen(e, layout.bounds[i]);
@@ -36,14 +34,7 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
         }
         let (x, y, w, h) = layout.bounds[i];
         let (sx, sy, w, h) = view.rect(x, y, w, h);
-        let is_selected = selected.contains(e.id());
-        let flags = if is_selected {
-            if colors {
-                0
-            } else {
-                REVERSE
-            }
-        } else if s.snap.as_ref() == Some(e.id()) {
+        let flags = if s.snap.as_ref() == Some(e.id()) {
             BOLD
         } else {
             0
@@ -67,9 +58,7 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
                 Element::Line(l) => (l.color, None),
                 Element::Text(t) => (t.color, None),
             };
-            if is_selected {
-                grid.tint(sx, sy, w, h, theme::selected(s.theme, ink));
-            } else if let Some(p) = ink {
+            if let Some(p) = ink {
                 grid.tint(sx, sy, w, h, theme::ink(s.theme, p));
             } else if matches!(e, Element::Shape(sh) if sh.kind == ShapeKind::Frame) {
                 // Border only: a whole-rect tint would recolor the frame's children.
@@ -86,6 +75,7 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     }
     ghost(grid, s);
     edit_label(grid, s);
+    selection_box(grid, s, &find, &layout.router, accent);
     for (h, id, (x, y)) in handles(&s.canvas, &s.selection) {
         if h != Handle::Resize {
             continue;
@@ -263,6 +253,46 @@ fn band(grid: &mut Grid, s: &Session, a: (i32, i32), b: (i32, i32)) {
     for y in y0..=y1 {
         grid.set(x0, y, '┆', DIM);
         grid.set(x1, y, '┆', DIM);
+    }
+}
+
+fn selection_box<'a>(
+    grid: &mut Grid,
+    s: &'a Session,
+    find: &Find<'a>,
+    router: &Router,
+    accent: Option<Color>,
+) {
+    let Some((x0, y0, x1, y1)) = s
+        .selection
+        .iter()
+        .filter_map(|id| s.canvas.elements.iter().find(|e| e.id() == id))
+        .map(|e| s.canvas.extent_with(e, find, router))
+        .map(|(x, y, w, h)| (x, y, x + w, y + h))
+        .reduce(|a, b| (a.0.min(b.0), a.1.min(b.1), a.2.max(b.2), a.3.max(b.3)))
+    else {
+        return;
+    };
+    let (sx, sy, sw, sh) = s.view.rect(x0, y0, x1 - x0, y1 - y0);
+    let (l, t, r, b) = (sx - 1, sy - 1, sx + sw, sy + sh);
+    let mut put = |x, y, ch, flags| {
+        if flags == REVERSE || grid.get(x, y).is_some_and(|c| c.ch == ' ') {
+            grid.set(x, y, ch, flags);
+            if let Some(c) = accent {
+                grid.tint(x, y, 1, 1, c);
+            }
+        }
+    };
+    for x in l + 1..r {
+        put(x, t, '─', 0);
+        put(x, b, '─', 0);
+    }
+    for y in t + 1..b {
+        put(l, y, '│', 0);
+        put(r, y, '│', 0);
+    }
+    for (x, y) in [(l, t), (r, t), (l, b), (r, b)] {
+        put(x, y, '■', REVERSE);
     }
 }
 
