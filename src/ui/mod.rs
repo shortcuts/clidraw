@@ -90,12 +90,10 @@ pub fn render(
     doc: &Doc,
 ) {
     let mut grid = Grid::new(area.width, area.height);
-    let (no_color, colorterm) = (
-        std::env::var_os("NO_COLOR").is_some(),
-        std::env::var("COLORTERM").ok(),
-    );
-    let colors = theme::colors(no_color, colorterm.as_deref());
-    let accent = theme::accent(s.theme, no_color, colorterm.as_deref());
+    let depth = theme::Depth::from_env();
+    grid.depth = depth;
+    let colors = theme::colors(depth);
+    let accent = theme::accent(s.theme, depth);
     grid.accent = colors.then(|| s.chrome_accent.unwrap_or_else(|| s.theme.accent()));
     canvas_view::draw(&mut grid, s, accent, colors);
     if !s.present {

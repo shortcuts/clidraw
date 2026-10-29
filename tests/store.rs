@@ -90,6 +90,22 @@ fn colors_round_trip_and_uncolored_files_keep_their_bytes() {
 }
 
 #[test]
+fn hex_colors_round_trip_as_lowercase_strings() {
+    let (t, s) = store();
+    let path = t.path().join("c/a.clidraw.json");
+    let mut c = sample();
+    let Element::Shape(sh) = &mut c.elements[0] else {
+        panic!("no shape")
+    };
+    sh.color = Some(Paint::Rgb(255, 0, 170));
+    s.save("a", &c).unwrap();
+    assert!(std::fs::read_to_string(&path)
+        .unwrap()
+        .contains("\"color\": \"#ff00aa\""));
+    assert_eq!(s.load("a").unwrap(), c);
+}
+
+#[test]
 fn unchanged_save_keeps_bytes_and_skips_write() {
     let (t, s) = store();
     s.save("a", &sample()).unwrap();

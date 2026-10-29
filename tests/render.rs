@@ -46,18 +46,27 @@ fn draw(s: &Session, overlay: &Overlay) -> Buffer {
 
 /// Draws with the colour environment set, so parallel tests never see it.
 fn draw_env(s: &Session, no_color: bool, colorterm: Option<&str>) -> Buffer {
+    draw_term(s, no_color, colorterm, None)
+}
+
+fn draw_term(s: &Session, no_color: bool, colorterm: Option<&str>, term: Option<&str>) -> Buffer {
     let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
-    std::env::remove_var("NO_COLOR");
-    std::env::remove_var("COLORTERM");
-    if no_color {
-        std::env::set_var("NO_COLOR", "1");
-    }
-    if let Some(v) = colorterm {
-        std::env::set_var("COLORTERM", v);
+    let vars = ["NO_COLOR", "COLORTERM", "TERM"];
+    let saved = vars.map(std::env::var_os);
+    let set = [no_color.then_some("1"), colorterm, term];
+    for (k, v) in vars.iter().zip(set) {
+        match v {
+            Some(v) => std::env::set_var(k, v),
+            None => std::env::remove_var(k),
+        }
     }
     let b = render(s, &Overlay::None);
-    std::env::remove_var("NO_COLOR");
-    std::env::remove_var("COLORTERM");
+    for (k, v) in vars.iter().zip(saved) {
+        match v {
+            Some(v) => std::env::set_var(k, v),
+            None => std::env::remove_var(k),
+        }
+    }
     b
 }
 
@@ -237,6 +246,21 @@ fn border_styles_swap_the_glyph_set() {
     assert_eq!(cols(&b, 5, 40, 8), "║      ║");
     assert_eq!(cols(&b, 4, 60, 8), "┏━━━━━━┓");
     assert_eq!(cols(&b, 5, 60, 8), "┃      ┃");
+}
+
+#[test]
+fn a_hex_ink_downgrades_to_the_terminal_depth() {
+    let mut c = Canvas::default();
+    c.elements.push(shape("aaaaaaaa", 20, ""));
+    if let Element::Shape(s) = &mut c.elements[0] {
+        s.color = Some(Paint::Rgb(255, 95, 95));
+    }
+    let s = Session::new(c, View::default(), (80, 24));
+    let fg = |no_color, colorterm, term| draw_term(&s, no_color, colorterm, term)[(20, 4)].fg;
+    assert_eq!(fg(false, Some("truecolor"), None), Color::Rgb(255, 95, 95));
+    assert_eq!(fg(false, None, Some("xterm-256color")), Color::Indexed(203));
+    assert_eq!(fg(false, None, Some("xterm")), Color::LightRed);
+    assert_eq!(fg(true, None, Some("xterm-256color")), Color::Reset);
 }
 
 #[test]

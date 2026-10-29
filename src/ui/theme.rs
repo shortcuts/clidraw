@@ -30,12 +30,98 @@ impl Theme {
     }
 }
 
-pub fn colors(no_color: bool, colorterm: Option<&str>) -> bool {
-    !no_color && matches!(colorterm, Some("truecolor" | "24bit"))
+/// How many colors the terminal shows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Depth {
+    None,
+    Ansi16,
+    Ansi256,
+    Truecolor,
 }
 
-pub fn accent(theme: Theme, no_color: bool, colorterm: Option<&str>) -> Option<Color> {
-    colors(no_color, colorterm).then(|| theme.accent())
+impl Depth {
+    pub fn detect(no_color: bool, colorterm: Option<&str>, term: Option<&str>) -> Depth {
+        match (no_color, colorterm, term) {
+            (true, ..) => Depth::None,
+            (_, Some("truecolor" | "24bit"), _) => Depth::Truecolor,
+            (_, _, Some(t)) if t.contains("256color") => Depth::Ansi256,
+            (_, _, Some(t)) if !t.is_empty() && t != "dumb" => Depth::Ansi16,
+            _ => Depth::None,
+        }
+    }
+
+    pub fn from_env() -> Depth {
+        Depth::detect(
+            std::env::var_os("NO_COLOR").is_some(),
+            std::env::var("COLORTERM").ok().as_deref(),
+            std::env::var("TERM").ok().as_deref(),
+        )
+    }
+}
+
+pub fn colors(d: Depth) -> bool {
+    d != Depth::None
+}
+
+pub fn accent(theme: Theme, d: Depth) -> Option<Color> {
+    colors(d).then(|| theme.accent())
+}
+
+const CUBE: [u8; 6] = [0, 95, 135, 175, 215, 255];
+
+const ANSI16: [((u8, u8, u8), Color); 16] = [
+    ((0, 0, 0), Color::Black),
+    ((205, 0, 0), Color::Red),
+    ((0, 205, 0), Color::Green),
+    ((205, 205, 0), Color::Yellow),
+    ((0, 0, 238), Color::Blue),
+    ((205, 0, 205), Color::Magenta),
+    ((0, 205, 205), Color::Cyan),
+    ((229, 229, 229), Color::Gray),
+    ((127, 127, 127), Color::DarkGray),
+    ((255, 0, 0), Color::LightRed),
+    ((0, 255, 0), Color::LightGreen),
+    ((255, 255, 0), Color::LightYellow),
+    ((92, 92, 255), Color::LightBlue),
+    ((255, 0, 255), Color::LightMagenta),
+    ((0, 255, 255), Color::LightCyan),
+    ((255, 255, 255), Color::White),
+];
+
+fn dist(a: (u8, u8, u8), b: (u8, u8, u8)) -> i32 {
+    let d = |x: u8, y: u8| (i32::from(x) - i32::from(y)).pow(2);
+    d(a.0, b.0) + d(a.1, b.1) + d(a.2, b.2)
+}
+
+/// Maps a truecolor to the nearest color the terminal depth can show.
+pub fn downgrade(d: Depth, c: Color) -> Color {
+    let Color::Rgb(r, g, b) = c else {
+        return c;
+    };
+    let rgb = (r, g, b);
+    match d {
+        Depth::None | Depth::Truecolor => c,
+        Depth::Ansi256 => {
+            let level = |v: u8| {
+                (0..6)
+                    .min_by_key(|&i| i32::from(v).abs_diff(i32::from(CUBE[i])))
+                    .unwrap()
+            };
+            let (ri, gi, bi) = (level(r), level(g), level(b));
+            let cube = (CUBE[ri], CUBE[gi], CUBE[bi]);
+            let mean = (u16::from(r) + u16::from(g) + u16::from(b)) / 3;
+            let step = (0..24u8)
+                .min_by_key(|&i| (i32::from(mean) - i32::from(8 + 10 * i)).abs())
+                .unwrap();
+            let gray = 8 + 10 * step;
+            if dist(rgb, (gray, gray, gray)) < dist(rgb, cube) {
+                Color::Indexed(232 + step)
+            } else {
+                Color::Indexed((16 + 36 * ri + 6 * gi + bi) as u8)
+            }
+        }
+        Depth::Ansi16 => ANSI16.iter().min_by_key(|(v, _)| dist(rgb, *v)).unwrap().1,
+    }
 }
 
 /// Light ink is the dark ink scaled down: every paint then keeps 4.5:1 on white.
@@ -71,16 +157,11 @@ pub fn fill(theme: Theme, p: Paint) -> Color {
 }
 
 /// Never calls `detected` unless the setting is `Auto` and colors are on.
-pub fn resolve(
-    setting: ThemeSetting,
-    no_color: bool,
-    colorterm: Option<&str>,
-    detected: impl FnOnce() -> Option<Theme>,
-) -> Theme {
+pub fn resolve(setting: ThemeSetting, d: Depth, detected: impl FnOnce() -> Option<Theme>) -> Theme {
     match setting {
         ThemeSetting::Dark => Theme::Dark,
         ThemeSetting::Light => Theme::Light,
-        ThemeSetting::Auto if colors(no_color, colorterm) => detected().unwrap_or(Theme::Dark),
+        ThemeSetting::Auto if colors(d) => detected().unwrap_or(Theme::Dark),
         ThemeSetting::Auto => Theme::Dark,
     }
 }
@@ -199,13 +280,39 @@ mod tests {
     }
 
     #[test]
-    fn accents_need_truecolor_and_no_no_color() {
+    fn depth_follows_the_environment() {
+        let d = Depth::detect;
+        assert_eq!(d(false, Some("truecolor"), None), Depth::Truecolor);
+        assert_eq!(d(false, Some("24bit"), Some("xterm")), Depth::Truecolor);
+        assert_eq!(d(false, None, Some("xterm-256color")), Depth::Ansi256);
+        assert_eq!(d(false, None, Some("xterm")), Depth::Ansi16);
+        assert_eq!(d(false, None, Some("dumb")), Depth::None);
+        assert_eq!(d(false, None, Some("")), Depth::None);
+        assert_eq!(d(false, None, None), Depth::None);
+        assert_eq!(
+            d(true, Some("truecolor"), Some("xterm-256color")),
+            Depth::None
+        );
+    }
+
+    #[test]
+    fn accents_need_a_color_terminal() {
         let a = Some(Color::Rgb(95, 215, 255));
-        assert_eq!(accent(Theme::Dark, false, Some("truecolor")), a);
-        assert_eq!(accent(Theme::Dark, false, Some("24bit")), a);
-        assert_eq!(accent(Theme::Dark, false, Some("256color")), None);
-        assert_eq!(accent(Theme::Dark, false, None), None);
-        assert_eq!(accent(Theme::Dark, true, Some("truecolor")), None);
+        assert_eq!(accent(Theme::Dark, Depth::Truecolor), a);
+        assert_eq!(accent(Theme::Dark, Depth::Ansi256), a);
+        assert_eq!(accent(Theme::Dark, Depth::None), None);
+    }
+
+    #[test]
+    fn downgrade_picks_the_nearest_palette_entry() {
+        let red = Color::Rgb(255, 95, 95);
+        assert_eq!(downgrade(Depth::Truecolor, red), red);
+        assert_eq!(downgrade(Depth::Ansi256, red), Color::Indexed(203));
+        assert_eq!(downgrade(Depth::Ansi16, red), Color::LightRed);
+        let gray = Color::Rgb(128, 128, 128);
+        assert_eq!(downgrade(Depth::Ansi256, gray), Color::Indexed(244));
+        assert_eq!(downgrade(Depth::Ansi16, gray), Color::DarkGray);
+        assert_eq!(downgrade(Depth::Ansi256, Color::Red), Color::Red);
     }
 
     #[test]
@@ -270,14 +377,17 @@ mod tests {
 
     #[test]
     fn auto_asks_the_terminal_only_when_colors_are_on() {
-        let tc = Some("truecolor");
+        let tc = Depth::Truecolor;
         let never = || -> Option<Theme> { panic!("must not query") };
-        assert_eq!(resolve(ThemeSetting::Dark, false, tc, never), Theme::Dark);
-        assert_eq!(resolve(ThemeSetting::Light, false, tc, never), Theme::Light);
-        assert_eq!(resolve(ThemeSetting::Auto, true, tc, never), Theme::Dark);
-        assert_eq!(resolve(ThemeSetting::Auto, false, None, never), Theme::Dark);
+        assert_eq!(resolve(ThemeSetting::Dark, tc, never), Theme::Dark);
+        assert_eq!(resolve(ThemeSetting::Light, tc, never), Theme::Light);
+        assert_eq!(resolve(ThemeSetting::Auto, Depth::None, never), Theme::Dark);
+        assert_eq!(resolve(ThemeSetting::Auto, Depth::None, never), Theme::Dark);
         let light = || Some(Theme::Light);
-        assert_eq!(resolve(ThemeSetting::Auto, false, tc, light), Theme::Light);
-        assert_eq!(resolve(ThemeSetting::Auto, false, tc, || None), Theme::Dark);
+        assert_eq!(resolve(ThemeSetting::Auto, tc, light), Theme::Light);
+        assert_eq!(
+            resolve(ThemeSetting::Auto, Depth::Ansi256, || None),
+            Theme::Dark
+        );
     }
 }

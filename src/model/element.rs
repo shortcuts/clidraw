@@ -87,9 +87,9 @@ impl TextAlign {
     }
 }
 
-/// Named ink and fill color. The terminal and both exporters read the same RGB.
+/// Ink and fill color: a name or a `#rrggbb` hex. The terminal and both exporters read the same RGB.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(try_from = "String", into = "String")]
 pub enum Paint {
     Red,
     Orange,
@@ -97,6 +97,7 @@ pub enum Paint {
     Green,
     Blue,
     Violet,
+    Rgb(u8, u8, u8),
 }
 
 /// Opacity of a fill over the page, in percent.
@@ -120,24 +121,56 @@ impl Paint {
             Paint::Green => (100, 220, 120),
             Paint::Blue => (110, 160, 255),
             Paint::Violet => (190, 140, 255),
+            Paint::Rgb(r, g, b) => (r, g, b),
         }
     }
 
-    pub fn name(self) -> &'static str {
+    /// The name of a named color, else the lowercase `#rrggbb`.
+    pub fn label(self) -> String {
         match self {
-            Paint::Red => "red",
-            Paint::Orange => "orange",
-            Paint::Yellow => "yellow",
-            Paint::Green => "green",
-            Paint::Blue => "blue",
-            Paint::Violet => "violet",
+            Paint::Red => "red".into(),
+            Paint::Orange => "orange".into(),
+            Paint::Yellow => "yellow".into(),
+            Paint::Green => "green".into(),
+            Paint::Blue => "blue".into(),
+            Paint::Violet => "violet".into(),
+            Paint::Rgb(r, g, b) => format!("#{r:02x}{g:02x}{b:02x}"),
         }
     }
 
-    /// The click cycle: none, each color in order, then none again.
+    /// A lowercase name, or `#` plus six hex digits of either case.
+    pub fn parse(s: &str) -> Option<Paint> {
+        if let Some(p) = Paint::ALL.into_iter().find(|p| p.label() == s) {
+            return Some(p);
+        }
+        let hex = s
+            .strip_prefix('#')
+            .filter(|h| h.len() == 6 && h.is_ascii())?;
+        let ch = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).ok();
+        Some(Paint::Rgb(ch(0)?, ch(2)?, ch(4)?))
+    }
+
+    /// The click cycle: none, each color in order, then none again. A custom hex ends the cycle.
     pub fn next(cur: Option<Paint>) -> Option<Paint> {
-        let i = cur.map_or(0, |p| Paint::ALL.iter().position(|&a| a == p).unwrap() + 1);
+        let i = match cur {
+            None => 0,
+            Some(p) => Paint::ALL.iter().position(|&a| a == p)? + 1,
+        };
         Paint::ALL.get(i).copied()
+    }
+}
+
+impl TryFrom<String> for Paint {
+    type Error = String;
+
+    fn try_from(s: String) -> Result<Paint, String> {
+        Paint::parse(&s).ok_or_else(|| format!("unknown color {s:?}"))
+    }
+}
+
+impl From<Paint> for String {
+    fn from(p: Paint) -> String {
+        p.label()
     }
 }
 
@@ -424,5 +457,47 @@ impl Line {
 impl Text {
     pub fn width(&self) -> i32 {
         self.text.width().max(1) as i32
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_takes_names_and_six_digit_hex_only() {
+        assert_eq!(Paint::parse("red"), Some(Paint::Red));
+        assert_eq!(Paint::parse("#FF00aa"), Some(Paint::Rgb(255, 0, 170)));
+        for bad in [
+            "",
+            "Red",
+            "#f0a",
+            "#ff00aa80",
+            " #ff00aa",
+            "#gg0000",
+            "ff00aa",
+            "#é0000",
+        ] {
+            assert_eq!(Paint::parse(bad), None, "{bad:?}");
+        }
+    }
+
+    #[test]
+    fn serde_writes_lowercase_hex_and_still_reads_old_names() {
+        let p = Paint::Rgb(255, 0, 170);
+        assert_eq!(serde_json::to_string(&p).unwrap(), "\"#ff00aa\"");
+        assert_eq!(serde_json::from_str::<Paint>("\"#FF00AA\"").unwrap(), p);
+        assert_eq!(
+            serde_json::from_str::<Paint>("\"red\"").unwrap(),
+            Paint::Red
+        );
+        assert!(serde_json::from_str::<Paint>("\"nope\"").is_err());
+    }
+
+    #[test]
+    fn the_click_cycle_ends_on_a_custom_color() {
+        assert_eq!(Paint::next(None), Some(Paint::Red));
+        assert_eq!(Paint::next(Some(Paint::Violet)), None);
+        assert_eq!(Paint::next(Some(Paint::Rgb(1, 2, 3))), None);
     }
 }

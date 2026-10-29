@@ -585,6 +585,20 @@ fn palette_ink_opens_a_color_list_that_enter_applies_and_esc_leaves() {
     assert_eq!(rect(&app).fill, Some(Paint::Red));
 }
 
+#[test]
+fn palette_ink_takes_a_typed_hex_on_enter() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    app.session.exec(shape_at("aaaaaaaa", 20, 5));
+    app.session.selection = vec![Id::from("aaaaaaaa")];
+    run_palette(&mut app, "ink color", now);
+    type_str(&mut app, "#00ff88", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(rect(&app).color, Some(Paint::Rgb(0, 255, 136)));
+    assert!(!palette_open(&app));
+}
+
 /// Finds `text` on the rendered 80x24 screen, from the bottom row up, as (column, row).
 fn text_at(app: &App, text: &str) -> (u16, u16) {
     let area = Rect::new(0, 0, 80, 24);

@@ -48,7 +48,7 @@ pub const DEFAULT_TOML: &str = "\
 # Color of the active tool, selected row and mode badge, as \"#rrggbb\". Unset uses the theme accent.
 # chrome_accent = \"#5fd7ff\"
 
-# Color palette: auto asks the terminal for its background, or force dark or light.
+# Color palette: auto asks the terminal for its background, or force dark or light. Without COLORTERM=truecolor, colors fall back to the nearest of 256 or 16.
 # theme = \"auto\"
 
 # Folder of your Obsidian vault. Save to Obsidian note in the command palette writes into it.

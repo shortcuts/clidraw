@@ -269,6 +269,32 @@ fn export_clidraw_to_stdout_is_the_saved_canvas() {
 }
 
 #[test]
+fn edit_set_takes_a_hex_color_and_exports_it() {
+    let t = seeded_empty();
+    run_stdin(t.path(), &["edit", "demo"], TWO_AND_AN_ARROW);
+    let ops = r##"[{"op":"set","id":"a","color":"#112233","fill":"#AABBCC"}]"##;
+    let r = run_stdin(t.path(), &["edit", "demo"], ops);
+    assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
+    let a = &show(t.path())["elements"][0];
+    assert_eq!(
+        (a["color"].as_str(), a["fill"].as_str()),
+        (Some("#112233"), Some("#aabbcc"))
+    );
+    let svg = t.path().join("o.svg");
+    run(
+        t.path(),
+        &["export", "demo", "--svg", svg.to_str().unwrap()],
+    );
+    assert!(std::fs::read_to_string(svg).unwrap().contains("#112233"));
+    let r = run_stdin(
+        t.path(),
+        &["edit", "demo"],
+        r#"[{"op":"set","id":"a","color":"nope"}]"#,
+    );
+    assert!(String::from_utf8_lossy(&r.stderr).contains("unknown color \"nope\""));
+}
+
+#[test]
 fn edit_rejects_a_shape_below_min_size() {
     let t = seeded_empty();
     let before = show(t.path());

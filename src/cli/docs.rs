@@ -1,7 +1,5 @@
 use serde_json::{json, Value};
 
-const COLORS: &[&str] = &["red", "orange", "yellow", "green", "blue", "violet"];
-const COLORS_OR_NONE: &[&str] = &["red", "orange", "yellow", "green", "blue", "violet", "none"];
 const SHAPE_KINDS: &[&str] = &[
     "Rect",
     "Diamond",
@@ -94,15 +92,15 @@ pub const OPS: [OpDoc; 11] = [
                 name: "color",
                 required: false,
                 example: "\"red\"",
-                values: COLORS,
-                note: "",
+                values: &[],
+                note: "A color name (red, orange, yellow, green, blue, violet) or a #rrggbb hex.",
             },
             FieldDoc {
                 name: "fill",
                 required: false,
                 example: "\"blue\"",
-                values: COLORS,
-                note: "",
+                values: &[],
+                note: "A color name (red, orange, yellow, green, blue, violet) or a #rrggbb hex.",
             },
             FieldDoc {
                 name: "meta",
@@ -149,8 +147,8 @@ pub const OPS: [OpDoc; 11] = [
                 name: "color",
                 required: false,
                 example: "\"red\"",
-                values: COLORS,
-                note: "",
+                values: &[],
+                note: "A color name (red, orange, yellow, green, blue, violet) or a #rrggbb hex.",
             },
             FieldDoc {
                 name: "meta",
@@ -231,15 +229,15 @@ pub const OPS: [OpDoc; 11] = [
                 name: "color",
                 required: false,
                 example: "\"red\"",
-                values: COLORS_OR_NONE,
-                note: "Use none to clear the color.",
+                values: &[],
+                note: "A color name (red, orange, yellow, green, blue, violet) or a #rrggbb hex. Use none to clear the color.",
             },
             FieldDoc {
                 name: "fill",
                 required: false,
                 example: "\"blue\"",
-                values: COLORS_OR_NONE,
-                note: "Use none to clear the fill.",
+                values: &[],
+                note: "A color name (red, orange, yellow, green, blue, violet) or a #rrggbb hex. Use none to clear the fill.",
             },
             FieldDoc {
                 name: "stroke",

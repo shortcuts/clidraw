@@ -175,12 +175,7 @@ fn main() -> Result<()> {
         EnableBracketedPaste
     )?;
     stdout().write_all(b"\x1b]22;>default\x1b\\")?;
-    app.session.theme = theme::resolve(
-        setting,
-        std::env::var_os("NO_COLOR").is_some(),
-        std::env::var("COLORTERM").ok().as_deref(),
-        theme::detect,
-    );
+    app.session.theme = theme::resolve(setting, theme::Depth::from_env(), theme::detect);
     // Querying support needs raw mode; unsupported terminals keep the legacy encoding.
     if crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false) {
         execute!(

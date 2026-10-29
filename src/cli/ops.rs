@@ -23,7 +23,7 @@ impl From<Endpoint> for End {
     }
 }
 
-/// One edit. `set` takes a color name, or "none" to clear it.
+/// One edit. `set` takes a color name, a #rrggbb hex, or "none" to clear it.
 #[derive(Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub(super) enum Op {
@@ -102,9 +102,9 @@ fn paint(name: &str) -> Result<Option<Paint>> {
     if name == "none" {
         return Ok(None);
     }
-    serde_json::from_value(name.into())
+    Paint::parse(name)
         .map(Some)
-        .map_err(|_| anyhow::anyhow!("unknown color {name:?}"))
+        .ok_or_else(|| anyhow::anyhow!("unknown color {name:?}"))
 }
 
 /// Sizes a shape to its label: one padding cell and a border on each side.

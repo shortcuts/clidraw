@@ -1,4 +1,5 @@
 use super::App;
+use crate::model::Paint;
 use crate::ui::list::{Click, Outcome};
 use crate::ui::scope::Sink;
 use crate::ui::switcher::{self, SwitcherHit};
@@ -26,15 +27,23 @@ impl App {
                 Outcome::Close => self.overlay = Overlay::None,
                 _ => {}
             },
-            Overlay::Colors(c, l) => match l.key(k) {
-                Outcome::Run(p) => {
-                    let c = *c;
+            Overlay::Colors(c, l) => {
+                let c = *c;
+                if let (KeyCode::Enter, Some(hex)) = (k.code, l.free_text().map(str::trim)) {
+                    let p = Paint::parse(hex);
                     self.session.set_paint(c, p);
                     self.overlay = Overlay::None;
+                } else {
+                    match l.key(k) {
+                        Outcome::Run(p) => {
+                            self.session.set_paint(c, p);
+                            self.overlay = Overlay::None;
+                        }
+                        Outcome::Close => self.overlay = Overlay::None,
+                        _ => {}
+                    }
                 }
-                Outcome::Close => self.overlay = Overlay::None,
-                _ => {}
-            },
+            }
             Overlay::Kinds(origins, l) => match l.key(k) {
                 Outcome::Run(kind) => {
                     self.session.set_kind(origins, kind);

@@ -1,3 +1,4 @@
+use super::theme::{downgrade, Depth};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -22,6 +23,7 @@ pub struct Grid {
     pub w: i32,
     pub h: i32,
     pub accent: Option<Color>,
+    pub depth: Depth,
     cells: Vec<Cell>,
 }
 
@@ -37,6 +39,7 @@ impl Grid {
             w: i32::from(w),
             h: i32::from(h),
             accent: None,
+            depth: Depth::Truecolor,
             cells: vec![blank; usize::from(w) * usize::from(h)],
         }
     }
@@ -149,14 +152,14 @@ impl Grid {
                 if c.flags & ACCENT != 0 {
                     style = style.add_modifier(Modifier::REVERSED);
                     if let Some(a) = self.accent {
-                        style = style.fg(a);
+                        style = style.fg(downgrade(self.depth, a));
                     }
                 }
                 if let Some(fg) = c.fg {
-                    style = style.fg(fg);
+                    style = style.fg(downgrade(self.depth, fg));
                 }
                 if let Some(bg) = c.bg {
-                    style = style.bg(bg);
+                    style = style.bg(downgrade(self.depth, bg));
                 }
                 let mut tmp = [0u8; 4];
                 buf[(area.x + x as u16, area.y + y as u16)]
