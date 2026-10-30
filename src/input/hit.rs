@@ -1,6 +1,7 @@
 use super::Session;
 use crate::model::{
-    label_pos, side_label_at, Canvas, Edge, Element, Find, Id, Line, Shape, ShapeKind, Side, REACH,
+    label_pos, side_label_at, Canvas, Edge, Element, Find, Id, Line, Router, Shape, ShapeKind,
+    Side, REACH,
 };
 use crate::ui::{refresh, Layout};
 use unicode_width::UnicodeWidthStr;
@@ -11,6 +12,7 @@ pub enum Handle {
     Rotate,
     End(Side),
     Bend(usize),
+    Mid(usize),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -59,6 +61,24 @@ pub fn handles(canvas: &Canvas, selection: &[Id]) -> Vec<(Handle, Id, (i32, i32)
         }
         _ => vec![],
     }
+}
+
+/// One dot per leg of a lone selected line; dragging it inserts a bend at the slot.
+pub fn mid_dots<'a>(
+    canvas: &'a Canvas,
+    find: &Find<'a>,
+    router: &Router,
+    selection: &[Id],
+) -> Vec<(Handle, Id, (i32, i32))> {
+    let [id] = selection else { return vec![] };
+    let Some(Element::Line(l)) = canvas.get(id) else {
+        return vec![];
+    };
+    canvas
+        .mid_cells(l, find, router)
+        .into_iter()
+        .map(|(i, p)| (Handle::Mid(i), id.clone(), p))
+        .collect()
 }
 
 /// True when `id` is a frame whose frame-unit is exactly `selection`.
@@ -203,6 +223,10 @@ pub(super) fn at(s: &Session, selection: &[Id], p: (i32, i32), slop: i32) -> Hit
     }
     let mut slot = s.layout.borrow_mut();
     let layout = refresh(&mut slot, canvas, s.rev);
+    let dots = mid_dots(canvas, &layout.find(canvas), &layout.router, selection);
+    if let Some((h, id, _)) = dots.into_iter().find(|d| d.2 == p) {
+        return Hit::Handle(h, id);
+    }
     canvas
         .stacking()
         .rev()

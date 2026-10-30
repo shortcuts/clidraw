@@ -2,7 +2,7 @@ use super::grid::{Grid, BOLD, DIM, REVERSE};
 use super::layout::{refresh, seen};
 use super::registry;
 use super::theme;
-use crate::input::{clone_of, handles, EditTarget, Handle, Hit, Session};
+use crate::input::{clone_of, handles, mid_dots, EditTarget, Handle, Hit, Session};
 use crate::model::{
     label_pos, side_label_at, wrap, Anchor, Border, Edge, Element, End, Find, Line, LineKind,
     Router, Shape, ShapeKind, Stroke,
@@ -76,10 +76,12 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     ghost(grid, s);
     edit_label(grid, s);
     selection_box(grid, s, &find, &layout.router, accent);
-    for (h, id, (x, y)) in handles(&s.canvas, &s.selection) {
+    let dots = mid_dots(&s.canvas, &find, &layout.router, &s.selection);
+    for (h, id, (x, y)) in handles(&s.canvas, &s.selection).into_iter().chain(dots) {
         let glyph = match h {
             Handle::Resize => '⤡',
             Handle::Rotate => '↻',
+            Handle::Mid(_) => '•',
             _ => continue,
         };
         let (sx, sy) = view.cell_end(x, y);

@@ -233,6 +233,25 @@ impl Canvas {
             .unwrap_or(l.bends.len())
     }
 
+    /// Middle cell of each leg with its slot in `l.bends`; an unbent line uses its drawn route.
+    pub fn mid_cells<'a>(
+        &'a self,
+        l: &Line,
+        find: &Find<'a>,
+        router: &Router,
+    ) -> Vec<(usize, (i32, i32))> {
+        let legs = if l.bends.is_empty() {
+            vec![self.route_with(l, find, router)]
+        } else {
+            self.legs(l, find)
+        };
+        legs.iter()
+            .enumerate()
+            .filter(|(_, leg)| leg.len() >= 3)
+            .map(|(i, leg)| (i, leg[leg.len() / 2]))
+            .collect()
+    }
+
     /// Lines in `ids` and lines bound to a shape in `ids`.
     pub fn touching<'a>(&'a self, ids: &[Id]) -> Vec<&'a Line> {
         let ids: std::collections::HashSet<&Id> = ids.iter().collect();

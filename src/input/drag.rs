@@ -235,11 +235,10 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
             last: w0,
         },
         Target::Label(id, edge) => Action::LabelDrag(id, edge),
-        Target::Route(id) => {
+        Target::Handle(Handle::Mid(at), id) => {
             let Some(Element::Line(l)) = s.canvas.get(&id) else {
                 return Action::Band(w0);
             };
-            let at = s.canvas.bend_slot(l, w0);
             let mut bends = l.bends.clone();
             bends.insert(at, snap_p(s.grid, w0));
             run(

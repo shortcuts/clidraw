@@ -35,7 +35,6 @@ pub(super) enum Target {
     Handle(Handle, Id),
     Element(Id),
     Label(Id, Option<Edge>),
-    Route(Id),
     Empty,
     Draw(Tool),
     Pan,
@@ -371,7 +370,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     if let (Some((id, edge)), true, false) = (
         hit::label_hit(s, &s.selection, world),
         s.tool.is_pointer(),
-        matches!(hit, Hit::Handle(..)),
+        matches!(hit, Hit::Handle(h, _) if !matches!(h, Handle::Mid(_))),
     ) {
         s.gesture = Gesture::Pressed {
             origin: screen,
@@ -384,9 +383,6 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         (Hit::Handle(h, id), _) => Target::Handle(h, id),
         (_, Tool::Arrow) => Target::Draw(s.tool),
         (Hit::Element(id), _) => {
-            let reshape = !s.shift
-                && s.selection == [id.clone()]
-                && matches!(s.canvas.get(&id), Some(Element::Line(_)));
             let mut unit = vec![id.clone()];
             s.canvas.expand_frames(&mut unit);
             s.canvas.expand_groups(&mut unit);
@@ -400,11 +396,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
             } else if !s.selection.contains(&id) {
                 s.selection = unit;
             }
-            if reshape {
-                Target::Route(id)
-            } else {
-                Target::Element(id)
-            }
+            Target::Element(id)
         }
         (
             Hit::Empty,
@@ -570,11 +562,7 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
             Hit::Element(id) => s.select_group_of(id),
             _ => s.selection.clear(),
         },
-        Target::Element(_)
-        | Target::Label(..)
-        | Target::Route(_)
-        | Target::Pan
-        | Target::Handle(..) => {}
+        Target::Element(_) | Target::Label(..) | Target::Pan | Target::Handle(..) => {}
     }
 }
 

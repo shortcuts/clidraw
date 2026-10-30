@@ -26,8 +26,9 @@ fn assert_points_at_b(t: &Term) {
     );
     assert_eq!(t.screen().matches(['▶', '◆']).count(), 1, "{}", t.screen());
     assert!(matches!(cell(t, 59, 11), '▶' | '◆'), "{}", t.screen());
-    assert_eq!(cell(t, 58, 11), '─', "{}", t.screen());
-    assert_eq!(cell(t, 57, 11), '─', "{}", t.screen());
+    for col in [57, 58] {
+        assert!(matches!(cell(t, col, 11), '─' | '•'), "{}", t.screen());
+    }
 }
 
 /// The selection box of a selected arrow crosses O, so only an unselected arrow proves the detour.
@@ -183,15 +184,20 @@ fn drag_a_line_to_bend_it_and_reset_the_route() {
     t.drag((50, 18), (62, 23));
     t.key("a");
     t.drag((22, 10), (55, 20));
+    t.click(90, 28);
     let straight = t.canvas();
     let (col, row) = t.find("╮");
-    t.drag((col, row + 2), (col + 8, row + 2));
+    t.click(col - 8, row);
+    let (dc, dr) = t.find("•");
+    t.drag((dc, dr), (dc, dr + 3));
+    t.click(90, 28);
     assert_ne!(t.canvas(), straight);
-    t.right_click(col + 8, row + 2);
+    t.right_click(dc, dr + 3);
     t.wait_for("Reset route");
     let (c, r) = t.find("Reset route");
     t.click(c, r);
     t.wait_gone("Reset route");
+    t.click(90, 28);
     assert_eq!(t.canvas().trim_end(), straight.trim_end());
 }
 
@@ -207,7 +213,14 @@ fn arrow_drag_between_shapes_detours_mid_drag_on_release_and_after_a_click_elsew
     let held = t.canvas().replace('◆', "▶");
     t.release(60, 10);
     assert_points_at_b(&t);
-    assert_eq!(t.canvas(), held);
+    let released = t.canvas();
+    assert_eq!(released.len(), held.len());
+    for (a, b) in released.chars().zip(held.chars()) {
+        assert!(
+            a == b || a == '•' || b == '•',
+            "{a} vs {b}\n{released}\n{held}"
+        );
+    }
     t.click(90, 28);
     assert_points_at_b(&t);
     assert_clear_of_o(&t);

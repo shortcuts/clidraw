@@ -2814,6 +2814,35 @@ fn dragging_a_selected_line_adds_a_bend_and_one_undo_removes_it() {
 }
 
 #[test]
+fn dragging_a_selected_line_off_a_dot_adds_no_bend() {
+    let mut s = session();
+    s.canvas.push(free_line("llllllll", vec![])).unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    drag(&mut s, (10, 5), (10, 8));
+    assert!(!bends_of(&s).contains(&(10, 8)));
+    assert!(route_of(&s).iter().all(|p| p.1 == 8));
+}
+
+#[test]
+fn after_a_bend_drag_each_new_leg_shows_a_dot_that_hovers_as_mid() {
+    let mut s = session();
+    s.canvas.push(free_line("llllllll", vec![])).unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    drag(&mut s, (15, 5), (15, 9));
+    let id = Id::from("llllllll");
+    assert_eq!(
+        hover_at(&mut s, (12, 5)),
+        Hit::Handle(Handle::Mid(0), id.clone())
+    );
+    assert_eq!(hover_at(&mut s, (22, 9)), Hit::Handle(Handle::Mid(1), id));
+    s.selection = vec![];
+    assert_eq!(
+        hover_at(&mut s, (12, 5)),
+        Hit::Element(Id::from("llllllll"))
+    );
+}
+
+#[test]
 fn the_first_drag_on_an_unselected_line_moves_it_instead_of_bending_it() {
     let mut s = session();
     s.canvas.push(free_line("llllllll", vec![])).unwrap();
