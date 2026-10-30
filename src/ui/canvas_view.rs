@@ -323,7 +323,15 @@ fn dashed(stroke: Stroke, glyph: char) -> char {
     }
 }
 
-fn shape(grid: &mut Grid, s: &Shape, x: i32, y: i32, label: &str, hidden: Option<Edge>, flags: u8) {
+pub(crate) fn shape(
+    grid: &mut Grid,
+    s: &Shape,
+    x: i32,
+    y: i32,
+    label: &str,
+    hidden: Option<Edge>,
+    flags: u8,
+) {
     let (w, h) = (s.w, s.h);
     if s.kind != ShapeKind::Frame {
         grid.clear_inside(x, y, w, h);

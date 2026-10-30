@@ -36,10 +36,7 @@ pub enum Overlay {
     Formats(list::List<scope::ExportFormat>),
     Scope(scope::Sink, list::List<scope::ScopeItem>),
     Colors(palette::Choice, swatches::Swatches),
-    Kinds(
-        Vec<crate::input::Origin>,
-        list::List<crate::model::ShapeKind>,
-    ),
+    Kinds(Vec<crate::input::Origin>, kinds::KindPicker),
     Switcher(switcher::Switcher),
     Notes(prompt::Extent, notes::Notes),
     Prompt(prompt::Prompt),

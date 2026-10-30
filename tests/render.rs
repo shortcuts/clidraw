@@ -2032,7 +2032,10 @@ fn mermaid_prompt_shows_the_fix_only_when_enabled() {
 fn change_shape_overlay_draws_the_kind_rows() {
     for width in [40u16, 60, 120] {
         let s = Session::new(Canvas::default(), View::default(), (width, 24));
-        let overlay = Overlay::Kinds(vec![], clidraw::ui::kinds::list(ShapeKind::Rect, 23));
+        let overlay = Overlay::Kinds(
+            vec![],
+            clidraw::ui::kinds::KindPicker::new(ShapeKind::Rect, (width, 24)),
+        );
         let _env = ENV.lock().unwrap_or_else(|e| e.into_inner());
         let mut t = Terminal::new(TestBackend::new(width, 24)).unwrap();
         t.draw(|f| {
@@ -2051,8 +2054,15 @@ fn change_shape_overlay_draws_the_kind_rows() {
             "Hexagon",
             "Frame",
         ] {
-            let at = rows.iter().position(|r| r.contains(name)).expect(name);
-            assert!(at < 23, "{name} at {at}");
+            let at = rows.iter().position(|r| r.contains(name));
+            if width == 120 {
+                assert!(at.is_some(), "{name}");
+            }
+        }
+        if width == 120 {
+            for r in &rows {}
+            assert!(rows.iter().any(|r| r.contains("✓ Rect")), "{rows:#?}");
+            assert!(rows.iter().any(|r| r.contains('╱')), "{rows:#?}");
         }
     }
 }

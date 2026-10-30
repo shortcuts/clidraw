@@ -706,7 +706,7 @@ fn clicking_a_shape_kind_applies_it_and_clicking_off_the_list_restores_the_kind(
     ctrl_key(&mut app, 'p', now);
     type_str(&mut app, "change shape", now);
     app.on_event(key(KeyCode::Enter), now);
-    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Right), now);
     assert_eq!(
         shape_kind(&app),
         ShapeKind::Diamond,

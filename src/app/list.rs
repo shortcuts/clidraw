@@ -43,11 +43,7 @@ impl App {
                     self.session.restore_kinds(origins);
                     self.overlay = Overlay::None;
                 }
-                Outcome::Idle => {
-                    if let Some(kind) = l.selected() {
-                        self.session.preview_kind(origins, kind);
-                    }
-                }
+                Outcome::Idle => self.session.preview_kind(origins, l.selected()),
                 _ => {}
             },
             Overlay::Notes(x, n) => match n.list.key(k) {

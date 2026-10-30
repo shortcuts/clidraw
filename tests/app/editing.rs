@@ -82,7 +82,7 @@ fn change_shape_previews_without_history_and_enter_commits() {
     let now = Instant::now();
     open_change_shape(&mut app, now);
     let depth = app.session.history.commands().len();
-    app.on_event(key(KeyCode::Down), now);
+    app.on_event(key(KeyCode::Char('l')), now);
     let (w, h) = Shape::snap_size(ShapeKind::Diamond, 8, 3);
     assert_eq!(
         box_state(&app),
@@ -104,8 +104,8 @@ fn change_shape_cycling_returns_to_the_exact_original_size() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     open_change_shape(&mut app, now);
-    app.on_event(key(KeyCode::Down), now);
-    app.on_event(key(KeyCode::Up), now);
+    app.on_event(key(KeyCode::Char('l')), now);
+    app.on_event(key(KeyCode::Char('h')), now);
     assert_eq!(box_state(&app), (ShapeKind::Rect, 30, 8, 8, 3));
 }
 
@@ -137,8 +137,8 @@ fn change_shape_click_outside_restores_and_click_row_commits() {
     ctrl_key(&mut app, 'p', now);
     type_str(&mut app, "change shape", now);
     app.on_event(key(KeyCode::Enter), now);
-    // The box ends above the bottom bar: border at row 13, Rect at 14, Cylinder at 16.
-    click(&mut app, 3, 16, now);
+    // The window spans x 13..67, y 5..19; Cylinder is the first cell of the second row.
+    click(&mut app, 16, 10, now);
     assert!(matches!(app.overlay, clidraw::ui::Overlay::None));
     assert_eq!(box_state(&app).0, ShapeKind::Cylinder);
 }
@@ -169,4 +169,15 @@ fn change_shape_preview_is_not_saved() {
     let saved = std::fs::read_to_string(t.path().join("c/demo.clidraw.json")).unwrap();
     assert!(saved.contains("\"kind\": \"Rect\""), "{saved}");
     assert!(!saved.contains("Diamond"), "{saved}");
+}
+
+#[test]
+fn change_shape_enter_on_the_focused_cell_applies_that_kind() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    open_change_shape(&mut app, now);
+    app.on_event(key(KeyCode::Char('j')), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert_eq!(box_state(&app).0, ShapeKind::Cylinder);
 }

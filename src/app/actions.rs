@@ -25,7 +25,7 @@ impl App {
             Action::ChangeShape => {
                 let origins = s.origins();
                 if let Some(first) = origins.first() {
-                    let list = kinds::list(first.kind, i32::from(s.screen.1));
+                    let list = kinds::KindPicker::new(first.kind, s.screen);
                     self.overlay = Overlay::Kinds(origins, list);
                 }
             }
