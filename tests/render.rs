@@ -2060,7 +2060,6 @@ fn change_shape_overlay_draws_the_kind_rows() {
             }
         }
         if width == 120 {
-            for r in &rows {}
             assert!(rows.iter().any(|r| r.contains("✓ Rect")), "{rows:#?}");
             assert!(rows.iter().any(|r| r.contains('╱')), "{rows:#?}");
         }

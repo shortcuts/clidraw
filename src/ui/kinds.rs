@@ -19,6 +19,15 @@ const ALL: [(ShapeKind, &str); 8] = [
     (ShapeKind::Frame, "Frame"),
 ];
 
+/// The renderer yields slivers at height 3 for these kinds, so the picker draws its own.
+fn hand_drawn(kind: ShapeKind) -> Option<[&'static str; 3]> {
+    match kind {
+        ShapeKind::Diamond => Some([" ╱╲ ", "<  >", " ╲╱ "]),
+        ShapeKind::Cylinder => Some(["╭────╮", "├────┤", "╰────╯"]),
+        _ => None,
+    }
+}
+
 /// Floating grid of drawn shape glyphs with their names; the current kind carries a check mark.
 #[derive(Clone, Debug)]
 pub struct KindPicker {
@@ -73,9 +82,15 @@ impl KindPicker {
                     grid.text(cx, cy + dy, &" ".repeat(CELL_W as usize - 1), flags);
                 }
             }
-            let w = Shape::ratio_width(kind, CELL_H).unwrap_or(6);
-            let glyph = Shape::new(kind, cx + 1, cy, w, CELL_H, "");
-            shape(grid, &glyph, glyph.x, glyph.y, "", None, flags);
+            if let Some(art) = hand_drawn(kind) {
+                for (dy, line) in art.into_iter().enumerate() {
+                    grid.text(cx + 1, cy + dy as i32, line, flags);
+                }
+            } else {
+                let w = Shape::ratio_width(kind, CELL_H).unwrap_or(6);
+                let glyph = Shape::new(kind, cx + 1, cy, w, CELL_H, "");
+                shape(grid, &glyph, glyph.x, glyph.y, "", None, flags);
+            }
             let mark = if kind == self.current { "✓ " } else { "  " };
             grid.text(cx + 9, cy + 1, &format!("{mark}{name}"), flags);
         }
@@ -195,5 +210,27 @@ mod tests {
             p.click((40, 24), x + 2, last),
             Click::Row(ShapeKind::Frame, 0)
         ));
+    }
+
+    #[test]
+    fn diamond_and_cylinder_glyphs_are_hand_drawn() {
+        let p = KindPicker::new(ShapeKind::Rect, (80, 24));
+        let mut grid = Grid::new(80, 24);
+        p.draw(&mut grid);
+        let (x, y, ..) = p.rect((80, 24));
+        let glyph = |col: i32, row: i32| -> Vec<String> {
+            (0..CELL_H)
+                .map(|dy| {
+                    (0..8)
+                        .map(|dx| grid.get(x + 3 + col * CELL_W + dx, y + 1 + row * CELL_H + dy))
+                        .map(|c| c.map_or(' ', |c| c.ch))
+                        .collect::<String>()
+                        .trim_end()
+                        .to_string()
+                })
+                .collect()
+        };
+        assert_eq!(glyph(1, 0), [" ╱╲", "<  >", " ╲╱"]);
+        assert_eq!(glyph(0, 1), ["╭────╮", "├────┤", "╰────╯"]);
     }
 }
