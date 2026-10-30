@@ -403,7 +403,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     if let (Some((id, edge)), true, false) = (
         hit::label_hit(s, &s.selection, world),
         s.tool.is_pointer(),
-        matches!(hit, Hit::Handle(h, _) if !matches!(h, Handle::Mid(_))),
+        matches!(hit, Hit::Handle(h, _) if !matches!(h, Handle::Mid(..) | Handle::Whole)),
     ) {
         s.gesture = Gesture::Pressed {
             origin: screen,

@@ -213,10 +213,12 @@ impl Session {
             (Tool::Pointer | Tool::Select, Hit::Handle(Handle::Rotate, _)) => "pointer",
             (
                 Tool::Pointer | Tool::Select,
-                Hit::Handle(Handle::End(_) | Handle::Bend(_) | Handle::Mid(_), _),
+                Hit::Handle(Handle::End(_) | Handle::Bend(_) | Handle::Mid(..), _),
             ) => "crosshair",
             (Tool::Pointer | Tool::Select, _) if self.label_hover => "text",
-            (Tool::Pointer | Tool::Select, Hit::Element(_)) => "grab",
+            (Tool::Pointer | Tool::Select, Hit::Element(_) | Hit::Handle(Handle::Whole, _)) => {
+                "grab"
+            }
             (Tool::Pointer, Hit::Empty) => "default",
             _ => "crosshair",
         }

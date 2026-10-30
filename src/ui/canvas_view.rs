@@ -81,7 +81,8 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
         let glyph = match h {
             Handle::Resize => '⤡',
             Handle::Rotate => '↻',
-            Handle::Mid(_) => '•',
+            Handle::Mid(..) => '•',
+            Handle::Whole => '■',
             _ => continue,
         };
         let (sx, sy) = view.cell_end(x, y);

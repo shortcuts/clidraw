@@ -2856,8 +2856,8 @@ fn dragging_a_selected_line_adds_a_bend_and_one_undo_removes_it() {
     let mut s = session();
     s.canvas.push(free_line("llllllll", vec![])).unwrap();
     s.selection = vec![Id::from("llllllll")];
-    drag(&mut s, (15, 5), (15, 8));
-    assert_eq!(bends_of(&s), vec![(15, 8)]);
+    drag(&mut s, (10, 5), (10, 8));
+    assert_eq!(bends_of(&s), vec![(10, 8)]);
     key(&mut s, KeyCode::Char('u'));
     assert_eq!(bends_of(&s), vec![]);
 }
@@ -2867,7 +2867,7 @@ fn dragging_a_selected_line_off_a_dot_moves_the_segment_and_undo_restores_it() {
     let mut s = session();
     s.canvas.push(free_line("llllllll", vec![])).unwrap();
     s.selection = vec![Id::from("llllllll")];
-    drag(&mut s, (10, 5), (10, 8));
+    drag(&mut s, (12, 5), (12, 8));
     assert_eq!(bends_of(&s), vec![(5, 8), (25, 8)]);
     key(&mut s, KeyCode::Char('u'));
     assert_eq!(bends_of(&s), vec![]);
@@ -2913,13 +2913,16 @@ fn after_a_bend_drag_each_new_leg_shows_a_dot_that_hovers_as_mid() {
     let mut s = session();
     s.canvas.push(free_line("llllllll", vec![])).unwrap();
     s.selection = vec![Id::from("llllllll")];
-    drag(&mut s, (15, 5), (15, 9));
+    drag(&mut s, (10, 5), (15, 9));
     let id = Id::from("llllllll");
     assert_eq!(
         hover_at(&mut s, (12, 5)),
-        Hit::Handle(Handle::Mid(0), id.clone())
+        Hit::Handle(Handle::Mid(0, 7), id.clone())
     );
-    assert_eq!(hover_at(&mut s, (22, 9)), Hit::Handle(Handle::Mid(1), id));
+    assert_eq!(
+        hover_at(&mut s, (22, 9)),
+        Hit::Handle(Handle::Mid(1, 7), id)
+    );
     s.selection = vec![];
     assert_eq!(
         hover_at(&mut s, (12, 5)),
@@ -3646,4 +3649,29 @@ fn dragging_with_the_arrow_tool_still_makes_a_single_arrow() {
     let l = only_line(&s);
     assert_eq!(l.to, End::Free(60, 14));
     assert_eq!(s.tool, Tool::Pointer);
+}
+
+#[test]
+fn unbent_arrow_middle_dot_moves_it_whole_and_side_dots_add_a_bend() {
+    let mut s = session();
+    s.canvas.push(free_line("llllllll", vec![])).unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    let id = Id::from("llllllll");
+    assert_eq!(
+        hover_at(&mut s, (15, 5)),
+        Hit::Handle(Handle::Whole, id.clone())
+    );
+    assert!(matches!(
+        hover_at(&mut s, (10, 5)),
+        Hit::Handle(Handle::Mid(0, _), _)
+    ));
+    drag(&mut s, (15, 5), (15, 9));
+    assert_eq!(bends_of(&s), vec![]);
+    let Some(Element::Line(l)) = s.canvas.get(&id) else {
+        unreachable!()
+    };
+    assert_eq!(s.canvas.line_ends(l), ((5, 9), (25, 9)));
+    s.selection = vec![id.clone()];
+    drag(&mut s, (10, 9), (10, 12));
+    assert_eq!(bends_of(&s).len(), 1);
 }

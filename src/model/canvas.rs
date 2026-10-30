@@ -235,22 +235,35 @@ impl Canvas {
             .map_or(0, |(i, _)| i)
     }
 
-    /// Middle cell of each leg with its slot in `l.bends`; an unbent line uses its drawn route.
+    #[allow(clippy::type_complexity)]
+    /// Dot cells as `(Some((slot, pos)), cell)` for a bend insert, `(None, cell)` for moving the whole line.
+    /// A bent line gets the middle of each leg; an unbent line gets a move dot flanked by two insert dots.
     pub fn mid_cells<'a>(
         &'a self,
         l: &Line,
         find: &Find<'a>,
         router: &Router,
-    ) -> Vec<(usize, (i32, i32))> {
-        let legs = if l.bends.is_empty() {
-            vec![self.route_with(l, find, router)]
-        } else {
-            self.legs(l, find)
-        };
-        legs.iter()
+    ) -> Vec<(Option<(usize, usize)>, (i32, i32))> {
+        if l.bends.is_empty() {
+            let leg = self.route_with(l, find, router);
+            let n = leg.len();
+            let mut dots = vec![];
+            if n >= 5 {
+                dots.push((Some((0, n / 4)), leg[n / 4]));
+            }
+            if n >= 3 {
+                dots.push((None, leg[n / 2]));
+            }
+            if n >= 5 {
+                dots.push((Some((0, 3 * n / 4)), leg[3 * n / 4]));
+            }
+            return dots;
+        }
+        self.legs(l, find)
+            .iter()
             .enumerate()
             .filter(|(_, leg)| leg.len() >= 3)
-            .map(|(i, leg)| (i, leg[leg.len() / 2]))
+            .map(|(i, leg)| (Some((i, leg.len() / 2)), leg[leg.len() / 2]))
             .collect()
     }
 

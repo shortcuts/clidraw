@@ -12,7 +12,8 @@ pub enum Handle {
     Rotate,
     End(Side),
     Bend(usize),
-    Mid(usize),
+    Mid(usize, usize),
+    Whole,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -63,7 +64,7 @@ pub fn handles(canvas: &Canvas, selection: &[Id]) -> Vec<(Handle, Id, (i32, i32)
     }
 }
 
-/// One dot per leg of a lone selected line; dragging it inserts a bend at the slot.
+/// Dots of a lone selected line; dragging one inserts a bend, or moves the whole line for `Whole`.
 pub fn mid_dots<'a>(
     canvas: &'a Canvas,
     find: &Find<'a>,
@@ -77,7 +78,13 @@ pub fn mid_dots<'a>(
     canvas
         .mid_cells(l, find, router)
         .into_iter()
-        .map(|(i, p)| (Handle::Mid(i), id.clone(), p))
+        .map(|(m, p)| {
+            (
+                m.map_or(Handle::Whole, |(i, pos)| Handle::Mid(i, pos)),
+                id.clone(),
+                p,
+            )
+        })
         .collect()
 }
 

@@ -217,7 +217,7 @@ fn arrow_drag_between_shapes_detours_mid_drag_on_release_and_after_a_click_elsew
     assert_eq!(released.len(), held.len());
     for (a, b) in released.chars().zip(held.chars()) {
         assert!(
-            a == b || a == '•' || b == '•',
+            a == b || "•■".contains(a) || "•■".contains(b),
             "{a} vs {b}\n{released}\n{held}"
         );
     }

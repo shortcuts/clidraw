@@ -252,7 +252,11 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
             last: w0,
         },
         Target::Label(id, edge) => Action::LabelDrag(id, edge),
-        Target::Handle(Handle::Mid(at), id) => {
+        Target::Handle(Handle::Whole, _) => Action::Move {
+            start: w0,
+            last: w0,
+        },
+        Target::Handle(Handle::Mid(at, _), id) => {
             let Some(Element::Line(l)) = s.canvas.get(&id) else {
                 return Action::Band(w0);
             };
@@ -321,6 +325,11 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
 /// The ids whose lines a drag reroutes.
 fn rerouted(s: &Session, action: &Action) -> Vec<Id> {
     match action {
+        // Pinning would bend a lone line moved by its middle dot.
+        Action::Move { .. } if matches!(s.selection.as_slice(), [id] if matches!(s.canvas.get(id), Some(Element::Line(_)))) =>
+        {
+            vec![]
+        }
         Action::Move { .. } => s.selection.clone(),
         Action::Resize { id, .. } | Action::EndDrag { id, .. } | Action::CreateLine(id) => {
             vec![id.clone()]
