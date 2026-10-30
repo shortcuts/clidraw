@@ -1,7 +1,7 @@
 use super::drag::{drag, pan_step, trace_click, trace_move, trace_start, up};
 use super::hit::{self, Handle, Hit};
 use super::{quick, Session, Tool};
-use crate::model::{self, Command, Edge, Element, Id, Paint, ShapeKind, Side};
+use crate::model::{self, Command, Edge, Element, Id, Paint, Shape, ShapeKind, Side};
 use crate::ui::palette::{self, paint, Choice, PaletteHit};
 use crate::view::View;
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -365,13 +365,24 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     if let Hit::Handle(Handle::Rotate, id) = &hit {
         if let Some(sh) = s.canvas.shape(id) {
             let (x, y, w, h) = sh.rotated();
-            s.exec(Command::SetRect {
+            let mut cmd = Command::SetRect {
                 id: id.clone(),
                 x,
                 y,
                 w,
                 h,
-            });
+            };
+            if let Some(n) = Shape::turn_cycle(sh.kind) {
+                let turn = (sh.turn + 1) % n;
+                cmd = Command::Batch(vec![
+                    cmd,
+                    Command::SetTurn {
+                        id: id.clone(),
+                        turn,
+                    },
+                ]);
+            }
+            s.exec(cmd);
         }
         return;
     }

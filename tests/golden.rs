@@ -24,6 +24,7 @@ fn sample() -> Canvas {
             bold: false,
             link: None,
             side_labels: vec![],
+            turn: 0,
             meta: Default::default(),
         })
     };
@@ -239,6 +240,7 @@ fn a_default_frame_draws_grey_and_dotted_but_a_colored_one_keeps_its_color() {
             bold: false,
             link: None,
             side_labels: vec![],
+            turn: 0,
             meta: Default::default(),
         }));
         svg(&c)
@@ -273,6 +275,7 @@ fn svg_follows_the_free_anchor_cell() {
             bold: false,
             link: None,
             side_labels: vec![],
+            turn: 0,
             meta: Default::default(),
         })
     };

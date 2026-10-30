@@ -26,6 +26,7 @@ fn layout_app(dir: &std::path::Path, edges: &[(&str, &str)]) -> App {
                 bold: false,
                 link: None,
                 side_labels: vec![],
+                turn: 0,
                 meta: Default::default(),
             }),
         ));

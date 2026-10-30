@@ -53,6 +53,7 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
             bold: false,
             link: None,
             side_labels: vec![],
+            turn: 0,
             meta: Default::default(),
         }));
     }
@@ -90,6 +91,7 @@ fn busy_app_of(dir: &std::path::Path, elements: usize) -> App {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     app
@@ -378,6 +380,7 @@ fn frame_fits_the_budget_on_2500_labelled_shapes() {
             bold: false,
             link: None,
             side_labels: vec![],
+            turn: 0,
             meta: Default::default(),
         }));
     }

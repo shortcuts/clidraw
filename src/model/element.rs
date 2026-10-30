@@ -267,6 +267,13 @@ pub struct Shape {
     /// At most one per edge, never empty, ordered by edge.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub side_labels: Vec<SideLabel>,
+    /// Quarter turns from the default look. Read it as `turn % cycle`: `SetKind` leaves it stale.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub turn: u8,
+}
+
+fn is_zero(n: &u8) -> bool {
+    *n == 0
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -350,6 +357,7 @@ impl Shape {
             link: None,
             meta: Meta::new(),
             side_labels: vec![],
+            turn: 0,
         }
     }
 
@@ -367,6 +375,15 @@ impl Shape {
         match kind {
             ShapeKind::Diamond => Some(2 * h - 1),
             ShapeKind::Hexagon | ShapeKind::Parallelogram => Some(2 * h),
+            _ => None,
+        }
+    }
+
+    /// Number of distinct looks a rotate press cycles through; `None` for kinds with one look.
+    pub fn turn_cycle(kind: ShapeKind) -> Option<u8> {
+        match kind {
+            ShapeKind::Cylinder => Some(4),
+            ShapeKind::Hexagon => Some(2),
             _ => None,
         }
     }

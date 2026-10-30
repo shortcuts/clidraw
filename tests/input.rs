@@ -134,6 +134,7 @@ fn with_shape(id: &str, x: i32, y: i32) -> Session {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     s
@@ -224,6 +225,28 @@ fn rotate_handle_turns_a_rect_in_90_steps_and_undo_restores_it() {
 }
 
 #[test]
+fn rotate_handle_turns_a_cylinder_through_four_states_and_undo_restores_it() {
+    let mut s = with_shape("aaaaaaaa", 20, 8);
+    let Element::Shape(sh) = &mut s.canvas.elements[0] else {
+        unreachable!()
+    };
+    sh.h = 6;
+    sh.kind = ShapeKind::Cylinder;
+    click(&mut s, (20, 9), Instant::now());
+    let mut seen = vec![];
+    for dot in [(23, 6), (23, 7), (23, 6), (23, 7)] {
+        click(&mut s, dot, Instant::now());
+        let sh = shapes(&s)[0];
+        seen.push((sh.turn, sh.w, sh.h));
+    }
+    assert_eq!(seen, [(1, 12, 4), (2, 8, 6), (3, 12, 4), (0, 8, 6)]);
+    click(&mut s, (23, 6), Instant::now());
+    key(&mut s, KeyCode::Char('u'));
+    let sh = shapes(&s)[0];
+    assert_eq!((sh.turn, sh.w, sh.h), (0, 8, 6));
+}
+
+#[test]
 fn rotate_press_followed_by_a_drag_rotates_once() {
     let mut s = with_shape("aaaaaaaa", 20, 4);
     let Element::Shape(sh) = &mut s.canvas.elements[0] else {
@@ -291,6 +314,7 @@ fn ctrl_a_selects_everything() {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     ctrl(&mut s, 'a');
@@ -387,6 +411,7 @@ fn arrow_binds_both_ends_follows_moves_and_unbinds_on_delete() {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     pick(&mut s, Tool::Arrow);
@@ -464,6 +489,7 @@ fn releasing_an_arrow_on_a_border_cell_pins_that_side() {
             bold: false,
             link: None,
             side_labels: vec![],
+            turn: 0,
             meta: Default::default(),
         }));
         pick(&mut s, Tool::Arrow);
@@ -626,6 +652,7 @@ fn shift_click_toggles_an_element_in_the_selection() {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     click(&mut s, (20, 6), Instant::now());
@@ -928,6 +955,7 @@ fn palette_option_sets_the_border_of_a_selected_rect_and_undoes() {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
@@ -962,6 +990,7 @@ fn two_shapes_and_arrow_tool() -> Session {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     pick(&mut s, Tool::Arrow);
@@ -1378,6 +1407,7 @@ fn bracket_keys_reorder_the_selection_one_undo_step_per_press() {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     let ids = |s: &Session| -> Vec<String> {
@@ -1429,6 +1459,7 @@ fn diagram() -> Session {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     s.canvas.elements.push(Element::Line(Line {
@@ -1922,6 +1953,7 @@ fn committing_a_wrapped_label_grows_the_shape_in_one_undo_step() {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     s.start_edit_existing(Id::from("aaaaaaaa"));
@@ -2025,6 +2057,7 @@ fn three_shapes() -> Session {
             bold: false,
             link: None,
             side_labels: vec![],
+            turn: 0,
             meta: Default::default(),
         }));
     }
@@ -2130,6 +2163,7 @@ fn at(id: &str, x: i32, y: i32, w: i32, h: i32) -> Element {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     })
 }
@@ -2247,6 +2281,7 @@ fn palette_cycles_label_align_and_ctrl_b_toggles_bold() {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
@@ -2325,6 +2360,7 @@ fn put(s: &mut Session, id: &str, kind: ShapeKind, r: (i32, i32, i32, i32)) {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
 }
@@ -2481,6 +2517,7 @@ fn set_link_sets_clears_undoes_and_rejects_unsafe_urls() {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     s.selection = vec![Id::from("rrrrrrrr")];
@@ -2709,6 +2746,7 @@ fn ratio_label_growth_widens_a_bound_shape() {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     s.start_edit_existing(Id::from("aaaaaaaa"));

@@ -54,6 +54,7 @@ pub fn area_app(dir: &std::path::Path) -> (App, Instant) {
                 bold: false,
                 link: None,
                 side_labels: vec![],
+                turn: 0,
                 meta: Default::default(),
             }),
         ));
@@ -114,6 +115,7 @@ pub fn insert_shape(app: &mut App) {
             bold: false,
             link: None,
             side_labels: vec![],
+            turn: 0,
             meta: Default::default(),
         }),
     ));
@@ -164,6 +166,7 @@ pub fn shape_at(id: &str, x: i32, y: i32) -> Command {
             bold: false,
             link: None,
             side_labels: vec![],
+            turn: 0,
             meta: Default::default(),
         }),
     )
@@ -233,6 +236,7 @@ pub fn insert_box(app: &mut App) {
             bold: false,
             link: None,
             side_labels: vec![],
+            turn: 0,
             meta: Default::default(),
         }),
     ));

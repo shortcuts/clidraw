@@ -104,6 +104,10 @@ pub enum Command {
         id: Id,
         align: TextAlign,
     },
+    SetTurn {
+        id: Id,
+        turn: u8,
+    },
     SetBold {
         id: Id,
         bold: bool,
@@ -216,6 +220,7 @@ impl Command {
             Command::SetLabelAt { .. } => "reposition label of",
             Command::SetSide { .. } => "relabel side of",
             Command::SetBends { .. } => "reshape",
+            Command::SetTurn { .. } => "rotate",
             Command::SetEnd { .. } => "reconnect",
             Command::SetKind { .. }
             | Command::SetLineKind { .. }
@@ -631,6 +636,14 @@ impl Canvas {
                 };
                 let old = std::mem::replace(&mut s.align, align);
                 Ok(Command::SetAlign { id, align: old })
+            }
+            Command::SetTurn { id, turn } => {
+                let i = self.position(&id, index).ok_or_else(|| missing(&id))?;
+                let Element::Shape(s) = &mut self.elements[i] else {
+                    return Err(wrong(&id));
+                };
+                let old = std::mem::replace(&mut s.turn, turn);
+                Ok(Command::SetTurn { id, turn: old })
             }
             Command::SetBold { id, bold } => {
                 let i = self.position(&id, index).ok_or_else(|| missing(&id))?;

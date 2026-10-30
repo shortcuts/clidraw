@@ -22,6 +22,7 @@ fn shape(id: &str, x: i32) -> Element {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     })
 }
@@ -2168,6 +2169,7 @@ fn constructors_set_the_default_fields() {
             bold: false,
             link: None,
             side_labels: vec![],
+            turn: 0,
             meta: Default::default(),
         }
     );

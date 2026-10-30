@@ -33,6 +33,7 @@ fn shape(id: &str, x: i32, label: &str) -> Element {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     })
 }
@@ -920,6 +921,7 @@ fn long_shape_label_wraps_inside_the_shape() {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     s.rev += 1;
@@ -1005,6 +1007,7 @@ fn half_session(x: i32, y: i32) -> Session {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     Session::new(
@@ -1086,6 +1089,7 @@ fn kind_session(kind: ShapeKind, w: i32, h: i32) -> Session {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     }));
     Session::new(c, View::default(), (80, 24))

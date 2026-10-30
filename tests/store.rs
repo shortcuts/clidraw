@@ -27,6 +27,7 @@ fn shape(id: &str, x: i32) -> Element {
         bold: false,
         link: None,
         side_labels: vec![],
+        turn: 0,
         meta: Default::default(),
     })
 }
@@ -86,6 +87,24 @@ fn colors_round_trip_and_uncolored_files_keep_their_bytes() {
     s.save("a", &c).unwrap();
     let colored = std::fs::read_to_string(&path).unwrap();
     assert!(colored.contains("\"color\":\"red\"") && colored.contains("\"fill\":\"blue\""));
+    assert_eq!(s.load("a").unwrap(), c);
+}
+
+#[test]
+fn turn_round_trips_and_a_zero_turn_keeps_its_bytes() {
+    let (t, s) = store();
+    let path = t.path().join("c/a.clidraw.json");
+    s.save("a", &sample()).unwrap();
+    assert!(!std::fs::read_to_string(&path).unwrap().contains("turn"));
+    let mut c = sample();
+    let Element::Shape(sh) = &mut c.elements[0] else {
+        panic!("no shape")
+    };
+    sh.turn = 2;
+    s.save("a", &c).unwrap();
+    assert!(std::fs::read_to_string(&path)
+        .unwrap()
+        .contains("\"turn\":2"));
     assert_eq!(s.load("a").unwrap(), c);
 }
 
