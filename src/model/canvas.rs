@@ -224,13 +224,15 @@ impl Canvas {
         legs
     }
 
-    /// Index in `l.bends` where a bend dragged from cell `p` belongs: the leg that holds `p`.
+    /// Index in `l.bends` where a bend dragged from cell `p` belongs: the leg that holds `p`, else the nearest leg.
     pub fn bend_slot(&self, l: &Line, p: (i32, i32)) -> usize {
         let find = |id: &Id| self.shape(id);
+        let gap = |c: &(i32, i32)| (c.0 - p.0).abs().max((c.1 - p.1).abs());
         self.legs(l, &find)
             .iter()
-            .position(|leg| leg.contains(&p))
-            .unwrap_or(l.bends.len())
+            .enumerate()
+            .min_by_key(|(_, leg)| leg.iter().map(gap).min())
+            .map_or(0, |(i, _)| i)
     }
 
     /// Middle cell of each leg with its slot in `l.bends`; an unbent line uses its drawn route.

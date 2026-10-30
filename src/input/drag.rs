@@ -230,6 +230,23 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
     match target {
         // `down` rotates on press, so a rotate press never starts a drag.
         Target::Pan | Target::Handle(Handle::Rotate, _) => Action::Pan(origin),
+        Target::Element(id)
+            if s.selection == [id.clone()]
+                && matches!(s.canvas.get(&id), Some(Element::Line(_))) =>
+        {
+            let Some(Element::Line(l)) = s.canvas.get(&id) else {
+                unreachable!()
+            };
+            let (head, tail) = s.canvas.line_ends(l);
+            Action::SegDrag {
+                k: s.canvas.bend_slot(l, w0),
+                orig: l.bends.clone(),
+                start: w0,
+                head,
+                tail,
+                id,
+            }
+        }
         Target::Element(_) => Action::Move {
             start: w0,
             last: w0,
@@ -413,6 +430,38 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
                 },
             );
         }
+        Action::SegDrag {
+            id,
+            start,
+            orig,
+            k,
+            head,
+            tail,
+        } => {
+            let (sx, sy) = snap_p(s.grid, *start);
+            let (wx, wy) = snap_p(s.grid, world);
+            let (d, n) = ((wx - sx, wy - sy), orig.len());
+            let shift = |p: P| (p.0 + d.0, p.1 + d.1);
+            let mut bends = orig.clone();
+            for i in [k.checked_sub(1), Some(*k)].into_iter().flatten() {
+                if i < n {
+                    bends[i] = shift(bends[i]);
+                }
+            }
+            if d != (0, 0) {
+                if *k == n {
+                    bends.push(shift(*tail));
+                }
+                if *k == 0 {
+                    bends.insert(0, shift(*head));
+                }
+            }
+            let cmd = Command::SetBends {
+                id: id.clone(),
+                bends,
+            };
+            run(s, inv, cmd);
+        }
         Action::LabelDrag(id, Some(edge)) => {
             let Some(Element::Shape(sh)) = s.canvas.get(id) else {
                 return;
@@ -518,7 +567,9 @@ pub(super) fn up(s: &mut Session, world: P) {
                     s.tool = Tool::Pointer;
                 }
                 Action::Create { .. } => s.tool = Tool::Pointer,
-                Action::BendDrag { id, .. } => drop_spikes(s, &mut inv, id),
+                Action::BendDrag { id, .. } | Action::SegDrag { id, .. } => {
+                    drop_spikes(s, &mut inv, id)
+                }
                 _ => {}
             }
             for cmd in s.canvas.pin_cmds(&rerouted(s, &action)) {

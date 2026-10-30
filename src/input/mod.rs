@@ -192,7 +192,10 @@ impl Session {
         }
         if let Gesture::Dragging { action, .. } = &self.gesture {
             return match action {
-                Action::Pan(_) | Action::Move { .. } | Action::LabelDrag(..) => "grabbing",
+                Action::Pan(_)
+                | Action::Move { .. }
+                | Action::SegDrag { .. }
+                | Action::LabelDrag(..) => "grabbing",
                 Action::Resize { .. }
                 | Action::EndDrag { .. }
                 | Action::BendDrag { .. }

@@ -42,13 +42,36 @@ pub(super) enum Target {
 
 pub(super) enum Action {
     Pan(P),
-    Move { start: P, last: P },
-    Resize { id: Id, fixed: P },
-    EndDrag { id: Id, side: Side },
+    Move {
+        start: P,
+        last: P,
+    },
+    Resize {
+        id: Id,
+        fixed: P,
+    },
+    EndDrag {
+        id: Id,
+        side: Side,
+    },
     LabelDrag(Id, Option<Edge>),
-    BendDrag { id: Id, at: usize },
+    BendDrag {
+        id: Id,
+        at: usize,
+    },
+    SegDrag {
+        id: Id,
+        start: P,
+        orig: Vec<P>,
+        k: usize,
+        head: P,
+        tail: P,
+    },
     Band(P),
-    Create { id: Id, origin: P },
+    Create {
+        id: Id,
+        origin: P,
+    },
     CreateLine(Id),
 }
 

@@ -2817,13 +2817,49 @@ fn dragging_a_selected_line_adds_a_bend_and_one_undo_removes_it() {
 }
 
 #[test]
-fn dragging_a_selected_line_off_a_dot_adds_no_bend() {
+fn dragging_a_selected_line_off_a_dot_moves_the_segment_and_undo_restores_it() {
     let mut s = session();
     s.canvas.push(free_line("llllllll", vec![])).unwrap();
     s.selection = vec![Id::from("llllllll")];
     drag(&mut s, (10, 5), (10, 8));
-    assert!(!bends_of(&s).contains(&(10, 8)));
-    assert!(route_of(&s).iter().all(|p| p.1 == 8));
+    assert_eq!(bends_of(&s), vec![(5, 8), (25, 8)]);
+    key(&mut s, KeyCode::Char('u'));
+    assert_eq!(bends_of(&s), vec![]);
+}
+
+#[test]
+fn dragging_a_middle_leg_moves_both_its_bends() {
+    let mut s = session();
+    let bends = vec![(10, 8), (20, 8)];
+    s.canvas.push(free_line("llllllll", bends.clone())).unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    drag(&mut s, (12, 8), (12, 10));
+    assert_eq!(bends_of(&s), vec![(10, 10), (20, 10)]);
+    key(&mut s, KeyCode::Char('u'));
+    assert_eq!(bends_of(&s), bends);
+}
+
+#[test]
+fn dragging_the_leg_at_the_head_adds_a_bend_so_the_head_stays() {
+    let mut s = session();
+    s.canvas
+        .push(free_line("llllllll", vec![(10, 8), (20, 8)]))
+        .unwrap();
+    s.selection = vec![Id::from("llllllll")];
+    drag(&mut s, (10, 6), (12, 6));
+    assert_eq!(bends_of(&s), vec![(7, 5), (12, 8), (20, 8)]);
+}
+
+#[test]
+fn dragging_one_of_two_selected_elements_still_moves_the_line_whole() {
+    let mut s = with_shape("aaaaaaaa", 40, 20);
+    s.canvas.push(free_line("llllllll", vec![])).unwrap();
+    s.selection = vec![Id::from("llllllll"), Id::from("aaaaaaaa")];
+    drag(&mut s, (10, 5), (10, 8));
+    let Some(Element::Line(l)) = s.canvas.get(&Id::from("llllllll")) else {
+        unreachable!()
+    };
+    assert_eq!(s.canvas.line_ends(l), ((5, 8), (25, 8)));
 }
 
 #[test]
@@ -2846,11 +2882,11 @@ fn after_a_bend_drag_each_new_leg_shows_a_dot_that_hovers_as_mid() {
 }
 
 #[test]
-fn the_first_drag_on_an_unselected_line_moves_it_instead_of_bending_it() {
+fn the_first_drag_on_an_unselected_line_moves_its_segment() {
     let mut s = session();
     s.canvas.push(free_line("llllllll", vec![])).unwrap();
-    drag(&mut s, (15, 5), (15, 8));
-    assert!(route_of(&s).iter().all(|p| p.1 == 8));
+    drag(&mut s, (10, 5), (10, 8));
+    assert_eq!(bends_of(&s), vec![(5, 8), (25, 8)]);
 }
 
 #[test]
