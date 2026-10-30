@@ -117,6 +117,14 @@ impl View {
         }
     }
 
+    /// Whole world cells that `n` screen cells at `percent` pan. The fraction carries in `rem`,
+    /// in 1/600 cell, so every zoom and every percent divides exactly.
+    pub fn scroll_world(&self, n: i32, percent: i32, rem: &mut i32) -> i32 {
+        let total = *rem + n * percent * self.zoom.d() * (6 / self.zoom.k());
+        *rem = total % 600;
+        total / 600
+    }
+
     pub fn pan(&mut self, dx: i32, dy: i32) {
         self.ox += dx;
         self.oy += dy;
@@ -315,6 +323,29 @@ mod tests {
         );
         v.zoom = Zoom::Quarter;
         assert_eq!(v.world_step(2), 8);
+    }
+
+    #[test]
+    fn scroll_world_carries_the_fraction_per_zoom() {
+        let mut rem = 0;
+        let v = View {
+            zoom: Zoom::Three,
+            ..View::default()
+        };
+        assert_eq!((v.scroll_world(2, 100, &mut rem), rem), (0, 400));
+        assert_eq!((v.scroll_world(2, 100, &mut rem), rem), (1, 200));
+        let mut rem = 0;
+        let v = View {
+            zoom: Zoom::Half,
+            ..View::default()
+        };
+        assert_eq!((v.scroll_world(2, 100, &mut rem), rem), (4, 0));
+        let mut rem = 0;
+        let v = View {
+            zoom: Zoom::Quarter,
+            ..View::default()
+        };
+        assert_eq!((v.scroll_world(2, 25, &mut rem), rem), (2, 0));
     }
 
     #[test]

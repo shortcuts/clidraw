@@ -87,15 +87,14 @@ impl Session {
             _ => 0,
         };
         let k = (n * (1 + prior / 2).min(SCROLL_MAX)) as i32;
-        let scaled = |d: i32| match d * k * self.scroll_speed / 100 {
-            0 => d.signum(),
-            v => v,
-        };
         self.glide = None;
-        self.view.pan(
-            self.view.world_step(scaled(step.0)),
-            self.view.world_step(scaled(step.1)),
-        );
+        let dx = self
+            .view
+            .scroll_world(step.0 * k, self.scroll_speed, &mut self.scroll_rem.0);
+        let dy = self
+            .view
+            .scroll_world(step.1 * k, self.scroll_speed, &mut self.scroll_rem.1);
+        self.view.pan(dx, dy);
         self.hover = Hit::Empty;
         self.quick = None;
         self.burst = Some((now, prior + n));

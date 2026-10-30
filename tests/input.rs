@@ -2417,15 +2417,18 @@ fn fit_snaps_when_motion_is_off() {
 }
 
 #[test]
-fn scroll_speed_scales_the_pan_and_never_rounds_to_zero() {
+fn scroll_speed_scales_the_pan_without_a_one_cell_floor() {
     let mut s = session();
     s.scroll_speed = 150;
     scroll_down(&mut s, Instant::now());
     assert_eq!(s.view.oy, 3);
     let mut s = session();
-    s.scroll_speed = 1;
-    scroll_down(&mut s, Instant::now());
-    assert_eq!(s.view.oy, 1);
+    s.scroll_speed = 25;
+    let t0 = Instant::now();
+    for i in 0..4 {
+        scroll_down(&mut s, t0 + Duration::from_millis(200 * i));
+    }
+    assert_eq!(s.view.oy, 2);
 }
 
 #[test]

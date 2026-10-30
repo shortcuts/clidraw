@@ -131,6 +131,8 @@ pub struct Session {
     last_down: Option<(i32, i32, Instant)>,
     /// Time of the last wheel event and the notches in the current burst.
     burst: Option<(Instant, u32)>,
+    /// Fraction of a world cell each axis still owes to the wheel pan, in 1/600 cell.
+    scroll_rem: (i32, i32),
     cursor: (i32, i32),
     shift: bool,
     last_pan: Option<Instant>,
@@ -175,6 +177,7 @@ impl Session {
             gesture: Gesture::Idle,
             last_down: None,
             burst: None,
+            scroll_rem: (0, 0),
             cursor: (0, 0),
             shift: false,
             last_pan: None,
