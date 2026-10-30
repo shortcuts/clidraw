@@ -111,6 +111,11 @@
       <li><code>name</code> (required, string): Canvas name</li>
       <li><code>template</code> (required, string): Template name from the templates tool</li>
     </ul>
+    <h3 class="item" id="tools-search">search</h3>
+    <p>Search every canvas for a topic before drawing, to find existing work. Returns a JSON array of {canvas,id,kind,label,field}, best first.</p>
+    <ul>
+      <li><code>query</code> (required, string): Topic to search for</li>
+    </ul>
 
     <h2 id="errors">Errors</h2>
     <p>A failed tool call returns a normal result with <code>isError</code> set to <code>true</code>. Its text is <code>Error: &lt;msg&gt;</code>.</p>

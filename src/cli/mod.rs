@@ -2,6 +2,7 @@ use crate::app::template;
 use crate::config::Config;
 use crate::diagram::{self, import_failure};
 use crate::model::{Canvas, Command, Dir, Element, History, Id};
+use crate::search;
 use crate::store::Store;
 use crate::ui::scope::ExportFormat;
 use anyhow::{bail, Result};
@@ -10,7 +11,7 @@ use std::io::{Read, Write};
 pub mod docs;
 mod ops;
 
-pub const COMMANDS: [&str; 12] = [
+pub const COMMANDS: [&str; 13] = [
     "list",
     "new",
     "show",
@@ -23,10 +24,11 @@ pub const COMMANDS: [&str; 12] = [
     "delete",
     "templates",
     "template",
+    "search",
 ];
 
 /// (name, usage, description) for each entry of `COMMANDS`, in the same order.
-pub const COMMAND_DOCS: [(&str, &str, &str); 12] = [
+pub const COMMAND_DOCS: [(&str, &str, &str); 13] = [
     (
         "list",
         "clidraw list",
@@ -86,6 +88,11 @@ pub const COMMAND_DOCS: [(&str, &str, &str); 12] = [
         "template",
         "clidraw template <name> <template>",
         "Adds a built-in template inside a frame, below the existing content. Creates the canvas if it does not exist. Prints {\"shapes\":N,\"lines\":N}.",
+    ),
+    (
+        "search",
+        "clidraw search <query>",
+        "Searches every canvas for a topic. Matches canvas names, shape and line labels, text and metadata, case-insensitively, with synonyms. Prints a JSON array of {canvas,id,kind,label,field}, best first, at most 50. id is null for a canvas name hit.",
     ),
 ];
 
@@ -296,6 +303,18 @@ pub fn run(
         ("delete", [name]) => {
             store.delete(name)?;
             writeln!(out, "{}", serde_json::json!({ "deleted": name }))?;
+        }
+        ("search", [query]) => {
+            let mut canvases = vec![];
+            for name in store.list()? {
+                let canvas = store.load(&name)?;
+                canvases.push((name, canvas));
+            }
+            let hits: Vec<serde_json::Value> = search::hits(&canvases, query)
+                .into_iter()
+                .map(|d| serde_json::json!({"canvas": d.canvas, "id": d.id, "kind": d.kind, "label": d.label, "field": d.field}))
+                .collect();
+            writeln!(out, "{}", serde_json::to_string(&hits)?)?
         }
         (cmd, _) => bail!("usage: clidraw {cmd} (see https://clidraw.shrtcts.fr/cli.html)"),
     }

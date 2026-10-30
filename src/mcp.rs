@@ -52,6 +52,9 @@ pub fn tools() -> Value {
          "description": "Add a built-in template inside a frame, below the existing content. Creates the canvas if missing.",
          "inputSchema": schema(json!({"name": name,
              "template": {"type": "string", "description": "Template name from the templates tool"}}), &["name", "template"])},
+        {"name": "search",
+         "description": "Search every canvas for a topic before drawing, to find existing work. Returns a JSON array of {canvas,id,kind,label,field}, best first.",
+         "inputSchema": schema(json!({"query": {"type": "string", "description": "Topic to search for"}}), &["query"])},
     ])
 }
 
@@ -65,7 +68,7 @@ fn string<'a>(args: &'a Value, key: &str) -> Result<&'a str> {
 fn command(tool: &str, a: &Value) -> Result<(Vec<String>, String)> {
     let mut argv = vec![tool.to_string()];
     let mut stdin = String::new();
-    if !matches!(tool, "list" | "templates") {
+    if !matches!(tool, "list" | "templates" | "search") {
         argv.push(string(a, "name")?.to_string());
     }
     match tool {
@@ -81,6 +84,7 @@ fn command(tool: &str, a: &Value) -> Result<(Vec<String>, String)> {
             stdin = string(a, "mermaid")?.to_string();
         }
         "template" => argv.push(string(a, "template")?.to_string()),
+        "search" => argv.push(string(a, "query")?.to_string()),
         "rename" => argv.push(string(a, "to")?.to_string()),
         "export" => {
             let format = string(a, "format")?;

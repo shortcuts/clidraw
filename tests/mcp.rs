@@ -105,7 +105,8 @@ fn tools_list_names_the_cli_commands() {
             "redo",
             "delete",
             "templates",
-            "template"
+            "template",
+            "search"
         ]
     );
     assert!(tools.iter().all(|t| t["inputSchema"]["type"] == "object"));
@@ -359,4 +360,39 @@ fn export_with_ids_renders_only_those_elements() {
     assert!(text(&r[2]).contains("Alpha") && !text(&r[2]).contains("Beta"));
     assert_eq!(r[3]["result"]["isError"], true);
     assert_eq!(text(&r[3]), "Error: no element with id `zzz`");
+}
+
+#[test]
+fn search_tool_ranks_frames_and_metadata_hits_across_canvases() {
+    let (_t, s) = store();
+    let frame = json!([
+        {"op": "add_shape", "id": "f", "x": 0, "y": 0, "w": 20, "h": 6, "kind": "Frame", "label": "Billing review"},
+    ]);
+    let meta = json!([
+        {"op": "add_shape", "id": "m", "x": 0, "y": 0, "label": "Login", "meta": {"team": "rebilling"}},
+    ]);
+    let r = rpc(
+        &s,
+        &[
+            tool(1, "new", json!({"name": "ops"})),
+            tool(2, "edit", json!({"name": "ops", "ops": frame})),
+            tool(3, "new", json!({"name": "auth"})),
+            tool(4, "edit", json!({"name": "auth", "ops": meta})),
+            tool(5, "search", json!({"query": "billing"})),
+            tool(6, "search", json!({"query": "  "})),
+            tool(7, "search", json!({})),
+        ],
+    );
+    let hits: Vec<Value> = serde_json::from_str(text(&r[4])).unwrap();
+    assert_eq!(hits.len(), 2, "{hits:?}");
+    assert_eq!(
+        hits[0],
+        json!({"canvas": "ops", "id": "f", "kind": "frame", "label": "Billing review", "field": "label"})
+    );
+    assert_eq!(
+        hits[1],
+        json!({"canvas": "auth", "id": "m", "kind": "rect", "label": "Login", "field": "label"})
+    );
+    assert_eq!(text(&r[5]), "[]");
+    assert_eq!(r[6]["result"]["isError"], true);
 }

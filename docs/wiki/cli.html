@@ -73,6 +73,9 @@
     <h3 class="item" id="commands-template">template</h3>
     <p><strong>Usage:</strong> <code>clidraw template &lt;name&gt; &lt;template&gt;</code></p>
     <p>Adds a built-in template inside a frame, below the existing content. Creates the canvas if it does not exist. Prints {&quot;shapes&quot;:N,&quot;lines&quot;:N}.</p>
+    <h3 class="item" id="commands-search">search</h3>
+    <p><strong>Usage:</strong> <code>clidraw search &lt;query&gt;</code></p>
+    <p>Searches every canvas for a topic. Matches canvas names, shape and line labels, text and metadata, case-insensitively, with synonyms. Prints a JSON array of {canvas,id,kind,label,field}, best first, at most 50. id is null for a canvas name hit.</p>
 
     <h2 id="ops">Edit ops</h2>
     <p><code>edit</code> reads a JSON array of ops from stdin. Each op is an object. Its <code>op</code> field names the op. For example:</p>

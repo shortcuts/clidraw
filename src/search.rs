@@ -10,6 +10,8 @@ pub struct Doc {
     pub canvas: String,
     /// `None` for the canvas name.
     pub id: Option<Id>,
+    pub kind: String,
+    pub label: String,
     /// `name`, `label` or `text`.
     pub field: &'static str,
     pub text: String,
@@ -22,19 +24,28 @@ pub fn documents(canvases: &[(String, Canvas)]) -> Vec<Doc> {
         docs.push(Doc {
             canvas: name.clone(),
             id: None,
+            kind: "canvas".into(),
+            label: name.clone(),
             field: "name",
             text: name.clone(),
         });
         for el in &canvas.elements {
-            let (field, mut parts) = match el {
+            let (kind, label, field, mut parts) = match el {
                 Element::Shape(s) => (
+                    format!("{:?}", s.kind).to_lowercase(),
+                    s.label.clone(),
                     "label",
                     std::iter::once(s.label.clone())
                         .chain(s.side_labels.iter().map(|l| l.text.clone()))
                         .collect::<Vec<_>>(),
                 ),
-                Element::Line(l) => ("label", vec![l.label.clone()]),
-                Element::Text(t) => ("text", vec![t.text.clone()]),
+                Element::Line(l) => (
+                    "line".into(),
+                    l.label.clone(),
+                    "label",
+                    vec![l.label.clone()],
+                ),
+                Element::Text(t) => ("text".into(), t.text.clone(), "text", vec![t.text.clone()]),
             };
             parts.extend(el.meta().iter().flat_map(|(k, v)| [k.clone(), v.clone()]));
             let text = parts.join(" ");
@@ -42,6 +53,8 @@ pub fn documents(canvases: &[(String, Canvas)]) -> Vec<Doc> {
                 docs.push(Doc {
                     canvas: name.clone(),
                     id: Some(el.id().clone()),
+                    kind,
+                    label,
                     field,
                     text,
                 });
@@ -49,6 +62,18 @@ pub fn documents(canvases: &[(String, Canvas)]) -> Vec<Doc> {
         }
     }
     docs
+}
+
+pub const MAX_HITS: usize = 50;
+
+pub fn hits(canvases: &[(String, Canvas)], query: &str) -> Vec<Doc> {
+    let docs = documents(canvases);
+    let texts: Vec<String> = docs.iter().map(|d| d.text.clone()).collect();
+    find(query, &texts)
+        .into_iter()
+        .take(MAX_HITS)
+        .map(|i| docs[i].clone())
+        .collect()
 }
 
 fn tokens(s: &str) -> Vec<String> {
@@ -265,5 +290,82 @@ mod tests {
         );
         assert_eq!(docs[0].id, None);
         assert_eq!(docs[2].id, Some(Id::from("t1")));
+    }
+
+    fn canvas_with(elements: Vec<Element>) -> Canvas {
+        Canvas {
+            elements,
+            ..Canvas::default()
+        }
+    }
+
+    #[test]
+    fn hits_reports_the_canvas_name() {
+        let canvases = [("billing-plans".to_string(), Canvas::default())];
+        let hits = hits(&canvases, "plans");
+        assert_eq!(
+            hits,
+            vec![Doc {
+                canvas: "billing-plans".into(),
+                id: None,
+                kind: "canvas".into(),
+                label: "billing-plans".into(),
+                field: "name",
+                text: "billing-plans".into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn hits_reports_frame_kind_and_metadata_match() {
+        let mut frame = Shape::new(ShapeKind::Frame, 0, 0, 20, 6, "Billing review");
+        frame.id = Id::from("f");
+        let mut shape = Shape::new(ShapeKind::Rect, 0, 0, 8, 3, "Login");
+        shape.id = Id::from("m");
+        shape.meta = Meta::from([("team".to_string(), "billing".to_string())]);
+        let canvases = [(
+            "ops".to_string(),
+            canvas_with(vec![Element::Shape(frame), Element::Shape(shape)]),
+        )];
+        let frames = hits(&canvases, "review");
+        assert_eq!(frames.len(), 1);
+        assert_eq!(frames[0].kind, "frame");
+        assert_eq!(frames[0].label, "Billing review");
+        assert_eq!(frames[0].field, "label");
+        let meta = hits(&canvases, "team");
+        assert_eq!(meta.len(), 1);
+        assert_eq!(meta[0].id, Some(Id::from("m")));
+        assert_eq!(meta[0].kind, "rect");
+        assert_eq!(meta[0].label, "Login");
+        assert_eq!(meta[0].field, "label");
+    }
+
+    #[test]
+    fn hits_ranks_exact_before_synonym() {
+        let mut create = Shape::new(ShapeKind::Rect, 0, 0, 8, 3, "Create canvas");
+        create.id = Id::from("a");
+        let mut new = Shape::new(ShapeKind::Rect, 0, 0, 8, 3, "New note");
+        new.id = Id::from("b");
+        let canvases = [(
+            "main".to_string(),
+            canvas_with(vec![Element::Shape(create), Element::Shape(new)]),
+        )];
+        let ids: Vec<Option<Id>> = hits(&canvases, "new").into_iter().map(|d| d.id).collect();
+        assert_eq!(ids, vec![Some(Id::from("b")), Some(Id::from("a"))]);
+    }
+
+    #[test]
+    fn hits_is_empty_for_a_blank_query() {
+        let canvases = [("main".to_string(), Canvas::default())];
+        assert!(hits(&canvases, "  ").is_empty());
+    }
+
+    #[test]
+    fn hits_stops_at_max_hits() {
+        let elements = (0..MAX_HITS + 10)
+            .map(|i| Element::Shape(Shape::new(ShapeKind::Rect, i as i32, 0, 8, 3, "Billing")))
+            .collect();
+        let canvases = [("main".to_string(), canvas_with(elements))];
+        assert_eq!(hits(&canvases, "billing").len(), MAX_HITS);
     }
 }

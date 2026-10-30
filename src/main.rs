@@ -122,7 +122,7 @@ fn run(
 }
 
 const USAGE: &str = "Usage: clidraw [<name>]
-       clidraw list|new|show|edit|import|export|template|templates ...
+       clidraw list|new|show|edit|import|export|template|templates|search ...
        clidraw mcp|config|probe|bench
        clidraw --help|-h|--version|-V";
 
