@@ -381,7 +381,7 @@ impl Shape {
         (Self::ratio_width(kind, h).unwrap_or(w), h)
     }
 
-    /// Rect after one 90° turn: cells are about 2:1, so the visual size turns, not the cell counts.
+    /// Rect after one 90° turn: cells are about 2:1, so the visual size turns, not the cell counts. An odd width rounds up to even, so the first turn of an odd-width rect is not reversible.
     pub fn rotated(&self) -> (i32, i32, i32, i32) {
         let (w, h) = (2 * self.h, (self.w + 1) / 2);
         let x = self.x + (self.w - w) / 2;

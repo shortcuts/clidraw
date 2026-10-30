@@ -951,6 +951,8 @@ fn rotated_swaps_width_and_height_around_the_center() {
     assert_eq!(turned, (18, 5, 12, 4));
     let (x, y, w, h) = turned;
     assert_eq!(shape_at(x, y, w, h).rotated(), (20, 4, 8, 6));
+    assert_eq!(shape_at(20, 4, 7, 4).rotated(), (20, 4, 8, 4));
+    assert_eq!(shape_at(20, 4, 8, 4).rotated(), (20, 4, 8, 4));
 }
 
 #[test]
