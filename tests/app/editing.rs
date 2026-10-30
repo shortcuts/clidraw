@@ -167,7 +167,7 @@ fn change_shape_preview_is_not_saved() {
     app.tick(now + Duration::from_secs(2));
     app.save();
     let saved = std::fs::read_to_string(t.path().join("c/demo.clidraw.json")).unwrap();
-    assert!(saved.contains("\"kind\": \"Rect\""), "{saved}");
+    assert!(saved.contains("\"kind\":\"Rect\""), "{saved}");
     assert!(!saved.contains("Diamond"), "{saved}");
 }
 

@@ -10,7 +10,7 @@ const EXT: &str = ".clidraw.json";
 
 /// The save-file text; export writes the same bytes.
 pub fn encode(canvas: &Canvas) -> Result<String, StoreError> {
-    let mut text = serde_json::to_string_pretty(canvas)?;
+    let mut text = serde_json::to_string(canvas)?;
     text.push('\n');
     Ok(text)
 }

@@ -27,8 +27,8 @@ fn autosaves_edits_after_500ms_and_pan_leaves_the_file_alone() {
     assert_eq!(std::fs::read(&file).unwrap(), empty, "too early to save");
     app.tick(t0 + Duration::from_millis(700));
     let saved = std::fs::read_to_string(&file).unwrap();
-    assert!(saved.contains("\"type\": \"shape\""), "{saved}");
-    assert!(saved.contains("\"kind\": \"Rect\""));
+    assert!(saved.contains("\"type\":\"shape\""), "{saved}");
+    assert!(saved.contains("\"kind\":\"Rect\""));
     assert!(!saved.contains("offset"));
 }
 
@@ -360,7 +360,7 @@ fn undo_survives_a_reopen_only_while_the_file_is_unchanged() {
     app.save();
     drop(app);
     let text = std::fs::read_to_string(&file).unwrap();
-    std::fs::write(&file, text.replace("\"x\": 2", "\"x\": 9")).unwrap();
+    std::fs::write(&file, text.replace("\"x\":2", "\"x\":9")).unwrap();
     let mut app = app_in(t.path());
     run(&mut app, "u");
     assert_eq!(

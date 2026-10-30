@@ -217,7 +217,7 @@ fn palette_copy_clidraw_queues_the_canvas_as_osc52() {
     assert_eq!(palette_labels(&app)[0], "File: Copy clidraw");
     app.on_event(key(KeyCode::Enter), now);
     let seq = app.take_copy().expect("copy queued");
-    assert!(seq.starts_with("\x1b]52;c;ewog") && seq.ends_with("\x1b\\"));
+    assert!(seq.starts_with("\x1b]52;c;eyJ2ZXJzaW9uIjo") && seq.ends_with("\x1b\\"));
     assert!(app.take_copy().is_none());
 }
 

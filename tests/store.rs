@@ -85,7 +85,7 @@ fn colors_round_trip_and_uncolored_files_keep_their_bytes() {
     sh.fill = Some(Paint::Blue);
     s.save("a", &c).unwrap();
     let colored = std::fs::read_to_string(&path).unwrap();
-    assert!(colored.contains("\"color\": \"red\"") && colored.contains("\"fill\": \"blue\""));
+    assert!(colored.contains("\"color\":\"red\"") && colored.contains("\"fill\":\"blue\""));
     assert_eq!(s.load("a").unwrap(), c);
 }
 
@@ -101,7 +101,7 @@ fn hex_colors_round_trip_as_lowercase_strings() {
     s.save("a", &c).unwrap();
     assert!(std::fs::read_to_string(&path)
         .unwrap()
-        .contains("\"color\": \"#ff00aa\""));
+        .contains("\"color\":\"#ff00aa\""));
     assert_eq!(s.load("a").unwrap(), c);
 }
 
@@ -132,7 +132,7 @@ fn moving_one_shape_changes_only_its_lines() {
         .filter(|(a, b)| a != b)
         .collect();
     assert_eq!(diff.len(), 1);
-    assert!(diff[0].1.contains("\"x\": 11"));
+    assert!(diff[0].1.contains("\"x\":11"));
 }
 
 #[test]
@@ -245,7 +245,7 @@ fn a_pinned_end_round_trips_and_auto_ends_write_no_anchor() {
     s.save("a", &c).unwrap();
     assert_eq!(s.load("a").unwrap(), c);
     let text = std::fs::read_to_string(t.path().join("c/a.clidraw.json")).unwrap();
-    assert!(text.contains("\"left\": 2"));
+    assert!(text.contains("\"left\":2"));
     s.save("b", &sample()).unwrap();
     let text = std::fs::read_to_string(t.path().join("c/b.clidraw.json")).unwrap();
     assert!(text.contains("\"bound\"") && !text.contains("anchored"));
@@ -366,6 +366,14 @@ fn canvas_hash_is_fnv1a_so_saved_history_survives_toolchain_upgrades() {
 }
 
 #[test]
+fn encode_writes_one_minified_line() {
+    let text = clidraw::store::encode(&sample()).unwrap();
+    assert_eq!(text.matches('\n').count(), 1);
+    assert!(text.ends_with('\n'));
+    assert!(text.starts_with("{\"version\":"));
+}
+
+#[test]
 fn meta_round_trips_and_old_files_load_without_it() {
     let (_t, s) = store();
     let mut c = sample();
@@ -376,7 +384,7 @@ fn meta_round_trips_and_old_files_load_without_it() {
     sh.meta.insert("url".into(), "https://x.test".into());
     assert!(clidraw::store::encode(&c)
         .unwrap()
-        .contains("\"url\": \"https://x.test\""));
+        .contains("\"url\":\"https://x.test\""));
     assert!(s.save("m", &c).unwrap());
     assert_eq!(s.load("m").unwrap(), c);
     assert!(s.save("old", &sample()).unwrap());
@@ -425,6 +433,6 @@ fn direction_defaults_to_top_down_and_is_written_only_when_left_right() {
     s.save("lr", &lr).unwrap();
     assert!(std::fs::read_to_string(t.path().join("c/lr.clidraw.json"))
         .unwrap()
-        .contains("\"dir\": \"lr\""));
+        .contains("\"dir\":\"lr\""));
     assert_eq!(s.load("lr").unwrap().dir, Dir::LeftRight);
 }
