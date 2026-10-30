@@ -21,6 +21,9 @@ impl App {
                 _ => {}
             }
         }
+        if p.kind == PromptKind::ResetSettings && k.code == KeyCode::Char(' ') {
+            return p.checked = !p.checked;
+        }
         if edit_key(&mut p.edit, &k) {
             p.sel = 0;
             p.path_sel = None;

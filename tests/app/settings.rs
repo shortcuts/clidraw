@@ -1,6 +1,6 @@
 use super::common::*;
 use clidraw::app::App;
-use clidraw::config::CommandUi;
+use clidraw::config::{CommandUi, DEFAULT_TOML};
 use clidraw::ui::theme::Theme;
 use clidraw::ui::{Overlay, Severity};
 use crossterm::event::KeyCode;
@@ -156,4 +156,32 @@ fn escape_closes_the_list_and_writes_nothing() {
     app.on_event(key(KeyCode::Esc), now);
     assert!(matches!(app.overlay, Overlay::None));
     assert_eq!(config_text(t.path()), before);
+}
+
+#[test]
+fn reset_default_needs_the_checkbox_then_restores_the_file() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    let now = Instant::now();
+    open_on(&mut app, "motion", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(!app.session.motion);
+    app.on_event(key(KeyCode::Esc), now);
+    ctrl_key(&mut app, 'p', now);
+    type_str(&mut app, "Reset default", now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(app.overlay, Overlay::Prompt(_)));
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(app.overlay, Overlay::Prompt(_)));
+    assert_eq!(app.status.as_ref().unwrap().text, "Tick the box to reset");
+    assert_ne!(config_text(t.path()), DEFAULT_TOML);
+    app.on_event(key(KeyCode::Char(' ')), now);
+    app.on_event(key(KeyCode::Enter), now);
+    assert!(matches!(app.overlay, Overlay::None));
+    assert_eq!(config_text(t.path()), DEFAULT_TOML);
+    assert!(app.session.motion);
+    assert_eq!(
+        app.status.as_ref().unwrap().text,
+        "Settings reset to defaults"
+    );
 }

@@ -200,6 +200,11 @@ impl Config {
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
         std::fs::write(&path, lines.join("\n") + "\n").map_err(|e| e.to_string())
     }
+
+    pub fn reset(dir: &Path) -> Result<(), String> {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+        std::fs::write(dir.join(FILE), DEFAULT_TOML).map_err(|e| e.to_string())
+    }
 }
 
 // create_new never overwrites a file the user already keeps in git.

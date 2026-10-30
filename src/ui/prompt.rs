@@ -32,6 +32,7 @@ pub enum PromptKind {
     Command,
     Mermaid(String),
     Setting(Setting),
+    ResetSettings,
 }
 
 pub struct Prompt {
@@ -45,18 +46,22 @@ pub struct Prompt {
     pub path_sel: Option<usize>,
     /// Focus on `[ Cancel ]` of a confirm prompt; Enter acts on the focused button.
     pub cancel_focused: bool,
+    /// The box of a `ResetSettings` prompt; Enter does nothing until it is ticked.
+    pub checked: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PromptHit {
     Ok,
     Cancel,
+    Check,
 }
 
 const HINT_GAP: i32 = 2;
 const MIN_HINT: i32 = 4;
 const OK: &str = "[ OK ]";
 const CANCEL: &str = "[ Cancel ]";
+const CHECK: &str = "Yes, discard my edits";
 
 fn rect(screen: (u16, u16)) -> (i32, i32, i32, i32) {
     centered(screen, 52, 5)
@@ -73,6 +78,7 @@ impl Prompt {
             fixes: false,
             path_sel: None,
             cancel_focused: false,
+            checked: false,
         }
     }
 
@@ -82,6 +88,7 @@ impl Prompt {
             PromptKind::ConfirmDelete(_)
                 | PromptKind::ConfirmOverwrite(..)
                 | PromptKind::ConfirmAppend(..)
+                | PromptKind::ResetSettings
         )
     }
 
@@ -158,6 +165,7 @@ impl Prompt {
             PromptKind::ConfirmDelete(_) => "Delete canvas",
             PromptKind::ConfirmOverwrite(..) => "Overwrite file",
             PromptKind::Setting(_) => "Edit setting",
+            PromptKind::ResetSettings => "Reset settings",
             PromptKind::Command | PromptKind::Mermaid(_) => "",
         }
     }
@@ -165,6 +173,10 @@ impl Prompt {
 
 pub fn hit(screen: (u16, u16), col: i32, row: i32) -> Option<PromptHit> {
     let (x, y, ..) = rect(screen);
+    if row == y + 2 {
+        let check = x + 2..x + 2 + ("[ ] ".len() + CHECK.len()) as i32;
+        return check.contains(&col).then_some(PromptHit::Check);
+    }
     if row != y + 3 {
         return None;
     }
@@ -191,6 +203,16 @@ pub fn draw(grid: &mut Grid, p: &Prompt) {
         }
         PromptKind::ConfirmAppend(path, _) => {
             grid.text(r.0 + 2, r.1 + 1, &format!("Append to \"{path}\"?"), 0)
+        }
+        PromptKind::ResetSettings => {
+            grid.text(
+                r.0 + 2,
+                r.1 + 1,
+                "Overwrite config.toml with the defaults?",
+                0,
+            );
+            let mark = if p.checked { "[x]" } else { "[ ]" };
+            grid.text(r.0 + 2, r.1 + 2, &format!("{mark} {CHECK}"), 0)
         }
         PromptKind::Setting(s) => caret_line(
             grid,

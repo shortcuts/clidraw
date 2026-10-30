@@ -426,6 +426,13 @@ impl App {
             Overlay::Prompt(_) => match prompt::hit(screen, col, row) {
                 Some(PromptHit::Ok) => self.confirm(),
                 Some(PromptHit::Cancel) => self.overlay = Overlay::None,
+                Some(PromptHit::Check) => {
+                    if let Overlay::Prompt(p) = &mut self.overlay {
+                        if p.kind == PromptKind::ResetSettings {
+                            p.checked = !p.checked;
+                        }
+                    }
+                }
                 None => {}
             },
             Overlay::Help(..) => self.help_click(col, row),
@@ -532,6 +539,11 @@ impl App {
     }
 
     fn confirm(&mut self) {
+        if matches!(&self.overlay, Overlay::Prompt(p) if p.kind == PromptKind::ResetSettings && !p.checked)
+        {
+            self.status = Some(ui::Status::error("Tick the box to reset"));
+            return;
+        }
         let Overlay::Prompt(p) = std::mem::replace(&mut self.overlay, Overlay::None) else {
             return;
         };
@@ -574,6 +586,7 @@ impl App {
                 self.open_switcher();
             }
             PromptKind::Setting(s) => self.save_setting(s, s.toml(&buf)),
+            PromptKind::ResetSettings => self.reset_settings(),
             PromptKind::ConfirmDelete(name) => {
                 let r = self.store.delete(&name);
                 if r.is_ok() && self.state.offsets.remove(&name).is_some() {

@@ -36,6 +36,7 @@ pub enum Action {
     Template(&'static str),
     Blank,
     EditSettings,
+    ResetSettings,
     Setting(Setting),
 }
 
@@ -89,7 +90,7 @@ impl Action {
             | Action::NewCanvas
             | Action::RenameCanvas
             | Action::DeleteCanvas => "Canvas",
-            Action::EditSettings | Action::Setting(_) => "Settings",
+            Action::EditSettings | Action::ResetSettings | Action::Setting(_) => "Settings",
             Action::Menu(_) | Action::Ex("w" | "wq") | Action::Prefill("import ") => "File",
             _ => "Edit",
         }

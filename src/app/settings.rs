@@ -50,4 +50,22 @@ impl App {
         }
         self.open_settings(s);
     }
+
+    pub(super) fn reset_settings(&mut self) {
+        let (old, _) = Config::load(self.store.dir());
+        match Config::reset(self.store.dir()) {
+            Ok(()) => {
+                let (cfg, _) = Config::load(self.store.dir());
+                self.apply_config(&cfg);
+                self.status = Some(if old.theme == ThemeSetting::Auto {
+                    Status::notice("Settings reset to defaults")
+                } else {
+                    Status::notice(
+                        "Settings reset to defaults. Restart clidraw to detect the terminal theme",
+                    )
+                });
+            }
+            Err(e) => self.status = Some(Status::error(format!("config.toml: {e}"))),
+        }
+    }
 }

@@ -71,6 +71,10 @@ impl App {
                 }
             }
             Action::EditSettings => self.open_settings(Setting::ALL[0]),
+            Action::ResetSettings => {
+                self.overlay =
+                    Overlay::Prompt(Prompt::new(PromptKind::ResetSettings, String::new()))
+            }
             Action::Setting(s) => self.setting_action(s),
             Action::DeleteCanvas => {
                 let kind = PromptKind::ConfirmDelete(self.name.clone());

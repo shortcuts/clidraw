@@ -560,6 +560,13 @@ pub const BINDINGS: &[Binding] = &[
         Some(Action::EditSettings),
     ),
     Binding::new(
+        "reset_settings",
+        &[],
+        "Reset default",
+        Scope::Palette,
+        Some(Action::ResetSettings),
+    ),
+    Binding::new(
         "insert_template",
         &[],
         "Insert template",
