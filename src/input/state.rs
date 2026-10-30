@@ -1,4 +1,4 @@
-use super::drag::{drag, pan_step, up};
+use super::drag::{drag, pan_step, trace_click, trace_move, trace_start, up};
 use super::hit::{self, Handle, Hit};
 use super::{quick, Session, Tool};
 use crate::model::{self, Command, Edge, Element, Id, Paint, ShapeKind, Side};
@@ -21,6 +21,7 @@ pub(super) enum Gesture {
     Idle,
     Pressed { origin: P, world: P, target: Target },
     Dragging { action: Action, inv: Vec<Command> },
+    Trace { id: Id, inv: Vec<Command> },
 }
 
 /// A view move in flight; `start` stays unset until the first tick, which owns the clock.
@@ -280,6 +281,9 @@ pub fn handle_mouse(s: &mut Session, ev: MouseEvent, now: Instant) {
 }
 
 fn hover(s: &mut Session, screen: P, world: P) {
+    if matches!(s.gesture, Gesture::Trace { .. }) {
+        return trace_move(s, world);
+    }
     let idle = s.tool.is_pointer() && s.edit.is_none() && matches!(s.gesture, Gesture::Idle);
     let live =
         idle && s.in_viewport(screen.0, screen.1) && palette::hit(s, screen.0, screen.1).is_none();
@@ -310,6 +314,12 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
         .last_down
         .is_some_and(|(c, r, t)| (c, r) == screen && now.duration_since(t) <= s.double_click);
     s.last_down = (!double).then_some((screen.0, screen.1, now));
+    if matches!(s.gesture, Gesture::Trace { .. }) {
+        if s.in_viewport(screen.0, screen.1) && palette::hit(s, screen.0, screen.1).is_none() {
+            return trace_click(s, world, double);
+        }
+        s.cancel_gesture();
+    }
     if s.dragging() {
         up(s, s.view.to_world(s.cursor.0, s.cursor.1));
     }
@@ -555,6 +565,7 @@ pub(super) fn click(s: &mut Session, target: Target, world: P) {
             s.start_edit_new(world);
             s.tool = Tool::Pointer;
         }
+        Target::Draw(Tool::Arrow) => trace_start(s, world),
         Target::Draw(_) | Target::Empty => match hit::at(s, &[], world, 0) {
             Hit::Element(id) => s.select_group_of(id),
             _ => s.selection.clear(),
@@ -580,7 +591,7 @@ impl Session {
         match std::mem::replace(&mut self.gesture, Gesture::Idle) {
             Gesture::Idle => false,
             Gesture::Pressed { .. } => true,
-            Gesture::Dragging { inv, .. } => {
+            Gesture::Dragging { inv, .. } | Gesture::Trace { inv, .. } => {
                 for undo in inv.into_iter().rev() {
                     let _ = self.canvas.apply(undo);
                 }

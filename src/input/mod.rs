@@ -217,7 +217,10 @@ impl Session {
 
     /// Autosave must not stall a drag step.
     pub fn dragging(&self) -> bool {
-        matches!(self.gesture, Gesture::Dragging { .. })
+        matches!(
+            self.gesture,
+            Gesture::Dragging { .. } | Gesture::Trace { .. }
+        )
     }
 
     /// Size in cells of the shape or line a drag is drawing or resizing.

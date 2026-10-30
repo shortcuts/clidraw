@@ -1,3 +1,4 @@
+use super::drag::trace_finish_free;
 use super::state::Gesture;
 use super::{Edit, Session, Tool};
 use crate::config::CommandUi;
@@ -90,6 +91,16 @@ pub fn handle_key(s: &mut Session, k: KeyEvent) -> KeyOutcome {
             KeyCode::Char('?') => KeyOutcome::Help,
             _ => KeyOutcome::None,
         };
+    }
+    if !ctrl && matches!(s.gesture, Gesture::Trace { .. }) {
+        match k.code {
+            KeyCode::Enter => trace_finish_free(s),
+            KeyCode::Esc => {
+                s.cancel_gesture();
+            }
+            _ => {}
+        }
+        return KeyOutcome::None;
     }
     if ctrl {
         match k.code {

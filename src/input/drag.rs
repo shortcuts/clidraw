@@ -216,6 +216,10 @@ pub(super) fn drag(s: &mut Session, screen: P, world: P) {
             inv = old;
             action
         }
+        trace @ Gesture::Trace { .. } => {
+            s.gesture = trace;
+            return trace_move(s, world);
+        }
         Gesture::Idle => return,
     };
     step(s, &mut inv, &mut action, screen, world);
@@ -526,8 +530,127 @@ pub(super) fn up(s: &mut Session, world: P) {
                 s.history.record(Command::Batch(inv));
             }
         }
+        trace @ Gesture::Trace { .. } => s.gesture = trace,
         Gesture::Idle => {}
     }
+}
+
+pub(super) fn trace_start(s: &mut Session, world: P) {
+    let id = Id::random();
+    let mut inv = vec![];
+    let line = Line {
+        id: id.clone(),
+        ..Line::new(
+            LineKind::Arrow,
+            bound_at(&s.canvas, world).unwrap_or(End::Free(world.0, world.1)),
+            End::Free(world.0, world.1),
+        )
+    };
+    let at = s.canvas.elements.len();
+    run(s, &mut inv, Command::Insert(at, Element::Line(line)));
+    s.selection = vec![id.clone()];
+    s.gesture = Gesture::Trace { id, inv };
+}
+
+// shortcut: no edge-pan while tracing, add one when long traces need it
+pub(super) fn trace_move(s: &mut Session, world: P) {
+    let Gesture::Trace { id, mut inv } = std::mem::replace(&mut s.gesture, Gesture::Idle) else {
+        return;
+    };
+    let end = bound_at(&s.canvas, world).unwrap_or(End::Free(world.0, world.1));
+    let cmd = Command::SetEnd {
+        id: id.clone(),
+        side: Side::To,
+        end,
+    };
+    run(s, &mut inv, cmd);
+    snap_to_shape(s, &id, Side::To, world);
+    s.gesture = Gesture::Trace { id, inv };
+}
+
+/// Adds a bend at `world`; a shape under it ends the arrow there, a double-click ends it free.
+pub(super) fn trace_click(s: &mut Session, world: P, double: bool) {
+    let Gesture::Trace { id, mut inv } = std::mem::replace(&mut s.gesture, Gesture::Idle) else {
+        return;
+    };
+    if let Some(end) = bound_at(&s.canvas, world) {
+        let side = Side::To;
+        run(
+            s,
+            &mut inv,
+            Command::SetEnd {
+                id: id.clone(),
+                side,
+                end,
+            },
+        );
+        return trace_end(s, inv, &id);
+    }
+    // The first click of a double-click already added the bend that the finish turns into the end.
+    if !double {
+        let Some(Element::Line(l)) = s.canvas.get(&id) else {
+            return;
+        };
+        let mut bends = l.bends.clone();
+        bends.push(snap_p(s.grid, world));
+        run(
+            s,
+            &mut inv,
+            Command::SetBends {
+                id: id.clone(),
+                bends,
+            },
+        );
+    }
+    s.gesture = Gesture::Trace { id, inv };
+    if double {
+        trace_finish_free(s);
+    }
+}
+
+/// Ends the arrow free at its last bend; an arrow without bends is cancelled.
+pub(super) fn trace_finish_free(s: &mut Session) {
+    let Gesture::Trace { id, mut inv } = std::mem::replace(&mut s.gesture, Gesture::Idle) else {
+        return;
+    };
+    let Some(Element::Line(l)) = s.canvas.get(&id) else {
+        return;
+    };
+    let mut bends = l.bends.clone();
+    let Some((x, y)) = bends.pop() else {
+        s.gesture = Gesture::Trace { id, inv };
+        s.cancel_gesture();
+        return;
+    };
+    run(
+        s,
+        &mut inv,
+        Command::SetBends {
+            id: id.clone(),
+            bends,
+        },
+    );
+    let end = End::Free(x, y);
+    run(
+        s,
+        &mut inv,
+        Command::SetEnd {
+            id: id.clone(),
+            side: Side::To,
+            end,
+        },
+    );
+    trace_end(s, inv, &id);
+}
+
+// `pin_cmds` would rebuild the bends from the bare route and drop the clicked ones.
+fn trace_end(s: &mut Session, mut inv: Vec<Command>, id: &Id) {
+    drop_spikes(s, &mut inv, id);
+    s.tool = Tool::Pointer;
+    s.snap = None;
+    s.snap_at = None;
+    inv.reverse();
+    s.history.record(Command::Batch(inv));
 }
 
 /// A bend whose route cell sits between two equal cells makes the line double back on itself.

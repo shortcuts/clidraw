@@ -3391,3 +3391,101 @@ fn quick_connect_stays_off_unless_one_shape_is_selected_and_the_pointer_is_just_
     s.selection.push(Id::from("bbbbbbbb"));
     assert!(!ghost(&mut s, (28, 7)), "two selected");
 }
+
+fn only_line(s: &Session) -> Line {
+    let lines: Vec<_> = s
+        .canvas
+        .elements
+        .iter()
+        .filter_map(|e| match e {
+            Element::Line(l) => Some(l.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(lines.len(), 1);
+    lines[0].clone()
+}
+
+#[test]
+fn clicking_bends_then_a_shape_makes_one_bound_arrow() {
+    let mut s = two_shapes_and_arrow_tool();
+    let t = Instant::now();
+    click(&mut s, (30, 16), t);
+    click(&mut s, (44, 16), t + Duration::from_secs(1));
+    click(&mut s, (43, 12), t + Duration::from_secs(2));
+    let l = only_line(&s);
+    assert_eq!(l.from, End::Free(30, 16));
+    assert_eq!(l.bends, vec![(44, 16)]);
+    assert!(matches!(&l.to, End::Bound(id, _) if *id == Id::from("bbbbbbbb")));
+    assert_eq!(s.tool, Tool::Pointer);
+    s.undo();
+    assert!(!s
+        .canvas
+        .elements
+        .iter()
+        .any(|e| matches!(e, Element::Line(_))));
+}
+
+#[test]
+fn enter_ends_the_arrow_free_at_the_last_click() {
+    let mut s = two_shapes_and_arrow_tool();
+    let t = Instant::now();
+    click(&mut s, (30, 16), t);
+    click(&mut s, (60, 16), t + Duration::from_secs(1));
+    mouse(
+        &mut s,
+        MouseEventKind::Moved,
+        70,
+        25,
+        t + Duration::from_secs(2),
+    );
+    key(&mut s, KeyCode::Enter);
+    let l = only_line(&s);
+    assert_eq!(l.to, End::Free(60, 16));
+    assert!(l.bends.is_empty());
+    assert_eq!(s.tool, Tool::Pointer);
+}
+
+#[test]
+fn double_click_ends_the_arrow_free_at_the_click() {
+    let mut s = two_shapes_and_arrow_tool();
+    let t = Instant::now();
+    click(&mut s, (30, 16), t);
+    click(&mut s, (60, 16), t + Duration::from_secs(1));
+    let d = t + Duration::from_secs(2);
+    click(&mut s, (70, 14), d);
+    click(&mut s, (70, 14), d + Duration::from_millis(10));
+    let l = only_line(&s);
+    assert_eq!(l.bends, vec![(60, 16)]);
+    assert_eq!(l.to, End::Free(70, 14));
+}
+
+#[test]
+fn escape_cancels_a_click_arrow() {
+    let mut s = two_shapes_and_arrow_tool();
+    click(&mut s, (30, 16), Instant::now());
+    key(&mut s, KeyCode::Esc);
+    assert!(!s
+        .canvas
+        .elements
+        .iter()
+        .any(|e| matches!(e, Element::Line(_))));
+    assert!(s.undo().is_none());
+}
+
+#[test]
+fn backspace_keeps_the_arrow_being_traced() {
+    let mut s = two_shapes_and_arrow_tool();
+    click(&mut s, (30, 16), Instant::now());
+    key(&mut s, KeyCode::Backspace);
+    only_line(&s);
+}
+
+#[test]
+fn dragging_with_the_arrow_tool_still_makes_a_single_arrow() {
+    let mut s = two_shapes_and_arrow_tool();
+    drag(&mut s, (30, 16), (60, 14));
+    let l = only_line(&s);
+    assert_eq!(l.to, End::Free(60, 14));
+    assert_eq!(s.tool, Tool::Pointer);
+}
