@@ -358,6 +358,40 @@ fn panned_view_shifts_the_drawing_and_handles_negative_coordinates() {
 }
 
 #[test]
+fn panned_diamond_keeps_its_shape() {
+    let diamond = || {
+        let Element::Shape(mut d) = shape("aaaaaaaa", 33, "") else {
+            unreachable!()
+        };
+        d.kind = ShapeKind::Diamond;
+        d.y = 9;
+        d.w = 17;
+        d.h = 9;
+        let mut c = Canvas::default();
+        c.elements.push(Element::Shape(d));
+        c
+    };
+    let plain = draw(
+        &Session::new(diamond(), View::default(), (80, 24)),
+        &Overlay::None,
+    );
+    let view = View {
+        ox: -10,
+        oy: -2,
+        ..View::default()
+    };
+    let panned = draw(&Session::new(diamond(), view, (80, 24)), &Overlay::None);
+    assert!(!cols(&plain, 9, 33, 17).trim().is_empty());
+    for j in 0..9 {
+        assert_eq!(
+            cols(&panned, 11 + j, 43, 17),
+            cols(&plain, 9 + j, 33, 17),
+            "row {j}"
+        );
+    }
+}
+
+#[test]
 fn arrow_between_shapes_ends_in_a_head() {
     let mut c = Canvas::default();
     c.elements.push(shape("aaaaaaaa", 12, ""));

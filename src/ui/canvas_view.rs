@@ -384,11 +384,12 @@ pub(crate) fn shape(
         }
         ShapeKind::Diamond => {
             let mid = f64::from(h - 1) / 2.0;
+            let dx = x - s.x;
             for j in 0..h {
-                let (l, r) = s.diamond_span(y + j);
+                let (l, r) = s.diamond_span(s.y + j);
                 let upper = f64::from(j) < mid;
-                grid.set(l, y + j, if upper { '╱' } else { '╲' }, flags);
-                grid.set(r, y + j, if upper { '╲' } else { '╱' }, flags);
+                grid.set(l + dx, y + j, if upper { '╱' } else { '╲' }, flags);
+                grid.set(r + dx, y + j, if upper { '╲' } else { '╱' }, flags);
             }
         }
         ShapeKind::Cylinder => {
