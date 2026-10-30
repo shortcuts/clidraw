@@ -3290,7 +3290,7 @@ fn quick_connect_reaches_every_pair_of_three_shapes_by_pointer_position() {
         ("rect", (-31, 9), "para"),
         ("cyl", (4, 0), "rect"),
         ("cyl", (20, 8), "para"),
-        ("para", (0, 10), "cyl"),
+        ("para", (10, 10), "cyl"),
         ("para", (-10, 15), "rect"),
     ] {
         assert_eq!(
@@ -3299,6 +3299,50 @@ fn quick_connect_reaches_every_pair_of_three_shapes_by_pointer_position() {
             "{from} {at:?}"
         );
     }
+}
+
+fn user_canvas() -> Session {
+    let mut c = Canvas::default();
+    for (id, kind, x, y, w, h) in [
+        ("ak8lf1jc", ShapeKind::Rect, 49, 18, 24, 14),
+        ("q3e0zfog", ShapeKind::Rect, 93, 24, 25, 10),
+        ("g98rj7ip", ShapeKind::Rect, 93, 11, 25, 10),
+        ("rd1z4z49", ShapeKind::Rect, 50, 40, 44, 10),
+        ("2of3quxh", ShapeKind::Rect, 36, 7, 21, 7),
+        ("nzvbgput", ShapeKind::Parallelogram, 7, 25, 26, 13),
+        ("miibxbva", ShapeKind::Rect, 21, 18, 24, 14),
+        ("4latlq5k", ShapeKind::Rect, -7, 18, 24, 14),
+        ("7bd3kj0i", ShapeKind::Rect, 93, -1, 25, 10),
+        ("6t7j8y04", ShapeKind::Rect, 93, 12, 25, 10),
+    ] {
+        c.elements.push(Element::Shape(Shape {
+            id: Id::from(id),
+            ..Shape::new(kind, x, y, w, h, "")
+        }));
+    }
+    Session::new(c, View::default(), (160, 50))
+}
+
+#[test]
+fn quick_connect_offers_a_copy_when_no_shape_lies_in_the_pointer_row() {
+    let t = Instant::now();
+    let mut s = user_canvas();
+    s.selection = vec![Id::from("rd1z4z49")];
+    mouse(&mut s, MouseEventKind::Moved, 49, 45, t);
+    let q = s.quick.clone().expect("copy on the left face");
+    assert_eq!(
+        (q.edge, q.target, q.rect),
+        (Edge::Left, None, (0, 40, 44, 10))
+    );
+}
+
+#[test]
+fn quick_connect_reaches_a_shape_a_cell_off_the_pointer_column() {
+    let t = Instant::now();
+    let mut s = user_canvas();
+    s.selection = vec![Id::from("ak8lf1jc")];
+    mouse(&mut s, MouseEventKind::Moved, 49, 33, t);
+    assert_eq!(s.quick.and_then(|q| q.target), Some(Id::from("rd1z4z49")));
 }
 
 #[test]
@@ -3325,13 +3369,13 @@ fn quick_connect_skips_a_shape_already_joined_to_the_selection_by_an_arrow() {
         End::Bound(Id::from("cyl"), Anchor::Auto),
         End::Bound(Id::from("rect"), Anchor::Auto),
     )));
-    assert_eq!(target_at(&mut s, "rect", (-31, 0)), Some(Id::from("para")));
+    assert_eq!(target_at(&mut s, "rect", (-31, 12)), Some(Id::from("para")));
     s.canvas.elements.push(Element::Line(Line::new(
         LineKind::Arrow,
         End::Bound(Id::from("rect"), Anchor::Auto),
         End::Bound(Id::from("para"), Anchor::Auto),
     )));
-    assert_eq!(target_at(&mut s, "rect", (-31, 0)), None);
+    assert_eq!(target_at(&mut s, "rect", (-31, 12)), None);
     assert!(s.quick.is_none(), "the copy spot overlaps the other shapes");
     assert_eq!(target_at(&mut s, "cyl", (42, 0)), None);
     assert!(s

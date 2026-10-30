@@ -7,6 +7,9 @@ use crate::view::Zoom;
 /// How far outside a side the pointer still offers a copy.
 const REACH: i32 = 2;
 
+/// How far past a target's edges the pointer still reaches it along the side.
+const LANE_MARGIN: i32 = 3;
+
 /// The offer beside the selected shape `from`: a copy and an arrow, or with `target` only an arrow to it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Quick {
@@ -82,7 +85,7 @@ pub fn at(s: &Session, p: (i32, i32)) -> Option<Quick> {
     })
 }
 
-/// The shape past `edge` of `src` that no line joins to `src` yet, preferring one the pointer lines up with, then the nearest.
+/// The nearest shape past `edge` of `src` in the pointer's lane that no line joins to `src` yet.
 fn target<'a>(s: &'a Session, src: &Shape, edge: Edge, p: (i32, i32)) -> Option<&'a Shape> {
     let joined = |id: &Id| {
         s.canvas.elements.iter().any(|e| match e {
@@ -104,15 +107,27 @@ fn target<'a>(s: &'a Session, src: &Shape, edge: Edge, p: (i32, i32)) -> Option<
             _ => None,
         })
         .filter_map(|t| {
-            let (gap, aligned) = match edge {
-                Edge::Right => (t.x - (src.x + src.w), (t.y..t.y + t.h).contains(&p.1)),
-                Edge::Left => (src.x - (t.x + t.w), (t.y..t.y + t.h).contains(&p.1)),
-                Edge::Bottom => (t.y - (src.y + src.h), (t.x..t.x + t.w).contains(&p.0)),
-                Edge::Top => (src.y - (t.y + t.h), (t.x..t.x + t.w).contains(&p.0)),
+            let (gap, lane) = match edge {
+                Edge::Right => (
+                    t.x - (src.x + src.w),
+                    (t.y - LANE_MARGIN..t.y + t.h + LANE_MARGIN).contains(&p.1),
+                ),
+                Edge::Left => (
+                    src.x - (t.x + t.w),
+                    (t.y - LANE_MARGIN..t.y + t.h + LANE_MARGIN).contains(&p.1),
+                ),
+                Edge::Bottom => (
+                    t.y - (src.y + src.h),
+                    (t.x - LANE_MARGIN..t.x + t.w + LANE_MARGIN).contains(&p.0),
+                ),
+                Edge::Top => (
+                    src.y - (t.y + t.h),
+                    (t.x - LANE_MARGIN..t.x + t.w + LANE_MARGIN).contains(&p.0),
+                ),
             };
-            (gap >= 0).then_some((t, (!aligned, gap)))
+            (gap >= 0 && lane).then_some((t, gap))
         })
-        .min_by_key(|&(_, rank)| rank)
+        .min_by_key(|&(_, gap)| gap)
         .map(|(t, _)| t)
 }
 
