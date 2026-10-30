@@ -1189,10 +1189,10 @@ fn info_bar_idle_reads_buttons_badge_hints_then_view_cluster_and_name() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let r = bar(&s, 120, true);
     assert!(
-        r.starts_with("[Undo] [Redo]   POINTER   ? help  Ctrl-p palette  / find  z fit"),
+        r.starts_with(" Undo   Redo    POINTER   ? help  Ctrl-p palette  / find  z fit"),
         "{r}"
     );
-    assert!(r.ends_with("[-] 100% [+] [Fit]  demo"), "{r}");
+    assert!(r.ends_with(" -  100%  +   Fit   demo"), "{r}");
     assert!(bar(&s, 120, false).ends_with("demo ●"));
 }
 
@@ -1232,11 +1232,11 @@ fn info_bar_badge_follows_the_mode() {
 fn info_bar_keeps_buttons_and_drops_hints_first_when_narrow() {
     let s = two_shapes();
     let r = bar(&s, 60, true);
-    assert!(r.contains("2 sel") && r.contains("[Fit]"), "{r}");
+    assert!(r.contains("2 sel") && r.contains(" Fit "), "{r}");
     let r = bar(&s, 40, true);
-    assert!(r.starts_with("[Undo] [Redo]"), "{r}");
+    assert!(r.starts_with(" Undo   Redo "), "{r}");
     assert!(
-        r.contains("[Fit]") && !r.contains("2 sel") && !r.contains("Del"),
+        r.contains(" Fit ") && !r.contains("2 sel") && !r.contains("Del"),
         "{r}"
     );
 }
@@ -1252,7 +1252,7 @@ fn info_bar_truncates_a_long_name_and_keeps_the_marker() {
     };
     let r = bar_with(&s, 60, &d);
     assert!(r.ends_with("… ●"), "{r}");
-    assert!(r.contains("[+] [Fit]"), "{r}");
+    assert!(r.contains(" +   Fit "), "{r}");
 }
 
 #[test]
@@ -1273,8 +1273,8 @@ fn info_bar_buttons_are_hit_where_the_layout_draws_them() {
         };
         let hit = |col| ui::button_at(&s, d, col, 23);
         assert_eq!(hit(7), Some(ui::Button::Redo));
-        assert_eq!(hit(at("[+]")), Some(ui::Button::ZoomIn));
-        assert_eq!(hit(at("[Fit]")), Some(ui::Button::Fit));
+        assert_eq!(hit(at(" + ")), Some(ui::Button::ZoomIn));
+        assert_eq!(hit(at(" Fit ")), Some(ui::Button::Fit));
         assert_eq!(hit(at("100%")), None);
         assert_eq!(hit(at("POINTER")), None);
     }
@@ -1301,7 +1301,7 @@ fn info_bar_status_replaces_only_the_hints() {
     let b = t.backend().buffer();
     let r: String = (0..100).map(|x| b[(x, 23)].symbol().to_string()).collect();
     assert!(
-        r.starts_with("[Undo] [Redo]   POINTER   saved to disk"),
+        r.starts_with(" Undo   Redo    POINTER   saved to disk"),
         "{r}"
     );
     assert!(r.ends_with("demo") && !r.contains("? help"), "{r}");
@@ -1966,7 +1966,7 @@ fn command_line_replaces_the_bottom_row_with_a_caret_and_a_list_above() {
         assert!(line_at(&b, 23).starts_with(":lay "), "{w}");
         assert!(b[(4, 23)].modifier.contains(Modifier::REVERSED), "{w}");
         assert!(!all.replace("Commands", "").contains("Command"), "{w}");
-        assert!(!all.contains("[ OK ]"), "{w}");
+        assert!(!all.contains(" OK "), "{w}");
         assert!(line_at(&b, 22).starts_with("└─"), "{w}");
         assert!(line_at(&b, 21).contains(":layout"), "{w}");
     }
@@ -2043,7 +2043,7 @@ fn mermaid_prompt_hints_the_first_diagnostic_after_the_text() {
         let all: String = (0..24)
             .map(|y| line_at(&mermaid_prompt_at("A -->", w, 24), y))
             .collect();
-        assert!(!all.contains("[ OK ]"), "{w}");
+        assert!(!all.contains(" OK "), "{w}");
     }
 }
 

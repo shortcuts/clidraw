@@ -250,15 +250,15 @@ Every change to the chrome follows these rules. The chrome is the bars, the opti
 row 0       tool row      Select v │ Rect r  Diamond d  …  │ Arrow a  Text t
 row 1       option strip  ‹ head -> end <- start │ stroke __ solid -- dashed │ color ink red > fill none >  ›   (only with a selection)
 rows 1|2…   canvas viewport
-last row    bottom bar    [Undo] [Redo]  MODE  key action  key action …   12x4  3 sel  [-] 100% [+] [Fit]  demo ●
+last row    bottom bar     Undo   Redo   MODE  key action  key action …   12x4  3 sel   -  100%  +   Fit   demo ●
 ```
 
 - The chrome reserves its rows. The canvas viewport, Fit all, the minimap, glides and hit testing use only the rows between the bars. Nothing on the canvas hides under the chrome.
 - The tool row and the option strip are one row each. They never wrap. When the content overflows, the row scrolls horizontally: the horizontal wheel or Shift-wheel scrolls it, and clickable `‹` `›` cells at the edges show that more content exists.
 - The option strip separates its groups (head, stroke, border, align, color, placement, group) with `│`.
 - The tool row separates its groups (pointer, shapes, draw) with `│`.
-- Bottom bar, left zone: `[Undo] [Redo]`, the mode badge, then key hints for the current mode. A status message replaces the hints only, never the buttons or the right zone.
-- Bottom bar, right zone, in this order: drag readout, selection count, `[-] <zoom> [+] [Fit]`, canvas name. An unsaved canvas shows ` ●` after its name.
+- Bottom bar, left zone: `" Undo "` and `" Redo "` cells, the mode badge, then key hints for the current mode. A status message replaces the hints only, never the buttons or the right zone.
+- Bottom bar, right zone, in this order: drag readout, selection count, `" - "` `<zoom>` `" + "` `" Fit "` cells, canvas name. An unsaved canvas shows ` ●` after its name.
 - Narrow screens drop items in this order: hints (last hint first), drag readout, selection count. The buttons stay. The canvas name truncates with `…`. If the buttons, the zoom cluster and a 2-column name do not fit, the mode badge drops too.
 - The `:` command line (with `command_ui = "vim"`) and the `/` find input replace the bottom bar, as in vim. Completions show in a list above the bar.
 - Centered dialogs are only for input that needs a full line: export path, new canvas, rename, delete confirmation.
@@ -314,6 +314,7 @@ The tokens live in `src/ui/style.rs`.
 
 - Bar items: 2 columns apart (`GAP`).
 - Clickable cells: 1 column of padding on each side.
+- Bottom bar and dialog buttons use the same padded cell, with no brackets.
 - Measure every width with `unicode-width`, never with `str::len` or `chars().count()`.
 
 Top rows (the tool row and the option strip) share these rules:

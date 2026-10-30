@@ -107,7 +107,7 @@ fn fit_button_opens_the_minimap() {
     let now = Instant::now();
     insert_box(&mut app);
     app.session.view.ox = 500;
-    let fit = col_of(&app, "[Fit]");
+    let fit = col_of(&app, " Fit ");
     click(&mut app, fit, 23, now);
     assert!(matches!(
         app.overlay,

@@ -173,8 +173,8 @@ pub fn hit(s: &Session, doc: &Doc, col: i32, row: i32) -> Option<Button> {
 
 fn draw_chrome(grid: &mut Grid, y: i32, s: &Session, bar: &Bar) {
     let off = !s.can_edit();
-    grid.text(UNDO_X, y, "[Undo]", if off { DISABLED } else { KEY });
-    grid.text(REDO_X, y, "[Redo]", if off { DISABLED } else { KEY });
+    grid.text(UNDO_X, y, " Undo ", if off { DISABLED } else { KEY });
+    grid.text(REDO_X, y, " Redo ", if off { DISABLED } else { KEY });
     if let Some(b) = &bar.badge {
         grid.text(LEFT_END + GAP, y, b, ACTIVE);
     }
@@ -185,9 +185,9 @@ fn draw_chrome(grid: &mut Grid, y: i32, s: &Session, bar: &Bar) {
         grid.text(*x, y, t, 0);
     }
     let x = bar.cluster_x;
-    grid.text(x, y, "[-]", KEY);
+    grid.text(x, y, " - ", KEY);
     grid.text(x + 4, y, &format!("{:>4}", s.view.zoom.label()), MUTED);
-    grid.text(x + 9, y, "[+] [Fit]", KEY);
+    grid.text(x + 9, y, " +   Fit ", KEY);
     if let Some((x, t)) = &bar.name {
         grid.text(*x, y, t, 0);
     }

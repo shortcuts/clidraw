@@ -243,7 +243,7 @@ fn info_bar_keeps_its_buttons_on_narrow_screens() {
     let t = tempfile::tempdir().unwrap();
     let app = app_in(t.path());
     assert!(
-        last_row(&app).starts_with("[Undo] [Redo]"),
+        last_row(&app).starts_with(" Undo   Redo "),
         "{}",
         last_row(&app)
     );
@@ -252,7 +252,7 @@ fn info_bar_keeps_its_buttons_on_narrow_screens() {
     app.render(&mut buf, area);
     let row: String = (0..40).map(|x| buf[(x, 23)].symbol().to_string()).collect();
     assert!(
-        row.starts_with("[Undo] [Redo]") && row.contains("[Fit]"),
+        row.starts_with(" Undo   Redo ") && row.contains(" Fit "),
         "{row}"
     );
 }
@@ -262,7 +262,7 @@ fn zoom_buttons_step_the_zoom() {
     let t = tempfile::tempdir().unwrap();
     let mut app = app_in(t.path());
     let now = Instant::now();
-    let (plus, minus) = (col_of(&app, "[+]"), col_of(&app, "[-]"));
+    let (plus, minus) = (col_of(&app, " + "), col_of(&app, " - "));
     click(&mut app, plus, 23, now);
     assert_eq!(app.session.view.zoom, clidraw::view::Zoom::Two);
     click(&mut app, minus, 23, now);
@@ -290,7 +290,7 @@ fn undo_button_is_inactive_while_zoomed_out() {
     let mut app = app_in(t.path());
     let now = Instant::now();
     insert_box(&mut app);
-    let minus = col_of(&app, "[-]");
+    let minus = col_of(&app, " - ");
     click(&mut app, minus, 23, now);
     click(&mut app, 2, 23, now);
     assert_eq!(shape_count(&app), 1);

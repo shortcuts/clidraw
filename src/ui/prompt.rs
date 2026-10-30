@@ -44,7 +44,7 @@ pub struct Prompt {
     pub fixes: bool,
     /// Highlighted file of the `import` path drawer; `None` until the user navigates.
     pub path_sel: Option<usize>,
-    /// Focus on `[ Cancel ]` of a confirm prompt; Enter acts on the focused button.
+    /// Focus on the Cancel button of a confirm prompt; Enter acts on the focused button.
     pub cancel_focused: bool,
     /// The box of a `ResetSettings` prompt; Enter does nothing until it is ticked.
     pub checked: bool,
@@ -59,8 +59,8 @@ pub enum PromptHit {
 
 const HINT_GAP: i32 = 2;
 const MIN_HINT: i32 = 4;
-const OK: &str = "[ OK ]";
-const CANCEL: &str = "[ Cancel ]";
+const OK: &str = " OK ";
+const CANCEL: &str = " Cancel ";
 const CHECK: &str = "Yes, discard my edits";
 
 fn rect(screen: (u16, u16)) -> (i32, i32, i32, i32) {
