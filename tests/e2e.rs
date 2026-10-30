@@ -264,6 +264,13 @@ fn quick_connect_previews_then_adds_a_connected_copy() {
 
 fn open_ink(t: &mut Term) {
     t.draw_rect();
+    for _ in 0..20 {
+        if t.screen().contains("ink") {
+            break;
+        }
+        let (col, row) = t.find("›");
+        t.click(col, row);
+    }
     let (col, row) = t.find("ink");
     t.click(col, row);
     t.wait_for("(current)");
@@ -274,7 +281,7 @@ fn ink_swatch_window_paints_squares_on_a_truecolor_terminal() {
     let tmp = tempfile::tempdir().unwrap();
     let mut t = Term::spawn_env(tmp.path(), &["scratch"], true);
     open_ink(&mut t);
-    let (col, row) = t.find("none");
+    let (col, row) = t.find("none]");
     assert!(
         (0..6).any(|i| matches!(t.bg(col + 8 * (i + 1) + 1, row), vt100::Color::Rgb(..))),
         "{}",

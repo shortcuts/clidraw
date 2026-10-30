@@ -273,7 +273,8 @@ fn template_tools_list_create_and_extend() {
         text(&r[0]),
         r#"["Flowchart","Architecture dependency","Gantt chart","Sequence diagram","State diagram"]"#
     );
-    assert!(text(&r[1]).starts_with(r#"{"shapes":"#), "{}", text(&r[1]));
+    let inserted: Value = serde_json::from_str(text(&r[1])).unwrap();
+    assert!(inserted["shapes"].as_i64() > Some(0), "{}", text(&r[1]));
     assert_eq!(r[3]["result"]["isError"], true);
     assert!(text(&r[3]).contains("run clidraw templates"));
     let canvas: Value = serde_json::from_str(text(&r[4])).unwrap();

@@ -448,7 +448,7 @@ fn confirm_delete_moves_focus_with_arrows_and_hl_and_enter_acts_on_it() {
     let name = app.name.clone();
     assert!(store.list().unwrap().contains(&name));
     open_canvases(&mut app, now);
-    app.on_event(key(KeyCode::Char('x')), now);
+    ctrl_key(&mut app, 'x', now);
     app.on_event(key(KeyCode::Right), now);
     app.on_event(key(KeyCode::Left), now);
     app.on_event(key(KeyCode::Char('l')), now);
@@ -458,7 +458,7 @@ fn confirm_delete_moves_focus_with_arrows_and_hl_and_enter_acts_on_it() {
         "Enter on Cancel keeps the canvas"
     );
     open_canvases(&mut app, now);
-    app.on_event(key(KeyCode::Char('x')), now);
+    ctrl_key(&mut app, 'x', now);
     app.on_event(key(KeyCode::Char('l')), now);
     app.on_event(key(KeyCode::Char('h')), now);
     app.on_event(key(KeyCode::Enter), now);
@@ -672,11 +672,7 @@ fn clicking_ink_in_the_option_row_opens_the_swatch_window() {
     let cell = (0..200)
         .find_map(|scroll| {
             app.session.option_scroll = scroll;
-            let opts = clidraw::ui::palette::choices(
-                &clidraw::ui::palette::selected(&app.session),
-                &app.session.canvas.groups,
-            );
-            clidraw::ui::palette::layout(&opts, 80, (0, scroll))
+            clidraw::ui::palette::layout(&app.session, 80, (0, scroll))
                 .cells
                 .into_iter()
                 .find(|c| c.hit == ink)
