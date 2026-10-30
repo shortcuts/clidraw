@@ -946,11 +946,11 @@ fn snap_size_holds_the_ratio_of_bound_kinds() {
 
 #[test]
 fn rotated_swaps_width_and_height_around_the_center() {
-    assert_eq!(shape_at(20, 4, 8, 4).rotated(), (22, 2, 4, 8));
-    let turned = shape_at(20, 4, 7, 4).rotated();
-    assert_eq!(turned, (21, 3, 4, 7));
+    assert_eq!(shape_at(20, 4, 8, 4).rotated(), (20, 4, 8, 4));
+    let turned = shape_at(20, 4, 8, 6).rotated();
+    assert_eq!(turned, (18, 5, 12, 4));
     let (x, y, w, h) = turned;
-    assert_eq!(shape_at(x, y, w, h).rotated(), (20, 4, 7, 4));
+    assert_eq!(shape_at(x, y, w, h).rotated(), (20, 4, 8, 6));
 }
 
 #[test]

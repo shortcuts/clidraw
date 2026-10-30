@@ -381,11 +381,12 @@ impl Shape {
         (Self::ratio_width(kind, h).unwrap_or(w), h)
     }
 
-    /// Rect after one 90° turn: width and height swap around the center.
+    /// Rect after one 90° turn: cells are about 2:1, so the visual size turns, not the cell counts.
     pub fn rotated(&self) -> (i32, i32, i32, i32) {
-        let x = self.x + (self.w - self.h) / 2;
-        let y = self.y + (self.h - self.w) / 2;
-        (x, y, self.h, self.w)
+        let (w, h) = (2 * self.h, (self.w + 1) / 2);
+        let x = self.x + (self.w - w) / 2;
+        let y = self.y + (self.h - h) / 2;
+        (x, y, w, h)
     }
 
     /// Columns the slanted kinds cut off the bounding box at the top and bottom rows.

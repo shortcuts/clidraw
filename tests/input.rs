@@ -207,25 +207,33 @@ fn corner_handle_resizes() {
 #[test]
 fn rotate_handle_turns_a_rect_in_90_steps_and_undo_restores_it() {
     let mut s = with_shape("aaaaaaaa", 20, 8);
+    let Element::Shape(sh) = &mut s.canvas.elements[0] else {
+        unreachable!()
+    };
+    sh.h = 6;
     click(&mut s, (20, 9), Instant::now());
     click(&mut s, (23, 6), Instant::now());
     let sh = shapes(&s)[0];
-    assert_eq!((sh.x, sh.y, sh.w, sh.h), (22, 6, 4, 8));
-    click(&mut s, (23, 4), Instant::now());
+    assert_eq!((sh.x, sh.y, sh.w, sh.h), (18, 9, 12, 4));
+    click(&mut s, (23, 7), Instant::now());
     let sh = shapes(&s)[0];
-    assert_eq!((sh.x, sh.y, sh.w, sh.h), (20, 8, 8, 4));
+    assert_eq!((sh.x, sh.y, sh.w, sh.h), (20, 8, 8, 6));
     key(&mut s, KeyCode::Char('u'));
     let sh = shapes(&s)[0];
-    assert_eq!((sh.x, sh.y, sh.w, sh.h), (22, 6, 4, 8));
+    assert_eq!((sh.x, sh.y, sh.w, sh.h), (18, 9, 12, 4));
 }
 
 #[test]
 fn rotate_press_followed_by_a_drag_rotates_once() {
     let mut s = with_shape("aaaaaaaa", 20, 4);
+    let Element::Shape(sh) = &mut s.canvas.elements[0] else {
+        unreachable!()
+    };
+    sh.h = 6;
     click(&mut s, (20, 5), Instant::now());
     drag(&mut s, (23, 2), (40, 10));
     let sh = shapes(&s)[0];
-    assert_eq!((sh.x, sh.y, sh.w, sh.h), (22, 2, 4, 8));
+    assert_eq!((sh.x, sh.y, sh.w, sh.h), (18, 5, 12, 4));
 }
 
 #[test]
