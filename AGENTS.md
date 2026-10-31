@@ -22,4 +22,12 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for the constraints, test rules, perform
 
 The maintainer runs every `[Live]` plan check by hand. Never ask for one, never wait for one, and never block or mark a task inconclusive because one did not run. Run every other check, then report the task done.
 
-To see the real TUI yourself, write a step file and run `DRIVE=<file> cargo test --test drive -- --ignored --nocapture`. It drives the binary in a pty with keys, clicks and drags, and prints the screen. A new regression check goes in `tests/e2e.rs` instead. A red test you did not cause is not a reason to stop: fix it or log it with `/radin-record`, then report the task done.
+## Verifying your work
+
+The repository owns its test harness. You verify your own work through it. Never wait for a human.
+
+- Drive the real binary: write a step file and run `DRIVE=<file> cargo test --test drive -- --ignored --nocapture`. It plays keys, clicks, drags and the wheel in a pty and prints the screen. Steps are listed in `tests/drive.rs`.
+- Keep a regression check: add it to `tests/e2e.rs`, built on `tests/e2e/harness.rs`. The harness already has `click`, `drag`, `double_click`, `right_click`, `wheel_down` and `find`. Never report "no mouse driver".
+- A missing way to observe a behavior is a harness gap. Extend the harness in the same task, then verify.
+- A test that is red before your change still blocks the gate. Fix it. If you cannot, record it with `/radin-record` as a fix for the next iteration, then report your task done.
+- Check the fixed test against the base commit (`git stash`, run, `git stash pop`) to prove you did not cause the failure.
