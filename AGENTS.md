@@ -23,7 +23,6 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for the constraints, test rules, perform
 The repository owns its test harness. You verify your own work through it.
 
 - Never ask for a `[Live]` plan check, wait for one, or mark a task inconclusive because one did not run. Run it through the harness below, or leave it to the maintainer and report the task done.
-
 - Drive the real binary: write a step file and run `DRIVE=<file> cargo test --test drive -- --ignored --nocapture`. It plays keys, clicks, drags and the wheel in a pty and prints the screen. Steps are listed in `tests/drive.rs`.
 - Keep a regression check: add it to `tests/e2e.rs`, built on `tests/e2e/harness.rs`. The harness already has `click`, `drag`, `double_click`, `right_click`, `wheel_down` and `find`. Never report "no mouse driver".
 - A missing way to observe a behavior is a harness gap. Extend the harness in the same task, then verify.
