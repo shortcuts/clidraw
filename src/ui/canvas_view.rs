@@ -77,7 +77,16 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
     edit_label(grid, s);
     selection_box(grid, s, &find, &layout.router, accent);
     let dots = mid_dots(&s.canvas, &find, &layout.router, &s.selection);
-    for (h, id, (x, y)) in handles(&s.canvas, &s.selection).into_iter().chain(dots) {
+    // A handle drawn over the caret hides it: a line's move dot sits on its label cell.
+    let shown = if s.edit.is_some() {
+        vec![]
+    } else {
+        handles(&s.canvas, &s.selection)
+    };
+    for (h, id, (x, y)) in shown
+        .into_iter()
+        .chain(dots.into_iter().filter(|_| s.edit.is_none()))
+    {
         let glyph = match h {
             Handle::Resize => '⤡',
             Handle::Rotate => '↻',

@@ -435,7 +435,11 @@ fn selected_arrow_keeps_its_head_visible() {
     let mut s = Session::new(c, View::default(), (80, 24));
     s.selection.push(Id::from("cccccccc"));
     let line = row(&draw(&s, &Overlay::None), 5);
-    assert!(line.contains('▶') && !line.contains('■'), "{line}");
+    // The one ■ is the move dot between the bend dots; the head cell keeps ▶.
+    assert!(
+        line.contains('▶') && line.matches('■').count() == 1,
+        "{line}"
+    );
 }
 
 #[test]

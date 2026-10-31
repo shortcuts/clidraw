@@ -59,6 +59,7 @@ Run these commands from the repo root.
 - `make release` builds the release binary.
 - `make screenshots` renders the VHS tapes in `docs/tapes` into `docs/wiki/assets`. It needs `vhs`. See [Screenshots](#screenshots).
 - `cargo test --test e2e` runs the real binary in a pty and asserts on the parsed screen.
+- `DRIVE=steps.txt cargo test --test drive -- --ignored --nocapture` plays a step file against the real binary and prints the screen. Use it for any live check: see `tests/drive.rs` for the steps (`key`, `click_text`, `drag`, `screen`). The harness has mouse clicks, drags, double clicks and the wheel, so no check needs a human.
 
 ## Tests
 

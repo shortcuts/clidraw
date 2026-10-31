@@ -21,3 +21,5 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for the constraints, test rules, perform
 ## Live checks
 
 The maintainer runs every `[Live]` plan check by hand. Never ask for one, never wait for one, and never block or mark a task inconclusive because one did not run. Run every other check, then report the task done.
+
+To see the real TUI yourself, write a step file and run `DRIVE=<file> cargo test --test drive -- --ignored --nocapture`. It drives the binary in a pty with keys, clicks and drags, and prints the screen. A new regression check goes in `tests/e2e.rs` instead. A red test you did not cause is not a reason to stop: fix it or log it with `/radin-record`, then report the task done.

@@ -318,3 +318,51 @@ fn ink_swatch_window_names_the_colors_without_color() {
     );
     assert_eq!(t.bg(0, 0), vt100::Color::Default);
 }
+
+#[test]
+fn bottom_bar_undo_redo_and_zoom_cells_take_clicks() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut t = Term::spawn(tmp.path(), &["scratch"]);
+    t.draw_rect();
+    assert_eq!(corners(&t), 1, "{}", t.screen());
+    let (col, row) = t.find(" Undo ");
+    t.click(col + 1, row);
+    assert_eq!(corners(&t), 0, "{}", t.screen());
+    let (col, row) = t.find(" Redo ");
+    t.click(col + 1, row);
+    assert_eq!(corners(&t), 1, "{}", t.screen());
+    let (col, row) = t.find(" - ");
+    t.click(col + 1, row);
+    t.wait_gone("100%");
+    let zoomed_out = t.screen().lines().last().unwrap().to_string();
+    let (col, row) = t.find(" + ");
+    t.click(col + 1, row);
+    assert_ne!(
+        t.screen().lines().last().unwrap(),
+        zoomed_out,
+        "{}",
+        t.screen()
+    );
+}
+
+#[test]
+fn delete_prompt_buttons_take_clicks() {
+    for button in [" Cancel ", " OK "] {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut t = Term::spawn(tmp.path(), &["scratch"]);
+        t.draw_rect();
+        t.key("\x10");
+        t.key("delete canvas");
+        t.key("\r");
+        t.wait_for(" Cancel ");
+        let (col, row) = t.find(button);
+        t.click(col + 1, row);
+        t.wait_gone(" Cancel ");
+        assert_eq!(
+            button == " OK ",
+            !t.screen().contains("scratch"),
+            "{}",
+            t.screen()
+        );
+    }
+}
