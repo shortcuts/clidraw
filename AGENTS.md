@@ -18,13 +18,11 @@ The code is the source of truth. Documentation describes the code and never repl
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for the constraints, test rules, performance workflow and UI design system. Follow it for every change.
 
-## Live checks
-
-The maintainer runs every `[Live]` plan check by hand. Never ask for one, never wait for one, and never block or mark a task inconclusive because one did not run. Run every other check, then report the task done.
-
 ## Verifying your work
 
-The repository owns its test harness. You verify your own work through it. Never wait for a human.
+The repository owns its test harness. You verify your own work through it.
+
+- Never ask for a `[Live]` plan check, wait for one, or mark a task inconclusive because one did not run. Run it through the harness below, or leave it to the maintainer and report the task done.
 
 - Drive the real binary: write a step file and run `DRIVE=<file> cargo test --test drive -- --ignored --nocapture`. It plays keys, clicks, drags and the wheel in a pty and prints the screen. Steps are listed in `tests/drive.rs`.
 - Keep a regression check: add it to `tests/e2e.rs`, built on `tests/e2e/harness.rs`. The harness already has `click`, `drag`, `double_click`, `right_click`, `wheel_down` and `find`. Never report "no mouse driver".
