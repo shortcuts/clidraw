@@ -166,6 +166,7 @@ fn handle(line: &str, store: &Store) -> Option<Value> {
                 "protocolVersion": asked.filter(|v| VERSIONS.contains(v)).unwrap_or(VERSIONS[0]),
                 "capabilities": {"tools": {}},
                 "serverInfo": {"name": "clidraw", "version": env!("CARGO_PKG_VERSION")},
+                "instructions": crate::conventions::CONVENTIONS,
             }))
         }
         Some("ping") => Ok(json!({})),

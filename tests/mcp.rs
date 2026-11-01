@@ -55,6 +55,24 @@ fn initialize_echoes_a_known_version_and_falls_back() {
     assert_eq!(r[1]["result"]["protocolVersion"], "2025-11-25");
     assert_eq!(r[0]["result"]["capabilities"], json!({"tools": {}}));
     assert_eq!(r[0]["result"]["serverInfo"]["name"], "clidraw");
+    assert_eq!(
+        r[0]["result"]["instructions"],
+        clidraw::conventions::CONVENTIONS
+    );
+}
+
+#[test]
+fn conventions_name_only_real_tools_and_ops() {
+    let names = ["search", "show", "edit", "new", "set", "connect", "layout"];
+    for name in names {
+        assert!(
+            clidraw::conventions::CONVENTIONS.contains(&format!("`{name}`")),
+            "CONVENTIONS does not name `{name}`"
+        );
+        let real = clidraw::cli::COMMANDS.contains(&name)
+            || clidraw::cli::docs::OPS.iter().any(|op| op.name == name);
+        assert!(real, "`{name}` is neither a command nor an op");
+    }
 }
 
 #[test]
