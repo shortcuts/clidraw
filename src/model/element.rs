@@ -406,6 +406,22 @@ impl Shape {
         (x, y, w, h)
     }
 
+    /// Side of a cylinder that holds the cap: 0 top, 1 left, 2 bottom, 3 right.
+    pub fn cap_turn(&self) -> u8 {
+        self.turn % 4
+    }
+
+    /// First and last row, relative to the top, a label or a side anchor may use: inside the body, off the cap rows of a cylinder.
+    pub fn body_rows(&self) -> (i32, i32) {
+        let (lo, hi) = match (self.kind == ShapeKind::Cylinder).then(|| self.cap_turn()) {
+            Some(0) => (2, self.h - 2),
+            Some(2) => (1, self.h - 3),
+            _ => (1, self.h - 2),
+        };
+        let lo = lo.min(self.h - 2).max(1);
+        (lo, hi.max(lo))
+    }
+
     /// Columns the slanted kinds cut off the bounding box at the top and bottom rows.
     pub fn inset(&self) -> i32 {
         match self.kind {

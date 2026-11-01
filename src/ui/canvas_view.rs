@@ -403,19 +403,39 @@ pub(crate) fn shape(
             }
         }
         ShapeKind::Cylinder => {
-            let h_edge = |grid: &mut Grid, row: i32| {
-                grid.set(x, row, if row == y { '╭' } else { '╰' }, flags);
-                grid.set(x + w - 1, row, if row == y { '╮' } else { '╯' }, flags);
-                for i in 1..w - 1 {
-                    grid.set(x + i, row, dashed(s.stroke, '─'), flags);
+            let cap = s.cap_turn();
+            if cap.is_multiple_of(2) {
+                let lid = if cap == 0 { y + 1 } else { y + h - 2 };
+                for row in [y, lid, y + h - 1] {
+                    let up = row == y || row == lid && cap == 2;
+                    grid.set(x, row, if up { '╭' } else { '╰' }, flags);
+                    grid.set(x + w - 1, row, if up { '╮' } else { '╯' }, flags);
+                    for i in 1..w - 1 {
+                        grid.set(x + i, row, dashed(s.stroke, '─'), flags);
+                    }
                 }
-            };
-            for row in [y, y + 1, y + h - 1] {
-                h_edge(grid, row);
-            }
-            for j in 2..h - 1 {
-                grid.set(x, y + j, dashed(s.stroke, '│'), flags);
-                grid.set(x + w - 1, y + j, dashed(s.stroke, '│'), flags);
+                for row in y + 1..y + h - 1 {
+                    if row != lid {
+                        grid.set(x, row, dashed(s.stroke, '│'), flags);
+                        grid.set(x + w - 1, row, dashed(s.stroke, '│'), flags);
+                    }
+                }
+            } else {
+                let lid = if cap == 1 { x + 1 } else { x + w - 2 };
+                for row in y + 1..y + h - 1 {
+                    for col in [x, lid, x + w - 1] {
+                        grid.set(col, row, dashed(s.stroke, '│'), flags);
+                    }
+                }
+                for row in [y, y + h - 1] {
+                    for i in 1..w - 1 {
+                        grid.set(x + i, row, dashed(s.stroke, '─'), flags);
+                    }
+                    let top = row == y;
+                    grid.set(lid, row, if top { '┬' } else { '┴' }, flags);
+                    grid.set(x, row, if top { '╭' } else { '╰' }, flags);
+                    grid.set(x + w - 1, row, if top { '╮' } else { '╯' }, flags);
+                }
             }
         }
         ShapeKind::Parallelogram => {
@@ -457,22 +477,25 @@ pub(crate) fn shape(
     }
     // shortcut: diamond, parallelogram and hexagon use the rect room, narrow the room per row if the text touches the outline
     let pad = i32::from(s.kind == ShapeKind::Subroutine);
-    let room = (w - 2 - 2 * pad).max(1) as usize;
+    let (lo, hi) = (y + s.body_rows().0, y + s.body_rows().1);
+    let side_cap = s.kind == ShapeKind::Cylinder && s.cap_turn() % 2 == 1;
+    let room = (w - 2 - 2 * pad - i32::from(side_cap)).max(1) as usize;
+    let lead = i32::from(side_cap && s.cap_turn() == 1);
     let lines = wrap(label, room);
     let top = y + h / 2 - (lines.len() as i32 - 1) / 2;
     for (r, row) in lines.into_iter().zip(top..) {
-        let lid = if s.kind == ShapeKind::Cylinder {
-            y + 1
-        } else {
-            y
-        };
-        if row <= lid || row >= y + h - 1 {
+        if row < lo || row > hi {
             continue;
         }
         let text = label[r].trim_end_matches([' ', '\n']);
         let used = text.width();
         let ink = if s.bold { flags | BOLD } else { flags };
-        grid.text(x + 1 + pad + s.align.offset(room, used), row, text, ink);
+        grid.text(
+            x + 1 + pad + lead + s.align.offset(room, used),
+            row,
+            text,
+            ink,
+        );
     }
     if !s.side_labels.is_empty() {
         let local = Shape { x, y, ..s.clone() };

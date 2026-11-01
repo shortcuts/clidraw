@@ -1109,6 +1109,36 @@ fn cylinder_draws_a_lid_under_the_top_row() {
     assert_eq!(cols(&b, 8, 20, 12), "╰──────────╯");
 }
 
+fn turned_cylinder(turn: u8, w: i32, h: i32) -> Buffer {
+    let mut s = kind_session(ShapeKind::Cylinder, w, h);
+    let Element::Shape(sh) = &mut s.canvas.elements[0] else {
+        unreachable!()
+    };
+    sh.turn = turn;
+    sh.label = "ab".into();
+    draw(&s, &Overlay::None)
+}
+
+#[test]
+fn cylinder_turns_move_the_cap_and_keep_the_label_in_the_body() {
+    let rows = |turn| -> Vec<String> {
+        let b = turned_cylinder(turn, 8, 5);
+        (4..9).map(|y| cols(&b, y, 20, 8)).collect()
+    };
+    assert_eq!(
+        rows(1),
+        ["╭┬─────╮", "││     │", "││ ab  │", "││     │", "╰┴─────╯"]
+    );
+    assert_eq!(
+        rows(2),
+        ["╭──────╮", "│      │", "│  ab  │", "╭──────╮", "╰──────╯"]
+    );
+    assert_eq!(
+        rows(3),
+        ["╭─────┬╮", "│     ││", "│ ab  ││", "│     ││", "╰─────┴╯"]
+    );
+}
+
 #[test]
 fn parallelogram_slants_every_row() {
     let b = draw(

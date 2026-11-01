@@ -711,6 +711,17 @@ fn side_mid_lands_one_cell_inside_when_the_far_point_is_inside() {
     assert_eq!(side_anchor(&s, (5, 5)), Anchor::Bottom(5));
 }
 
+#[test]
+fn inner_side_cells_stay_off_the_cylinder_cap_rows() {
+    let mut s = shape_at(0, 0, 11, 7);
+    s.kind = ShapeKind::Cylinder;
+    let at = |s: &Shape, a| side_mid(s, a, (5, 3)).0;
+    assert_eq!(at(&s, Anchor::Left(0)), (1, 2));
+    s.turn = 2;
+    assert_eq!(at(&s, Anchor::Left(0)), (1, 1));
+    assert_eq!(at(&s, Anchor::Left(6)), (1, 4));
+}
+
 fn shape_at(x: i32, y: i32, w: i32, h: i32) -> Shape {
     let Element::Shape(s) = rect("sssssss0", ShapeKind::Rect, (x, y, w, h)) else {
         unreachable!()

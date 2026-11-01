@@ -102,7 +102,7 @@ pub(super) fn side_cell(s: &Shape, anchor: Anchor, toward: Pt, face: Pt) -> (Pt,
     };
     let side = |row: i32, dir: i32| {
         let inset = if inner {
-            row.clamp(s.y + 1, s.y + s.h - 2)
+            row.clamp(s.y + s.body_rows().0, s.y + s.body_rows().1)
         } else {
             row
         };
