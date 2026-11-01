@@ -7,8 +7,16 @@ use crate::ui::{refresh, Layout};
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Corner {
+    Nw,
+    Ne,
+    Sw,
+    Se,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Handle {
-    Resize,
+    Resize(Corner),
     Rotate,
     End(Side),
     Bend(usize),
@@ -41,8 +49,17 @@ pub fn handles(canvas: &Canvas, selection: &[Id]) -> Vec<(Handle, Id, (i32, i32)
     };
     match canvas.get(id) {
         Some(Element::Shape(s)) => {
-            let (r, b) = (s.x + s.w - 1, s.y + s.h - 1);
-            let mut hs = vec![(Handle::Resize, id.clone(), (r, b))];
+            let (l, t, r, b) = (s.x - 1, s.y - 1, s.x + s.w, s.y + s.h);
+            // shortcut: corners follow the frame box, not the union, upgrade if children may overhang
+            let mut hs: Vec<_> = [
+                (Corner::Nw, (l, t)),
+                (Corner::Ne, (r, t)),
+                (Corner::Sw, (l, b)),
+                (Corner::Se, (r, b)),
+            ]
+            .into_iter()
+            .map(|(c, p)| (Handle::Resize(c), id.clone(), p))
+            .collect();
             if matches!(
                 s.kind,
                 ShapeKind::Rect | ShapeKind::Cylinder | ShapeKind::Hexagon

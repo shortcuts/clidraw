@@ -2,7 +2,7 @@ use super::grid::{Grid, BOLD, DIM, REVERSE};
 use super::layout::{refresh, seen};
 use super::registry;
 use super::theme;
-use crate::input::{clone_of, handles, mid_dots, EditTarget, Handle, Hit, Session};
+use crate::input::{clone_of, handles, mid_dots, Corner, EditTarget, Handle, Hit, Session};
 use crate::model::{
     label_pos, side_label_at, wrap, Anchor, Border, Edge, Element, End, Find, Line, LineKind,
     Router, Shape, ShapeKind, Stroke,
@@ -88,7 +88,6 @@ pub fn draw(grid: &mut Grid, s: &Session, accent: Option<Color>, colors: bool) {
         .chain(dots.into_iter().filter(|_| s.edit.is_none()))
     {
         let glyph = match h {
-            Handle::Resize => '⤡',
             Handle::Rotate => '↻',
             Handle::Mid(..) => '•',
             Handle::Whole => '■',
@@ -305,8 +304,17 @@ fn selection_box<'a>(
         put(l, y, '│', 0);
         put(r, y, '│', 0);
     }
-    for (x, y) in [(l, t), (r, t), (l, b), (r, b)] {
-        put(x, y, '■', REVERSE);
+    let hovered = match &s.hover {
+        Hit::Handle(Handle::Resize(c), id) if s.selection.contains(id) => Some(*c),
+        _ => None,
+    };
+    for (c, x, y) in [
+        (Corner::Nw, l, t),
+        (Corner::Ne, r, t),
+        (Corner::Sw, l, b),
+        (Corner::Se, r, b),
+    ] {
+        put(x, y, if hovered == Some(c) { '◆' } else { '■' }, REVERSE);
     }
 }
 

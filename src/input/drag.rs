@@ -1,4 +1,4 @@
-use super::hit::{self, swept, Handle};
+use super::hit::{self, swept, Corner, Handle};
 use super::state::{click, Action, Gesture, Target, P};
 use super::{Session, Tool};
 use crate::model::{
@@ -276,9 +276,18 @@ fn begin(s: &mut Session, inv: &mut Vec<Command>, target: Target, origin: P, w0:
         Target::Empty if s.shift || s.tool == Tool::Select => Action::Band(w0),
         Target::Empty => Action::Pan(origin),
         Target::Handle(Handle::End(side), id) => Action::EndDrag { id, side },
-        Target::Handle(Handle::Resize, id) => {
-            let fixed = s.canvas.shape(&id).map_or((0, 0), |s| (s.x, s.y));
-            Action::Resize { id, fixed }
+        Target::Handle(Handle::Resize(c), id) => {
+            let (x0, y0, x1, y1) = s
+                .canvas
+                .shape(&id)
+                .map_or((0, 0, 0, 0), |s| (s.x, s.y, s.x + s.w - 1, s.y + s.h - 1));
+            let (fixed, grab) = match c {
+                Corner::Nw => ((x1, y1), (1, 1)),
+                Corner::Ne => ((x0, y1), (-1, 1)),
+                Corner::Sw => ((x1, y0), (1, -1)),
+                Corner::Se => ((x0, y0), (-1, -1)),
+            };
+            Action::Resize { id, fixed, grab }
         }
         Target::Draw(tool) => {
             let id = Id::random();
@@ -396,8 +405,8 @@ fn step(s: &mut Session, inv: &mut Vec<Command>, action: &mut Action, screen: P,
                 snap_to_shape(s, &id, side, at);
             }
         }
-        Action::Resize { id, fixed } => {
-            let world = snap_p(s.grid, world);
+        Action::Resize { id, fixed, grab } => {
+            let world = snap_p(s.grid, (world.0 + grab.0, world.1 + grab.1));
             let world = if s.shift {
                 square(*fixed, world)
             } else {
@@ -924,7 +933,7 @@ mod tests {
     fn resize_drag_keeps_the_first_rect() {
         let mut s = with_shape();
         s.selection = vec![Id::from("aaaaaaaa")];
-        press_and_drag(&mut s, (37, 18), |i| (37 + i, 18));
+        press_and_drag(&mut s, (38, 19), |i| (38 + i, 19));
         let want = Command::SetRect {
             id: Id::from("aaaaaaaa"),
             x: 30,
@@ -969,7 +978,7 @@ mod tests {
         let mut s = with_shape();
         s.grid = 4;
         s.selection = vec![Id::from("aaaaaaaa")];
-        drag_to(&mut s, (37, 18), (46, 25));
+        drag_to(&mut s, (38, 19), (47, 26));
         assert_eq!(rect(&s, "aaaaaaaa"), (30, 15, 19, 10));
     }
 

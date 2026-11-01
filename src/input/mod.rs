@@ -6,7 +6,7 @@ mod quick;
 mod state;
 
 pub use edit::{Edit, EditBox, EditTarget};
-pub use hit::{handles, mid_dots, shape_at, Handle, Hit};
+pub use hit::{handles, mid_dots, shape_at, Corner, Handle, Hit};
 pub use keys::{edit_key, handle_key, handle_paste, KeyOutcome};
 pub use quick::{clone_of, Quick};
 pub use state::{handle_mouse, scroll_step, Origin};
@@ -209,7 +209,11 @@ impl Session {
         }
         match (self.tool, &self.hover) {
             (Tool::Text, _) => "text",
-            (Tool::Pointer | Tool::Select, Hit::Handle(Handle::Resize, _)) => "nwse-resize",
+            (
+                Tool::Pointer | Tool::Select,
+                Hit::Handle(Handle::Resize(Corner::Nw | Corner::Se), _),
+            ) => "nwse-resize",
+            (Tool::Pointer | Tool::Select, Hit::Handle(Handle::Resize(_), _)) => "nesw-resize",
             (Tool::Pointer | Tool::Select, Hit::Handle(Handle::Rotate, _)) => "pointer",
             (
                 Tool::Pointer | Tool::Select,

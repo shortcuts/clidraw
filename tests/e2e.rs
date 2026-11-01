@@ -50,9 +50,9 @@ fn wheel_pans_the_canvas() {
     let tmp = tempfile::tempdir().unwrap();
     let mut t = Term::spawn(tmp.path(), &["scratch"]);
     t.draw_rect();
-    let before = t.find("⤡");
+    let before = t.find("↻");
     t.wheel_down(40, 20);
-    let after = t.find("⤡");
+    let after = t.find("↻");
     assert_eq!((after.0, after.1 + 2), before, "{}", t.screen());
 }
 
@@ -365,4 +365,17 @@ fn delete_prompt_buttons_take_clicks() {
             t.screen()
         );
     }
+}
+
+#[test]
+fn top_left_corner_mark_resizes_the_selected_rect() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut t = Term::spawn(tmp.path(), &["scratch"]);
+    t.draw_rect_at((10, 8), (22, 13));
+    t.click(13, 8);
+    t.wait_for("■");
+    t.drag((9, 7), (6, 5));
+    t.quiet();
+    assert_eq!(cell(&t, 7, 6), '┌', "{}", t.screen());
+    assert!(!t.screen().contains('⤡'), "{}", t.screen());
 }

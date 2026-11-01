@@ -1,7 +1,7 @@
 use clidraw::config::CommandUi;
 use clidraw::input::{
-    handle_key, handle_mouse, handle_paste, Edit, EditTarget, Handle, Hit, KeyOutcome, Session,
-    Tool,
+    handle_key, handle_mouse, handle_paste, Corner, Edit, EditTarget, Handle, Hit, KeyOutcome,
+    Session, Tool,
 };
 use clidraw::model::{
     Align, Anchor, Border, Canvas, Edge, Element, End, Id, Line, LineKind, Shape, ShapeKind,
@@ -200,9 +200,25 @@ fn a_long_shape_drag_undoes_and_redoes_in_one_step() {
 fn corner_handle_resizes() {
     let mut s = with_shape("aaaaaaaa", 20, 5);
     click(&mut s, (20, 6), Instant::now());
-    drag(&mut s, (27, 8), (32, 12));
+    drag(&mut s, (28, 9), (33, 13));
     let sh = shapes(&s)[0];
     assert_eq!((sh.x, sh.y, sh.w, sh.h), (20, 5, 13, 8));
+}
+
+#[test]
+fn top_left_mark_resizes_keeping_the_bottom_right_corner() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.selection = vec![Id::from("aaaaaaaa")];
+    drag(&mut s, (19, 4), (15, 1));
+    assert_eq!(rect_of(&s), (16, 2, 12, 7));
+}
+
+#[test]
+fn top_right_mark_resizes_keeping_the_bottom_left_corner() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.selection = vec![Id::from("aaaaaaaa")];
+    drag(&mut s, (28, 4), (31, 2));
+    assert_eq!(rect_of(&s), (20, 3, 11, 6));
 }
 
 #[test]
@@ -1200,8 +1216,16 @@ fn hover_tracks_shape_handle_and_empty_space() {
     s.selection = vec![Id::from("aaaaaaaa")];
     mouse(&mut s, MouseEventKind::Moved, 20, 4, t);
     assert_eq!(s.hover, Hit::Element(Id::from("aaaaaaaa")));
-    mouse(&mut s, MouseEventKind::Moved, 27, 7, t);
-    assert_eq!(s.hover, Hit::Handle(Handle::Resize, Id::from("aaaaaaaa")));
+    mouse(&mut s, MouseEventKind::Moved, 28, 8, t);
+    assert_eq!(
+        s.hover,
+        Hit::Handle(Handle::Resize(Corner::Se), Id::from("aaaaaaaa"))
+    );
+    mouse(&mut s, MouseEventKind::Moved, 19, 3, t);
+    assert_eq!(
+        s.hover,
+        Hit::Handle(Handle::Resize(Corner::Nw), Id::from("aaaaaaaa"))
+    );
 }
 
 #[test]
@@ -1330,11 +1354,11 @@ fn a_cell_beside_the_resize_handle_is_not_the_handle() {
     let mut s = with_shape("aaaaaaaa", 20, 4);
     s.selection = vec![Id::from("aaaaaaaa")];
     assert_eq!(
-        hover_at(&mut s, (27, 7)),
-        Hit::Handle(Handle::Resize, Id::from("aaaaaaaa"))
+        hover_at(&mut s, (28, 8)),
+        Hit::Handle(Handle::Resize(Corner::Se), Id::from("aaaaaaaa"))
     );
     assert_eq!(
-        hover_at(&mut s, (28, 8)),
+        hover_at(&mut s, (27, 7)),
         Hit::Element(Id::from("aaaaaaaa"))
     );
 }
@@ -2445,7 +2469,7 @@ fn band_inside_a_frame_skips_it_and_band_around_it_takes_it() {
 fn frame_with_contents_shows_corner_handles_and_resize_moves_only_the_frame() {
     let mut s = framed();
     click(&mut s, (30, 5), Instant::now());
-    drag(&mut s, (39, 14), (44, 16));
+    drag(&mut s, (40, 15), (45, 17));
     let f = shapes(&s)[1].clone();
     assert_eq!((f.w, f.h), (25, 12));
     assert_eq!(shapes(&s)[0].x, 22);
@@ -2729,9 +2753,9 @@ fn ratio_handle_resize_snaps_and_keeps_the_fixed_corner() {
     if let Element::Shape(sh) = &mut s.canvas.elements[0] {
         sh.kind = ShapeKind::Hexagon;
     }
-    drag(&mut s, (27, 8), (33, 10));
+    drag(&mut s, (28, 9), (34, 11));
     assert_eq!(rect_of(&s), (20, 5, 14, 7));
-    drag(&mut s, (33, 11), (43, 15));
+    drag(&mut s, (34, 12), (44, 16));
     assert_eq!(rect_of(&s), (20, 5, 24, 12));
 }
 
@@ -3701,4 +3725,13 @@ fn unbent_arrow_middle_dot_moves_it_whole_and_side_dots_add_a_bend() {
     s.selection = vec![id.clone()];
     drag(&mut s, (10, 9), (10, 12));
     assert_eq!(bends_of(&s).len(), 1);
+}
+
+#[test]
+fn pressing_a_mark_without_moving_keeps_the_rect_and_selection() {
+    let mut s = with_shape("aaaaaaaa", 20, 5);
+    s.selection = vec![Id::from("aaaaaaaa")];
+    drag(&mut s, (19, 4), (19, 4));
+    assert_eq!(rect_of(&s), (20, 5, 8, 4));
+    assert_eq!(s.selection, vec![Id::from("aaaaaaaa")]);
 }

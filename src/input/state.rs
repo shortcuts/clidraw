@@ -49,6 +49,7 @@ pub(super) enum Action {
     Resize {
         id: Id,
         fixed: P,
+        grab: P,
     },
     EndDrag {
         id: Id,
