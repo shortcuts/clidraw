@@ -3505,6 +3505,17 @@ fn quick_connect_ignores_a_shift_click_after_an_unshifted_hover() {
 }
 
 #[test]
+fn quick_connect_ignores_a_click_on_a_side_that_was_not_hovered() {
+    let t = Instant::now();
+    let mut s = picked("aaaaaaaa", 20, 6);
+    mouse(&mut s, MouseEventKind::Moved, 28, 7, t);
+    assert!(s.quick.is_some());
+    click(&mut s, (17, 7), t);
+    assert_eq!(shapes(&s).len(), 1);
+    assert!(lines(&s).is_empty());
+}
+
+#[test]
 fn quick_connect_places_the_copy_at_the_layout_gap_on_every_side() {
     let t = Instant::now();
     for (at, rect) in [

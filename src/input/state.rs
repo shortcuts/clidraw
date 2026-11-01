@@ -353,7 +353,7 @@ fn down(s: &mut Session, screen: P, world: P, now: Instant) {
     }
     if !double {
         if let Some((cmd, id)) = quick
-            .filter(|_| !s.shift)
+            .filter(|q| !s.shift && quick::at(s, world).as_ref() == Some(q))
             .and_then(|q| quick::insert_cmd(s, &q))
         {
             s.exec(cmd);
