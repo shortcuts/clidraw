@@ -452,6 +452,20 @@ pub(crate) fn shape(
                 grid.set(r, y + j, '╱', flags);
             }
         }
+        ShapeKind::Hexagon if s.pointy() => {
+            let mid = f64::from(h - 1) / 2.0;
+            for j in 0..h {
+                let (l, r) = s.row_span(s.y + j);
+                let (l, r) = (l - s.x + x, r - s.x + x);
+                let (gl, gr) = match (l == x, f64::from(j) < mid) {
+                    (true, _) => ('│', '│'),
+                    (_, true) => ('╱', '╲'),
+                    _ => ('╲', '╱'),
+                };
+                grid.set(l, y + j, gl, flags);
+                grid.set(r, y + j, gr, flags);
+            }
+        }
         ShapeKind::Hexagon => {
             let m = s.inset();
             let mid = (h - 1) / 2;

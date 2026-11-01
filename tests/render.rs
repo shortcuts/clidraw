@@ -1165,6 +1165,22 @@ fn hexagon_points_left_and_right_on_the_middle_row() {
 }
 
 #[test]
+fn pointy_hexagon_draws_an_apex_on_the_top_and_bottom_rows() {
+    let mut s = kind_session(ShapeKind::Hexagon, 12, 6);
+    let Element::Shape(sh) = &mut s.canvas.elements[0] else {
+        unreachable!()
+    };
+    sh.turn = 1;
+    let b = draw(&s, &Overlay::None);
+    assert_eq!(cols(&b, 4, 20, 12), "     ╱╲     ");
+    assert_eq!(cols(&b, 5, 20, 12), "   ╱    ╲   ");
+    assert_eq!(cols(&b, 6, 20, 12), "│          │");
+    assert_eq!(cols(&b, 7, 20, 12), "│          │");
+    assert_eq!(cols(&b, 8, 20, 12), "   ╲    ╱   ");
+    assert_eq!(cols(&b, 9, 20, 12), "     ╲╱     ");
+}
+
+#[test]
 fn frame_draws_its_label_on_the_border_and_leaves_the_interior() {
     let mut s = kind_session(ShapeKind::Frame, 12, 5);
     let Element::Shape(sh) = &mut s.canvas.elements[0] else {

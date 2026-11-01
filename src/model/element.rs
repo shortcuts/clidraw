@@ -431,11 +431,31 @@ impl Shape {
         }
     }
 
+    /// True for a hexagon turned to point up and down.
+    pub fn pointy(&self) -> bool {
+        self.kind == ShapeKind::Hexagon && self.turn % 2 == 1
+    }
+
+    /// Columns a pointy hexagon cuts off each side of row `j`: the roof and floor slope over a third of the rows each.
+    fn pointy_inset(&self, j: i32) -> i32 {
+        let (cap, half) = ((self.h + 1) / 3, (self.w - 1) / 2);
+        let from_edge = j.min(self.h - 1 - j);
+        if from_edge < cap {
+            half - half * from_edge / cap
+        } else {
+            0
+        }
+    }
+
     /// First and last column the outline occupies on absolute row `row`.
     pub fn row_span(&self, row: i32) -> (i32, i32) {
         let (m, j) = (self.inset(), row - self.y);
         let (l, r) = match self.kind {
             ShapeKind::Parallelogram => (m - j.min(m), -j.min(m)),
+            ShapeKind::Hexagon if self.pointy() => {
+                let d = self.pointy_inset(j);
+                (d, -d)
+            }
             ShapeKind::Hexagon => {
                 let mid = (self.h - 1) / 2;
                 let d = match j.cmp(&mid) {

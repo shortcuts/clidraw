@@ -43,7 +43,10 @@ pub fn handles(canvas: &Canvas, selection: &[Id]) -> Vec<(Handle, Id, (i32, i32)
         Some(Element::Shape(s)) => {
             let (r, b) = (s.x + s.w - 1, s.y + s.h - 1);
             let mut hs = vec![(Handle::Resize, id.clone(), (r, b))];
-            if matches!(s.kind, ShapeKind::Rect | ShapeKind::Cylinder) {
+            if matches!(
+                s.kind,
+                ShapeKind::Rect | ShapeKind::Cylinder | ShapeKind::Hexagon
+            ) {
                 hs.push((Handle::Rotate, id.clone(), (s.x + (s.w - 1) / 2, s.y - 2)));
             }
             hs

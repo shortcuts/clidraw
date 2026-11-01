@@ -270,19 +270,35 @@ fn rotate_handle_hovers_above_a_selected_rect() {
 }
 
 #[test]
-fn rotate_handle_is_absent_on_a_diamond_and_a_hexagon() {
-    for kind in [ShapeKind::Diamond, ShapeKind::Hexagon] {
-        let mut s = with_shape("aaaaaaaa", 20, 4);
-        let Element::Shape(sh) = &mut s.canvas.elements[0] else {
-            unreachable!()
-        };
-        sh.kind = kind;
-        s.selection = vec![Id::from("aaaaaaaa")];
-        assert!(
-            !matches!(hover_at(&mut s, (23, 2)), Hit::Handle(Handle::Rotate, _)),
-            "{kind:?}"
-        );
+fn rotate_handle_is_absent_on_a_diamond() {
+    let mut s = with_shape("aaaaaaaa", 20, 4);
+    let Element::Shape(sh) = &mut s.canvas.elements[0] else {
+        unreachable!()
+    };
+    sh.kind = ShapeKind::Diamond;
+    s.selection = vec![Id::from("aaaaaaaa")];
+    assert!(!matches!(
+        hover_at(&mut s, (23, 2)),
+        Hit::Handle(Handle::Rotate, _)
+    ));
+}
+
+#[test]
+fn rotate_handle_flips_a_hexagon_between_flat_and_pointy_top() {
+    let mut s = with_shape("aaaaaaaa", 20, 8);
+    let Element::Shape(sh) = &mut s.canvas.elements[0] else {
+        unreachable!()
+    };
+    sh.kind = ShapeKind::Hexagon;
+    sh.h = 4;
+    click(&mut s, (20, 9), Instant::now());
+    let mut seen = vec![];
+    for _ in 0..3 {
+        click(&mut s, (23, 6), Instant::now());
+        let sh = shapes(&s)[0];
+        seen.push((sh.turn, sh.w, sh.h));
     }
+    assert_eq!(seen, [(1, 8, 4), (0, 8, 4), (1, 8, 4)]);
 }
 
 #[test]

@@ -182,6 +182,24 @@ pub fn svg_padded(canvas: &Canvas, pad: i32) -> String {
                             y + h
                         );
                     }
+                    ShapeKind::Hexagon if s.pointy() => {
+                        let _ = writeln!(
+                            o,
+                            "  <polygon points=\"{},{} {},{} {},{} {},{} {},{} {},{}\" {style}/>",
+                            x + w / 2,
+                            y,
+                            x + w,
+                            y + h / 4,
+                            x + w,
+                            y + h * 3 / 4,
+                            x + w / 2,
+                            y + h,
+                            x,
+                            y + h * 3 / 4,
+                            x,
+                            y + h / 4
+                        );
+                    }
                     ShapeKind::Hexagon => {
                         let k = s.inset() * CW;
                         let _ = writeln!(
