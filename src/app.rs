@@ -28,6 +28,8 @@ mod settings;
 pub mod template;
 mod vault;
 
+const WATCH: Duration = Duration::from_millis(500);
+
 pub struct App {
     pub session: Session,
     pub overlay: Overlay,
@@ -46,6 +48,7 @@ pub struct App {
     seen_rev: u64,
     disk: Option<u64>,
     last_edit: Instant,
+    last_watch: Instant,
     autosave: Duration,
     default_canvas: String,
     export_padding: i32,
@@ -100,21 +103,7 @@ impl App {
             return;
         }
         // shortcut: check and write are not atomic, add a lock if two writers collide in practice
-        let on_disk = self.store.canvas_hash(&self.name);
-        if on_disk.is_some() && on_disk != self.disk {
-            match self.reload() {
-                Ok(()) => {
-                    self.overlay = Overlay::None;
-                    self.status = Some(ui::Status::error(
-                        "Reloaded the canvas from disk: another process changed it, so your unsaved edits are lost",
-                    ));
-                }
-                Err(e) => {
-                    self.last_edit = Instant::now();
-                    self.report(Err(e));
-                }
-            }
-            self.dirty = true;
+        if self.sync_external() {
             return;
         }
         let r = self
@@ -135,6 +124,32 @@ impl App {
         self.report(r);
     }
 
+    /// Reloads the canvas when another process changed its file. True when it did.
+    fn sync_external(&mut self) -> bool {
+        let on_disk = self.store.canvas_hash(&self.name);
+        if on_disk.is_none() || on_disk == self.disk {
+            return false;
+        }
+        match self.reload() {
+            Ok(()) => {
+                self.overlay = Overlay::None;
+                self.status = Some(if self.saved_rev == self.session.rev {
+                    ui::Status::notice("Reloaded the canvas from disk: another process changed it")
+                } else {
+                    ui::Status::error(
+                        "Reloaded the canvas from disk: another process changed it, so your unsaved edits are lost",
+                    )
+                });
+            }
+            Err(e) => {
+                self.last_edit = Instant::now();
+                self.report(Err(e));
+            }
+        }
+        self.dirty = true;
+        true
+    }
+
     pub fn tick(&mut self, now: Instant) {
         if self.seen_rev != self.session.rev {
             self.seen_rev = self.session.rev;
@@ -143,6 +158,13 @@ impl App {
         self.dirty |= self.session.edge_pan(now);
         self.dirty |= self.session.glide_step(now);
         self.dirty |= self.session.tip_step(now);
+        if now.duration_since(self.last_watch) >= WATCH
+            && !self.session.dragging()
+            && !matches!(self.overlay, Overlay::Kinds(..))
+        {
+            self.last_watch = now;
+            self.sync_external();
+        }
         if self.saved_rev != self.session.rev
             && !self.session.dragging()
             && !matches!(self.overlay, Overlay::Kinds(..))
@@ -162,11 +184,16 @@ impl App {
         if let wait @ Some(_) = self.session.tip_wait(now) {
             return wait;
         }
-        if self.saved_rev == self.session.rev || self.session.dragging() {
+        if self.session.dragging() || matches!(self.overlay, Overlay::Kinds(..)) {
             return None;
         }
-        let deadline = self.last_edit + self.autosave;
-        Some(deadline.saturating_duration_since(now))
+        // shortcut: the poll hashes the whole file, switch to mtime and length if idle CPU shows up
+        let watch = (self.last_watch + WATCH).saturating_duration_since(now);
+        if self.saved_rev == self.session.rev {
+            return Some(watch);
+        }
+        let save = (self.last_edit + self.autosave).saturating_duration_since(now);
+        Some(save.min(watch))
     }
 
     pub fn render(&self, buf: &mut Buffer, area: Rect) {

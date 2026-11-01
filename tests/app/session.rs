@@ -38,7 +38,11 @@ fn sleeps_until_the_autosave_deadline_only_while_an_edit_is_unsaved() {
     let store = Store::at(t.path().join("c"), t.path().join("state"));
     let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
     let t0 = Instant::now();
-    assert_eq!(app.next_wake(t0), None, "idle must block");
+    let watch = Duration::from_millis(500);
+    assert!(
+        app.next_wake(t0).unwrap() <= watch,
+        "idle wakes only to poll the file"
+    );
 
     app.on_event(key(KeyCode::Char('r')), t0);
     app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
@@ -53,16 +57,20 @@ fn sleeps_until_the_autosave_deadline_only_while_an_edit_is_unsaved() {
     app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 30, 9), t0);
     app.tick(t0);
     let wait = Duration::from_millis(500);
-    assert_eq!(app.next_wake(t0), Some(wait));
+    assert!(app.next_wake(t0).unwrap() <= wait);
     let later = t0 + Duration::from_millis(200);
-    assert_eq!(app.next_wake(later), Some(Duration::from_millis(300)));
+    assert!(app.next_wake(later).unwrap() <= Duration::from_millis(300));
     assert_eq!(
         app.next_wake(t0 + Duration::from_secs(2)),
         Some(Duration::ZERO)
     );
 
     app.tick(t0 + wait);
-    assert_eq!(app.next_wake(t0 + wait), None, "saved, so block again");
+    assert_eq!(
+        app.next_wake(t0 + wait),
+        Some(wait),
+        "saved, so only the poll remains"
+    );
 }
 
 #[test]
@@ -379,7 +387,7 @@ fn ticks_only_while_the_view_glides() {
     let store = Store::at(t.path().join("c"), t.path().join("state"));
     let mut app = App::open(store, Some("demo".into()), (80, 24)).unwrap();
     let t0 = Instant::now();
-    assert_eq!(app.next_wake(t0), None);
+    assert_eq!(app.session.glide_wait(), None);
     app.session.fit(Some((100, 50, 10, 4)));
     assert_eq!(app.next_wake(t0), Some(Duration::from_millis(16)));
     app.dirty = false;
@@ -388,7 +396,7 @@ fn ticks_only_while_the_view_glides() {
     assert!(app.dirty, "a moving glide frame redraws");
     app.tick(t0 + Duration::from_millis(120));
     assert_eq!((app.session.view.ox, app.session.view.oy), (65, 40));
-    assert_eq!(app.next_wake(t0 + Duration::from_millis(120)), None);
+    assert_eq!(app.session.glide_wait(), None);
 }
 
 #[test]
@@ -433,6 +441,52 @@ fn failed_save_keeps_the_canvas_unsaved_and_retries() {
     app.tick(t0);
     app.tick(t0 + Duration::from_secs(10));
     assert!(last_row(&app).ends_with("demo"), "{}", last_row(&app));
+}
+
+#[test]
+fn reloads_a_clean_canvas_when_an_external_edit_lands() {
+    let t = tempfile::tempdir().unwrap();
+    let dirs = (t.path().join("c"), t.path().join("state"));
+    let mut app = App::open(
+        Store::at(dirs.0.clone(), dirs.1.clone()),
+        Some("demo".into()),
+        (80, 24),
+    )
+    .unwrap();
+    let t0 = Instant::now();
+
+    let cli = Store::at(dirs.0, dirs.1);
+    let mut canvas = cli.load("demo").unwrap();
+    canvas.elements.push(Element::Shape(Shape {
+        id: Id::from("eeeeeeee"),
+        kind: ShapeKind::Rect,
+        x: 1,
+        y: 1,
+        w: 8,
+        h: 3,
+        label: "Cli".into(),
+        stroke: Default::default(),
+        border: Default::default(),
+        color: None,
+        fill: None,
+        align: Default::default(),
+        bold: false,
+        link: None,
+        side_labels: vec![],
+        turn: 0,
+        meta: Default::default(),
+    }));
+    cli.save("demo", &canvas).unwrap();
+
+    app.tick(t0 + Duration::from_millis(600));
+
+    let ids: Vec<_> = app.session.canvas.elements.iter().map(|e| e.id()).collect();
+    assert_eq!(ids, [&Id::from("eeeeeeee")]);
+    let status = app.status.as_ref().unwrap();
+    assert_eq!(
+        status.text,
+        "Reloaded the canvas from disk: another process changed it"
+    );
 }
 
 #[test]

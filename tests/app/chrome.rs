@@ -167,7 +167,6 @@ fn palette_tool_cell_shows_no_tooltip() {
     };
     let t0 = Instant::now();
     app.on_events(vec![mouse(MouseEventKind::Moved, c, r)], t0);
-    assert_eq!(app.next_wake(t0), None);
     app.dirty = false;
     app.tick(t0 + Duration::from_millis(400));
     assert!(!app.dirty);

@@ -48,8 +48,8 @@
     </ul>
 
     <h2 id="edits-from-scripts-and-agents">Edits from scripts and agents</h2>
-    <p>A command-line or MCP edit to the canvas that the UI has open does not appear at once. The UI reloads the file at its next save. It then shows an error status and drops its own unsaved edits and the undo history.</p>
-    <p>Close the canvas in the UI before an agent edits it.</p>
+    <p>The UI checks the open canvas file twice a second. After a command-line or MCP edit, it reloads the file within half a second and replaces the undo history.</p>
+    <p>If the window has unsaved edits, it shows an error status and drops them. Wait for the canvas to save before an agent edits it.</p>
   </main>
 
 </div>

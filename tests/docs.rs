@@ -245,7 +245,7 @@ fn param_item(key: &str, prop: &Value, required: bool) -> String {
 
 fn mcp_page() -> String {
     let mut body = String::from(
-        "    <h1 id=\"mcp-tools\">MCP tools</h1>\n    <p><code>clidraw mcp</code> serves the commands on the command line page as MCP tools over stdio, for agent clients. It reads one JSON-RPC message per line.</p>\n\n    <h2 id=\"setup\">Setup</h2>\n    <p>Add this server to the MCP config of your client:</p>\n    <pre><code>{\n  \"mcpServers\": {\n    \"clidraw\": {\n      \"command\": \"clidraw\",\n      \"args\": [\"mcp\"]\n    }\n  }\n}</code></pre>\n    <p>A running UI drops its unsaved edits when an agent edits the canvas it has open. Close the canvas in the UI first. See <a href=\"where-files-live.html#edits-from-scripts-and-agents\">Where files live</a>.</p>\n\n    <h2 id=\"tools\">Tools</h2>\n",
+        "    <h1 id=\"mcp-tools\">MCP tools</h1>\n    <p><code>clidraw mcp</code> serves the commands on the command line page as MCP tools over stdio, for agent clients. It reads one JSON-RPC message per line.</p>\n\n    <h2 id=\"setup\">Setup</h2>\n    <p>Add this server to the MCP config of your client:</p>\n    <pre><code>{\n  \"mcpServers\": {\n    \"clidraw\": {\n      \"command\": \"clidraw\",\n      \"args\": [\"mcp\"]\n    }\n  }\n}</code></pre>\n    <p>A running UI reloads the canvas within half a second of an agent edit and drops its own unsaved edits. See <a href=\"where-files-live.html#edits-from-scripts-and-agents\">Where files live</a>.</p>\n\n    <h2 id=\"tools\">Tools</h2>\n",
     );
     for tool in tools().as_array().unwrap() {
         let name = tool["name"].as_str().unwrap();

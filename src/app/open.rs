@@ -56,6 +56,7 @@ impl App {
             seen_rev: 0,
             disk: None,
             last_edit: Instant::now(),
+            last_watch: Instant::now(),
             autosave: config.autosave,
             default_canvas: config.default_canvas,
             export_padding: config.export_padding,
