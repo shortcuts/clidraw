@@ -64,6 +64,10 @@ impl Action {
                 .iter()
                 .any(|e| matches!(e, Element::Shape(_))),
             Action::Prefill("link " | "meta ") => !s.selection.is_empty(),
+            Action::Ex("copylink") => s
+                .selection
+                .iter()
+                .any(|id| s.canvas.shape(id).is_some_and(|sh| sh.link.is_some())),
             _ => true,
         }
     }

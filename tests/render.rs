@@ -1299,6 +1299,14 @@ fn info_bar_keeps_buttons_and_drops_hints_first_when_narrow() {
 }
 
 #[test]
+fn info_bar_shows_the_link_of_a_single_selected_shape() {
+    let mut s = two_shapes();
+    s.selection = vec![Id::from("aaaaaaaa")];
+    assert!(s.set_link("src/a.rs:42"));
+    assert!(bar(&s, 120, true).contains("1 sel ↗ src/a.rs:42"));
+}
+
+#[test]
 fn info_bar_truncates_a_long_name_and_keeps_the_marker() {
     let s = Session::new(Canvas::default(), View::default(), (80, 24));
     let long = "n".repeat(30);

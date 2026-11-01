@@ -827,9 +827,15 @@ pub const BINDINGS: &[Binding] = &[
     ),
     ex(
         "link",
-        ":link <url>",
-        "Link selection to URL",
+        ":link <url|path[:line]>",
+        "Link selection to a URL or code",
         Some(Action::Prefill("link ")),
+    ),
+    ex(
+        "copylink",
+        ":copylink",
+        "Copy link of selection",
+        Some(Action::Ex("copylink")),
     ),
     ex(
         "meta",

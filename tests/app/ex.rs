@@ -298,3 +298,22 @@ fn colon_meta_sets_reads_back_and_shows_usage() {
     run(&mut app, "meta");
     assert_eq!(status(&app), "No metadata");
 }
+
+#[test]
+fn colon_copylink_queues_the_link_or_shows_usage() {
+    let t = tempfile::tempdir().unwrap();
+    let mut app = app_in(t.path());
+    insert_shape(&mut app);
+    app.session.selection = vec![clidraw::model::Id::from("aaaaaaaa")];
+    run(&mut app, "copylink");
+    assert_eq!(
+        status(&app),
+        "Select a shape with a link, then run :copylink"
+    );
+    assert!(app.take_copy().is_none());
+    run(&mut app, "link src/app.rs:42");
+    run(&mut app, "copylink");
+    assert_eq!(status(&app), "Copied link: src/app.rs:42");
+    let seq = app.take_copy().expect("copy queued");
+    assert!(seq.starts_with("\x1b]52;c;"));
+}

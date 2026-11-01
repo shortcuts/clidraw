@@ -127,6 +127,19 @@ impl App {
         self.status = Some(Status::notice("Copied clidraw JSON to the clipboard"));
     }
 
+    pub(super) fn copy_link(&mut self) {
+        let link = self
+            .session
+            .selection
+            .iter()
+            .find_map(|id| self.session.canvas.shape(id)?.link.clone());
+        self.status = Some(match &link {
+            Some(l) => Status::notice(format!("Copied link: {l}")),
+            None => Status::error("Select a shape with a link, then run :copylink"),
+        });
+        self.copy = link;
+    }
+
     fn extent_canvas(&self, extent: Extent) -> Canvas {
         let mut canvas = match extent {
             Extent::Whole => self.session.canvas.clone(),

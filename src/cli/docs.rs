@@ -291,7 +291,7 @@ pub const OPS: [OpDoc; 13] = [
                 required: false,
                 example: "\"https://example.com\"",
                 values: &[],
-                note: "One line. An empty string clears the link.",
+                note: "One line. A URL, or a code reference: path or path:line. An empty string clears the link. Put any other context in meta.",
             },
             FieldDoc {
                 name: "kind",

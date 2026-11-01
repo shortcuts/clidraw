@@ -453,11 +453,19 @@ impl Session {
     }
 
     /// Links the selected shapes to `url`, or clears their links when `url` is empty.
-    /// Returns false when `url` is not an http, https or mailto address.
+    /// Returns false unless `url` is an http, https or mailto address, or a code
+    /// reference: `path` or `path:line`.
     pub fn set_link(&mut self, url: &str) -> bool {
-        let ok = ["http://", "https://", "mailto:"]
+        let code_ref = match url.split_once(':') {
+            None => !url.is_empty(),
+            Some((path, line)) => {
+                !path.is_empty() && !line.is_empty() && line.bytes().all(|b| b.is_ascii_digit())
+            }
+        };
+        let ok = (["http://", "https://", "mailto:"]
             .iter()
             .any(|p| url.starts_with(p))
+            || code_ref)
             && !url.contains(|c: char| c.is_whitespace() || c == '"');
         if !url.is_empty() && !ok {
             return false;

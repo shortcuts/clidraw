@@ -71,7 +71,14 @@ fn layout(s: &Session, doc: &Doc, w: i32) -> Bar {
     let badge = badge(s, doc);
     let marker = if doc.saved { "" } else { MARKER };
     let readout = s.readout();
-    let sel = (!s.selection.is_empty()).then(|| format!("{} sel", s.selection.len()));
+    let sel_link = match s.selection.as_slice() {
+        [id] => s.canvas.shape(id).and_then(|sh| sh.link.as_deref()),
+        _ => None,
+    };
+    let sel = (!s.selection.is_empty()).then(|| match sel_link {
+        Some(l) => format!("{} sel ↗ {}", s.selection.len(), fit(l, 40)),
+        None => format!("{} sel", s.selection.len()),
+    });
     let name_w = width(doc.name) + width(marker);
     let extra = |part: &Option<String>, on: bool| {
         part.as_ref().filter(|_| on).map_or(0, |p| width(p) + GAP)

@@ -145,9 +145,10 @@ impl App {
                 _ => self.status = Some(Status::error("Usage: :export [svg|mmd|clidraw]")),
             },
             "link" if !self.session.set_link(arg.trim()) => {
-                self.status = Some(Status::error("Usage: :link <http(s) or mailto url>"))
+                self.status = Some(Status::error("Usage: :link <url or path[:line]>"))
             }
             "link" => {}
+            "copylink" => self.copy_link(),
             "meta" => self.meta(arg.trim()),
             "lib" => self.library(arg.trim()),
             "perf" => self.perf = self.perf.is_none().then(Perf::default),

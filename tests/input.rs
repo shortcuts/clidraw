@@ -2567,6 +2567,12 @@ fn set_link_sets_clears_undoes_and_rejects_unsafe_urls() {
     };
     assert!(!s.set_link("javascript:alert(1)"));
     assert!(!s.set_link("https://a b"));
+    assert!(!s.set_link("src/a.rs:x"));
+    assert!(!s.set_link("a:1:2"));
+    assert!(s.set_link("src/a.rs"));
+    assert!(s.set_link("src/a.rs:42"));
+    assert_eq!(get(&s).as_deref(), Some("src/a.rs:42"));
+    assert!(s.set_link(""));
     assert_eq!(get(&s), None);
     assert!(s.set_link("https://example.com"));
     assert_eq!(get(&s).as_deref(), Some("https://example.com"));
