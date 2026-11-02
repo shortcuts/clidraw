@@ -3,7 +3,7 @@ use clidraw::config::Config;
 use clidraw::diagram::{DiagramKind, Flowchart};
 use clidraw::export::svg;
 use clidraw::frame_writer::FrameWriter;
-use clidraw::input::handles;
+use clidraw::input::{handles, Corner, Handle};
 use clidraw::model::{Anchor, Element, End, Id, Line, LineKind, Shape, ShapeKind};
 use clidraw::store::Store;
 use clidraw::ui::Status;
@@ -677,7 +677,10 @@ fn corner_resize_step_fits_the_budget_on_5000_elements() {
     let now = Instant::now();
     let target = Id::from("target");
     app.session.selection = vec![target.clone()];
-    let (_, _, (x, y)) = handles(&app.session.canvas, &app.session.selection).remove(0);
+    let (_, _, (x, y)) = handles(&app.session.canvas, &app.session.selection)
+        .into_iter()
+        .find(|(h, ..)| *h == Handle::Resize(Corner::Se))
+        .unwrap();
     let grab = mouse_at(MouseEventKind::Down(MouseButton::Left), x as u16, y as u16);
     let drag = mouse_at(MouseEventKind::Drag(MouseButton::Left), 120, 40);
     app.on_event(grab, now);
@@ -1059,7 +1062,10 @@ fn resize_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Durati
     let now = Instant::now();
     let target = Id::from("target");
     app.session.selection = vec![target.clone()];
-    let (_, _, (x, y)) = handles(&app.session.canvas, &app.session.selection).remove(0);
+    let (_, _, (x, y)) = handles(&app.session.canvas, &app.session.selection)
+        .into_iter()
+        .find(|(h, ..)| *h == Handle::Resize(Corner::Se))
+        .unwrap();
     app.on_event(
         mouse_at(MouseEventKind::Down(MouseButton::Left), x as u16, y as u16),
         now,
