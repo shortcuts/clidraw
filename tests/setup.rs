@@ -284,3 +284,103 @@ fn all_with_cursor_writes_cursor_once() {
         1
     );
 }
+
+#[test]
+fn uninstall_removes_the_block_and_the_server() {
+    let t = tempfile::tempdir().unwrap();
+    fake_bin(t.path(), "claude");
+    let alt = t.path().join("alt");
+    fs::create_dir_all(&alt).unwrap();
+    let file = alt.join("CLAUDE.md");
+    fs::write(&file, format!("above\n{}below\n", block())).unwrap();
+    let out = setup(
+        t.path(),
+        &t.path().join("bin"),
+        Some(&alt),
+        &["--claude", "--uninstall"],
+    );
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(fs::read_to_string(&file).unwrap(), "above\nbelow\n");
+    assert_eq!(
+        fs::read_to_string(t.path().join("claude.log")).unwrap(),
+        "mcp remove --scope user clidraw\n"
+    );
+}
+
+#[test]
+fn uninstall_undoes_an_install() {
+    let t = tempfile::tempdir().unwrap();
+    fake_bin(t.path(), "claude");
+    let alt = t.path().join("alt");
+    fs::create_dir_all(&alt).unwrap();
+    let file = alt.join("CLAUDE.md");
+    fs::write(&file, "mine\n").unwrap();
+    assert!(with_fake(t.path(), Some(&alt)).status.success());
+    let out = setup(
+        t.path(),
+        &t.path().join("bin"),
+        Some(&alt),
+        &["--claude", "--uninstall"],
+    );
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(fs::read_to_string(&file).unwrap(), "mine\n");
+}
+
+#[test]
+fn uninstall_without_a_block_creates_no_file() {
+    let t = tempfile::tempdir().unwrap();
+    fake_bin(t.path(), "claude");
+    let out = setup(
+        t.path(),
+        &t.path().join("bin"),
+        None,
+        &["--claude", "--uninstall"],
+    );
+    assert!(out.status.success(), "{out:?}");
+    assert!(!t.path().join(".claude").exists());
+}
+
+#[test]
+fn uninstall_lone_marker_fails_and_changes_nothing() {
+    let t = tempfile::tempdir().unwrap();
+    fake_bin(t.path(), "claude");
+    let alt = t.path().join("alt");
+    fs::create_dir_all(&alt).unwrap();
+    let file = alt.join("CLAUDE.md");
+    fs::write(&file, "<!-- clidraw:begin -->\nhalf\n").unwrap();
+    let out = setup(
+        t.path(),
+        &t.path().join("bin"),
+        Some(&alt),
+        &["--claude", "--uninstall"],
+    );
+    assert_eq!(out.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("CLAUDE.md"));
+    assert_eq!(
+        fs::read_to_string(&file).unwrap(),
+        "<!-- clidraw:begin -->\nhalf\n"
+    );
+    assert!(!t.path().join("claude.log").exists());
+}
+
+#[test]
+fn cursor_uninstall_removes_the_server_and_keeps_other_servers() {
+    let t = tempfile::tempdir().unwrap();
+    let file = t.path().join(".cursor/mcp.json");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(
+        &file,
+        r#"{"mcpServers":{"other":{"command":"other-bin"},"clidraw":{"command":"clidraw","args":["mcp"]}}}"#,
+    )
+    .unwrap();
+    let empty = t.path().join("empty");
+    fs::create_dir_all(&empty).unwrap();
+    let out = setup(t.path(), &empty, None, &["--cursor", "--uninstall"]);
+    assert!(out.status.success(), "{out:?}");
+    let json: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(
+        json,
+        serde_json::json!({"mcpServers": {"other": {"command": "other-bin"}}})
+    );
+}

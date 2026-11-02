@@ -1,6 +1,7 @@
 use crate::conventions::CONVENTIONS;
 use anyhow::{anyhow, bail, Result};
 use std::io::Write;
+use std::ops::Range;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
@@ -9,8 +10,8 @@ const END: &str = "<!-- clidraw:end -->";
 
 pub const HELP: (&str, &str, &str) = (
     "setup",
-    "clidraw setup --claude|--codex|--cursor|--all",
-    "Wires clidraw into an agent harness. --claude registers the MCP server at Claude Code user scope with `claude mcp add` and writes the canvas conventions between <!-- clidraw:begin --> and <!-- clidraw:end --> in CLAUDE.md. It honors CLAUDE_CONFIG_DIR. --codex registers the MCP server with `codex mcp add` and writes the same block in AGENTS.md under CODEX_HOME (default ~/.codex). --cursor merges the server into ~/.cursor/mcp.json and keeps its other servers; Cursor has no rules file, so the conventions come from the MCP instructions. --all runs Claude, Codex and Cursor. A re-run rewrites only that block.",
+    "clidraw setup --claude|--codex|--cursor|--all [--uninstall]",
+    "Wires clidraw into an agent harness. --claude registers the MCP server at Claude Code user scope with `claude mcp add` and writes the canvas conventions between <!-- clidraw:begin --> and <!-- clidraw:end --> in CLAUDE.md. It honors CLAUDE_CONFIG_DIR. --codex registers the MCP server with `codex mcp add` and writes the same block in AGENTS.md under CODEX_HOME (default ~/.codex). --cursor merges the server into ~/.cursor/mcp.json and keeps its other servers; Cursor has no rules file, so the conventions come from the MCP instructions. --all runs Claude, Codex and Cursor. A re-run rewrites only that block. --uninstall removes the block and the MCP server for the chosen harnesses and keeps the rest of each file.",
 );
 
 struct Agent {
@@ -62,8 +63,13 @@ impl Target {
 
 pub fn run(args: &[String], out: &mut impl Write) -> Result<()> {
     let mut selected: Vec<Target> = vec![];
+    let mut uninstall = false;
     for arg in &args[1..] {
         let targets = match arg.as_str() {
+            "--uninstall" => {
+                uninstall = true;
+                continue;
+            }
             "--claude" => vec![Target::Agent(&CLAUDE)],
             "--codex" => vec![Target::Agent(&CODEX)],
             "--cursor" => vec![Target::Cursor],
@@ -81,21 +87,27 @@ pub fn run(args: &[String], out: &mut impl Write) -> Result<()> {
         }
     }
     if selected.is_empty() {
-        bail!("usage: clidraw setup --claude|--codex|--cursor|--all");
+        bail!("usage: clidraw setup --claude|--codex|--cursor|--all [--uninstall]");
     }
     for t in selected {
-        match t {
-            Target::Agent(a) => agent(out, a)?,
-            Target::Cursor => cursor(out)?,
+        match (t, uninstall) {
+            (Target::Agent(a), false) => agent(out, a)?,
+            (Target::Agent(a), true) => unagent(out, a)?,
+            (Target::Cursor, false) => cursor(out)?,
+            (Target::Cursor, true) => uncursor(out)?,
         }
     }
     Ok(())
 }
 
-fn cursor(out: &mut impl Write) -> Result<()> {
-    let dir = std::env::home_dir()
+fn cursor_dir() -> Result<PathBuf> {
+    Ok(std::env::home_dir()
         .ok_or_else(|| anyhow!("cannot find a home directory"))?
-        .join(".cursor");
+        .join(".cursor"))
+}
+
+fn cursor(out: &mut impl Write) -> Result<()> {
+    let dir = cursor_dir()?;
     let path = dir.join("mcp.json");
     let old = match std::fs::read_to_string(&path) {
         Ok(text) => text,
@@ -114,13 +126,34 @@ fn cursor(out: &mut impl Write) -> Result<()> {
     Ok(())
 }
 
-fn agent(out: &mut impl Write, a: &Agent) -> Result<()> {
-    let dir = match std::env::var(a.dir_env) {
-        Ok(d) if !d.is_empty() => PathBuf::from(d),
-        _ => std::env::home_dir()
-            .ok_or_else(|| anyhow!("cannot find a home directory"))?
-            .join(a.home_subdir),
+fn uncursor(out: &mut impl Write) -> Result<()> {
+    let path = cursor_dir()?.join("mcp.json");
+    let old = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => bail!("{}: {e}", path.display()),
     };
+    let new = unmerge_cursor(&old).map_err(|e| anyhow!("{}: {e}", path.display()))?;
+    std::fs::write(&path, new)?;
+    writeln!(
+        out,
+        "cursor: removed MCP server clidraw from {}",
+        path.display()
+    )?;
+    Ok(())
+}
+
+fn agent_dir(a: &Agent) -> Result<PathBuf> {
+    match std::env::var(a.dir_env) {
+        Ok(d) if !d.is_empty() => Ok(PathBuf::from(d)),
+        _ => Ok(std::env::home_dir()
+            .ok_or_else(|| anyhow!("cannot find a home directory"))?
+            .join(a.home_subdir)),
+    }
+}
+
+fn agent(out: &mut impl Write, a: &Agent) -> Result<()> {
+    let dir = agent_dir(a)?;
     let path = dir.join(a.rules_file);
     let old = std::fs::read_to_string(&path).unwrap_or_default();
     let new = upsert(&old, &block()).map_err(|e| anyhow!("{}: {e}", path.display()))?;
@@ -133,29 +166,51 @@ fn agent(out: &mut impl Write, a: &Agent) -> Result<()> {
     Ok(())
 }
 
+fn unagent(out: &mut impl Write, a: &Agent) -> Result<()> {
+    let path = agent_dir(a)?.join(a.rules_file);
+    let old = std::fs::read_to_string(&path).unwrap_or_default();
+    let new = strip(&old).map_err(|e| anyhow!("{}: {e}", path.display()))?;
+    unregister(a)?;
+    writeln!(out, "{}: removed MCP server clidraw", a.name)?;
+    if new != old {
+        std::fs::write(&path, new)?;
+        writeln!(out, "{}: removed block from {}", a.name, path.display())?;
+    }
+    Ok(())
+}
+
+fn spawn_failed(a: &Agent, e: std::io::Error) -> anyhow::Error {
+    anyhow!(
+        "cannot run `{}`: {e}. Install it, then run the command again",
+        a.bin
+    )
+}
+
 fn register(a: &Agent) -> Result<()> {
-    let (bin, remove, add) = (a.bin, a.remove, a.add);
-    let spawn_error = |e| {
-        anyhow!(
-            "cannot run `{bin}`: {e}. Install it, then run `clidraw setup --{}` again",
-            a.name
-        )
-    };
     // The entry may not exist; `add` fails on an existing name, so a re-run removes first.
-    Command::new(bin)
-        .args(remove)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map_err(spawn_error)?;
-    let output = Command::new(bin).args(add).output().map_err(spawn_error)?;
+    unregister(a)?;
+    let output = Command::new(a.bin)
+        .args(a.add)
+        .output()
+        .map_err(|e| spawn_failed(a, e))?;
     if !output.status.success() {
         bail!(
-            "`{bin} {}` failed: {}",
-            add.join(" "),
+            "`{} {}` failed: {}",
+            a.bin,
+            a.add.join(" "),
             String::from_utf8_lossy(&output.stderr).trim()
         );
     }
+    Ok(())
+}
+
+fn unregister(a: &Agent) -> Result<()> {
+    Command::new(a.bin)
+        .args(a.remove)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map_err(|e| spawn_failed(a, e))?;
     Ok(())
 }
 
@@ -163,16 +218,24 @@ fn block() -> String {
     format!("{BEGIN}\n## clidraw\n\n{CONVENTIONS}{END}\n")
 }
 
-fn upsert(text: &str, block: &str) -> Result<String> {
+fn span(text: &str) -> Result<Option<Range<usize>>> {
     match (text.find(BEGIN), text.find(END)) {
         (Some(b), Some(e)) if b < e => {
             let after = e + END.len();
             let line_end = text[after..]
                 .find('\n')
                 .map_or(text.len(), |n| after + n + 1);
-            Ok(format!("{}{block}{}", &text[..b], &text[line_end..]))
+            Ok(Some(b..line_end))
         }
-        (None, None) => {
+        (None, None) => Ok(None),
+        _ => bail!("expected one {BEGIN} followed by one {END}; fix or remove the markers"),
+    }
+}
+
+fn upsert(text: &str, block: &str) -> Result<String> {
+    match span(text)? {
+        Some(r) => Ok(format!("{}{block}{}", &text[..r.start], &text[r.end..])),
+        None => {
             let mut out = text.to_string();
             if !out.is_empty() {
                 if !out.ends_with('\n') {
@@ -183,8 +246,21 @@ fn upsert(text: &str, block: &str) -> Result<String> {
             out += block;
             Ok(out)
         }
-        _ => bail!("expected one {BEGIN} followed by one {END}; fix or remove the markers"),
     }
+}
+
+fn strip(text: &str) -> Result<String> {
+    Ok(match span(text)? {
+        Some(r) => {
+            // upsert adds one blank line before a new block; take it back so install then uninstall is exact.
+            let head = &text[..r.start];
+            let head = head
+                .strip_suffix("\n\n")
+                .map_or(head, |h| &text[..h.len() + 1]);
+            format!("{head}{}", &text[r.end..])
+        }
+        None => text.to_string(),
+    })
 }
 
 fn merge_cursor(text: &str) -> Result<String> {
@@ -205,6 +281,23 @@ fn merge_cursor(text: &str) -> Result<String> {
             "clidraw".to_string(),
             serde_json::json!({"command": "clidraw", "args": ["mcp"]}),
         );
+    Ok(serde_json::to_string_pretty(&root)? + "\n")
+}
+
+fn unmerge_cursor(text: &str) -> Result<String> {
+    if text.trim().is_empty() {
+        return Ok(text.to_string());
+    }
+    let mut root: serde_json::Value = serde_json::from_str(text)?;
+    let root_map = root
+        .as_object_mut()
+        .ok_or_else(|| anyhow!("expected a JSON object"))?;
+    if let Some(servers) = root_map.get_mut("mcpServers") {
+        servers
+            .as_object_mut()
+            .ok_or_else(|| anyhow!("mcpServers is not a JSON object"))?
+            .remove("clidraw");
+    }
     Ok(serde_json::to_string_pretty(&root)? + "\n")
 }
 
