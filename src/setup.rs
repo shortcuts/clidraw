@@ -9,52 +9,90 @@ const END: &str = "<!-- clidraw:end -->";
 
 pub const HELP: (&str, &str, &str) = (
     "setup",
-    "clidraw setup --claude",
-    "Wires clidraw into an agent harness. --claude registers the MCP server at Claude Code user scope with `claude mcp add` and writes the canvas conventions between <!-- clidraw:begin --> and <!-- clidraw:end --> in CLAUDE.md. It honors CLAUDE_CONFIG_DIR. A re-run rewrites only that block.",
+    "clidraw setup --claude|--codex",
+    "Wires clidraw into an agent harness. --claude registers the MCP server at Claude Code user scope with `claude mcp add` and writes the canvas conventions between <!-- clidraw:begin --> and <!-- clidraw:end --> in CLAUDE.md. It honors CLAUDE_CONFIG_DIR. --codex registers the MCP server with `codex mcp add` and writes the same block in AGENTS.md under CODEX_HOME (default ~/.codex). A re-run rewrites only that block.",
 );
 
-pub fn run(args: &[String], out: &mut impl Write) -> Result<()> {
-    let mut claude_selected = false;
-    for arg in &args[1..] {
-        match arg.as_str() {
-            "--claude" => claude_selected = true,
-            other => bail!("unknown setup option: {other}"),
-        }
-    }
-    if !claude_selected {
-        bail!("usage: clidraw setup --claude");
-    }
-    claude(out)
+struct Agent {
+    name: &'static str,
+    bin: &'static str,
+    dir_env: &'static str,
+    home_subdir: &'static str,
+    rules_file: &'static str,
+    remove: &'static [&'static str],
+    add: &'static [&'static str],
 }
 
-fn claude(out: &mut impl Write) -> Result<()> {
-    let dir = match std::env::var("CLAUDE_CONFIG_DIR") {
-        Ok(d) if !d.is_empty() => PathBuf::from(d),
-        _ => std::env::home_dir()
-            .ok_or_else(|| anyhow!("cannot find a home directory"))?
-            .join(".claude"),
-    };
-    let path = dir.join("CLAUDE.md");
-    let old = std::fs::read_to_string(&path).unwrap_or_default();
-    let new = upsert(&old, &block()).map_err(|e| anyhow!("{}: {e}", path.display()))?;
-    register(
-        "claude",
-        &["mcp", "remove", "--scope", "user", "clidraw"],
-        &[
-            "mcp", "add", "--scope", "user", "clidraw", "--", "clidraw", "mcp",
-        ],
-    )?;
-    writeln!(out, "claude: registered MCP server clidraw")?;
-    std::fs::create_dir_all(&dir)?;
-    // Plain write, not a rename: CLAUDE.md is often a symlink into a dotfile repo.
-    std::fs::write(&path, new)?;
-    writeln!(out, "claude: wrote {}", path.display())?;
+const CLAUDE: Agent = Agent {
+    name: "claude",
+    bin: "claude",
+    dir_env: "CLAUDE_CONFIG_DIR",
+    home_subdir: ".claude",
+    rules_file: "CLAUDE.md",
+    remove: &["mcp", "remove", "--scope", "user", "clidraw"],
+    add: &[
+        "mcp", "add", "--scope", "user", "clidraw", "--", "clidraw", "mcp",
+    ],
+};
+
+const CODEX: Agent = Agent {
+    name: "codex",
+    bin: "codex",
+    dir_env: "CODEX_HOME",
+    home_subdir: ".codex",
+    rules_file: "AGENTS.md",
+    remove: &["mcp", "remove", "clidraw"],
+    add: &["mcp", "add", "clidraw", "--", "clidraw", "mcp"],
+};
+
+pub fn run(args: &[String], out: &mut impl Write) -> Result<()> {
+    let mut selected: Vec<&Agent> = vec![];
+    for arg in &args[1..] {
+        let a = match arg.as_str() {
+            "--claude" => &CLAUDE,
+            "--codex" => &CODEX,
+            other => bail!("unknown setup option: {other}"),
+        };
+        if !selected.iter().any(|s| s.name == a.name) {
+            selected.push(a);
+        }
+    }
+    if selected.is_empty() {
+        bail!("usage: clidraw setup --claude|--codex");
+    }
+    for a in selected {
+        agent(out, a)?;
+    }
     Ok(())
 }
 
-fn register(bin: &str, remove: &[&str], add: &[&str]) -> Result<()> {
-    let spawn_error =
-        |e| anyhow!("cannot run `{bin}`: {e}. Install it, then run `clidraw setup --claude` again");
+fn agent(out: &mut impl Write, a: &Agent) -> Result<()> {
+    let dir = match std::env::var(a.dir_env) {
+        Ok(d) if !d.is_empty() => PathBuf::from(d),
+        _ => std::env::home_dir()
+            .ok_or_else(|| anyhow!("cannot find a home directory"))?
+            .join(a.home_subdir),
+    };
+    let path = dir.join(a.rules_file);
+    let old = std::fs::read_to_string(&path).unwrap_or_default();
+    let new = upsert(&old, &block()).map_err(|e| anyhow!("{}: {e}", path.display()))?;
+    register(a)?;
+    writeln!(out, "{}: registered MCP server clidraw", a.name)?;
+    std::fs::create_dir_all(&dir)?;
+    // Plain write, not a rename: CLAUDE.md is often a symlink into a dotfile repo.
+    std::fs::write(&path, new)?;
+    writeln!(out, "{}: wrote {}", a.name, path.display())?;
+    Ok(())
+}
+
+fn register(a: &Agent) -> Result<()> {
+    let (bin, remove, add) = (a.bin, a.remove, a.add);
+    let spawn_error = |e| {
+        anyhow!(
+            "cannot run `{bin}`: {e}. Install it, then run `clidraw setup --{}` again",
+            a.name
+        )
+    };
     // The entry may not exist; `add` fails on an existing name, so a re-run removes first.
     Command::new(bin)
         .args(remove)

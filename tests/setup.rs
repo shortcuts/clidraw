@@ -6,13 +6,13 @@ use std::os::unix::fs::{symlink, PermissionsExt};
 use std::path::Path;
 use std::process::{Command, Output};
 
-fn fake_claude(tmp: &Path) {
+fn fake_bin(tmp: &Path, name: &str) {
     let bin = tmp.join("bin");
     fs::create_dir_all(&bin).unwrap();
-    let script = bin.join("claude");
+    let script = bin.join(name);
     fs::write(
         &script,
-        format!("#!/bin/sh\necho \"$*\" >> {}/claude.log\n", tmp.display()),
+        format!("#!/bin/sh\necho \"$*\" >> {}/{name}.log\n", tmp.display()),
     )
     .unwrap();
     fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
@@ -24,7 +24,8 @@ fn setup(tmp: &Path, path: &Path, config_dir: Option<&Path>, args: &[&str]) -> O
         .args(args)
         .env("HOME", tmp)
         .env("PATH", path)
-        .env_remove("CLAUDE_CONFIG_DIR");
+        .env_remove("CLAUDE_CONFIG_DIR")
+        .env_remove("CODEX_HOME");
     if let Some(dir) = config_dir {
         cmd.env("CLAUDE_CONFIG_DIR", dir);
     }
@@ -32,7 +33,7 @@ fn setup(tmp: &Path, path: &Path, config_dir: Option<&Path>, args: &[&str]) -> O
 }
 
 fn with_fake(tmp: &Path, config_dir: Option<&Path>) -> Output {
-    fake_claude(tmp);
+    fake_bin(tmp, "claude");
     setup(tmp, &tmp.join("bin"), config_dir, &["--claude"])
 }
 
@@ -127,6 +128,72 @@ fn missing_claude_binary_fails_without_writing() {
     assert_eq!(out.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&out.stderr).contains("claude"));
     assert!(!t.path().join(".claude/CLAUDE.md").exists());
+}
+
+#[test]
+fn codex_registers_the_server_and_writes_the_block_under_home() {
+    let t = tempfile::tempdir().unwrap();
+    fake_bin(t.path(), "codex");
+    let out = setup(t.path(), &t.path().join("bin"), None, &["--codex"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(
+        fs::read_to_string(t.path().join(".codex/AGENTS.md")).unwrap(),
+        block()
+    );
+    assert_eq!(
+        fs::read_to_string(t.path().join("codex.log")).unwrap(),
+        "mcp remove clidraw\nmcp add clidraw -- clidraw mcp\n"
+    );
+}
+
+#[test]
+fn codex_home_moves_the_block() {
+    let t = tempfile::tempdir().unwrap();
+    fake_bin(t.path(), "codex");
+    let alt = t.path().join("alt");
+    let out = Command::new(env!("CARGO_BIN_EXE_clidraw"))
+        .args(["setup", "--codex"])
+        .env("HOME", t.path())
+        .env("PATH", t.path().join("bin"))
+        .env("CODEX_HOME", &alt)
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(fs::read_to_string(alt.join("AGENTS.md")).unwrap(), block());
+    assert!(!t.path().join(".codex").exists());
+}
+
+#[test]
+fn missing_codex_binary_fails_without_writing() {
+    let t = tempfile::tempdir().unwrap();
+    let empty = t.path().join("empty");
+    fs::create_dir_all(&empty).unwrap();
+    let out = setup(t.path(), &empty, None, &["--codex"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("cannot run `codex`"));
+    assert!(!t.path().join(".codex/AGENTS.md").exists());
+}
+
+#[test]
+fn claude_and_codex_flags_write_both() {
+    let t = tempfile::tempdir().unwrap();
+    fake_bin(t.path(), "claude");
+    fake_bin(t.path(), "codex");
+    let out = setup(
+        t.path(),
+        &t.path().join("bin"),
+        None,
+        &["--claude", "--codex"],
+    );
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(
+        fs::read_to_string(t.path().join(".claude/CLAUDE.md")).unwrap(),
+        block()
+    );
+    assert_eq!(
+        fs::read_to_string(t.path().join(".codex/AGENTS.md")).unwrap(),
+        block()
+    );
 }
 
 #[test]
