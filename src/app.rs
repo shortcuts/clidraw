@@ -172,6 +172,7 @@ impl App {
         if self.saved_rev != self.session.rev
             && !self.session.dragging()
             && !matches!(self.overlay, Overlay::Kinds(..))
+            && !self.typing()
             && now.duration_since(self.last_edit) >= self.autosave
         {
             self.save();
@@ -191,10 +192,10 @@ impl App {
         if self.session.dragging() || matches!(self.overlay, Overlay::Kinds(..)) {
             return None;
         }
-        let save = (self.last_edit + self.autosave).saturating_duration_since(now);
         if self.typing() {
-            return (self.saved_rev != self.session.rev).then_some(save);
+            return None;
         }
+        let save = (self.last_edit + self.autosave).saturating_duration_since(now);
         // shortcut: the poll hashes the whole file, switch to mtime and length if idle CPU shows up
         let watch = (self.last_watch + WATCH).saturating_duration_since(now);
         if self.saved_rev == self.session.rev {

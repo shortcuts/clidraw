@@ -553,6 +553,48 @@ fn defers_an_external_reload_while_a_prompt_is_open() {
 }
 
 #[test]
+fn holds_autosave_while_a_prompt_is_open() {
+    let t = tempfile::tempdir().unwrap();
+    let dirs = (t.path().join("c"), t.path().join("state"));
+    let mut app = App::open(
+        Store::at(dirs.0.clone(), dirs.1.clone()),
+        Some("demo".into()),
+        (80, 24),
+    )
+    .unwrap();
+    let file = t.path().join("c/demo.clidraw.json");
+    let t0 = Instant::now();
+
+    app.on_event(key(KeyCode::Char('r')), t0);
+    app.on_event(mouse(MouseEventKind::Down(MouseButton::Left), 20, 5), t0);
+    app.on_event(mouse(MouseEventKind::Drag(MouseButton::Left), 30, 9), t0);
+    app.on_event(mouse(MouseEventKind::Up(MouseButton::Left), 30, 9), t0);
+    app.tick(t0);
+    let rev = app.session.rev;
+    app.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, "/".into()));
+
+    let cli = Store::at(dirs.0, dirs.1);
+    let mut canvas = cli.load("demo").unwrap();
+    canvas.elements.push(labeled_shape("Cli"));
+    cli.save("demo", &canvas).unwrap();
+    let external = std::fs::read(&file).unwrap();
+
+    app.tick(t0 + Duration::from_millis(700));
+    assert_eq!(std::fs::read(&file).unwrap(), external);
+    assert_eq!(app.session.rev, rev);
+    assert!(matches!(app.overlay, Overlay::Prompt(_)));
+    assert_ne!(
+        app.next_wake(t0 + Duration::from_millis(700)),
+        Some(Duration::ZERO)
+    );
+
+    app.on_event(key(KeyCode::Esc), t0 + Duration::from_millis(800));
+    app.tick(t0 + Duration::from_millis(1300));
+    let ids: Vec<_> = app.session.canvas.elements.iter().map(|e| e.id()).collect();
+    assert_eq!(ids, [&Id::from("eeeeeeee")]);
+}
+
+#[test]
 fn defers_an_external_reload_while_a_shape_label_is_edited() {
     let t = tempfile::tempdir().unwrap();
     let dirs = (t.path().join("c"), t.path().join("state"));
