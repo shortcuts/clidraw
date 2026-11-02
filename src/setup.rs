@@ -11,7 +11,7 @@ const END: &str = "<!-- clidraw:end -->";
 pub const HELP: (&str, &str, &str) = (
     "setup",
     "clidraw setup --claude|--codex|--cursor|--all [--uninstall]",
-    "Wires clidraw into an agent harness. --claude registers the MCP server at Claude Code user scope with `claude mcp add` and writes the canvas conventions between <!-- clidraw:begin --> and <!-- clidraw:end --> in CLAUDE.md. It honors CLAUDE_CONFIG_DIR. --codex registers the MCP server with `codex mcp add` and writes the same block in AGENTS.md under CODEX_HOME (default ~/.codex). --cursor merges the server into ~/.cursor/mcp.json and keeps its other servers; Cursor has no rules file, so the conventions come from the MCP instructions. --all runs Claude, Codex and Cursor. A re-run rewrites only that block. --uninstall removes the block and the MCP server for the chosen harnesses and keeps the rest of each file.",
+    "Wires clidraw into an agent harness. --claude registers the MCP server at Claude Code user scope with `claude mcp add` and writes the canvas conventions between <!-- clidraw:begin --> and <!-- clidraw:end --> in CLAUDE.md. It honors CLAUDE_CONFIG_DIR. --codex registers the MCP server with `codex mcp add` and writes the same block in AGENTS.md under CODEX_HOME (default ~/.codex). --cursor merges the server into ~/.cursor/mcp.json and keeps its other servers; Cursor has no rules file, so the conventions come from the MCP instructions. --all runs Claude, Codex and Cursor and skips a harness whose command is not installed. A re-run rewrites only that block. --uninstall removes the block and the MCP server for the chosen harnesses and keeps the rest of each file.",
 );
 
 struct Agent {
