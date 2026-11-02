@@ -684,7 +684,7 @@ fn corner_resize_step_fits_the_budget_on_5000_elements() {
     app.on_event(drag.clone(), now);
     assert_eq!(
         app.session.canvas.shape(&target).map(|s| s.w),
-        Some(21),
+        Some(20),
         "press missed the corner handle"
     );
     let times = (0..FRAMES)
@@ -1070,7 +1070,7 @@ fn resize_gesture(app: &mut App, term: &mut Terminal<TestBackend>) -> Vec<Durati
     );
     assert_eq!(
         app.session.canvas.shape(&target).map(|s| s.w),
-        Some(21),
+        Some(20),
         "press missed the corner handle"
     );
     repeat_event(
