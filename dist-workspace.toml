@@ -11,3 +11,4 @@ targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-
 unix-archive = ".tar.gz"
 create-release = false
 pr-run-mode = "plan"
+allow-dirty = ["ci"]
