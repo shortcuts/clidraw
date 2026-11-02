@@ -677,3 +677,44 @@ fn import_then_export_keeps_the_flowchart_direction() {
         assert_eq!(out.lines().next(), Some(header), "{out}");
     }
 }
+
+fn setup_with_path(
+    home: &std::path::Path,
+    path: &std::path::Path,
+    args: &[&str],
+) -> std::process::Output {
+    Command::new(env!("CARGO_BIN_EXE_clidraw"))
+        .args(args)
+        .env("PATH", path)
+        .env("HOME", home)
+        .env("CLAUDE_CONFIG_DIR", home.join("claude"))
+        .env("CODEX_HOME", home.join("codex"))
+        .output()
+        .unwrap()
+}
+
+#[cfg(unix)]
+#[test]
+fn setup_all_skips_a_harness_whose_command_is_missing() {
+    let t = tempfile::tempdir().unwrap();
+    let bin = t.path().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let claude = bin.join("claude");
+    std::fs::write(&claude, "#!/bin/sh\nexit 0\n").unwrap();
+    std::fs::set_permissions(&claude, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+    let r = setup_with_path(t.path(), &bin, &["setup", "--all"]);
+    let stdout = String::from_utf8_lossy(&r.stdout);
+    assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
+    assert!(stdout.contains("codex: not found, skipped"), "{stdout}");
+    assert!(t.path().join("claude/CLAUDE.md").exists());
+    assert!(t.path().join(".cursor/mcp.json").exists());
+    assert!(!t.path().join("codex").exists());
+}
+
+#[test]
+fn setup_codex_alone_errors_when_codex_is_missing() {
+    let t = tempfile::tempdir().unwrap();
+    let r = setup_with_path(t.path(), t.path(), &["setup", "--codex"]);
+    assert!(!r.status.success());
+    assert!(String::from_utf8_lossy(&r.stderr).contains("cannot run `codex`"));
+}

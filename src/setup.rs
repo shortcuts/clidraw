@@ -64,6 +64,7 @@ impl Target {
 pub fn run(args: &[String], out: &mut impl Write) -> Result<()> {
     let mut selected: Vec<Target> = vec![];
     let mut uninstall = false;
+    let mut all = false;
     for arg in &args[1..] {
         let targets = match arg.as_str() {
             "--uninstall" => {
@@ -73,11 +74,14 @@ pub fn run(args: &[String], out: &mut impl Write) -> Result<()> {
             "--claude" => vec![Target::Agent(&CLAUDE)],
             "--codex" => vec![Target::Agent(&CODEX)],
             "--cursor" => vec![Target::Cursor],
-            "--all" => vec![
-                Target::Agent(&CLAUDE),
-                Target::Agent(&CODEX),
-                Target::Cursor,
-            ],
+            "--all" => {
+                all = true;
+                vec![
+                    Target::Agent(&CLAUDE),
+                    Target::Agent(&CODEX),
+                    Target::Cursor,
+                ]
+            }
             other => bail!("unknown setup option: {other}"),
         };
         for t in targets {
@@ -90,11 +94,17 @@ pub fn run(args: &[String], out: &mut impl Write) -> Result<()> {
         bail!("usage: clidraw setup --claude|--codex|--cursor|--all [--uninstall]");
     }
     for t in selected {
-        match (t, uninstall) {
-            (Target::Agent(a), false) => agent(out, a)?,
-            (Target::Agent(a), true) => unagent(out, a)?,
-            (Target::Cursor, false) => cursor(out)?,
-            (Target::Cursor, true) => uncursor(out)?,
+        let result = match (t, uninstall) {
+            (Target::Agent(a), false) => agent(out, a),
+            (Target::Agent(a), true) => unagent(out, a),
+            (Target::Cursor, false) => cursor(out),
+            (Target::Cursor, true) => uncursor(out),
+        };
+        match result {
+            Err(e) if all && e.is::<Missing>() => {
+                writeln!(out, "{}: not found, skipped", t.name())?
+            }
+            result => result?,
         }
     }
     Ok(())
@@ -179,11 +189,27 @@ fn unagent(out: &mut impl Write, a: &Agent) -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug)]
+struct Missing(String);
+
+impl std::fmt::Display for Missing {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for Missing {}
+
 fn spawn_failed(a: &Agent, e: std::io::Error) -> anyhow::Error {
-    anyhow!(
+    let msg = format!(
         "cannot run `{}`: {e}. Install it, then run the command again",
         a.bin
-    )
+    );
+    if e.kind() == std::io::ErrorKind::NotFound {
+        anyhow::Error::new(Missing(msg))
+    } else {
+        anyhow!(msg)
+    }
 }
 
 fn register(a: &Agent) -> Result<()> {
