@@ -150,6 +150,10 @@ impl App {
         true
     }
 
+    fn typing(&self) -> bool {
+        self.session.edit.is_some() || !matches!(self.overlay, Overlay::None)
+    }
+
     pub fn tick(&mut self, now: Instant) {
         if self.seen_rev != self.session.rev {
             self.seen_rev = self.session.rev;
@@ -160,7 +164,7 @@ impl App {
         self.dirty |= self.session.tip_step(now);
         if now.duration_since(self.last_watch) >= WATCH
             && !self.session.dragging()
-            && !matches!(self.overlay, Overlay::Kinds(..))
+            && !self.typing()
         {
             self.last_watch = now;
             self.sync_external();
@@ -187,12 +191,15 @@ impl App {
         if self.session.dragging() || matches!(self.overlay, Overlay::Kinds(..)) {
             return None;
         }
+        let save = (self.last_edit + self.autosave).saturating_duration_since(now);
+        if self.typing() {
+            return (self.saved_rev != self.session.rev).then_some(save);
+        }
         // shortcut: the poll hashes the whole file, switch to mtime and length if idle CPU shows up
         let watch = (self.last_watch + WATCH).saturating_duration_since(now);
         if self.saved_rev == self.session.rev {
             return Some(watch);
         }
-        let save = (self.last_edit + self.autosave).saturating_duration_since(now);
         Some(save.min(watch))
     }
 

@@ -3,6 +3,8 @@ use clidraw::app::App;
 use clidraw::config::Config;
 use clidraw::model::{Command, Element, Id, Shape, ShapeKind};
 use clidraw::store::Store;
+use clidraw::ui::prompt::{Prompt, PromptKind};
+use clidraw::ui::Overlay;
 use crossterm::event::{Event, KeyCode, MouseButton, MouseEventKind};
 use std::time::{Duration, Instant};
 
@@ -487,6 +489,99 @@ fn reloads_a_clean_canvas_when_an_external_edit_lands() {
         status.text,
         "Reloaded the canvas from disk: another process changed it"
     );
+}
+
+fn labeled_shape(label: &str) -> Element {
+    Element::Shape(Shape {
+        id: Id::from("eeeeeeee"),
+        kind: ShapeKind::Rect,
+        x: 1,
+        y: 1,
+        w: 8,
+        h: 3,
+        label: label.into(),
+        stroke: Default::default(),
+        border: Default::default(),
+        color: None,
+        fill: None,
+        align: Default::default(),
+        bold: false,
+        link: None,
+        side_labels: vec![],
+        turn: 0,
+        meta: Default::default(),
+    })
+}
+
+fn shape_label(app: &App) -> String {
+    match app.session.canvas.get(&Id::from("eeeeeeee")) {
+        Some(Element::Shape(s)) => s.label.clone(),
+        _ => panic!("expected the shape"),
+    }
+}
+
+#[test]
+fn defers_an_external_reload_while_a_prompt_is_open() {
+    let t = tempfile::tempdir().unwrap();
+    let dirs = (t.path().join("c"), t.path().join("state"));
+    let mut app = App::open(
+        Store::at(dirs.0.clone(), dirs.1.clone()),
+        Some("demo".into()),
+        (80, 24),
+    )
+    .unwrap();
+    let t0 = Instant::now();
+    app.overlay = Overlay::Prompt(Prompt::new(PromptKind::Command, "/".into()));
+
+    let cli = Store::at(dirs.0, dirs.1);
+    let mut canvas = cli.load("demo").unwrap();
+    canvas.elements.push(labeled_shape("Cli"));
+    cli.save("demo", &canvas).unwrap();
+
+    app.tick(t0 + Duration::from_millis(600));
+    assert!(app.session.canvas.elements.is_empty());
+    assert!(matches!(app.overlay, Overlay::Prompt(_)));
+    assert_ne!(
+        app.next_wake(t0 + Duration::from_millis(600)),
+        Some(Duration::ZERO)
+    );
+
+    app.overlay = Overlay::None;
+    app.tick(t0 + Duration::from_millis(1100));
+    let ids: Vec<_> = app.session.canvas.elements.iter().map(|e| e.id()).collect();
+    assert_eq!(ids, [&Id::from("eeeeeeee")]);
+}
+
+#[test]
+fn defers_an_external_reload_while_a_shape_label_is_edited() {
+    let t = tempfile::tempdir().unwrap();
+    let dirs = (t.path().join("c"), t.path().join("state"));
+    let mut app = App::open(
+        Store::at(dirs.0.clone(), dirs.1.clone()),
+        Some("demo".into()),
+        (80, 24),
+    )
+    .unwrap();
+    let cli = Store::at(dirs.0, dirs.1);
+    let mut canvas = cli.load("demo").unwrap();
+    canvas.elements.push(labeled_shape("Cli"));
+    cli.save("demo", &canvas).unwrap();
+    let t0 = Instant::now();
+    app.tick(t0 + Duration::from_millis(600));
+    assert_eq!(shape_label(&app), "Cli");
+
+    app.session.start_edit_existing(Id::from("eeeeeeee"));
+    canvas.elements = vec![labeled_shape("Cli 2")];
+    cli.save("demo", &canvas).unwrap();
+
+    app.tick(t0 + Duration::from_millis(1200));
+    assert!(app.session.edit.is_some());
+    assert_eq!(shape_label(&app), "Cli");
+
+    app.on_event(key(KeyCode::Esc), t0 + Duration::from_millis(1300));
+    assert!(app.session.edit.is_none());
+    app.tick(t0 + Duration::from_millis(1800));
+    assert_eq!(shape_label(&app), "Cli 2");
 }
 
 #[test]
