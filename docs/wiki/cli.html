@@ -199,8 +199,8 @@
     <p><strong>Usage:</strong> <code>clidraw mcp</code></p>
     <p>Serves the ten commands above as MCP tools over stdio, for agent clients. See the <a href="mcp.html">MCP tools</a> page.</p>
     <h3 class="item" id="other-commands-setup">setup</h3>
-    <p><strong>Usage:</strong> <code>clidraw setup --claude|--codex</code></p>
-    <p>Wires clidraw into an agent harness. --claude registers the MCP server at Claude Code user scope with `claude mcp add` and writes the canvas conventions between &lt;!-- clidraw:begin --&gt; and &lt;!-- clidraw:end --&gt; in CLAUDE.md. It honors CLAUDE_CONFIG_DIR. --codex registers the MCP server with `codex mcp add` and writes the same block in AGENTS.md under CODEX_HOME (default ~/.codex). A re-run rewrites only that block.</p>
+    <p><strong>Usage:</strong> <code>clidraw setup --claude|--codex|--cursor|--all</code></p>
+    <p>Wires clidraw into an agent harness. --claude registers the MCP server at Claude Code user scope with `claude mcp add` and writes the canvas conventions between &lt;!-- clidraw:begin --&gt; and &lt;!-- clidraw:end --&gt; in CLAUDE.md. It honors CLAUDE_CONFIG_DIR. --codex registers the MCP server with `codex mcp add` and writes the same block in AGENTS.md under CODEX_HOME (default ~/.codex). --cursor merges the server into ~/.cursor/mcp.json and keeps its other servers; Cursor has no rules file, so the conventions come from the MCP instructions. --all runs Claude, Codex and Cursor. A re-run rewrites only that block.</p>
   </main>
 
 </div>

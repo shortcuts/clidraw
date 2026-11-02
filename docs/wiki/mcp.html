@@ -71,15 +71,15 @@
     <h3 class="item" id="tools-import">import</h3>
     <p>Add a Mermaid diagram below the existing content. The importer reads flowchart, sequence, class and state diagram syntax. Creates the canvas if missing.</p>
     <ul>
-      <li><code>mermaid</code> (required, string): Mermaid diagram text</li>
       <li><code>name</code> (required, string): Canvas name</li>
+      <li><code>mermaid</code> (required, string): Mermaid diagram text</li>
     </ul>
     <h3 class="item" id="tools-export">export</h3>
     <p>Render a saved canvas and return the text. With ids, render only those elements and the lines bound to them.</p>
     <ul>
+      <li><code>name</code> (required, string): Canvas name</li>
       <li><code>format</code> (required, string): One of <code>svg</code>, <code>mermaid</code> or <code>clidraw</code>.</li>
       <li><code>ids</code> (optional, array): Element ids to export. Omit to export the whole canvas.</li>
-      <li><code>name</code> (required, string): Canvas name</li>
     </ul>
     <h3 class="item" id="tools-rename">rename</h3>
     <p>Rename a canvas.</p>

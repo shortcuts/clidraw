@@ -203,3 +203,84 @@ fn no_flag_prints_usage() {
     assert_eq!(out.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&out.stderr).contains("--claude"));
 }
+
+#[test]
+fn cursor_registers_the_server_and_keeps_other_servers() {
+    let t = tempfile::tempdir().unwrap();
+    let file = t.path().join(".cursor/mcp.json");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, r#"{"mcpServers":{"other":{"command":"other-bin"}}}"#).unwrap();
+    let empty = t.path().join("empty");
+    fs::create_dir_all(&empty).unwrap();
+    let out = setup(t.path(), &empty, None, &["--cursor"]);
+    assert!(out.status.success(), "{out:?}");
+    let json: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&file).unwrap()).unwrap();
+    assert_eq!(
+        json,
+        serde_json::json!({
+            "mcpServers": {
+                "other": {"command": "other-bin"},
+                "clidraw": {"command": "clidraw", "args": ["mcp"]}
+            }
+        })
+    );
+}
+
+#[test]
+fn cursor_invalid_json_fails_and_changes_nothing() {
+    let t = tempfile::tempdir().unwrap();
+    let file = t.path().join(".cursor/mcp.json");
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(&file, "{ not json").unwrap();
+    let empty = t.path().join("empty");
+    fs::create_dir_all(&empty).unwrap();
+    let out = setup(t.path(), &empty, None, &["--cursor"]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("mcp.json"));
+    assert_eq!(fs::read_to_string(&file).unwrap(), "{ not json");
+}
+
+#[test]
+fn all_writes_claude_codex_and_cursor() {
+    let t = tempfile::tempdir().unwrap();
+    fake_bin(t.path(), "claude");
+    fake_bin(t.path(), "codex");
+    let out = setup(t.path(), &t.path().join("bin"), None, &["--all"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(
+        fs::read_to_string(t.path().join(".claude/CLAUDE.md")).unwrap(),
+        block()
+    );
+    assert_eq!(
+        fs::read_to_string(t.path().join(".codex/AGENTS.md")).unwrap(),
+        block()
+    );
+    let json: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(t.path().join(".cursor/mcp.json")).unwrap())
+            .unwrap();
+    assert_eq!(
+        json["mcpServers"]["clidraw"],
+        serde_json::json!({"command": "clidraw", "args": ["mcp"]})
+    );
+}
+
+#[test]
+fn all_with_cursor_writes_cursor_once() {
+    let t = tempfile::tempdir().unwrap();
+    fake_bin(t.path(), "claude");
+    fake_bin(t.path(), "codex");
+    let out = setup(
+        t.path(),
+        &t.path().join("bin"),
+        None,
+        &["--all", "--cursor"],
+    );
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&out.stdout)
+            .matches("cursor: wrote")
+            .count(),
+        1
+    );
+}

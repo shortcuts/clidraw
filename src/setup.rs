@@ -9,8 +9,8 @@ const END: &str = "<!-- clidraw:end -->";
 
 pub const HELP: (&str, &str, &str) = (
     "setup",
-    "clidraw setup --claude|--codex",
-    "Wires clidraw into an agent harness. --claude registers the MCP server at Claude Code user scope with `claude mcp add` and writes the canvas conventions between <!-- clidraw:begin --> and <!-- clidraw:end --> in CLAUDE.md. It honors CLAUDE_CONFIG_DIR. --codex registers the MCP server with `codex mcp add` and writes the same block in AGENTS.md under CODEX_HOME (default ~/.codex). A re-run rewrites only that block.",
+    "clidraw setup --claude|--codex|--cursor|--all",
+    "Wires clidraw into an agent harness. --claude registers the MCP server at Claude Code user scope with `claude mcp add` and writes the canvas conventions between <!-- clidraw:begin --> and <!-- clidraw:end --> in CLAUDE.md. It honors CLAUDE_CONFIG_DIR. --codex registers the MCP server with `codex mcp add` and writes the same block in AGENTS.md under CODEX_HOME (default ~/.codex). --cursor merges the server into ~/.cursor/mcp.json and keeps its other servers; Cursor has no rules file, so the conventions come from the MCP instructions. --all runs Claude, Codex and Cursor. A re-run rewrites only that block.",
 );
 
 struct Agent {
@@ -45,24 +45,72 @@ const CODEX: Agent = Agent {
     add: &["mcp", "add", "clidraw", "--", "clidraw", "mcp"],
 };
 
+#[derive(Clone, Copy)]
+enum Target {
+    Agent(&'static Agent),
+    Cursor,
+}
+
+impl Target {
+    fn name(self) -> &'static str {
+        match self {
+            Target::Agent(a) => a.name,
+            Target::Cursor => "cursor",
+        }
+    }
+}
+
 pub fn run(args: &[String], out: &mut impl Write) -> Result<()> {
-    let mut selected: Vec<&Agent> = vec![];
+    let mut selected: Vec<Target> = vec![];
     for arg in &args[1..] {
-        let a = match arg.as_str() {
-            "--claude" => &CLAUDE,
-            "--codex" => &CODEX,
+        let targets = match arg.as_str() {
+            "--claude" => vec![Target::Agent(&CLAUDE)],
+            "--codex" => vec![Target::Agent(&CODEX)],
+            "--cursor" => vec![Target::Cursor],
+            "--all" => vec![
+                Target::Agent(&CLAUDE),
+                Target::Agent(&CODEX),
+                Target::Cursor,
+            ],
             other => bail!("unknown setup option: {other}"),
         };
-        if !selected.iter().any(|s| s.name == a.name) {
-            selected.push(a);
+        for t in targets {
+            if !selected.iter().any(|s| s.name() == t.name()) {
+                selected.push(t);
+            }
         }
     }
     if selected.is_empty() {
-        bail!("usage: clidraw setup --claude|--codex");
+        bail!("usage: clidraw setup --claude|--codex|--cursor|--all");
     }
-    for a in selected {
-        agent(out, a)?;
+    for t in selected {
+        match t {
+            Target::Agent(a) => agent(out, a)?,
+            Target::Cursor => cursor(out)?,
+        }
     }
+    Ok(())
+}
+
+fn cursor(out: &mut impl Write) -> Result<()> {
+    let dir = std::env::home_dir()
+        .ok_or_else(|| anyhow!("cannot find a home directory"))?
+        .join(".cursor");
+    let path = dir.join("mcp.json");
+    let old = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(e) => bail!("{}: {e}", path.display()),
+    };
+    let new = merge_cursor(&old).map_err(|e| anyhow!("{}: {e}", path.display()))?;
+    std::fs::create_dir_all(&dir)?;
+    std::fs::write(&path, new)?;
+    writeln!(out, "cursor: registered MCP server clidraw")?;
+    writeln!(out, "cursor: wrote {}", path.display())?;
+    writeln!(
+        out,
+        "cursor: no rules file; conventions come from the MCP instructions"
+    )?;
     Ok(())
 }
 
@@ -139,9 +187,76 @@ fn upsert(text: &str, block: &str) -> Result<String> {
     }
 }
 
+fn merge_cursor(text: &str) -> Result<String> {
+    let mut root: serde_json::Value = if text.trim().is_empty() {
+        serde_json::json!({})
+    } else {
+        serde_json::from_str(text)?
+    };
+    let servers = root
+        .as_object_mut()
+        .ok_or_else(|| anyhow!("expected a JSON object"))?
+        .entry("mcpServers")
+        .or_insert_with(|| serde_json::json!({}));
+    servers
+        .as_object_mut()
+        .ok_or_else(|| anyhow!("mcpServers is not a JSON object"))?
+        .insert(
+            "clidraw".to_string(),
+            serde_json::json!({"command": "clidraw", "args": ["mcp"]}),
+        );
+    Ok(serde_json::to_string_pretty(&root)? + "\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const CLIDRAW_ENTRY: &str = "{\"command\":\"clidraw\",\"args\":[\"mcp\"]}";
+
+    fn keys(v: &serde_json::Value) -> Vec<&str> {
+        v.as_object().unwrap().keys().map(String::as_str).collect()
+    }
+
+    #[test]
+    fn merge_cursor_creates_the_server_in_empty_text() {
+        let want = "{\n  \"mcpServers\": {\n    \"clidraw\": {\n      \"command\": \"clidraw\",\n      \"args\": [\n        \"mcp\"\n      ]\n    }\n  }\n}\n";
+        assert_eq!(merge_cursor("").unwrap(), want);
+    }
+
+    #[test]
+    fn merge_cursor_keeps_other_keys_and_servers_in_order() {
+        let old = r#"{"theme":"dark","mcpServers":{"b":{"command":"b"},"a":{"command":"a"}}}"#;
+        let v: serde_json::Value = serde_json::from_str(&merge_cursor(old).unwrap()).unwrap();
+        assert_eq!(keys(&v), ["theme", "mcpServers"]);
+        assert_eq!(keys(&v["mcpServers"]), ["b", "a", "clidraw"]);
+        assert_eq!(v["mcpServers"]["a"], serde_json::json!({"command": "a"}));
+    }
+
+    #[test]
+    fn merge_cursor_overwrites_clidraw_in_place() {
+        let old = r#"{"mcpServers":{"clidraw":{"command":"old"},"a":{"command":"a"}}}"#;
+        let v: serde_json::Value = serde_json::from_str(&merge_cursor(old).unwrap()).unwrap();
+        assert_eq!(keys(&v["mcpServers"]), ["clidraw", "a"]);
+        assert_eq!(
+            serde_json::to_string(&v["mcpServers"]["clidraw"]).unwrap(),
+            CLIDRAW_ENTRY
+        );
+    }
+
+    #[test]
+    fn merge_cursor_is_idempotent() {
+        let once = merge_cursor("{\"mcpServers\":{}}").unwrap();
+        assert!(once.contains("\"clidraw\""));
+        assert_eq!(merge_cursor(&once).unwrap(), once);
+    }
+
+    #[test]
+    fn merge_cursor_rejects_bad_shapes() {
+        assert!(merge_cursor("{ nope").is_err());
+        assert!(merge_cursor("[]").is_err());
+        assert!(merge_cursor(r#"{"mcpServers":[]}"#).is_err());
+    }
 
     const B: &str = "<!-- clidraw:begin -->\nnew\n<!-- clidraw:end -->\n";
 
