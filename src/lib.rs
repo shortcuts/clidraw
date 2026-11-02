@@ -10,6 +10,7 @@ pub mod mcp;
 pub mod model;
 pub mod names;
 pub mod search;
+pub mod setup;
 pub mod store;
 pub mod ui;
 pub mod view;

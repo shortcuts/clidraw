@@ -198,6 +198,9 @@
     <h3 class="item" id="other-commands-mcp">mcp</h3>
     <p><strong>Usage:</strong> <code>clidraw mcp</code></p>
     <p>Serves the ten commands above as MCP tools over stdio, for agent clients. See the <a href="mcp.html">MCP tools</a> page.</p>
+    <h3 class="item" id="other-commands-setup">setup</h3>
+    <p><strong>Usage:</strong> <code>clidraw setup --claude</code></p>
+    <p>Wires clidraw into an agent harness. --claude registers the MCP server at Claude Code user scope with `claude mcp add` and writes the canvas conventions between &lt;!-- clidraw:begin --&gt; and &lt;!-- clidraw:end --&gt; in CLAUDE.md. It honors CLAUDE_CONFIG_DIR. A re-run rewrites only that block.</p>
   </main>
 
 </div>

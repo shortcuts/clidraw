@@ -123,7 +123,7 @@ fn run(
 
 const USAGE: &str = "Usage: clidraw [<name>]
        clidraw list|new|show|edit|import|export|template|templates|search ...
-       clidraw mcp|config|probe|bench
+       clidraw mcp|config|probe|bench|setup
        clidraw --help|-h|--version|-V";
 
 fn main() -> Result<()> {
@@ -144,6 +144,9 @@ fn main() -> Result<()> {
     }
     if args.first().map(String::as_str) == Some("bench") {
         return bench::run();
+    }
+    if args.first().map(String::as_str) == Some("setup") {
+        return clidraw::setup::run(&args, &mut stdout().lock());
     }
     if args.first().map(String::as_str) == Some("mcp") {
         let store = Store::from_env()?;
