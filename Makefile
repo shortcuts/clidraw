@@ -1,4 +1,13 @@
-.PHONY: build release run test lint fmt fmt-check perf profile check clean screenshots
+.PHONY: install update build release run test lint fmt fmt-check perf profile check clean screenshots
+
+install:
+	cargo install --path .
+	$${CARGO_HOME:-$$HOME/.cargo}/bin/clidraw setup --all
+
+# cargo skips a path install whose version is already installed, so update forces it.
+update:
+	cargo install --path . --force
+	$${CARGO_HOME:-$$HOME/.cargo}/bin/clidraw setup --all
 
 build:
 	cargo build

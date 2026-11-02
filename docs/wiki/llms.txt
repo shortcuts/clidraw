@@ -14,7 +14,23 @@ Run one of these commands:
 
 Check the install with `clidraw --version`.
 
-## MCP setup
+On a fresh machine, install and set up in one line: `brew install shortcuts/tap/clidraw && clidraw setup --all`.
+
+## Connect agents
+
+Run `clidraw setup --all` to add the MCP server to Claude Code, Codex and Cursor. It also writes the canvas rules into the rules file of Claude Code and Codex.
+
+- `clidraw setup --claude`, `--codex` or `--cursor` connects one harness.
+- `clidraw setup --all --uninstall` removes clidraw from every harness. Add a harness flag to remove one.
+- `--all` stops at the first harness that is not installed.
+
+To have an agent do the install and setup, paste this prompt into it:
+
+    Install clidraw, run "clidraw setup --all", then read https://clidraw.shrtcts.fr/llms.txt and confirm the list tool works.
+
+## Manual MCP setup
+
+Use these steps when `clidraw setup` cannot run. They add the MCP server only.
 
 Run `claude mcp add clidraw -- clidraw mcp` for Claude Code, or `codex mcp add clidraw -- clidraw mcp` for Codex.
 

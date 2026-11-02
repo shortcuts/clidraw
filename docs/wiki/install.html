@@ -70,6 +70,15 @@
     <p>Run this command. It prints the installed version:</p>
     <pre><code>clidraw --version</code></pre>
 
+    <h2 id="agents">Connect agents</h2>
+    <p>Run this command after the install. It connects clidraw to Claude Code, Codex and Cursor. The <a href="agents.html">agent guide</a> covers each harness and how to remove clidraw.</p>
+    <pre><code>clidraw setup --all</code></pre>
+    <p>On a fresh machine, run the install and the setup in one line. This example uses Homebrew:</p>
+    <pre><code>brew install shortcuts/tap/clidraw &amp;&amp; clidraw setup --all</code></pre>
+    <p>To have an agent do the install and setup, paste this prompt into it:</p>
+    <pre><code>Install clidraw, run "clidraw setup --all", then read https://clidraw.shrtcts.fr/llms.txt and confirm the list tool works.</code></pre>
+    <p>To remove clidraw from every harness, run <code>clidraw setup --all --uninstall</code>.</p>
+
     <h2 id="next-steps">Next steps</h2>
     <ul>
       <li><a href="index.html">Getting Started</a> draws your first diagram.</li>

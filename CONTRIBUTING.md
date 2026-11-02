@@ -57,6 +57,8 @@ Run these commands from the repo root.
 - `make perf` checks the budgets. See [Performance](#performance).
 - `make profile` records the drag scenario with samply. See [Profile](#profile).
 - `make release` builds the release binary.
+- `make install` installs this checkout with `cargo install --path .`, then runs `clidraw setup --all`. It needs `~/.cargo/bin` on your `PATH`.
+- `make update` reinstalls this checkout with `--force`, then runs `clidraw setup --all`. Use it after you pull new commits.
 - `make screenshots` renders the VHS tapes in `docs/tapes` into `docs/wiki/assets`. It needs `vhs`. See [Screenshots](#screenshots).
 - `cargo test --test e2e` runs the real binary in a pty and asserts on the parsed screen.
 - `DRIVE=steps.txt cargo test --test drive -- --ignored --nocapture` plays a step file against the real binary and prints the screen. Use it for any live check: see `tests/drive.rs` for the steps (`key`, `click_text`, `drag`, `screen`). The harness has mouse clicks, drags, double clicks and the wheel, so no check needs a human.

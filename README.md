@@ -27,6 +27,12 @@ Export to SVG or Mermaid, import Mermaid, and drive it from scripts and agents.
 
 All methods and the terminal requirements are on the [install page](https://clidraw.shrtcts.fr/install.html#methods).
 
+On a fresh machine, install and set up the agents in one line:
+
+```sh
+brew install shortcuts/tap/clidraw && clidraw setup --all
+```
+
 ## Quick start
 
 Run `clidraw first` to open or create the canvas `first`.
@@ -35,7 +41,17 @@ The [getting started guide](https://clidraw.shrtcts.fr/) covers the rest.
 
 ## Agents
 
-Connect an AI agent to clidraw with the [agent guide](https://clidraw.shrtcts.fr/agents.html).
+Add clidraw to Claude Code, Codex and Cursor with one command:
+
+```sh
+clidraw setup --all
+```
+
+Or paste this prompt into your agent:
+
+> Install clidraw, run `clidraw setup --all`, then read https://clidraw.shrtcts.fr/llms.txt and confirm the list tool works.
+
+The [agent guide](https://clidraw.shrtcts.fr/agents.html) covers one harness, removal and manual setup.
 
 ## Documentation
 

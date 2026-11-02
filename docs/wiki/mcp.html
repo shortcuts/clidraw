@@ -48,6 +48,32 @@
 }</code></pre>
     <p>A running UI reloads the canvas within half a second of an agent edit and drops its own unsaved edits. See <a href="where-files-live.html#edits-from-scripts-and-agents">Where files live</a>.</p>
 
+    <h2 id="instructions">Server instructions</h2>
+    <p>The server sends these instructions to the client on connect. <code>clidraw setup</code> writes the same text into the rules file of Claude Code and Codex. Cursor has no rules file.</p>
+    <pre><code>clidraw canvases outlive the agent that draws them. Draw so a later agent with no context can read and extend them.
+
+Before you draw
+- Call `search` with the topic. Call `show` on each canvas that matches.
+- A canvas for the topic exists: extend it with `edit`. Never create a second one.
+- No canvas exists: call `new`.
+
+Canvas name
+- Use `&lt;repo&gt;-&lt;topic&gt;` in lowercase kebab-case, such as `clidraw-auth-flow`. `&lt;repo&gt;` is the repository directory name.
+- Name the topic. Do not use a date or a task name.
+
+Shapes and lines
+- Give every shape an `id` that names the thing: a short kind prefix, then the name, such as `svc-auth` or `db-users`.
+- Give every line the id `&lt;from&gt;-to-&lt;to&gt;`, such as `svc-auth-to-db-users`.
+- Never leave an id random. A later agent edits an element by its id.
+- Give every shape a short `label` that a person reads. Label a line when its meaning is not obvious.
+- Join shapes with `connect` and their ids, so the line follows the shapes.
+- After you add shapes, call `layout`. Use `dir` `td` by default and `lr` for a flow over time.
+
+Code and facts
+- Point a shape at its code with `set` and `link`: `path` or `path:line`, relative to the repository root. `add_shape` has no `link` field, so call `set` after it.
+- Put other facts a reader needs in `meta`, such as the owner or the data format.
+</code></pre>
+
     <h2 id="tools">Tools</h2>
     <h3 class="item" id="tools-list">list</h3>
     <p>List canvas names as a JSON array.</p>
